@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportFileRollup</class>
+ <widget class="QWidget" name="UsdExportFileRollup">
+  <property name="windowTitle">
+   <string>File</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="3,4,2">
+   <item>
+    <widget class="QLabel" name="FileNameLabel">
+     <property name="toolTip">
+      <string>File name defined in the Export Path</string>
+     </property>
+     <property name="text">
+      <string>File Name</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="FileNameLineEdit">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="FileFormatComboBox">
+     <property name="toolTip">
+      <string>The output format for your USD export.&lt;br&gt;Available formats are determined by the previously selected extension. For .usd, you can select Binary or ASCII.&lt;br&gt;&lt;strong&gt;Binary (.usd, .usdc)&lt;/strong&gt;: optimized for machine readability.&lt;br&gt;&lt;strong&gt;ASCII (.usd, .usda)&lt;/strong&gt;: optimized for human readability.</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>ASCII</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Binary</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

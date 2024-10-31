@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" 
+  xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Settings for 3dsmax component configurations -->
+  <ImportGroup Label="PropertySheets">
+    <Import Project="./DependencyPathOverrides.props" Condition="$(HasImportedCommonProps) != '1'"/>
+  </ImportGroup>
+  <!-- Common properties -->
+  <PropertyGroup Label="Globals">
+    <RepoRootDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\'))</RepoRootDir>
+
+    <!-- HasImportedCommonProps is used as a flag to tell propertysheets or vcxproj inheriting from that the 3dsmax.common.settings.props has already been imported before. Propersheets importing this can use to flag to ignore importing a duplicate of this props and avoid the MSB4011 warning during compilation -->
+    <HasImportedCommonProps>1</HasImportedCommonProps>
+
+    <VersionTarget Condition="'$(VersionTarget)'==''">2025</VersionTarget>
+    <PrivateComponentName>usd-component-$(VersionTarget)</PrivateComponentName>
+    <PublicComponentName>3dsmax-usd-$(VersionTarget)</PublicComponentName>
+    <ApplicationPluginsDir>$(RepoRootDir)build\bin\$(Platform)\$(Configuration)\</ApplicationPluginsDir>
+    <SrcDir>$(RepoRootDir)src\</SrcDir>
+    <ContentsDir>$(ApplicationPluginsDir)$(PrivateComponentName)\Contents\</ContentsDir>
+    <LibDir>$(RepoRootDir)build\lib\$(Platform)\$(Configuration)\$(VersionTarget)\</LibDir>
+    <TestOutDir>$(RepoRootDir)build\bin\$(Platform)\$(Configuration)\$(PrivateComponentName)-test</TestOutDir>
+    <!-- Artifacts location -->
+    <Artifacts>$(RepoRootDir)artifacts\</Artifacts>
+    <QTVER Condition=" '$(VersionTarget)'=='2026' ">6.5.3</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'=='2025' ">6.5.3</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'=='2024' ">5.15.1</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'=='2023' ">5.15.1</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'=='2022' ">5.15.1</QTVER>
+    <MaxSDK Condition="'$(MaxSDK)'==''">$(Artifacts)$(VersionTarget)\maxsdk</MaxSDK>
+    <MaxSdkLibRelease>$(MaxSDK)\lib\$(Platform)\Release</MaxSdkLibRelease>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.general.project.settings.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.cpp.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <IntDir>$(RepoRootDir)build\obj\$(Platform)\$(Configuration)\$(VersionTarget)\$(ProjectName)\</IntDir>
+    <MaxPdbDir>$(RepoRootDir)build\lib\$(Platform)\$(Configuration)\$(VersionTarget)\</MaxPdbDir>
+    <IntermediateOutputPath>$(IntDir)</IntermediateOutputPath>
+    <OutDir>$(ContentsDir)\bin\</OutDir>
+    <MaxRestrictedSDKInc>$(RepoRootDir)additional_includes\MaxRestrictedSdk\$(VersionTarget)</MaxRestrictedSDKInc>
+    <!-- 3ds Max MaterialX material plugin location -->
+    <MaterialXDir Condition="'$(MaterialXDir)'==''">$(Artifacts)$(VersionTarget)\$(VersionTarget)_3dsmax-component-materialX</MaterialXDir>
+    <!-- spdlog -->
+    <SpdlogInc Condition="'$(MaxUsdDevKit)'!='' and '$(SpdlogInc)'==''">$(MaxUsdDevKit)\spdlog</SpdlogInc>
+    <SpdlogInc Condition="'$(SpdlogInc)'==''">$(Artifacts)\spdlog</SpdlogInc>
+    <!-- GTest -->
+    <GoogleTestDir Condition="'$(GoogleTestDir)'==''">$(Artifacts)$(VersionTarget)\gtest</GoogleTestDir>
+    <GoogleTestInc>$(GoogleTestDir)\include</GoogleTestInc>
+    <GoogleTestLib>$(GoogleTestDir)\lib</GoogleTestLib>
+    <GoogleTestLib Condition="Exists('$(GoogleTestDir)\lib\$(debug_or_release)')">$(GoogleTestDir)\lib\$(debug_or_release)</GoogleTestLib>
+    <GoogleTestBin>$(GoogleTestDir)\bin</GoogleTestBin>
+    <GoogleTestBin Condition="Exists('$(GoogleTestDir)\bin\$(debug_or_release)')">$(GoogleTestDir)\bin\$(debug_or_release)</GoogleTestBin>
+    <!-- PySide / Shiboken -->
+    <PySideDir Condition="'$(MaxUsdDevKit)'!='' and '$(QTVER)'&gt;='6.0.0' and '$(PySideDir)'==''">$(MaxUsdDevKit)\PySide6\Pyside6</PySideDir>
+    <PySideDir Condition="'$(MaxUsdDevKit)'!='' and '$(QTVER)'&lt;='6.0.0' and '$(PySideDir)'==''">$(MaxUsdDevKit)\PySide2\site-packages/PySide2</PySideDir>
+    <PySideDir Condition="'$(QTVER)'&gt;='6.0.0' and '$(PySideDir)'==''">$(Artifacts)$(VersionTarget)\PySide6\PySide6</PySideDir>
+    <PySideDir Condition="'$(QTVER)'&lt;'6.0.0'  and '$(PySideDir)'==''">$(Artifacts)$(VersionTarget)\PySide2\site-packages/PySide2</PySideDir>
+    <PySideShibokenDir Condition="'$(MaxUsdDevKit)'!='' and '$(QTVER)'&gt;='6.0.0' and '$(PySideShibokenDir)'==''">$(MaxUsdDevKit)\PySide6\shiboken6</PySideShibokenDir>
+    <PySideShibokenDir Condition="'$(MaxUsdDevKit)'!='' and '$(QTVER)'&lt;='6.0.0' and '$(PySideShibokenDir)'==''">$(MaxUsdDevKit)PySide2\site-packages\shiboken2</PySideShibokenDir>
+    <PySideShibokenDir Condition="'$(QTVER)'&gt;='6.0.0' and '$(PySideShibokenDir)'==''">$(Artifacts)$(VersionTarget)\PySide6\shiboken6</PySideShibokenDir>
+    <PySideShibokenDir Condition="'$(QTVER)'&lt;'6.0.0' and '$(PySideShibokenDir)'==''">$(Artifacts)$(VersionTarget)\PySide2\site-packages\shiboken2</PySideShibokenDir>
+    <PySideInc>$(PySideDir)\include</PySideInc>
+    <PySideShibokenInc>$(PySideShibokenDir)_generator\include</PySideShibokenInc>
+    <PySideLib>$(PySideDir)</PySideLib>
+    <PySideShibokenLib>$(PySideShibokenDir)</PySideShibokenLib>
+    <PySideLibraries Condition=" '$(VersionTarget)'=='2026' ">shiboken6.cp311-win_amd64.lib;pyside6.cp311-win_amd64.lib</PySideLibraries>
+    <PySideLibraries Condition=" '$(VersionTarget)'=='2025' ">shiboken6.cp311-win_amd64.lib;pyside6.cp311-win_amd64.lib</PySideLibraries>
+    <PySideLibraries Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.lib;pyside2.abi3.lib</PySideLibraries>
+    <PySideLibraries Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.lib;pyside2.cp39-win_amd64.lib</PySideLibraries>
+    <PySideLibraries Condition=" '$(VersionTarget)'=='2022' ">shiboken2.cp37-win_amd64.lib;pyside2.cp37-win_amd64.lib</PySideLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
+    <QtMsBuild>$(Artifacts)$(VersionTarget)\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
+    <Import Project="$(QtMsBuild)\qt_defaults.props" />
+  </ImportGroup>
+  <PropertyGroup Condition=" '$(QTVER)'&gt;='6.0.0' " Label="QtSettings">
+    <QtModules>core;gui;widgets;opengl</QtModules>
+    <QtInstall Condition="'$(QtInstall)' == '' OR !Exists('$(QtInstall)')">$(Artifacts)$(VersionTarget)\Qt\$(QTVER)</QtInstall>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(QTVER)'&lt;'6.0.0' " Label="QtSettings">
+    <QtModules>core;gui;widgets</QtModules>
+    <QtInstall Condition="'$(QtInstall)' == '' OR !Exists('$(QtInstall)')">$(Artifacts)$(VersionTarget)\Qt\$(QTVER)</QtInstall>
+  </PropertyGroup>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
+    <Import Project="$(QtMsBuild)\qt.props" />
+  </ImportGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>SPDLOG_WCHAR_TO_UTF8_SUPPORT;SPDLOG_WCHAR_FILENAMES;FMT_HEADER_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition=" '$(QTVER)'&gt;='6.0.0' " >USE_PYSIDE_6;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SpdlogInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard Condition="'$(VersionTarget)'&gt;='2026'">stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <!-- Prevent MUI creation command being called (from 3dsmax.common.tools.settings.props) until a proper loc process gets in place -->
+    <PostBuildEvent>
+        <Command></Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+</Project>

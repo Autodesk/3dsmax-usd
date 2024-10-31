@@ -1,0 +1,267 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.20.0"
+    }
+    defaultPrim = "partial_subset_consolidation"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "partial_subset_consolidation"
+{
+    def Mesh "Box001"
+    {
+        float3[] extent = [(-8.028923, -9.392155, 0), (8.028923, 9.392155, 9.453747)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+        point3f[] points = [(-8.028923, -9.392155, 0), (8.028923, -9.392155, 0), (-8.028923, 9.392155, 0), (8.028923, 9.392155, 0), (-8.028923, -9.392155, 9.453747), (8.028923, -9.392155, 9.453747), (-8.028923, 9.392155, 9.453747), (8.028923, 9.392155, 9.453747)]
+        color3f[] primvars:displayColor = [(0.8901961, 0.6, 0.6)]
+        texCoord2f[] primvars:map1 = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "faceVarying"
+        )
+        float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-43.0279, -3.33251, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def GeomSubset "_1_Material__43" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [1]
+            rel material:binding = </partial_subset_consolidation/Materials/Material__43>
+        }
+
+        def GeomSubset "_2_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 2
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [0]
+        }
+
+        def GeomSubset "_3_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 3
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [5]
+        }
+
+        def GeomSubset "_4_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 4
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [3]
+        }
+
+        def GeomSubset "_5_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 5
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [2]
+        }
+
+        def GeomSubset "_6_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 6
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [4]
+        }
+    }
+
+    def Mesh "Box002"
+    {
+        float3[] extent = [(-11.145199, -11.855919, 0), (11.145199, 11.855919, 12.652005)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+        point3f[] points = [(-11.145199, -11.855919, 0), (11.145199, -11.855919, 0), (-11.145199, 11.855919, 0), (11.145199, 11.855919, 0), (-11.145199, -11.855919, 12.652005), (11.145199, -11.855919, 12.652005), (-11.145199, 11.855919, 12.652005), (11.145199, 11.855919, 12.652005)]
+        color3f[] primvars:displayColor = [(0.34509805, 0.69411767, 0.105882354)]
+        texCoord2f[] primvars:map1 = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "faceVarying"
+        )
+        float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (10.2993, -0.857711, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def GeomSubset "_1_Material__43" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [1]
+            rel material:binding = </partial_subset_consolidation/Materials/Material__43>
+        }
+
+        def GeomSubset "_2_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 2
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [0]
+        }
+
+        def GeomSubset "_3_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 3
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [5]
+        }
+
+        def GeomSubset "_4_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 4
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [3]
+        }
+
+        def GeomSubset "_5_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 5
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [2]
+        }
+
+        def GeomSubset "_6_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 6
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [4]
+        }
+    }
+
+    def "Materials"
+    {
+        def Material "Material__43"
+        {
+            token inputs:frame:map1 = "map1"
+            token outputs:surface.connect = </partial_subset_consolidation/Materials/Material__43/Material__43.outputs:surface>
+
+            def Shader "Material__43"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0.01
+                color3f inputs:diffuseColor.connect = </partial_subset_consolidation/Materials/Map__1.outputs:rgb>
+                float inputs:displacement = 0
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.5
+                float inputs:metallic = 0
+                normal3f inputs:normal = (0, 0, 1)
+                float inputs:occlusion = 1
+                float inputs:opacity = 1
+                float inputs:opacityThreshold = 0
+                float inputs:roughness = 0.5
+                color3f inputs:specularColor = (0, 0, 0)
+                int inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+        }
+
+        def Shader "Map__1"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @uv_checker.png@
+            float2 inputs:st.connect = </partial_subset_consolidation/Materials/Map__1/TextureTransform_map1.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+
+            def Shader "PrimvarReader_map1"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname.connect = </partial_subset_consolidation/Materials/Material__43.inputs:frame:map1>
+                float2 outputs:result
+            }
+
+            def Shader "TextureTransform_map1"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </partial_subset_consolidation/Materials/Map__1/PrimvarReader_map1.outputs:result>
+                float inputs:rotation = 0
+                float2 inputs:scale = (1, 1)
+                float2 inputs:translation = (0, 0)
+                float2 outputs:result
+            }
+        }
+    }
+}
+

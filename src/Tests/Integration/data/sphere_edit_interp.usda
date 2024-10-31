@@ -1,0 +1,32 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.4.0"
+    }
+    defaultPrim = "Sphere001"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Mesh "Sphere001" (
+    customData = {
+        dictionary "3dsmax" = {
+            int matId = 2
+        }
+    }
+)
+{
+    float3[] extent = [(-10.489979, -10.489979, -10.489979), (10.489979, 10.489979, 10.489979)]
+    int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3]
+    int[] faceVertexIndices = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1, 5, 2, 1, 5, 3, 2, 5, 4, 3, 5, 1, 4]
+    point3f[] points = [(0, 0, 10.489979), (-4.5853153e-7, 10.489979, -4.5853153e-7), (-10.489979, -9.1706306e-7, -4.5853153e-7), (1.2509174e-7, -10.489979, -4.5853153e-7), (10.489979, 0.0000018341261, -4.5853153e-7), (0, 0, -10.489979)]
+    color3f[] primvars:displayColor = [(0.88235295, 0.7764706, 0.34117648)]
+
+    float3[] primvars:normals = [(2.4646326e-8, 0, 1), (-9.858529e-8, 1, -2.4646322e-8), (-1, -4.9292645e-8, -2.4646322e-8), (4.929265e-8, -1, -2.4646326e-8), (1, 4.929265e-8, 0), (2.4646326e-8, 0, -1)] (
+        interpolation = "vertex"
+    )
+    uniform token subdivisionScheme = "none"
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-2.05996, 3.79379, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+}
+

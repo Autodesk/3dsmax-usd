@@ -1,0 +1,32 @@
+# Build and dependencies files:
+build/
+artifacts/
+package/
+src/packages
+# Ufe Runtime Icons, junctionned in from artifact. QT requirement.
+src/MaxUsdObjects/Icons/UfeRt
+
+# Development configuration files:
+src/.vs
+samples/.vs
+*.vcxproj.user
+
+# Generated files:
+*.pyc
+test-results/
+*.log
+resource.aps
+.env/
+.vscode/
+docs/out/
+.env*/
+.env
+src/**/GeneratedFiles/
+!src/**/GeneratedFiles/tfiles/*.ts
+.idea
+*_backup.max
+docs/html/
+SDK/
+src/Tests/Integration/SystemTestGup/
+*.TMP
+devkit/

@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>UFEUI</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{0E1A6B42-080B-475C-8F53-613C47A99C81}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.common.settings.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">true</EmbedManifest>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EmbedManifest>
+    <TargetName>UfeUi</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>UFEUI_EXPORTS;_USRDLL;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UfeInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4251;4275;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="editCommand.h" />
+    <ClInclude Include="genericCommand.h" />
+    <ClInclude Include="highlightItemDelegate.h" />
+    <ClInclude Include="icon.h" />
+    <ClInclude Include="qExplorerTreeViewContextMenu.h" />
+    <ClInclude Include="replaceSelectionCommand.h" />
+    <ClInclude Include="ufeUiAPI.h" />
+    <ClInclude Include="itemSearch.h" />
+    <ClInclude Include="explorerSearchThread.h" />
+    <ClInclude Include="standardTreeColumns.h" />
+    <ClInclude Include="treeColumn.h" />
+    <ClInclude Include="treeItem.h" />
+    <QtMoc Include="treeModel.h" />
+    <ClInclude Include="utils.h" />
+    <QtMoc Include="Views\explorer.h" />
+    <QtMoc Include="Views\tabWidget.h" />
+    <QtMoc Include="Views\explorerHost.h" />
+    <QtMoc Include="Views\explorerStyle.h" />
+    <QtMoc Include="Widgets\qFilenameEdit.h" />
+    <ClInclude Include="Widgets\qSpinnerOverlayWidget.h" />
+    <ClInclude Include="Widgets\qSpinnerWidget.h" />
+    <ClInclude Include="Widgets\resizeEventFilter.h" />
+    <ClInclude Include="Views\qExplorerTreeView.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="editCommand.cpp" />
+    <ClCompile Include="highlightItemDelegate.cpp" />
+    <ClCompile Include="icon.cpp" />
+    <ClCompile Include="itemSearch.cpp" />
+    <ClCompile Include="explorerSearchThread.cpp" />
+    <ClCompile Include="qExplorerTreeViewContextMenu.cpp" />
+    <ClCompile Include="replaceSelectionCommand.cpp" />
+    <ClCompile Include="standardTreeColumns.cpp" />
+    <ClCompile Include="treeColumn.cpp" />
+    <ClCompile Include="treeItem.cpp" />
+    <ClCompile Include="treeModel.cpp" />
+    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="Views\explorer.cpp" />
+    <ClCompile Include="Views\explorerHost.cpp" />
+    <ClCompile Include="Views\explorerStyle.cpp" />
+    <ClCompile Include="Views\qExplorerTreeView.cpp" />
+    <ClCompile Include="Views\tabWidget.cpp" />
+    <ClCompile Include="Widgets\qFilenameEdit.cpp" />
+    <ClCompile Include="Widgets\qSpinnerOverlayWidget.cpp" />
+    <ClCompile Include="Widgets\qSpinnerWidget.cpp" />
+    <ClCompile Include="Widgets\resizeEventFilter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\explorer.ui" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

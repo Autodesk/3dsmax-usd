@@ -1,0 +1,59 @@
+#usda 1.0
+(
+    defaultPrim = "root"
+    endTimeCode = 3
+    framesPerSecond = 30
+    metersPerUnit = 0.0254
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Cube "Cube"
+    {
+        float floatVal.timeSamples = {
+            0: 10,
+            1: 20,
+            2: 30
+        }
+
+        float2 float2Val.timeSamples = {
+            0: (1,2),
+            1: (10,11),
+            2: (20,22),
+        }
+        
+        float3 float3Val.timeSamples = {
+            0: (11,10,10),
+            1: (22,20,10),
+            2: (33,30,10)
+        }
+        
+        float4 float4Val.timeSamples = {
+            0: (11,10,10,5),
+            1: (22,20,10,10),
+            2: (33,30,10,15)
+        }
+
+        color3f color3Val.timeSamples = {
+            0: (0.5,0,0),
+            1: (0,0.5,0),
+            2: (0,0,0.5)
+        }
+        
+        color4f color4Val.timeSamples = {
+            0: (0,1,0,0.25),
+            1: (1,0,0,0.5),
+            2: (0,0,1,0.75)
+        }
+        
+        int intVal.timeSamples = {
+            0: 77,
+            1: 88,
+            2: 99
+        }
+    }
+}
+

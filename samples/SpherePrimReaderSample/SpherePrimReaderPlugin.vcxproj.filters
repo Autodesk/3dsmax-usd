@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="SpherePrimReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SpherePrimReader.h">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="PackageContents.xml" />
+    <None Include="Contents\plugInfo.json">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+    <None Include="Contents\python\plugInfo.json">
+      <Filter>Source Files\python</Filter>
+    </None>
+    <None Include="Contents\RegisterPlugin.ms">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+    <None Include="Contents\python\SpherePrimReader.py">
+      <Filter>Source Files\python</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{dd38d7f3-3c3d-435f-91f0-4942c731cd56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\python">
+      <UniqueIdentifier>{1c1443d9-57da-4918-a1e4-1458209a98af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{0a465c0d-eacc-4ed1-a273-97598cf28a73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Contents">
+      <UniqueIdentifier>{5cbeeec9-de6b-430c-a27a-03d0db1e3bd4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

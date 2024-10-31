@@ -1,0 +1,23 @@
+{
+    # Comments are allowed and indicated by a hash at the start of a
+    # line or after spaces and tabs.  They continue to the end of line.
+    # Blank lines are okay, too.   
+    "Plugins": [
+      {
+         "Info": {
+             # Max specific token
+             "MaxUsd": {
+                # The ImportChaser key is all that is needed for the plugin to be found and loaded on import.
+                "ImportChaser": {},
+                # The JobContextPlugin key is all that is needed for the context plugin to be found and loaded on import.
+                "JobContextPlugin": {}
+            }
+         },
+         # This is the name of the python script that implements the import chaser.
+         # This file needs to be found on runtime by python, it's path must be added
+         # to the python paths. See RegisterPlugin.ms for an exemple on how to do that.
+         "Name": "UserDataImportChaser",
+         "Type": "python"
+      }
+   ]
+}

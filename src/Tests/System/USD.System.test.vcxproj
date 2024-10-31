@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>USD.System.tests</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{457D8A56-BCD5-41B6-AC35-3EA86CB6FBAE}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <Distrib>0</Distrib>
+    <Distrib Condition="'$(BuildType)'=='jenkins'">1</Distrib>
+    <BuildNumber Condition="'$(BuildNumber)'==''">0</BuildNumber>
+    <ComponentVersion Condition="'$(ComponentVersion)'==''">0.0.1</ComponentVersion>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">true</EmbedManifest>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EmbedManifest>
+    <TargetName>USD.System.test</TargetName>
+    <TargetExt>.gup</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">
+    <OutDir>$(TestOutDir)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(TestOutDir)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>_USRDLL;QT_NO_SIGNALS_SLOTS_KEYWORDS;USDCORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(GoogleTestInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>$(ProjectDir)/usd_system_tests_banned.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4251;4275;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(GoogleTestLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>core.lib;bmm.lib;geom.lib;mesh.lib;maxutil.lib;mnmath.lib;maxscrpt.lib;paramblk2.lib;gup.lib;GraphicsDriver.lib;poly.lib;optimesh.lib;gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+    </Link>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+    </CustomBuildStep>
+    <CustomBuildStep />
+    <PreBuildEvent>
+      <Message>
+      </Message>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>Copying runtime files</Message>
+      <Command>robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(GoogleTestBin) $(TestOutDir) gtest.dll
+if %errorlevel% geq 4 exit /b 1
+rmdir $(SolutionDir)\Tests\Integration\SystemTestGup
+mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Link>
+      <AdditionalDependencies>DataBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>$(ProjectDir)USD.System.test.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>$(ProjectDir)USD.System.test.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="MaxScriptInterface.cpp" />
+    <ClCompile Include="MaxUsdObjects.Camera.test.cpp" />
+    <ClCompile Include="RenderDelegate.LightGizmos.cpp" />
+    <ClCompile Include="TestGUP.cpp" />
+    <ClCompile Include="USDCore.max.test.cpp" />
+    <ClCompile Include="MaxIntegrationTestListener.cpp" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="TestGUP.h" />
+    <ClInclude Include="TestHelpers.h" />
+    <ClInclude Include="MaxIntegrationTestListener.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RenderDelegate.General.test.cpp" />
+    <ClCompile Include="TestHelpers.cpp" />
+    <ClCompile Include="RenderDelegate.PrimvarsToNitrous.test.cpp" />
+    <ClCompile Include="MaxUsdObjects.SelectionBuffer.test.cpp" />
+    <ClCompile Include="RenderDelegate.ViewportDisplayOptions.test.cpp" />
+    <ClCompile Include="RenderDelegate.ViewportInstancing.test.cpp" />
+    <ClCompile Include="RenderDelegate.Consolidation.test.cpp" />
+    <ClCompile Include="RenderDelegate.FallbackRendering.test.cpp" />
+    <ClCompile Include="MaxUsdObjects.SubobjectTransforms.test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="USD.System.test.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\maxUsd\maxUsd.vcxproj">
+      <Project>{d02163f8-70ee-4676-b3ea-7c89e71b44d4}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\RenderDelegate\RenderDelegate.vcxproj">
+      <Project>{7b707dd2-355b-4232-89e8-f92a821b71b3}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MaxUsdObjects\MaxUsdObjects.vcxproj">
+      <Project>{046cf5d0-8dbf-46fb-8d73-11f1861f81f1}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- IMPORTANT: Note that the "patch" segment of "AppVersion" and "FriendlyVersion" are set by the build environment. -->
+<ApplicationPackage SchemaVersion="1.0"
+    ProductType="Application"
+    AutodeskProduct="3ds Max"
+    Name="USD for 3ds Max"
+    Description="Autodesk USD for 3ds Max"
+    AppVersion="0.9.4"
+    FriendlyVersion="0.9.4"
+    HelpFile="./Contents/Help/en-US/index.html"
+    SupportedLocales="Enu"
+    AppNameSpace="appstore.exchange.autodesk.com"
+    Author="Autodesk, Inc."
+    ProductCode="*"
+    UpgradeCode="{637EC730-XXXX-4D5B-B7C9-5F93E12D577F}">
+
+    <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+
+    <CompanyDetails Name="Autodesk, Inc." Url="www.autodesk.com" Email="me.support@autodesk.com" />
+
+    <Components Description="plugins parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/Bin/USDImport.dli" />
+        <ComponentEntry ModuleName="./Contents/Bin/USDExport.dle" />
+        <ComponentEntry ModuleName="./Contents/Bin/MaxUsdObjects.dlo" />
+    </Components>
+    <Components Description="pre-start-up scripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/scripts/register-usd-python-runtime.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/usd-python-scripts.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/materials/USDMaterialAttributeHolder.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/materials/UsdPreviewSurface.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/register-usd-plugin-paths.ms" />
+    </Components>
+    <Components Description="macroscripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/scripts/registerMenu.mcr" />
+        <ComponentEntry ModuleName="./Contents/scripts/materials/UsdMaterialAttributeMacro.mcr" />
+    </Components>
+    
+    <!--Embedded MaterialX plugin-->
+    <Components Description="osl folders parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/MaterialX_plugin/Contents/OSL/" />
+        </Components>
+    <Components Description="plugins parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/MaterialX_plugin/Contents/bin/MaterialXIO.dlu" />
+    </Components>
+    <Components Description="post-start-up scripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/MaterialX_plugin/Contents/scripts/MtlxMaterial.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/materialx/register-materialx-target.ms" />
+        <ComponentEntry ModuleName="./Contents/scripts/materialx/registerPlugin.ms" />
+    </Components>
+</ApplicationPackage>

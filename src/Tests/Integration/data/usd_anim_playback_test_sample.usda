@@ -1,0 +1,7 @@
+#usda 1.0
+(
+    endTimeCode = 129
+    startTimeCode = 101
+    upAxis = "Z"
+    timeCodesPerSecond = 24
+)

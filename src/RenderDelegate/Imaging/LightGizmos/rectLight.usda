@@ -1,0 +1,20 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.8.4.0"
+    }
+    defaultPrim = "root"
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Mesh "gizmo"
+    {
+        float3[] extent = [(-0.5, -0.5, 0), (0.5, 0.5, 0.0001)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [2, 3, 0, 1]
+        point3f[] points = [(0.5, 0.5, 0), (-0.5, 0.5, 0), (-0.5, -0.5, 0), (0.5, -0.5, 0)]
+    }
+}
+

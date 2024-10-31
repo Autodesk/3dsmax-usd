@@ -1,0 +1,8 @@
+#usda 1.0
+(
+    upAxis = "Z"
+	metersPerUnit = 0.001
+)
+def Sphere "sphere" {
+    double radius = 4.0
+}

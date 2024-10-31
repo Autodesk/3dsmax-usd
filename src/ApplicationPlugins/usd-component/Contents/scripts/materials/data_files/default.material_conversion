@@ -1,0 +1,431 @@
+{
+    "usd_preview_surface_to_max_usd_preview_surface": {
+        "target_material": {
+            "id": "MaxUsdPreviewSurface",
+            "domain": "3dsmax"
+        },
+        "source_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": "useSpecularWorkflow",
+                "opacityThreshold": "opacityThreshold",
+                "diffuseColor": "diffuseColor",
+                "diffuseColor_map": "diffuseColor",
+                "roughness": "roughness",
+                "roughness_map": "roughness",
+                "metallic": "metallic",
+                "metallic_map": "metallic",
+                "specularColor": "specularColor",
+                "specularColor_map": "specularColor",
+                "normal": "normal",
+                "normal_map": "normal",
+                "occlusion": "occlusion",
+                "occlusion_map": "occlusion",
+                "emissiveColor": "emissiveColor",
+                "emissiveColor_map": "emissiveColor",
+                "opacity": "opacity",
+                "opacity_map": "opacity",
+                "displacement": "displacement",
+                "displacement_map": "displacement",
+                "ior": "ior",
+                "ior_map": "ior",
+                "clearcoat": "clearcoat",
+                "clearcoat_map": "clearcoat",
+                "clearcoatRoughness": "clearcoatRoughness",
+                "clearcoatRoughness_map": "clearcoatRoughness"
+            }
+        }
+    },
+    "max_usd_preview_surface_to_usd_preview_surface": {
+        "source_material": {
+            "id": "MaxUsdPreviewSurface",
+            "domain": "3dsmax"
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": "useSpecularWorkflow",
+                "opacityThreshold": "opacityThreshold",
+                "diffuseColor": {
+                    "value_parameter": "diffuseColor",
+                    "map_parameter": "diffuseColor_map"
+                },
+                "roughness": {
+                    "value_parameter": "roughness",
+                    "map_parameter": "roughness_map"
+                },
+                "metallic": {
+                    "value_parameter": "metallic",
+                    "map_parameter": "metallic_map"
+                },
+                "specularColor": {
+                    "value_parameter": "specularColor",
+                    "map_parameter": "specularColor_map"
+                },
+                "normal": {
+                    "value_parameter": "normal",
+                    "map_parameter": "normal_map"
+                },
+                "occlusion": {
+                    "value_parameter": "occlusion",
+                    "map_parameter": "occlusion_map"
+                },
+                "emissiveColor": {
+                    "value_parameter": "emissiveColor",
+                    "map_parameter": "emissiveColor_map"
+                },
+                "opacity": {
+                    "value_parameter": "opacity",
+                    "map_parameter": "opacity_map"
+                },
+                "displacement": {
+                    "value_parameter": "displacement",
+                    "map_parameter": "displacement_map"
+                },
+                "ior": {
+                    "value_parameter": "ior",
+                    "map_parameter": "ior_map"
+                },
+                "clearcoat": {
+                    "value_parameter": "clearcoat",
+                    "map_parameter": "clearcoat_map"
+                },
+                "clearcoatRoughness": {
+                    "value_parameter": "clearcoatRoughness",
+                    "map_parameter": "clearcoatRoughness_map"
+                }
+            }
+        }
+    },
+    "usd_preview_surface_to_pbr_metal_rough": {
+        "target_material": {
+            "id": "PBRMetalRough",
+            "domain": "3dsmax"
+        },
+        "source_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "basecolor": "diffuseColor",
+                "base_color_map": "diffuseColor",
+                "roughness": "roughness",
+                "roughness_map": "roughness",
+                "metalness": "metallic",
+                "metalness_map": "metallic",
+                "norm_map": "normal",
+                "ao_map": "occlusion",
+                "emit_color": "emissiveColor",
+                "emit_color_map": "emissiveColor",
+                "opacity_map": "opacity"
+            }
+        }
+    },
+    "usd_preview_surface_to_physical_material": {
+        "source_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "target_material": {
+            "id": "PhysicalMaterial",
+            "domain": "3dsmax"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "Base_Color": "diffuseColor",
+                "base_color_map": "diffuseColor",
+                "base_color_map_on": "diffuseColor",
+                "roughness": "roughness",
+                "roughness_map": "roughness",
+                "roughness_map_on": "roughness",
+                "metalness": "metallic",
+                "metalness_map": "metallic",
+                "metalness_map_on": "metallic",
+                "bump_map": "normal",
+                "bump_map_on": "normal",
+                "transparency": {
+                    "value_parameter": "opacity",
+                    "one_minus": true
+                }
+            }
+        }
+    },
+    "max_physical_material_to_usd_preview_surface": {
+        "source_material": {
+            "id": "PhysicalMaterial",
+            "max_class_id": [
+                1030429932,
+                3735928833
+            ],
+            "domain": "3dsmax"
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": 0,
+                "diffuseColor": {
+                    "value_parameter": "Base_Color",
+                    "map_parameter": "base_color_map",
+                    "use_map_parameter": "base_color_map_on"
+                },
+                "specularColor": {},
+                "emissiveColor": {
+                    "value_parameter": "emit_color",
+                    "map_parameter": "emission_map",
+                    "use_map_parameter": "emission_map_on",
+                    "multiplier_parameter": "emission"
+                },
+                "displacement": {
+                    "value_parameter": "displacement_map_amt",
+                    "map_parameter": "displacement_map",
+                    "use_map_parameter": "displacement_map_on",
+                    "map_required": true
+                },
+                "opacity": {
+                    "case": {
+                        "case_parameter": "transparency_map",
+                        "None": {
+                            "case": {
+                                "case_parameter": "cutout_map",
+                                "+": {
+                                    "map_parameter": "cutout_map",
+                                    "use_map_parameter": "cutout_map_on",
+                                    "one_minus": false,
+                                    "map_required": true
+                                }
+                            }
+                        }
+                    },
+                    "value_parameter": "Transparency",
+                    "map_parameter": "transparency_map",
+                    "use_map_parameter": false,
+                    "one_minus": true
+                },
+                "opacityThreshold": {
+                    "case": {
+                        "case_parameter": "transparency_map",
+                        "None": {
+                            "case": {
+                                "case_parameter": "cutout_map",
+                                "+": {
+                                    "value": 0.5
+                                }
+                            }
+                        }
+                    },
+                    "value": 0.0
+                },
+                "roughness": {
+                    "value_parameter": "roughness",
+                    "map_parameter": "roughness_map",
+                    "use_map_parameter": "roughness_map_on",
+                    "case": {
+                        "case_parameter": "roughness_inv",
+                        "True": {
+                            "one_minus": true
+                        },
+                        "False": {
+                            "one_minus": false
+                        }
+                    }
+                },
+                "metallic": {
+                    "value_parameter": "metalness",
+                    "map_parameter": "metalness_map",
+                    "use_map_parameter": "metalness_map_on"
+                },
+                "clearcoat": {
+                    "value_parameter": "coating",
+                    "map_parameter": "coat_map",
+                    "use_map_parameter": "coat_map_on"
+                },
+                "clearcoatRoughness": {
+                    "value_parameter": "coat_roughness",
+                    "map_parameter": "coat_rough_map",
+                    "use_map_parameter": "coat_rough_map_on"
+                },
+                "occlusion": {},
+                "normal": {
+                    "map_parameter": "bump_map",
+                    "use_map_parameter": "bump_map_on"
+                },
+                "ior": {
+                    "value_parameter": "trans_ior",
+                    "map_parameter": "trans_ior_map",
+                    "use_map_parameter": "trans_ior_map_on"
+                }
+            }
+        }
+    },
+    "pbr_metal_rough_to_usd_preview_surface": {
+        "source_material": {
+            "id": "PBRMetalRough",
+            "domain": "3dsmax",
+            "max_class_id": [
+                3490651648,
+                3195528448
+            ]
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": 0,
+                "diffuseColor": {
+                    "value_parameter": "basecolor",
+                    "map_parameter": "base_color_map"
+                },
+                "emissiveColor": {
+                    "value_parameter": "emit_color",
+                    "map_parameter": "emit_color_map"
+                },
+                "displacement": {
+                    "value_parameter": "displacement_amt",
+                    "map_parameter": "displacement_map",
+                    "map_required": true
+                },
+                "opacity": {
+                    "map_parameter": "opacity_map"
+                },
+                "opacityThreshold": {},
+                "roughness": {
+                    "value_parameter": "roughness",
+                    "map_parameter": "roughness_map",
+                    "case": {
+                        "case_parameter": "useGlossiness",
+                        "1": {
+                            "one_minus": true
+                        },
+                        "2": {
+                            "one_minus": false
+                        }
+                    }
+                },
+                "metallic": {
+                    "value_parameter": "metalness",
+                    "map_parameter": "metalness_map"
+                },
+                "occlusion": {
+                    "map_parameter": "ao_map"
+                },
+                "normal": {
+                    "map_parameter": "norm_map"
+                }
+            }
+        }
+    },
+    "pbr_spec_gloss_to_usd_preview_surface": {
+        "source_material": {
+            "id": "PBRSpecGloss",
+            "domain": "3dsmax"
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": 1,
+                "diffuseColor": {
+                    "value_parameter": "basecolor",
+                    "map_parameter": "base_color_map"
+                },
+                "emissiveColor": {
+                    "value_parameter": "emit_color",
+                    "map_parameter": "emit_color_map"
+                },
+                "displacement": {
+                    "value_parameter": "displacement_amt",
+                    "map_parameter": "displacement_map",
+                    "map_required": true
+                },
+                "opacity": {
+                    "map_parameter": "opacity_map"
+                },
+                "opacityThreshold": {},
+                "roughness": {
+                    "value_parameter": "glossiness",
+                    "map_parameter": "glossiness_map",
+                    "case": {
+                        "case_parameter": "useGlossiness",
+                        "1": {
+                            "one_minus": true
+                        },
+                        "2": {
+                            "one_minus": false
+                        }
+                    }
+                },
+                "specularColor": {
+                    "value_parameter": "specular",
+                    "map_parameter": "specular_map"
+                },
+                "occlusion": {
+                    "map_parameter": "ao_map"
+                },
+                "normal": {
+                    "map_parameter": "norm_map"
+                }
+            }
+        }
+    },
+    "ai_standard_surface_to_usd_preview_surface": {
+        "source_material": {
+            "id": "ai_standard_surface",
+            "domain": "3dsmax"
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "useSpecularWorkflow": 0,
+                "diffuseColor": {
+                    "value_parameter": "base_color",
+                    "map_parameter": "base_color_shader",
+                    "use_map_parameter": "base_color_connected"
+                },
+                "specularColor": {},
+                "emissiveColor": {},
+                "displacement": {},
+                "opacity": {},
+                "opacityThreshold": {},
+                "roughness": {
+                    "value_parameter": "specular_roughness",
+                    "map_parameter": "specular_roughness_shader",
+                    "use_map_parameter": "specular_roughness_connected"
+                },
+                "metallic": {
+                    "value_parameter": "metalness",
+                    "map_parameter": "metalness_shader",
+                    "use_map_parameter": "metalness_connected"
+                },
+                "clearcoat": {},
+                "clearcoatRoughness": {},
+                "occlusion": {},
+                "normal": {
+                    "map_parameter": "normal_shader",
+                    "use_map_parameter": "normal_connected"
+                },
+                "ior": {
+                    "value_parameter": "specular_IOR",
+                    "map_parameter": "specular_IOR_shader",
+                    "use_map_parameter": "specular_IOR_connected"
+                }
+            }
+        }
+    }
+}

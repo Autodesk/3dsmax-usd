@@ -1,0 +1,4 @@
+LIBRARY MaxUsd_Translators.dll
+EXPORTS
+SECTIONS
+   .data READ WRITE

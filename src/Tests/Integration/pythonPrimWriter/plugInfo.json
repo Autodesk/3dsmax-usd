@@ -1,0 +1,13 @@
+{
+   "Plugins":[
+      {
+         "Info":{
+            "MaxUsd":{
+               "PrimWriter" : {}
+            }
+         },
+         "Name":"primWriterFromJson",
+         "Type":"python"
+      }
+   ]
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+	AutodeskProduct="3ds Max"
+	Name="glTFShaderWriter"
+	Description="glTF material USD ShaderWriter sample plugin"
+	AppVersion="1.0.0"
+	ProductType="Application"
+	Author="Autodesk"
+	ProductCode="*"
+	UpgradeCode="{15c129dd-e05a-49d7-bddc-b5fc4c3f8628}">
+  <CompanyDetails Name="Autodesk, Inc." Url="www.autodesk.com" Email="me.support@autodesk.com" />
+  <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+  <Components Description="post-start-up scripts parts">
+    <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+    <ComponentEntry ModuleName="./Contents/RegisterPlugin.ms" />
+  </Components>
+</ApplicationPackage>

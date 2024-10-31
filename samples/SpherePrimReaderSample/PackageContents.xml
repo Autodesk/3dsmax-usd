@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+	AutodeskProduct="3ds Max"
+	Name="SpherePrimReader"
+	Description="Max USD Sphere Prim Reader"
+	AppVersion="1.0.0"
+	ProductType="Application"
+	Author="Autodesk"
+	ProductCode="*"
+	UpgradeCode="{9d2ff0c2-d880-11ed-afa1-0242ac120002}">
+	<CompanyDetails Name="Autodesk, Inc." Url="www.autodesk.com" Email="me.support@autodesk.com" />
+	<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+	<Components Description="post-start-up scripts parts">
+		<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+		<ComponentEntry ModuleName="./Contents/RegisterPlugin.ms" />
+	</Components>
+</ApplicationPackage>

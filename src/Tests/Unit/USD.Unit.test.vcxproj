@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3bcf1b3e-b79e-441b-81ee-2a72e20d9282}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\USD.props" />
+    <Import Project="..\..\3dsmax.component.settings.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <OutDir>$(ContentsDir)bin\</OutDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClInclude Include="TestUtils.h" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MaxUsd.VtDictionaryUtils.test.cpp" />
+    <ClCompile Include="Mocks\MockCoreInterface.cpp" />
+    <ClCompile Include="TestUtils.cpp" />
+    <ClCompile Include="MaxUsd.ChannelBuilder.test.cpp" />
+    <ClCompile Include="MaxUsd.CreaseDataConversion.test.cpp" />
+    <ClCompile Include="MaxUsd.MapChannelConversion.test.cpp" />
+    <ClCompile Include="MaxUsd.MappedAttributeBuilder.test.cpp" />
+    <ClCompile Include="MaxUsd.MaterialUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.MathUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.MeshConversion.test.cpp" />
+    <ClCompile Include="MaxUsd.MeshNormals.test.cpp" />
+    <ClCompile Include="MaxUsd.MeshUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.test.cpp" />
+    <ClCompile Include="MaxUsd.TranslationUtils.test.cpp" />
+    <ClInclude Include="Mocks\DllDirInternal.h" />
+    <ClInclude Include="Mocks\MockBitmapIO.h" />
+    <ClInclude Include="Mocks\MockCoreInterface.h" />
+    <ClInclude Include="Mocks\MockDllDir.h" />
+    <ClInclude Include="Mocks\MockFPInterface.h" />
+    <ClInclude Include="Mocks\MockINode.h" />
+    <ClInclude Include="Mocks\MockLog.h" />
+    <ClInclude Include="Mocks\MockModifier.h" />
+    <ClInclude Include="Mocks\MockObject.h" />
+    <ClInclude Include="Mocks\MockPathConfigMgr.h" />
+    <ClInclude Include="Mocks\MockRenderer.h" />
+    <ClInclude Include="Mocks\MockStdMat.h" />
+    <ClInclude Include="Mocks\MockViewExp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\maxUsd\maxUsd.vcxproj">
+      <Project>{d02163f8-70ee-4676-b3ea-7c89e71b44d4}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MaxUsd.MeshFacade.test.cpp" />
+    <ClCompile Include="MaxUsd.ShaderWriterRegistry.test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="unittest_banned.h" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(GoogleTestInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>$(ProjectDir)/unittest_banned.h</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(GoogleTestLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>core.lib;bmm.lib;geom.lib;mesh.lib;maxutil.lib;mnmath.lib;gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">
+    <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

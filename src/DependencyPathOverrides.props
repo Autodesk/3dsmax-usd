@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" 
+	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="DependencyPaths">
+		<!-- The path location for the 'MaxSDK' folder -->
+		<MaxSDK></MaxSDK>
+		<!-- The path for the Qt version from QtVsTools (aka 'Qt Installation') -->
+		<QtInstall></QtInstall>
+		<!-- The path location for the 'googletest' folder
+		     (the path where the lib/bin/include folders are located) -->
+		<GoogleTestDir></GoogleTestDir>
+		<!-- The path location for the 3ds Max MaterialX material plugin folder (optional) -->
+		<MaterialXDir></MaterialXDir>
+		<!-- The path location where the 'OpenGL' Python module (PyOpenGL) folder
+		     This could be in "%APPDATA%\Python\Python3xx\site-packages" -->
+		<PyOpenGLDir></PyOpenGLDir>
+		<!-- The path location for the 3ds Max USD 'devkit' -->
+		<MaxUsdDevKit></MaxUsdDevKit>
+		<!-- The following paths are usually found inside the 'devkit' folder.
+		     If you are using the 'devkit' as-is, there is no need to define those paths -->
+		<!-- The path location for 'spdlog' include folder -->
+		<SpdlogInc></SpdlogInc>
+		<!-- The path location for the 'PySide6' Python module -->
+		<PySideDir></PySideDir>
+		<!-- The path location for the 'shiboken6' Python module 
+		     Expected to be at the same level of 'shiboken6_generator' Python module-->
+		<PySideShibokenDir></PySideShibokenDir>
+		<!-- The path location for the 'Python' folder -->
+		<PythonLocation></PythonLocation>
+		<!-- The path location for the 'Ufe' include folder -->
+		<UfeInc></UfeInc>
+		<!-- The path location for the 'Ufe' lib folder -->
+		<UfeLib></UfeLib>
+		<!-- The path location for the 'UsdUfe' folder -->
+		<UsdUfeDir></UsdUfeDir>
+		<!-- The path location for the 'UsdLayerEditor' folder -->
+		<UsdLayerEditorDir></UsdLayerEditorDir>
+		<!-- The path location for the 'OpenUSD' folder -->
+		<PxrUsdRoot></PxrUsdRoot>
+		<!-- The following paths are usually found inside the 'OpenUSD' folder.
+		     The 3ds Max USD component solution is configured by default to define
+		     the following paths using the 'OpenUSD' folder (the 'PxrUsdRoot' definition above).
+		     Those definitions can be overriden over the defaults if required. -->
+		<!-- The path location for the 'TBB' folder -->
+		<TBBDir></TBBDir>
+		<!-- The path location for the 'Boost' include folder -->
+		<BoostInc></BoostInc>
+		<!-- The path location for the 'Boost' lib folder -->
+		<BoostLib></BoostLib>
+	</PropertyGroup>
+</Project>

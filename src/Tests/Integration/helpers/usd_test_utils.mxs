@@ -1,0 +1,366 @@
+--
+-- Copyright 2023 Autodesk
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+--
+function getUsdImporterPluginIndex =
+(
+    for i = 1 to pluginManager.pluginDllCount do ( 
+        if (pluginManager.pluginDllName i) == "usdimport.dli" then return i
+    )
+    return -1;
+)
+
+function getUsdExporterPluginIndex =
+(
+    for i = 1 to pluginManager.pluginDllCount do ( 
+        if (pluginManager.pluginDllName i) == "usdexport.dle" then return i
+    )
+    return -1;
+)
+
+function getUsdBinPath =
+(
+    pluginIndex = getUsdImporterPluginIndex()
+    usdBinPath = pluginManager.pluginDllDirectory pluginIndex
+    -- In versions < 2023, pluginManager.pluginDllDirectory would return the plugin's dll 
+    -- path and not the directory, this issue was since fixed.
+    if (getFilenameType usdBinPath) != "" do (
+        usdBinPath = pathConfig.removePathLeaf usdBinPath
+    )
+    return usdBinPath
+)
+
+function setupUsdPlugins =
+(
+    --make sure that USDImporter.dli is loaded
+    pluginManager.loadClass USDImporter
+    --make sure that USDExporter dle is loaded
+    pluginManager.loadClass USDExporter
+    --make sure that MaxUsdObjects dlo is loaded if it exists.
+    try (pluginmanager.loadclass USDStageObject) catch () 
+
+    --make sure that usd python bindings are accessible
+    pluginIndex = getUsdImporterPluginIndex()
+    assert_true (pluginIndex > 0) message:"Could not find usdimport.dli plugin"
+    usdPythonPath = pathConfig.removePathLeaf (pluginManager.pluginDllDirectory pluginIndex)
+    usdPythonPath = pathConfig.appendPath usdPythonPath "python"
+    pysys = python.import("sys")
+    if pysys.path.__contains__(usdPythonPath) then print "usd python path already set" else pysys.path.insert 0 usdPythonPath
+)
+FLT_EPSILON = 1e-5
+
+function compareFloats f1 f2 = 
+(
+    if abs(f1 - f2) > FLT_EPSILON then (
+        return false
+    )
+    return true
+)
+
+function compare2dMatrix matrix1 matrix2 numberOfRow numberOfColumn =
+(
+    if numberOfRow < 1 or numberOfColumn < 1 do return false
+
+    for i = 1 to numberOfRow do (
+        for j = 1 to numberOfColumn do (
+            if abs(matrix1[i][j] - matrix2[i][j]) > FLT_EPSILON then (
+                return false
+            )
+        )
+    )
+    return true
+)
+
+function compareVec3fArrays array1 array2 =
+(
+    local countEqual = array1.count == array2.count
+    if not countEqual do 
+    (
+        return false
+    )
+    for i = 1 to array1.count do 
+    (
+        if (array1[i][1] != array2[i][1]) or (array1[i][2] != array2[i][2]) or (array1[i][3] != array2[i][3]) do 
+        (
+            return false
+        )
+    )
+    return true
+)
+
+function compareUsdAndMaxTransforms usdTransform maxTransform =
+(
+    -- Max uses a 4x3 matrix
+    return compare2dMatrix usdTransform maxTransform 4 3
+)
+
+-- Sanitize naming for automation framework to avoid triggering false fails due to parsed keywords in logs
+function removeAutomationKeywords functionName =
+(
+    f = substituteString (functionName as string) "error" "err*r"
+    f = substituteString f "exception" "excepti*n"
+    f = substituteString f "failure" "failu*e"
+    f = substituteString f "assert" "as*ert"
+    return f
+)
+
+function runUsdTestFixture fixture filename =
+(
+    if undefined == run_test_fixture then
+    (
+        -- Back out of all the undos
+        local undoDepth = 0
+        while theHold.Holding() do
+        (
+            theHold.Accept ""
+            undoDepth+=1
+        )
+        clearListener()
+        foo = fixture()
+        format "\n[TEST_FIXTURE]\n"
+        for t in foo.Tests do (
+            t_sanitized = removeAutomationKeywords t
+
+            -- If `assert_managed_python` is defined, assert(s) clearing is managed by the calling python script.
+            -- `assert_managed_python` is set when this script is called from `test_runner.py`, which is called by `run_integration_test.py`.
+            -- (`run_integration_test.py` is a test utility wrapper used to run USD tests.)
+
+            if undefined == assert_managed_python then
+            (
+                AssertReporter.Clear()
+            )
+
+            format "[SETUP] %\n" t_sanitized
+            foo.setup()
+            
+            local assert_failure_tracker = AssertReporter.GetAssertFailuresCount()
+            local test_name = substituteString (t as string) "()" ""
+            local instance_function = getProperty foo test_name
+            instance_function()
+
+            if AssertReporter.GetAssertFailuresCount() > assert_failure_tracker then (
+                print (AssertReporter.GetMessages())
+            ) else (
+                format "Successfully executed %\n" t_sanitized
+            )
+            format "[TEARDOWN] %\n" t_sanitized
+            foo.Teardown()
+        )
+        -- Reinstate all the undos
+        for i=1 to undoDepth do
+        (
+            theHold.Begin()
+        )
+    )
+    else
+    (
+        clearlistener()
+        format "-- Fixture found!\n"
+        run_test_fixture fixture script:filename
+    )
+)
+
+    
+function compareMaxAndUsdColors &maxColor &usdColor label = 
+(
+    local message = "Unexpected value for " + label
+    assert_float_equal (maxColor.r/255) usdColor[1] message: message
+    assert_float_equal (maxColor.g/255) usdColor[2] message: message
+    assert_float_equal (maxColor.b/255) usdColor[3] message: message
+)
+
+testBaseColorValue = (color 111 222 111)
+testEmitColorValue = (color 123 124 125)
+testSpecularColorValue = (color 121 122 127)
+testNormalColorValue = (color 12 44 145)
+testTransparencyValue = 0.23
+testRoughnessValue = 0.44
+testMetalnessValue = 0.12
+testCoatingValue = 0.543
+testCoatRoughnessValue = 0.213
+testTransIorValue = 1.2
+testOcclusionValue = 0.4
+testOpacityThresholdValue = 0.69
+testDisplacementValue = 0.001
+
+function setupValuesOnPhysMtl &physicalMtl = (
+    physicalMtl.Base_Color = testBaseColorValue
+    physicalMtl.emit_color = testEmitColorValue
+    physicalMtl.Transparency = testTransparencyValue
+    physicalMtl.roughness = testRoughnessValue
+    physicalMtl.metalness = testMetalnessValue
+    physicalMtl.coating = testCoatingValue
+    physicalMtl.coat_roughness = testCoatRoughnessValue
+    physicalMtl.trans_ior = testTransIorValue    
+)
+
+function setupValuesOnPreviewSurfaceMtl &previewSurfaceMtl = (
+    previewSurfaceMtl.diffuseColor = testBaseColorValue
+    previewSurfaceMtl.emissiveColor = testEmitColorValue
+    previewSurfaceMtl.opacity = testTransparencyValue
+    previewSurfaceMtl.roughness = testRoughnessValue
+    previewSurfaceMtl.metallic = testMetalnessValue
+    previewSurfaceMtl.clearcoat = testCoatingValue
+    previewSurfaceMtl.clearcoatRoughness = testCoatRoughnessValue
+    previewSurfaceMtl.ior = testTransIorValue
+    previewSurfaceMtl.specularColor = testSpecularColorValue
+    previewSurfaceMtl.occlusion = testOcclusionValue
+    previewSurfaceMtl.normal = testNormalColorValue
+    previewSurfaceMtl.opacityThreshold = testOpacityThresholdValue
+    previewSurfaceMtl.displacement = testDisplacementValue
+)
+
+
+function validateValueOnPhysMtl &shaderPrim = (
+    local usdDiffuseColor = (shaderPrim.GetInput("diffuseColor")).Get()
+    compareMaxAndUsdColors testBaseColorValue usdDiffuseColor "diffuseColor"
+        
+    local usdEmissiveColor = (shaderPrim.GetInput("emissiveColor")).Get()
+    compareMaxAndUsdColors testEmitColorValue usdEmissiveColor "emissiveColor"
+            
+    local usdOpacity = (shaderPrim.GetInput("opacity")).Get()
+    assert_float_equal (1 - testTransparencyValue) usdOpacity Message:"Unexpected opacity value."
+            
+    local usdRoughness = (shaderPrim.GetInput("roughness")).Get()
+    assert_float_equal testRoughnessValue usdRoughness Message:"Unexpected roughness value."
+            
+    local usdMetallic = (shaderPrim.GetInput("metallic")).Get()
+    assert_float_equal testMetalnessValue usdMetallic Message:"Unexpected metallic value."
+            
+    local usdClearcoat = (shaderPrim.GetInput("clearcoat")).Get()
+    assert_float_equal testCoatingValue usdClearcoat Message:"Unexpected coating value."
+            
+    local usdClearcoatRoughness = (shaderPrim.GetInput("clearcoatRoughness")).Get()
+    assert_float_equal testCoatRoughnessValue usdClearcoatRoughness Message:"Unexpected clearcoatRoughness value."
+        
+    local usdIor = (shaderPrim.GetInput("ior")).Get()
+    assert_float_equal testTransIorValue usdIor Message:"Unexpected ior value."
+)
+
+function validateValueOnPreviewSurfaceMtl &shaderPrim = (
+    local usdDiffuseColor = (shaderPrim.GetInput("diffuseColor")).Get()
+    compareMaxAndUsdColors testBaseColorValue usdDiffuseColor "diffuseColor"
+
+    local usdEmissiveColor = (shaderPrim.GetInput("emissiveColor")).Get()
+    compareMaxAndUsdColors testEmitColorValue usdEmissiveColor "emissiveColor"
+
+    local usdOpacity = (shaderPrim.GetInput("opacity")).Get()
+    assert_float_equal testTransparencyValue usdOpacity Message:"Unexpected opacity value."
+
+    local usdRoughness = (shaderPrim.GetInput("roughness")).Get()
+    assert_float_equal testRoughnessValue usdRoughness Message:"Unexpected roughness value."
+
+    local usdMetallic = (shaderPrim.GetInput("metallic")).Get()
+    assert_float_equal testMetalnessValue usdMetallic Message:"Unexpected metallic value."
+
+    local usdClearcoat = (shaderPrim.GetInput("clearcoat")).Get()
+    assert_float_equal testCoatingValue usdClearcoat Message:"Unexpected coating value."
+
+    local usdClearcoatRoughness = (shaderPrim.GetInput("clearcoatRoughness")).Get()
+    assert_float_equal testCoatRoughnessValue usdClearcoatRoughness Message:"Unexpected clearcoatRoughness value."
+
+    local usdIor = (shaderPrim.GetInput("ior")).Get()
+    assert_float_equal testTransIorValue usdIor Message:"Unexpected ior value."
+
+    local usdSpecularColor = (shaderPrim.GetInput("specularColor")).Get()
+    compareMaxAndUsdColors testSpecularColorValue usdSpecularColor "specularColor"
+
+    local usdNormalColor = (shaderPrim.GetInput("normal")).Get()
+    compareMaxAndUsdColors testNormalColorValue usdNormalColor "normalColor"
+
+    local usdOcclusion = (shaderPrim.GetInput("occlusion")).Get()
+    assert_float_equal testOcclusionValue usdOcclusion Message:"Unexpected occlusion value."
+
+    local usdOpacityThreshold = (shaderPrim.GetInput("opacityThreshold")).Get()
+    assert_float_equal testOpacityThresholdValue usdOpacityThreshold Message:"Unexpected opacityThreshold value."
+
+    local usdDisplacement = (shaderPrim.GetInput("displacement")).Get()
+    assert_float_equal testDisplacementValue usdDisplacement Message:"Unexpected displacement value."
+)
+
+function deleteTestFiles pattern = 
+(
+    for f in (getfiles (pattern)) do deleteFile f
+)
+
+function processPythonUnittestResults results =
+(
+    failures = results.failures
+    num_failures = failures.count
+
+    for i = 1 to num_failures do (
+        curr_failure = failures[i] 
+        curr_failure_message = curr_failure[2]
+        assert_true false message:curr_failure_message
+    )
+
+    errors = results.errors
+    num_errors = errors.count
+
+    for i = 1 to num_errors do (
+        curr_error = errors[i] 
+        curr_error_message = curr_error[2]
+        assert_true false message:curr_error_message
+    )
+)
+
+if assert_float_equal == undefined do (
+    function assert_float_equal a b message:"" = 
+    (
+        assert_equal (a as float) (b as float) message:message
+    )
+)
+
+-- assert_quat_equal does not exist in older max version.
+if assert_quat_equal == undefined do (
+    function assert_quat_equal a b =
+    (
+        normalize a
+        normalize b
+        local diff = a - b
+        assert_float_equal diff.x 0
+        assert_float_equal diff.y 0
+        assert_float_equal diff.z 0
+    )
+)
+
+function create_clone originalNode cloneType newNodeName = (
+    maxOps.cloneNodes #(originalNode) cloneType:cloneType actualNodeList:&list newNodes:&newNodes
+    if newNodes.count < 1 do (
+        return undefined
+    )         
+    newNodes[1].name = newNodeName
+    return newNodes[1]
+)
+
+function check_usd_file_valid usdFile = (
+    outputLog = (getDir #temp) + @"\3dsmax_usd_usdchecker_result.txt"
+    pyMaxUsd = python.import("maxUsd")
+    pyMaxUsd.RunUsdChecker usdFile outputLog
+    
+    local success = false
+    
+    -- Scan the output for "success"
+    fs = openFile outputLog
+    while not eof fs do (
+       lineStr = readline fs
+       if lineStr == "Success!" do (
+           success = true
+           exit           
+       )
+    )
+    close fs
+    deleteFile outputLog
+    return success
+)

@@ -1,0 +1,6 @@
+USD_STAGE_MENU_ITEM   =   "USD Stage..."
+FILE_MENU_MAIN   =   "&File"
+REFERENCE_MENU_ITEM   =   "&Reference"
+USD_EXPLORER_MENU_ITEM   =   "USD Explorer..."
+USD_LAYER_EDITOR_MENU_ITEM   =   "USD Layer Editor..."
+TOOLS_MENU_ITEM   =   "&Tools"

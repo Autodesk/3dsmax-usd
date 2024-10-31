@@ -1,0 +1,404 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{ad6e765e-4300-41dc-b185-05b019286785}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Source Files\Views">
+      <UniqueIdentifier>{048c7b60-937a-493e-b975-e9dfbff7d23b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Views">
+      <UniqueIdentifier>{72134a6e-22c5-4cfe-87a1-3c1305a47226}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Objects">
+      <UniqueIdentifier>{538dd7c4-4a15-44ba-b48f-7f39ce8606cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Objects">
+      <UniqueIdentifier>{f92e142c-e4f7-4e18-a808-1253e220a104}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Objects\CreateCallbacks">
+      <UniqueIdentifier>{bfb65ba1-aab2-4f06-82c4-69ab53de2ad3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Objects\CreateCallbacks">
+      <UniqueIdentifier>{640556ee-71a4-4a80-8377-b4db7bebf7c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MaxUsdUfe">
+      <UniqueIdentifier>{6db10d37-8749-4fba-b457-8aaee9e56e59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MaxUsdUfe">
+      <UniqueIdentifier>{1cc662d3-495c-47e5-9ab1-6164de23189d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\LayerEditor">
+      <UniqueIdentifier>{e5dbcb94-249a-4e28-83a1-ffb99ce171e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\LayerEditor">
+      <UniqueIdentifier>{a40f589f-ecdc-4325-b9ab-ae11d6f087bd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClassDescs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USDPickingRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USDAssetAccessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageNodeParametersRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageNodePrimSelectionDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageViewportDisplayRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageViewportPerformanceRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageNodeAnimationRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDStageObject.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDStageObjectclassDesc.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\CreateCallbacks\CreateAtPosition.cpp">
+      <Filter>Source Files\Objects\CreateCallbacks</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageRenderSettingsRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="USDExplorer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\UfeUtils.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\StageObjectMap.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdStagesSubject.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdUIInfoHandler.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdObject3dHandler.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdObject3d.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdUndoVisibleCommand.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUfeUndoableCmdMgr.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdContextOpsHandler.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdContextOps.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdUndoMakeVisibleCommand.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdEditCommand.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdHierarchyHandler.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\MaxUsdRootChildHierarchy.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\UsdTreeColumns.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdStageViewportSelectionRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDTransformControllers.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDTransformControllersClassDesc.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdControllerWidget.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDCameraObject.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDCameraObjectClassDesc.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdCameraObjectRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDBaseController.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDAttrControllers.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDAttrControllerClassDescs.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdUfe\QmaxUsdUfeAttributesWidget.cpp">
+      <Filter>Source Files\MaxUsdUfe</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDSnaps.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\SubobjectManips.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxLayerEditorWindow.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxSessionState.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\USDLayerEditor.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\SaveUSDOptionsDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\USDLayerManager.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClassDescs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maxusdobjects_banned.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDPickingRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDAssetAccessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdObjectsAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDStageObjectIcon.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDStageObjectclassDesc.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDStageObject.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDTransformControllers.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDTransformControllersClassDesc.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\CreateCallbacks\CreateAtPosition.h">
+      <Filter>Header Files\Objects\CreateCallbacks</Filter>
+    </ClInclude>
+    <ClInclude Include="USDExplorer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\UfeUtils.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\StageObjectMap.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdStagesSubject.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdUIInfoHandler.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdUndoVisibleCommand.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdContextOpsHandler.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdContextOps.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdUndoMakeVisibleCommand.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdObject3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdObject3dHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdEditCommand.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdHierarchyHandler.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUsdRootChildHierarchy.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\UsdTreeColumns.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDCameraObject.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDCameraObjectClassDesc.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDBaseController.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDAttrControllerClassDescs.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDAttrControllers.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\USDSnaps.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUsdUfe\MaxUfeUndoableCommandMgr.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\SubobjectManips.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LayerEditor\USDLayerEditor.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="LayerEditor\USDLayerManager.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MaxUsdObjects.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Views\UsdStageNodeParametersRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageNodePrimSelectionDialog.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageViewportDisplayRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageViewportPerformanceRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageNodeAnimationRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageRenderSettingsRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdControllerWidget.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdStageViewportSelectionRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdCameraObjectRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="MaxUsdUfe\QmaxUsdUfeAttributesWidget.h">
+      <Filter>Header Files\MaxUsdUfe</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerEditor\MaxSessionState.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerEditor\MaxLayerEditorWindow.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\SaveUSDOptionsDialog.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\UsdStageNodePrimSelectionDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageViewportDisplayRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageViewportPerformanceRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageRenderSettingsRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageNodeAnimationRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageNodeParametersRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdStageViewportSelectionRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdCameraObjectRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdControllerWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\SaveUSDOptionsDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="resource.qrc">
+      <Filter>Form Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+</Project>

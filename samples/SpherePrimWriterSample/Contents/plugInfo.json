@@ -1,0 +1,21 @@
+{
+   # Comments are allowed and indicated by a hash at the start of a
+   # line or after spaces and tabs.  They continue to the end of line.
+   # Blank lines are okay, too.
+   "Plugins":[
+      {
+         "Info":{
+            # Max specific token
+            "MaxUsd":{
+               # This is left empty by design, the "CanConvert" method will be responsible
+               # of determining if this prim writer can be used.
+               # The PrimWriter key is all that is need for the plugin to be found and loaded on export.
+               "PrimWriter" : {}
+            }
+         },
+         "Name": "SpherePrimWriter",
+         "Type": "library",
+         "LibraryPath": "SpherePrimWriter.dll"
+      }
+   ]
+ }

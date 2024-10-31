@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" 
+	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="UserMacros">
+		<UfeInc Condition="'$(MaxUsdDevKit)'!='' and '$(UfeInc)'==''">$(MaxUsdDevKit)\ufe\include</UfeInc>
+		<UfeLib Condition="'$(MaxUsdDevKit)'!='' and '$(UfeLib)'==''">$(MaxUsdDevKit)\ufe\lib</UfeLib>
+		<UfeInc Condition="'$(UfeInc)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-5.3.0\common\include</UfeInc>
+		<UfeLib Condition="'$(UfeLib)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-5.3.0\platform\Windows\RelWithDebInfo\lib</UfeLib>
+	</PropertyGroup>
+	
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<AdditionalIncludeDirectories>$(UfeInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+		</ClCompile>
+		<Link>
+			<AdditionalLibraryDirectories>$(UfeLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>ufe_5.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
+</Project>

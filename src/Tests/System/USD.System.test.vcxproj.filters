@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="headers">
+      <UniqueIdentifier>{d1b99d79-cc9a-4cbd-bb6a-175df939f1e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{117cbc4e-d5cb-484e-985e-746aace4d1b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\Tests">
+      <UniqueIdentifier>{5dc2c0c6-fc46-4aa5-93c1-bc54b2066384}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxScriptInterface.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="TestGUP.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxIntegrationTestListener.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.General.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="USDCore.max.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="TestHelpers.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.ViewportDisplayOptions.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.ViewportInstancing.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.PrimvarsToNitrous.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.Consolidation.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.FallbackRendering.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdObjects.SelectionBuffer.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdObjects.SubobjectTransforms.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsdObjects.Camera.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDelegate.LightGizmos.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="TestGUP.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="TestHelpers.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxIntegrationTestListener.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="USD.System.test.def" />
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

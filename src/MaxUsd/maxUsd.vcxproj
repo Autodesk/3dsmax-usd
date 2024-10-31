@@ -1,0 +1,308 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>MaxUsd</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{D02163F8-70EE-4676-B3EA-7C89E71B44D4}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <Distrib>0</Distrib>
+    <Distrib Condition="'$(BuildType)'=='jenkins'">1</Distrib>
+    <BuildNumber Condition="'$(BuildNumber)'==''">0</BuildNumber>
+    <ComponentVersion Condition="'$(ComponentVersion)'==''">0.0.1</ComponentVersion>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">true</EmbedManifest>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EmbedManifest>
+    <TargetName>maxUsd</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>_USRDLL;MAXUSD_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UI_DIR);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>$(ProjectDir)/maxusd_banned.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(QtLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>core.lib;geom.lib;assetmanagement.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;paramblk2.lib;MaxQtBridge.lib;FragmentGraph.lib;GraphicsDriver.lib;GraphicsUtility.lib;ViewSystem.lib;MaxGraphicsObjects.lib;mnmath.lib;Poly.lib;optimesh.lib;gup.lib;DataBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+    </Link>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+    </CustomBuildStep>
+    <CustomBuildStep />
+    <PreBuildEvent>
+      <Message>Update version headers</Message>
+      <Command>if $(Distrib) == 1 powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-scripts\Prepare-VersionHeaders.ps1" -SourceFolder $(SolutionDir) -BuildNumber $(BuildNumber) -ComponentVersion $(ComponentVersion)
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>Copying runtime files and prepare PackageContents.XML</Message>
+      <Command>robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(SolutionDir)ApplicationPlugins\usd-component\ $(TargetDir)\..\..
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PyOpenGLDir) $(TargetDir)\python-usd-tool-packages\ /XF "ARTIFACT" /XD "__pycache__" /XD PySide* /XD shiboken*
+if %errorlevel% geq 4 exit /b 1
+robocopy /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\lib\ $(TargetDir) *.dll *.pdb
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\lib\usd\ $(TargetDir)\usd\
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\lib\python\ $(TargetDir)\python\ /XD "__pycache__"
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\libraries\ $(TargetDir)\..\libraries\
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\plugin\ $(TargetDir)\..\plugin\ /XF *.lib
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) /XF *.dll *.pdb
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) hdf5*.dll
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-2_3.dll
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-2_5.dll
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) MaterialX*.dll
+if %errorlevel% geq 4 exit /b 1
+if exist "$(MaterialXDir)/" (
+    robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(MaterialXDir)" $(TargetDir)\..\MaterialX_plugin /XF "ARTIFACT"
+    if %errorlevel% geq 4 exit /b 1
+) else (
+    echo Warning: Missing 3ds Max MaterialX material plugin
+)
+if %errorlevel% geq 4 exit /b 1
+
+powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-scripts\Prepare-PackageContents.ps1" -TargetVersion $(VersionTarget) -Distrib $(Distrib) -Config $(Configuration) -BuildNumber $(BuildNumber) -ComponentVersion $(ComponentVersion)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <ClCompile>
+      <!-- https://github.com/PixarAnimationStudios/USD/issues/1095 -->
+      <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoveUnreferencedCodeData>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Builders\JobContextRegistry.cpp" />
+    <ClCompile Include="Builders\MaxSceneBuilder.cpp" />
+    <ClCompile Include="Builders\MaxSceneBuilderOptions.cpp" />
+    <ClCompile Include="Builders\SceneBuilderOptions.cpp" />
+    <ClCompile Include="Builders\USDSceneBuilder.cpp" />
+    <ClCompile Include="Builders\USDSceneBuilderOptions.cpp" />
+    <ClCompile Include="CameraConversion\CameraConverter.cpp" />
+    <ClCompile Include="ChannelBuilder.cpp" />
+    <ClCompile Include="Chaser\ExportChaser.cpp" />
+    <ClCompile Include="Chaser\ExportChaserRegistry.cpp" />
+    <ClCompile Include="Chaser\ImportChaser.cpp" />
+    <ClCompile Include="Chaser\ImportChaserRegistry.cpp" />
+    <ClCompile Include="CurveConversion\CurveConverter.cpp" />
+    <ClCompile Include="Interfaces\IOLoggingMxsInterface.cpp" />
+    <ClCompile Include="Interfaces\IUSDExportOptions.cpp" />
+    <ClCompile Include="Interfaces\IUSDImportOptions.cpp" />
+    <ClCompile Include="MappedAttributeBuilder.cpp" />
+    <ClCompile Include="MaterialConversion\MaterialConverter.cpp" />
+    <ClCompile Include="MeshConversion\MaxMeshConversionOptions.cpp" />
+    <ClCompile Include="MaxTokens.cpp" />
+    <ClCompile Include="Translators\AnimExportTask.cpp" />
+    <ClCompile Include="Translators\FallbackPrimReader.cpp" />
+    <ClCompile Include="Translators\FunctorPrimReader.cpp" />
+    <ClCompile Include="Translators\LastResortUSDPreviewSurfaceWriter.cpp" />
+    <ClCompile Include="Translators\PrimReader.cpp" />
+    <ClCompile Include="Translators\PrimReaderRegistry.cpp" />
+    <ClCompile Include="Translators\PrimWriterRegistry.cpp" />
+    <ClCompile Include="Translators\ReadJobContext.cpp" />
+    <ClCompile Include="Translators\PrimWriter.cpp" />
+    <ClCompile Include="Translators\ShaderReader.cpp" />
+    <ClCompile Include="Translators\ShaderReaderRegistry.cpp" />
+    <ClCompile Include="Translators\ShadingModeImporter.cpp" />
+    <ClCompile Include="Translators\TranslatorLight.cpp" />
+    <ClCompile Include="Translators\TranslatorMaterial.cpp" />
+    <ClCompile Include="Translators\RegistryHelper.cpp" />
+    <ClCompile Include="Translators\ShaderWriter.cpp" />
+    <ClCompile Include="Translators\ShaderWriterRegistry.cpp" />
+    <ClCompile Include="Translators\ShadingModeExporter.cpp" />
+    <ClCompile Include="Translators\ShadingModeExporterContext.cpp" />
+    <ClCompile Include="Translators\ShadingModeRegistry.cpp" />
+    <ClCompile Include="Translators\ShadingModeUseRegistry.cpp" />
+    <ClCompile Include="Translators\ShadingUtils.cpp" />
+    <ClCompile Include="Translators\TranslatorMorpher.cpp" />
+    <ClCompile Include="Translators\TranslatorPrim.cpp" />
+    <ClCompile Include="Translators\TranslatorSkel.cpp" />
+    <ClCompile Include="Translators\TranslatorUtils.cpp" />
+    <ClCompile Include="Translators\TranslatorXformable.cpp" />
+    <ClCompile Include="Translators\WriteJobContext.cpp" />
+    <ClCompile Include="Utilities\HydraUtils.cpp" />
+    <ClCompile Include="Utilities\ListenerUtils.cpp" />
+    <ClCompile Include="Utilities\MaxRestrictedSupportUtils.cpp" />
+    <ClCompile Include="Utilities\MaxSupportUtils.cpp" />
+    <ClCompile Include="Utilities\OptionUtils.cpp" />
+    <ClCompile Include="Utilities\TimeUtils.cpp" />
+    <ClCompile Include="Utilities\UsdLinkUtils.cpp" />
+    <ClCompile Include="Utilities\VtDictionaryUtils.cpp" />
+    <ClCompile Include="Utilities\DiagnosticDelegate.cpp" />
+    <ClCompile Include="Utilities\MaterialRef.h" />
+    <ClCompile Include="Utilities\MxsUtils.cpp" />
+    <ClCompile Include="Utilities\TranslationUtils.cpp" />
+    <ClCompile Include="MeshConversion\MeshConverter.cpp" />
+    <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="USDCore.cpp" />
+    <ClCompile Include="MeshConversion\PrimvarMappingOptions.cpp" />
+    <ClCompile Include="USDSceneController.cpp" />
+    <ClCompile Include="UsdStageSource.cpp" />
+    <ClCompile Include="Utilities\Logging.cpp" />
+    <ClCompile Include="Utilities\MaterialUtils.cpp" />
+    <ClCompile Include="Utilities\MathUtils.cpp" />
+    <ClCompile Include="Utilities\MaxProgressBar.cpp" />
+    <ClCompile Include="Utilities\MeshUtils.cpp" />
+    <ClCompile Include="Utilities\MetaDataUtils.cpp" />
+    <ClCompile Include="Utilities\PluginUtils.cpp" />
+    <ClCompile Include="Utilities\UiUtils.cpp" />
+    <ClCompile Include="MeshConversion\MeshFacade.cpp" />
+    <ClCompile Include="Utilities\UsdToolsUtils.cpp" />
+    <ClCompile Include="Widgets\ElidedLabel.cpp" />
+    <ClCompile Include="Widgets\QDiagnosticMessagesModel.cpp" />
+    <ClCompile Include="Widgets\DiagnosticMessagesModelFactory.cpp" />
+    <ClCompile Include="Widgets\QmaxUsdDoubleSpinBox.cpp" />
+    <ClCompile Include="Widgets\ResizeEventFilter.cpp" />
+    <ClCompile Include="Widgets\QSpinnerOverlayWidget.cpp" />
+    <ClCompile Include="Widgets\QSpinnerWidget.cpp" />
+    <ClCompile Include="Widgets\QTreeItem.cpp" />
+    <ClCompile Include="Widgets\QTreeModel.cpp" />
+    <ClCompile Include="Widgets\TooltipEventFilter.cpp" />
+    <ClCompile Include="Widgets\TreeModelFactory.cpp" />
+    <ClCompile Include="Widgets\USDSearchThread.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\MaxUsd.h" />
+    <ClInclude Include="..\USDComponentVersion.h" />
+    <ClInclude Include="..\USDComponentVersionNumber.h" />
+    <ClInclude Include="Builders\JobContextRegistry.h" />
+    <ClInclude Include="Builders\MaxSceneBuilder.h" />
+    <ClInclude Include="Builders\MaxSceneBuilderOptions.h" />
+    <ClInclude Include="Builders\SceneBuilderOptions.h" />
+    <ClInclude Include="Builders\USDSceneBuilder.h" />
+    <ClInclude Include="Builders\USDSceneBuilderOptions.h" />
+    <ClInclude Include="CameraConversion\CameraConverter.h" />
+    <ClInclude Include="ChannelBuilder.h" />
+    <ClInclude Include="Chaser\ExportChaser.h" />
+    <ClInclude Include="Chaser\ExportChaserRegistry.h" />
+    <ClInclude Include="CurveConversion\CurveConverter.h" />
+    <ClInclude Include="DebugCodes.h" />
+    <ClInclude Include="Chaser\ImportChaser.h" />
+    <ClInclude Include="Chaser\ImportChaserRegistry.h" />
+    <ClInclude Include="Interfaces\IOLoggingMxsInterface.h" />
+    <ClInclude Include="Interfaces\IUSDExportOptions.h" />
+    <ClInclude Include="Interfaces\IUSDImportOptions.h" />
+    <ClInclude Include="Interfaces\IUSDStageProvider.h" />
+    <ClInclude Include="MaterialConversion\MaterialConverter.h" />
+    <ClInclude Include="MaxTokens.h" />
+    <ClInclude Include="MeshConversion\MaxMeshConversionOptions.h" />
+    <ClInclude Include="Translators\AnimExportTask.h" />
+    <ClInclude Include="Translators\FallbackPrimReader.h" />
+    <ClInclude Include="Translators\LastResortUSDPreviewSurfaceWriter.h" />
+    <ClInclude Include="Translators\ShadingModeImporter.h" />
+    <ClInclude Include="Translators\FunctorPrimReader.h" />
+    <ClInclude Include="Translators\PrimReaderRegistry.h" />
+    <ClInclude Include="Translators\TranslatorLight.h" />
+    <ClInclude Include="Translators\TranslatorMorpher.h" />
+    <ClInclude Include="Translators\TranslatorPrim.h" />
+    <ClInclude Include="Translators\TranslatorSkel.h" />
+    <ClInclude Include="Translators\TranslatorUtils.h" />
+    <ClInclude Include="Translators\TranslatorXformable.h" />
+    <ClInclude Include="Utilities\DictionaryOptionProvider.h" />
+    <ClInclude Include="Utilities\HydraUtils.h" />
+    <ClInclude Include="Utilities\MaxRestrictedSupportUtils.h" />
+    <ClInclude Include="Utilities\OptionUtils.h" />
+    <ClInclude Include="Utilities\TimeUtils.h" />
+    <ClInclude Include="Translators\PrimReader.h" />
+    <ClInclude Include="Translators\ReadJobContext.h" />
+    <ClInclude Include="Translators\ShaderReader.h" />
+    <ClInclude Include="Translators\ShaderReaderRegistry.h" />
+    <ClInclude Include="Utilities\UsdLinkUtils.h" />
+    <ClInclude Include="Utilities\VtDictionaryUtils.h" />
+    <ClInclude Include="Utilities\ListenerUtils.h" />
+    <ClInclude Include="Utilities\DiagnosticDelegate.h" />
+    <ClInclude Include="Utilities\MaxSupportUtils.h" />
+    <ClInclude Include="MappedAttributeBuilder.h" />
+    <ClInclude Include="Utilities\MxsUtils.h" />
+    <ClInclude Include="Utilities\ProgressReporter.h" />
+    <ClInclude Include="Utilities\TranslationUtils.h" />
+    <ClInclude Include="MeshConversion\MeshConverter.h" />
+    <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="Utilities\GraphUtils.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Translators\PrimWriter.h" />
+    <ClInclude Include="Translators\PrimWriterRegistry.h" />
+    <ClInclude Include="Translators\TranslatorMaterial.h" />
+    <ClInclude Include="Translators\RegistryHelper.h" />
+    <ClInclude Include="Translators\ShaderWriter.h" />
+    <ClInclude Include="Translators\ShaderWriterRegistry.h" />
+    <ClInclude Include="Translators\ShadingModeExporter.h" />
+    <ClInclude Include="Translators\ShadingModeExporterContext.h" />
+    <ClInclude Include="Translators\ShadingModeRegistry.h" />
+    <ClInclude Include="Translators\ShadingUtils.h" />
+    <ClInclude Include="Translators\WriteJobContext.h" />
+    <ClInclude Include="Utilities\TupleUtils.h" />
+    <ClInclude Include="Utilities\TypeUtils.h" />
+    <ClInclude Include="USDCore.h" />
+    <ClInclude Include="MaxUSDAPI.h" />
+    <ClInclude Include="maxusd_banned.h" />
+    <ClInclude Include="MeshConversion\PrimvarMappingOptions.h" />
+    <ClInclude Include="USDSceneController.h" />
+    <ClInclude Include="UsdStageSource.h" />
+    <ClInclude Include="Utilities\PluginUtils.h" />
+    <ClInclude Include="Utilities\ScopeGuard.h" />
+    <ClInclude Include="Utilities\UiUtils.h" />
+    <ClInclude Include="Utilities\Logging.h" />
+    <ClInclude Include="Utilities\MaterialUtils.h" />
+    <ClInclude Include="Utilities\MathUtils.h" />
+    <ClInclude Include="Utilities\MaxProgressBar.h" />
+    <ClInclude Include="Utilities\MeshUtils.h" />
+    <ClInclude Include="Utilities\MetaDataUtils.h" />
+    <ClInclude Include="Utilities\NodeRange.h" />
+    <ClInclude Include="Utilities\UsdToolsUtils.h" />
+    <ClInclude Include="Utilities\VtUtils.h" />
+    <ClInclude Include="VersionOverrides.h" />
+    <ClInclude Include="MeshConversion\MeshFacade.h" />
+    <QtMoc Include="Widgets\ElidedLabel.h" />
+    <ClInclude Include="Widgets\QDiagnosticMessagesModel.h" />
+    <ClInclude Include="Widgets\DiagnosticMessagesModelFactory.h" />
+    <QtMoc Include="Widgets\QmaxUsdDoubleSpinBox.h" />
+    <ClInclude Include="Widgets\ResizeEventFilter.h" />
+    <ClInclude Include="Widgets\QSpinnerOverlayWidget.h" />
+    <ClInclude Include="Widgets\QSpinnerWidget.h" />
+    <ClInclude Include="Widgets\QTreeItem.h" />
+    <ClInclude Include="Widgets\QTreeModel.h" />
+    <ClInclude Include="Widgets\TooltipEventFilter.h" />
+    <ClInclude Include="Widgets\TreeModelFactory.h" />
+    <ClInclude Include="Widgets\USDSearchThread.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

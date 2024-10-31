@@ -1,0 +1,324 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.20.0"
+    }
+    defaultPrim = "non_standard_uv"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "non_standard_uv"
+{
+    def Mesh "Box001" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        float3[] extent = [(-20.373322, -14.319678, 0), (20.373322, 14.319678, 10.807342)]
+        int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 2, 3, 3, 1, 0, 4, 5, 7, 7, 6, 4, 0, 1, 5, 5, 4, 0, 1, 3, 7, 7, 5, 1, 3, 2, 6, 6, 7, 3, 2, 0, 4, 4, 6, 2]
+        rel material:binding = </non_standard_uv/Materials/Material__26>
+        point3f[] points = [(-20.373322, -14.319678, 0), (20.373322, -14.319678, 0), (-20.373322, 14.319678, 0), (20.373322, 14.319678, 0), (-20.373322, -14.319678, 10.807342), (20.373322, -14.319678, 10.807342), (-20.373322, 14.319678, 10.807342), (20.373322, 14.319678, 10.807342)]
+        color3f[] primvars:displayColor = [(0.03137255, 0.23921569, 0.5411765)]
+        float2[] primvars:foo = [(-0, 4.8190356e-7), (-0.26999992, 0), (-4.827976e-8, 1.47), (-0.26999998, 1.4699996), (-0, 4.8190356e-7), (-0.26999992, 0), (-4.827976e-8, 1.47), (-0.26999998, 1.4699996)] (
+            interpolation = "vertex"
+        )
+        float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+            interpolation = "faceVarying"
+        )
+        int[] primvars:normals:indices = [0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20]
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-7.09543, -6.5822, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def GeomSubset "_1_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [2, 3]
+        }
+
+        def GeomSubset "_2_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 2
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [0, 1]
+        }
+
+        def GeomSubset "_3_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 3
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [10, 11]
+        }
+
+        def GeomSubset "_4_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 4
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [6, 7]
+        }
+
+        def GeomSubset "_5_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 5
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [4, 5]
+        }
+
+        def GeomSubset "_6_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 6
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [8, 9]
+        }
+    }
+	
+    def Mesh "Box002" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        float3[] extent = [(-20.373322, -14.319678, 0), (20.373322, 14.319678, 10.807342)]
+        int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 2, 3, 3, 1, 0, 4, 5, 7, 7, 6, 4, 0, 1, 5, 5, 4, 0, 1, 3, 7, 7, 5, 1, 3, 2, 6, 6, 7, 3, 2, 0, 4, 4, 6, 2]
+        rel material:binding = </non_standard_uv/Materials/Material__27>
+        point3f[] points = [(-20.373322, -14.319678, 0), (20.373322, -14.319678, 0), (-20.373322, 14.319678, 0), (20.373322, 14.319678, 0), (-20.373322, -14.319678, 10.807342), (20.373322, -14.319678, 10.807342), (-20.373322, 14.319678, 10.807342), (20.373322, 14.319678, 10.807342)]
+        color3f[] primvars:displayColor = [(0.03137255, 0.23921569, 0.5411765)]
+        float2[] primvars:bar = [(-0, 4.8190356e-7), (-0.15, 0), (-4.827976e-8, 1.47), (-0.26999998, 1.4699996), (-0, 4.8190356e-7), (-0.26999992, 0), (-4.827976e-8, 1.47), (-0.26999998, 1.4699996)] (
+            interpolation = "vertex"
+        )
+        float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+            interpolation = "faceVarying"
+        )
+        int[] primvars:normals:indices = [0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20]
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-7.09543, -6.5822, 25, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def GeomSubset "_1_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [2, 3]
+        }
+
+        def GeomSubset "_2_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 2
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [0, 1]
+        }
+
+        def GeomSubset "_3_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 3
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [10, 11]
+        }
+
+        def GeomSubset "_4_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 4
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [6, 7]
+        }
+
+        def GeomSubset "_5_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 5
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [4, 5]
+        }
+
+        def GeomSubset "_6_" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 6
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [8, 9]
+        }
+    }	
+
+    def "Materials"
+    {
+        def Material "Material__26"
+        {
+            token inputs:frame:foo = "foo"
+            token outputs:surface.connect = </non_standard_uv/Materials/Material__26/Material__26.outputs:surface>
+
+            def Shader "Material__26"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0.01
+                color3f inputs:diffuseColor.connect = </non_standard_uv/Materials/Map__1.outputs:rgb>
+                float inputs:displacement = 0
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.5
+                float inputs:metallic = 0
+                normal3f inputs:normal = (0, 0, 1)
+                float inputs:occlusion = 1
+                float inputs:opacity = 1
+                float inputs:opacityThreshold = 0
+                float inputs:roughness = 0.5
+                color3f inputs:specularColor = (0, 0, 0)
+                int inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+        }
+
+        def Shader "Map__1"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @.\uv_checker.png@
+            float2 inputs:st.connect = </non_standard_uv/Materials/Map__1/TextureTransform_foo.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+
+            def Shader "PrimvarReader_foo"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname.connect = </non_standard_uv/Materials/Material__26.inputs:frame:foo>
+                float2 outputs:result
+            }
+
+            def Shader "TextureTransform_foo"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </non_standard_uv/Materials/Map__1/PrimvarReader_foo.outputs:result>
+                float inputs:rotation = 0
+                float2 inputs:scale = (1, 1)
+                float2 inputs:translation = (0, 0)
+                float2 outputs:result
+            }
+        }
+		
+		def Material "Material__27"
+        {
+            
+            token outputs:surface.connect = </non_standard_uv/Materials/Material__27/Material__27.outputs:surface>
+
+            def Shader "Material__27"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0.01
+                color3f inputs:diffuseColor.connect = </non_standard_uv/Materials/Map__2.outputs:rgb>
+                float inputs:displacement = 0
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.5
+                float inputs:metallic = 0
+                normal3f inputs:normal = (0, 0, 1)
+                float inputs:occlusion = 1
+                float inputs:opacity = 1
+                float inputs:opacityThreshold = 0
+                float inputs:roughness = 0.5
+                color3f inputs:specularColor = (0, 0, 0)
+                int inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+        }
+
+        def Shader "Map__2"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @.\uv_checker.png@
+            float2 inputs:st.connect = </non_standard_uv/Materials/Map__2/TextureTransform_foo.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+
+            def Shader "PrimvarReader_foo"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname = "bar"
+                float2 outputs:result
+            }
+
+            def Shader "TextureTransform_foo"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </non_standard_uv/Materials/Map__2/PrimvarReader_foo.outputs:result>
+                float inputs:rotation = 0
+                float2 inputs:scale = (1, 1)
+                float2 inputs:translation = (0, 0)
+                float2 outputs:result
+            }
+        }
+    }
+}
+

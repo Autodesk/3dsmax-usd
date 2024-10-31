@@ -1,0 +1,45 @@
+{
+   "Plugins": [
+      {
+         "Info": {
+            "MaxUsd": {
+               "ShaderWriter": {
+                  "providesTranslator": [
+                     "Material Switcher"
+                  ]
+               },
+               "PrimReader": {
+                  "providesTranslator": [
+                     "UsdGeomCamera",
+                     "UsdLuxCylinderLight",
+                     "UsdLuxRectLight",
+                     "UsdLuxSphereLight",
+                     "UsdLuxDiskLight",
+                     "UsdGeomMesh",
+                     "UsdGeomScope",
+                     "UsdSkelSkeleton",
+                     "UsdSkelRoot",
+                     "UsdGeomBasisCurves",
+                     "UsdGeomNurbsCurves"
+                  ]
+               },
+               "PrimWriter": {
+                  # Default Base writers are evaluated in the following order:
+                  # StageWriter - any USDStage class object
+                  # SkeletonWriter - any dependent skin modifier node, or morpher
+                  # SkinMorpherWriter - only support skinning of object that can/should be converted to meshes, exclude shapes
+                  # MeshWriter - any object convertible to TriObject, exclude shapes
+                  # CameraWriter - all Camera class objects
+                  # ShapeWriter - any Shape class objects
+                  # PhotometricLightWriter - any LightScape light class objects
+                  # SunPositionerWriter - any subject objects of SunPositioner class type
+                  # HelperWriter - any PointHelper or Dummy class objects
+               }
+            }
+         },
+         "Name": "MaxUsd_Translators",
+         "Type": "library",
+         "LibraryPath": "MaxUsd_Translators.dll"
+      }
+   ]
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+	AutodeskProduct="3ds Max"
+	Name="UserPropertyExportChaser"
+	Description="Max USD User Property Export Chaser"
+	AppVersion="1.0.0"
+	ProductType="Application"
+	Author="Autodesk"
+	ProductCode="*"
+	UpgradeCode="{d8e8e17c-55b7-4296-b153-56a8b84d2040}">
+	<CompanyDetails Name="Autodesk, Inc." Url="www.autodesk.com" Email="me.support@autodesk.com" />
+	<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+	<Components Description="post-start-up scripts parts">
+		<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2026" />
+		<ComponentEntry ModuleName="./Contents/RegisterPlugin.ms" />
+	</Components>
+</ApplicationPackage>

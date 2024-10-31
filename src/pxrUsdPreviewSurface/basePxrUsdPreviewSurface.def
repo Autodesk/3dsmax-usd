@@ -1,0 +1,4 @@
+LIBRARY basePxrUsdPreviewSurface.dll
+EXPORTS
+SECTIONS
+   .data READ WRITE

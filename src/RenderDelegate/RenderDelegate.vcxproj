@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>RenderDelegate</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{7b707dd2-355b-4232-89e8-f92a821b71b3}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest>true</EmbedManifest>
+    <TargetName>RenderDelegate</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>RENDERDELEGATE_EXPORTS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UfeInc);$(UfeUsdInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>$(ProjectDir)/renderdelegate_banned.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GraphicsDriver.lib;GraphicsUtility.lib;core.lib;geom.lib;mesh.lib;maxutil.lib;paramblk2.lib;optimesh.lib;DataBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(LibDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+    <PostBuildEvent>
+      <Command>robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(ProjectDir)imaging\lightGizmos $(TargetDir)\..\lightGizmos *.usd *.usda
+exit /b 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="HdLightGizmoSceneIndexFilter.h" />
+    <ClInclude Include="HdMaxLightGizmoMeshAccess.h" />
+    <ClInclude Include="PrimvarInfo.h" />
+    <ClInclude Include="DebugCodes.h" />
+    <ClInclude Include="RenderDelegateAPI.h" />
+    <ClInclude Include="renderdelegate_banned.h" />
+    <ClInclude Include="HdMaxDisplayPreferences.h" />
+    <ClInclude Include="HdMaxEngine.h" />
+    <ClInclude Include="Imaging\HdMaxMesh.h" />
+    <ClInclude Include="Imaging\HdMaxRenderDelegate.h" />
+    <ClInclude Include="Imaging\HdMaxRenderPass.h" />
+    <ClInclude Include="Imaging\HdMaxRenderTask.h" />
+    <ClInclude Include="Imaging\HdMaxTaskController.h" />
+    <ClInclude Include="HdMaxMaterialCollection.h" />
+    <ClInclude Include="MaxRenderGeometryFacade.h" />
+    <ClInclude Include="HdMaxColorMaterial.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Sampler.h" />
+    <ClInclude Include="HdMaxRenderData.h" />
+    <ClInclude Include="Imaging\HdMaxInstancer.h" />
+    <ClInclude Include="Imaging\HdMaxMaterial.h" />
+    <ClInclude Include="HdMaxDisplaySettings.h" />
+    <ClInclude Include="Imaging\HdMaxExtComputation.h" />
+    <ClInclude Include="HdMaxInstanceGen.h" />
+    <ClInclude Include="HdMaxChangeTracker.h" />
+    <ClInclude Include="HdMaxConsolidator.h" />
+    <ClInclude Include="SelectionRenderItem.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DebugCodes.cpp" />
+    <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="HdLightGizmoSceneIndexFilter.cpp" />
+    <ClCompile Include="HdMaxDisplayPreferences.cpp" />
+    <ClCompile Include="HdMaxEngine.cpp" />
+    <ClCompile Include="Imaging\HdMaxMesh.cpp" />
+    <ClCompile Include="Imaging\HdMaxRenderDelegate.cpp" />
+    <ClCompile Include="Imaging\HdMaxRenderPass.cpp" />
+    <ClCompile Include="Imaging\HdMaxRenderTask.cpp" />
+    <ClCompile Include="Imaging\HdMaxTaskController.cpp" />
+    <ClCompile Include="Imaging\HdMaxInstancer.cpp" />
+    <ClCompile Include="Imaging\HdMaxMaterial.cpp" />
+    <ClCompile Include="HdMaxDisplaySettings.cpp" />
+    <ClCompile Include="Imaging\HdMaxExtComputation.cpp" />
+    <ClCompile Include="HdMaxMaterialCollection.cpp" />
+    <ClCompile Include="HdMaxLightGizmoMeshAccess.cpp" />
+    <ClCompile Include="MaxRenderGeometryFacade.cpp" />
+    <ClCompile Include="HdMaxColorMaterial.cpp" />
+    <ClCompile Include="Sampler.cpp" />
+    <ClCompile Include="HdMaxInstanceGen.cpp" />
+    <ClCompile Include="HdMaxConsolidator.cpp" />
+    <ClCompile Include="HdMaxRenderData.cpp" />
+    <ClCompile Include="SelectionRenderItem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\maxUsd\maxUsd.vcxproj">
+      <Project>{d02163f8-70ee-4676-b3ea-7c89e71b44d4}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RenderDelegate.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

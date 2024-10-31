@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" 
+	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="UserMacros">
+		<UsdLayerEditorDir Condition="'$(MaxUsdDevKit)'!='' and '$(UsdLayerEditorDir)'==''">$(MaxUsdDevKit)\UsdLayerEditor</UsdLayerEditorDir>
+		<UsdLayerEditorDir Condition="'$(UsdLayerEditorDir)'==''">$(Artifacts)$(VersionTarget)\UsdLayerEditor</UsdLayerEditorDir>
+		<UsdLayerEditorInc>$(UsdLayerEditorDir)\include</UsdLayerEditorInc>
+		<UsdLayerEditorLib>$(UsdLayerEditorDir)\lib</UsdLayerEditorLib>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<AdditionalIncludeDirectories>$(UsdLayerEditorInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+		</ClCompile>
+		<Link>
+			<AdditionalLibraryDirectories>$(UsdLayerEditorLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>UsdLayerEditor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
+</Project>

@@ -1,0 +1,21 @@
+{
+   # Comments are allowed and indicated by a hash at the start of a
+   # line or after spaces and tabs.  They continue to the end of line.
+   # Blank lines are okay, too.
+   "Plugins":[
+      {
+         "Info":{
+            # Max specific token
+            "MaxUsd":{
+               # The ExportChaser key is all that is need for the plugin to be found and loaded on export.
+               "ExportChaser" : {},
+               # The JobContextPlugin key is all that is needed for the context plugin to be found and loaded on export.
+               "JobContextPlugin": {}
+            }
+         },
+         "Name": "UserDataExportChaser",
+         "Type": "library",
+         "LibraryPath": "UserDataExportChaser.dll"
+      }
+   ]
+ }

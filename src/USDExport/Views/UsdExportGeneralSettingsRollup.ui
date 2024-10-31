@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportGeneralSettingsRollup</class>
+ <widget class="QWidget" name="UsdExportGeneralSettingsRollup">
+  <property name="windowTitle">
+   <string>General Settings</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2">
+   <item>
+    <widget class="QLabel" name="UpAxisLabel">
+     <property name="toolTip">
+      <string>Select the upward axis of orientation for your USD scene.</string>
+     </property>
+     <property name="text">
+      <string>Up Axis</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="UpAxisComboBox">
+     <item>
+      <property name="text">
+       <string>Y</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Z</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
