@@ -42,7 +42,7 @@ MaxUSD comes with extensive documentation and [samples](samples/readme.md).  For
 We take security serious at Autodesk and the same goes for our open source contributions.  Our guidelines are documented [here](SECURITY.md)
 
 ## Versions
-3ds Max USD actively supports the following version of 3ds Max.
+3ds Max USD actively supports the following versions of 3ds Max.
 - 2022
 - 2023
 - 2024
