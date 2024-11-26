@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" 
+	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ImportGroup Label="PropertySheets">
+		<Import Project="./3dsmaxUsdSample.common.settings.props" Condition="$(HasImportedCommonProps) != '1'" />
+	</ImportGroup>
+
+	<PropertyGroup Label="UserMacros">
+		<PxrUsdRoot Condition="'$(MaxUsdDevKit)'!='' and '$(PxrUsdRoot)'==''">$(MaxUsdDevKit)\Pixar_USD</PxrUsdRoot>
+		<PxrUsdRoot Condition="'$(VersionTarget)'&gt;'2025' and '$(PxrUsdRoot)'==''">$(Artifacts)\Pixar_USD</PxrUsdRoot>
+		<PxrUsdRoot Condition="'$(VersionTarget)'&lt;'2026' and '$(PxrUsdRoot)'=='' and '$(IsProjectInDevTree)'=='false'">$(Artifacts)\Pixar_USD</PxrUsdRoot>
+		<PxrUsdRoot Condition="'$(VersionTarget)'&lt;'2026' and '$(PxrUsdRoot)'==''">$(Artifacts)\Pixar_USD\Release</PxrUsdRoot>
+		<Pixar_USDInc>$(PxrUsdRoot)\include</Pixar_USDInc>
+		<Pixar_USDLib>$(PxrUsdRoot)\lib</Pixar_USDLib>
+		<BoostInc Condition="'$(VersionTarget)'=='2026' and '$(BoostInc)'==''">$(PxrUsdRoot)\include\boost-1_82</BoostInc>
+		<BoostInc Condition="'$(VersionTarget)'=='2025' and '$(BoostInc)'==''">$(PxrUsdRoot)\include\boost-1_81</BoostInc>
+		<BoostInc Condition="'$(VersionTarget)'=='2024' and '$(BoostInc)'==''">$(PxrUsdRoot)\include\boost-1_76</BoostInc>
+		<BoostInc Condition="'$(VersionTarget)'&lt;'2024' and '$(BoostInc)'==''">$(PxrUsdRoot)\include\boost-1_70</BoostInc>
+		<BoostLib Condition="'$(BoostLib)'==''">$(Pixar_USDLib)</BoostLib>
+		<PythonLocation Condition="'$(MaxUsdDevKit)'!=''and '$(PythonLocation)'==''">$(MaxUsdDevKit)\Pixar_USD</PythonLocation>
+		<PythonLocation Condition="'$(PythonLocation)'==''">$(Artifacts)\Python</PythonLocation>
+		<PythonInc>$(PythonLocation)\Include</PythonInc>
+		<PythonLibs>$(PythonLocation)\libs</PythonLibs>
+		<MaxUSDLibFolder Condition="'$(IsProjectInDevTree)'=='true'">$(RepoRootDir)\build\lib\$(Platform)\$(Configuration)\$(VersionTarget)\</MaxUSDLibFolder>
+		<MaxUSDLibFolder Condition="'$(IsProjectInDevTree)'=='false'">$(SolutionDir)\..\maxusd\lib</MaxUSDLibFolder>
+		<MaxUSDIncludeFolder Condition="'$(IsProjectInDevTree)'=='true'">$(SrcDir)</MaxUSDIncludeFolder>
+        <MaxUSDIncludeFolder Condition="'$(IsProjectInDevTree)'=='false'">$(SolutionDir)\..\maxusd\include</MaxUSDIncludeFolder>
+	</PropertyGroup>
+	<PropertyGroup Condition="$(VersionTarget)&gt;=2023">
+	    <ExternalIncludePath>$(PxrUsdRoot)\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</ExternalIncludePath>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2023">USD_VERSION_21_11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<!-- Starting with 3dsMax 2024, one USD version per 3dsMax release. -->
+			<PreprocessorDefinitions Condition="$(VersionTarget)==2024">USD_VERSION_22_11;%(PreprocessorDefinitions)</PreprocessorDefinitions> 
+			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">USD_VERSION_23_08;%(PreprocessorDefinitions)</PreprocessorDefinitions> 
+		</ClCompile>
+		<ClCompile>
+			<AdditionalIncludeDirectories>$(SolutionDir);$(BoostInc);$(PythonInc);$(Pixar_USDInc);$(MaxUSDIncludeFolder);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<PreprocessorDefinitions>_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;NOMINMAX=1;TBB_SUPPRESS_DEPRECATED_MESSAGES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">BOOST_LIB_TOOLSET="vc142";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2024">BOOST_LIB_TOOLSET="vc141";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">BOOST_LINKING_PYTHON=1;TBB_USE_DEBUG=1;BOOST_DEBUG_PYTHON=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2023">_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<DisableSpecificWarnings>4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+			<AdditionalOptions Condition="$(VersionTarget)&lt;=2022">/experimental:external /external:I $(PxrUsdRoot)\include\ /external:W0 %(AdditionalOptions)</AdditionalOptions>
+			<AdditionalOptions Condition="$(VersionTarget)&gt;=2024">/Zc:__cplusplus</AdditionalOptions>
+		</ClCompile>
+		<ClCompile Condition="'$(Configuration)'=='$(ConfigHybrid)'">
+			<!-- Optimization is disabled for all configs except Release -->
+			<Optimization>Disabled</Optimization>
+			<PreprocessorDefinitions>;_HYBRID;IS_HYBRID;SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<!--
+			Boost does not like us having runtime checks (RTC) with non debug build.
+			Thus Microsoft documentation only states that Optimizations needs to be disabled (as done for hybrid), doing no mention of debug vs release build.
+			Disable RTC as it the only way to build hybrid.
+		-->
+			<BasicRuntimeChecks>Default</BasicRuntimeChecks>
+		</ClCompile>
+		<Link>
+			<AdditionalLibraryDirectories>$(Pixar_USDLib);$(PythonLibs);$(MaxUSDLibFolder);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>core.lib;maxutil.lib;maxUsd.lib;3dsmax_usd.lib;3dsmax_sdf.lib;3dsmax_tf.lib;3dsmax_ar.lib;3dsmax_arch.lib;3dsmax_garch.lib;3dsmax_gf.lib;3dsmax_glf.lib;3dsmax_hd.lib;3dsmax_hdSt.lib;3dsmax_hdx.lib;3dsmax_hf.lib;3dsmax_kind.lib;3dsmax_sdr.lib;3dsmax_ndr.lib;3dsmax_plug.lib;3dsmax_trace.lib;3dsmax_usdGeom.lib;3dsmax_usdImaging.lib;3dsmax_usdImagingGL.lib;3dsmax_usdLux.lib;3dsmax_vt.lib;3dsmax_work.lib;3dsmax_usdUtils.lib;3dsmax_usdShade.lib;3dsmax_usdUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
+</Project>

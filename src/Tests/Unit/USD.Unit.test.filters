@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="test.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="TestUtils.cpp" />
+    <ClCompile Include="MaxUsd.MeshConversion.test.cpp" />
+    <ClCompile Include="Mocks\MockCoreInterface.cpp">
+      <Filter>Mocks</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxUsd.ChannelBuilder.test.cpp" />
+    <ClCompile Include="MaxUsd.CreaseDataConversion.test.cpp" />
+    <ClCompile Include="MaxUsd.MapChannelConversion.test.cpp" />
+    <ClCompile Include="MaxUsd.MappedAttributeBuilder.test.cpp" />
+    <ClCompile Include="MaxUsd.MaterialUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.MathUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.MeshNormals.test.cpp" />
+    <ClCompile Include="MaxUsd.MeshUtils.test.cpp" />
+    <ClCompile Include="MaxUsd.test.cpp" />
+    <ClCompile Include="MaxUsd.TranslationUtils.test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="TestUtils.h" />
+    <ClInclude Include="Mocks\DllDirInternal.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockBitmapIO.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockCoreInterface.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockDllDir.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockFPInterface.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockINode.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockLog.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockModifier.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockObject.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockPathConfigMgr.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockRenderer.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockStdMat.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MockViewExp.h">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Mocks">
+      <UniqueIdentifier>{32e4ed40-6f6c-4cc2-b980-d061d5fc044b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

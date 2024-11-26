@@ -1,0 +1,14 @@
+{
+   "Plugins": [
+      {
+         "Info": {
+            "MaxUsd": {
+               "ShadingModePlugin": {}
+            }
+         },
+         "Name": "basePxrUsdPreviewSurface",
+         "Type": "library",
+         "LibraryPath": "basePxrUsdPreviewSurface.dll"
+      }
+   ]
+}

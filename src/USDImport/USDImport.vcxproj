@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>USDImport</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{C1FCE4D9-6793-4728-B56A-E17634E9BDD4}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest>true</EmbedManifest>
+    <TargetName>USDImport</TargetName>
+    <TargetExt>.dli</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>_USRDLL;USDCORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(MaxSdkInc);$(QtInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>$(ProjectDir)/usdimport_banned.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4251;4275;26945;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(QtLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>maxutil.lib;FragmentGraph.lib;GraphicsDriver.lib;GraphicsUtility.lib;ViewSystem.lib;MaxGraphicsObjects.lib;core.lib;geom.lib;gfx.lib;mesh.lib;mnmath.lib;Poly.lib;maxscrpt.lib;paramblk2.lib;MaxQtBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>$(TargetName).def</ModuleDefinitionFile>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="USDImport.cpp" />
+    <ClCompile Include="USDImportInterface.cpp" />
+    <ClCompile Include="Views\USDImportDialog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(UI_DIR)\ui_USDImportDialog.h" />
+    <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="USDImport.h" />
+    <ClInclude Include="usdimport_banned.h" />
+    <ClInclude Include="VersionOverrides.h" />
+    <ClInclude Include="Views\IUSDImportView.h" />
+    <ClInclude Include="Views\USDImportDialog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="USDImport.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\USDImportDialog.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\maxUsd\maxUsd.vcxproj">
+      <Project>{d02163f8-70ee-4676-b3ea-7c89e71b44d4}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

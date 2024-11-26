@@ -1,0 +1,20 @@
+{
+   "Plugins":[
+      {
+         "Info":{
+            "MaxUsd":{
+               "PrimReader" : {
+                  "providesTranslator": [
+                     # normally we would use "UsdGeomCone" since the reader only
+                     # handles that specific type and does cover all types from the ancestor
+                     # the ancestor type is used here for testing purpose ONLY
+                     "UsdGeomGprim"
+                  ]
+               }
+            }
+         },
+         "Name":"primReaderFromJson",
+         "Type":"python"
+      }
+   ]
+}

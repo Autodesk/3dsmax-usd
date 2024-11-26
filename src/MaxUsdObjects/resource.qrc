@@ -1,0 +1,40 @@
+<RCC>
+    <qresource prefix="/ufe">
+        <file>Icons/branch_closed.png</file>
+        <file>Icons/branch_opened.png</file>
+        <file alias="Icons/UfeRt/out_USD_BlendShape.png">Icons/UfeRt/out_USD_BlendShape_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Camera.png">Icons/UfeRt/out_USD_Camera_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Capsule.png">Icons/UfeRt/out_USD_Capsule_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_CompArcBadge.png">Icons/UfeRt/out_USD_CompArcBadge_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_CompArcBadgeV.png">Icons/UfeRt/out_USD_CompArcBadgeV_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Cone.png">Icons/UfeRt/out_USD_Cone_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Cube.png">Icons/UfeRt/out_USD_Cube_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Cylinder.png">Icons/UfeRt/out_USD_Cylinder_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Def.png">Icons/UfeRt/out_USD_Def_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_GeomSubset.png">Icons/UfeRt/out_USD_GeomSubset_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_LightFilter.png">Icons/UfeRt/out_USD_LightFilter_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_LightPortal.png">Icons/UfeRt/out_USD_LightPortal_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Material.png">Icons/UfeRt/out_USD_Material_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Mesh.png">Icons/UfeRt/out_USD_Mesh_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_NurbsPatch.png">Icons/UfeRt/out_USD_NurbsPatch_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_PluginLight.png">Icons/UfeRt/out_USD_PluginLight_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_PointInstancer.png">Icons/UfeRt/out_USD_PointInstancer_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Points.png">Icons/UfeRt/out_USD_Points_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Scope.png">Icons/UfeRt/out_USD_Scope_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Shader.png">Icons/UfeRt/out_USD_Shader_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_SkelAnimation.png">Icons/UfeRt/out_USD_SkelAnimation_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Skeleton.png">Icons/UfeRt/out_USD_Skeleton_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_SkelRoot.png">Icons/UfeRt/out_USD_SkelRoot_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Sphere.png">Icons/UfeRt/out_USD_Sphere_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_UsdGeomCurves.png">Icons/UfeRt/out_USD_UsdGeomCurves_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_UsdGeomXformable.png">Icons/UfeRt/out_USD_UsdGeomXformable_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_UsdLuxBoundableLightBase.png">Icons/UfeRt/out_USD_UsdLuxBoundableLightBase_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_UsdLuxNonboundableLightBase.png">Icons/UfeRt/out_USD_UsdLuxNonboundableLightBase_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_UsdTyped.png">Icons/UfeRt/out_USD_UsdTyped_200.png</file>
+        <file alias="Icons/UfeRt/out_USD_Volume.png">Icons/UfeRt/out_USD_Volume_200.png</file>
+        <file>Icons/hidden.png</file>
+        <file>Icons/hiddenInherit.png</file>
+        <file>Icons/visibleInherit.png</file>
+        <file>Icons/visible.png</file>
+    </qresource>
+</RCC>

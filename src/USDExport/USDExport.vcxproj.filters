@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{fbad0f2d-faaa-4b0b-865c-583fac8ddcb1}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{92f20462-242f-4a0c-883e-b3c33819b84b}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{ad6e765e-4300-41dc-b185-05b019286785}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Views">
+      <UniqueIdentifier>{40b107d1-2df2-4129-a7ae-525e1c0b71ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Views">
+      <UniqueIdentifier>{18c12bcc-ffbc-4abc-9901-0f5783c19eb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{9b66f5df-6143-4817-b226-6e29e1e1dcb5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USDExport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\USDExportDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="USDExportInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\USDExportCustomChannelMappingsDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="USDZExport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportFileRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportAdvancedRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportMaterialsRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportGeneralSettingsRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportAnimationRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportIncludeRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="usdexport_banned.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDExport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VersionOverrides.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDZExport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\IUSDExportView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\USDExportDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="USDExport.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\USDExportDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportFileRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportAdvancedRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportMaterialsRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportGeneralSettingsRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportAnimationRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportIncludeRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Views\UsdExportAdvancedRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportFileRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportMaterialsRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportGeneralSettingsRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportAnimationRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportIncludeRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportIncludeRollup</class>
+ <widget class="QWidget" name="UsdExportIncludeRollup">
+  <property name="windowTitle">
+   <string>Include</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QCheckBox" name="CamerasCheckBox">
+     <property name="toolTip">
+      <string>If selected, cameras from the scene are included in the USD export.</string>
+     </property>
+     <property name="text">
+      <string>Cameras</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="LightsCheckBox">
+     <property name="toolTip">
+      <string>If selected, lights from the scene are included in the USD export.</string>
+     </property>
+     <property name="text">
+      <string>Lights</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="ShapesCheckBox">
+     <property name="toolTip">
+      <string>If selected, shapes from the scene are included in the USD export.</string>
+     </property>
+     <property name="text">
+      <string>Shapes</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="UsdStagesCheckBox">
+     <property name="toolTip">
+      <string>If selected, USD Stage Objects get exported as USD References. </string>
+     </property>
+     <property name="text">
+      <string>USD Stages</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="GeometryGroupBox">
+     <property name="toolTip">
+      <string>If selected, mesh geometry from the scene is included in the USD export.</string>
+     </property>
+     <property name="title">
+      <string>Geometry</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="3,5,1">
+      <item row="5" column="0">
+       <widget class="QLabel" name="NormalsLabel">
+        <property name="toolTip">
+         <string>Select the method for exporting surface normals.</string>
+        </property>
+        <property name="text">
+         <string>Normals</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="MeshFormatLabel">
+        <property name="toolTip">
+         <string>Select the format for output meshes.</string>
+        </property>
+        <property name="text">
+         <string>Mesh Format</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" colspan="2">
+       <widget class="QComboBox" name="MeshFormatComboBox">
+        <item>
+         <property name="text">
+          <string>Preserve Existing</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Convert to Polygons</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Convert to Triangles</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="2">
+       <widget class="QCheckBox" name="PreserveEdgeOrientationCheckBox">
+        <property name="toolTip">
+         <string>If selected, all exported mesh faces in the scene are made planar. Curved faces get split into a collection of planar surfaces at export.</string>
+        </property>
+        <property name="text">
+         <string>Planar Faces</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="VertexChannelsLabel">
+        <property name="toolTip">
+         <string>Select the level of export for channels.</string>
+        </property>
+        <property name="text">
+         <string>Vertex Channels</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1" colspan="2">
+       <widget class="QCheckBox" name="BakeOffsetTransformCheckBox">
+        <property name="toolTip">
+         <string>If selected, offset transformations are baked into their geometry.</string>
+        </property>
+        <property name="text">
+         <string>Bake Offset Transform</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1" colspan="2">
+       <widget class="QComboBox" name="NormalsComboBox">
+        <item>
+         <property name="text">
+          <string>As Primvar</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>As Attribute</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QComboBox" name="VertexChannelsComboBox">
+        <item>
+         <property name="text">
+          <string>All</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Custom</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="6" column="2">
+       <widget class="QToolButton" name="VertexChannelsToolButton">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="HiddenObjectsGroupBox">
+     <property name="toolTip">
+      <string>If selected, hidden objects are included in your USD export.</string>
+     </property>
+     <property name="title">
+      <string>Hidden Objects</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout" columnstretch="1,20">
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="UseUsdVisibilityCheckBox">
+        <property name="toolTip">
+         <string>If selected, hidden objects are assigned the USD invisible attribute at export.
+
+Important: selecting this option may result in unexpected hidden/visible states after exporting from Max data to USD data. For example: in USD, visible descendants appear hidden if they have hidden ascendants.</string>
+        </property>
+        <property name="text">
+         <string>Use USD Visibility</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <spacer name="UseUsdVisibilityHorizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>175</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportMaterialsRollup</class>
+ <widget class="QWidget" name="UsdExportMaterialsRollup">
+  <property name="windowTitle">
+   <string>Materials</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="ExportMaterialsGroupBox">
+     <property name="toolTip">
+      <string>If selected, material targets defined in this group and through plug-in configurations are used for USD export.</string>
+     </property>
+     <property name="title">
+      <string>Export Materials</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QVBoxLayout" name="ConvertToMaterialsLayout"/>
+      </item>
+      <item>
+       <widget class="QWidget" name="MaterialSwitcherOptionWidget" native="true">
+        <layout class="QGridLayout" name="MaterialSwitcherOptionLayout" columnstretch="1,2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="MaterialSwitcherExportStyleLabel">
+           <property name="text">
+            <string>Material Switcher</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="MaterialSwitcherExportStyleComboBox">
+           <item>
+            <property name="text">
+             <string>Export as variant sets</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Export active material only</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Default Material Paths</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout" columnstretch="3,5,1">
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="materialLayerPath">
+        <property name="toolTip">
+         <string>Enter a relative or absolute file path to set where your materials get exported to. A relative path will be set in relation to your root USD layer. </string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="layerPathLabel">
+        <property name="text">
+         <string>File Path</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Scope</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QToolButton" name="materialLayerPicker">
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" colspan="2">
+       <widget class="QLineEdit" name="materialPrimPath">
+        <property name="toolTip">
+         <string>Enter the scope name under which materials get placed.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="2">
+       <widget class="QCheckBox" name="separateMaterialLayer">
+        <property name="toolTip">
+         <string>Enable to have materials export to a separate USD file at the File Path specified. When disabled, materials get written into your root layer.</string>
+        </property>
+        <property name="text">
+         <string>Create Separate Material File</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

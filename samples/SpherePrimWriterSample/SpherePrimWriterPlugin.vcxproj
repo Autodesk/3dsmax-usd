@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>SpherePrimWriterPlugin</ProjectName>
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{68768A54-4E41-4C50-92BC-3D1930ECB8B3}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmaxUsdSample.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+  </ImportGroup>
+  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <TargetName>SpherePrimWriter</TargetName>
+    <TargetExt>.dll</TargetExt>
+    <OutDir>$(ContentsDir)\Contents\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>MNMath.lib;mesh.lib;maxutil.lib;paramblk2.lib;geom.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+    </Link>
+    <ClCompile>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <ForcedIncludeFiles>../silence_usd_warnings.h</ForcedIncludeFiles>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>@echo Do not forget to update "$(OutDir)RegisterPlugin.ms" in order to load the C++ version of the plugin.</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="SpherePrimWriter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="SpherePrimWriter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Contents\plugInfo.json">
+      <FileType>Document</FileType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="Contents\RegisterPlugin.ms">
+      <FileType>Document</FileType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="Contents\python\plugInfo.json">
+      <FileType>Document</FileType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>python\%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="Contents\python\SpherePrimWriter.py">
+      <FileType>Document</FileType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>python\%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="PackageContents.xml">
+      <FileType>Document</FileType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>..\%(Filename)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

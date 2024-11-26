@@ -1,0 +1,107 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.4.0"
+    }
+    defaultPrim = "geomSubsets_remaining_faces_sample"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "geomSubsets_remaining_faces_sample"
+{
+    def Mesh "Box001"
+    {
+        float3[] extent = [(-5, -5, 0), (5, 5, 10)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+        point3f[] points = [(-5, -5, 0), (5, -5, 0), (-5, 5, 0), (5, 5, 0), (-5, -5, 10), (5, -5, 10), (-5, 5, 10), (5, 5, 10)]
+        color3f[] primvars:displayColor = [(0.34117648, 0.88235295, 0.56078434)]
+        texCoord2f[] primvars:map1 = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "faceVarying"
+        )
+        float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-1.80633, -2.34419, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def GeomSubset "_1_Material__38" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [1]
+            rel material:binding = </geomSubsets_remaining_faces_sample/Materials/Material__38>
+        }
+
+    }
+
+    def "Materials"
+    {
+        def Material "Material__38"
+        {
+            token outputs:surface.connect = </geomSubsets_remaining_faces_sample/Materials/Material__38/UsdPreviewSurface.outputs:surface>
+
+            def Shader "UsdPreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.5, 0.5, 0.5)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Material "Material__43"
+        {
+            token outputs:surface.connect = </geomSubsets_remaining_faces_sample/Materials/Material__43/UsdPreviewSurface.outputs:surface>
+
+            def Shader "UsdPreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.41960785, 1, 0.03529412)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Material "Material__41"
+        {
+            token outputs:surface.connect = </geomSubsets_remaining_faces_sample/Materials/Material__41/UsdPreviewSurface.outputs:surface>
+
+            def Shader "UsdPreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.3647059, 0.21176471, 0.047058824)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+    }
+}
+

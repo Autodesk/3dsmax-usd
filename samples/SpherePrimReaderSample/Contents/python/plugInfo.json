@@ -1,0 +1,24 @@
+{
+    # Comments are allowed and indicated by a hash at the start of a
+    # line or after spaces and tabs.  They continue to the end of line.
+    # Blank lines are okay, too.   
+    "Plugins": [
+        {
+            "Info": {
+            # Max specific token
+            "MaxUsd": {
+                    "PrimReader": {
+                        "providesTranslator": [
+                            "UsdGeomSphere"
+                        ]
+                    }
+                }
+            },
+            # This is the name of the python script that implements the shader writer.
+            # This file needs to be found on runtime by python, it's path must be added
+            # to the python paths. See RegisterPlugin.ms for an exemple on how to do that.
+            "Name": "SpherePrimReader",
+            "Type": "python"
+        }
+    ]
+}

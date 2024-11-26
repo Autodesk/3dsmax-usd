@@ -1,0 +1,105 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.0.0.0"
+    }
+    defaultPrim = "root"
+    metersPerUnit = 0.01
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Mesh "Plane001" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        float3[] extent = [(-50, -10, 0), (50, 10, 0.0001)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [11, 0, 1, 12, 12, 1, 2, 13, 13, 2, 3, 14, 14, 3, 4, 15, 15, 4, 5, 16, 16, 5, 6, 17, 17, 6, 7, 18, 18, 7, 8, 19, 19, 8, 9, 20, 20, 9, 10, 21, 22, 11, 12, 23, 23, 12, 13, 24, 24, 13, 14, 25, 25, 14, 15, 26, 26, 15, 16, 27, 27, 16, 17, 28, 28, 17, 18, 29, 29, 18, 19, 30, 30, 19, 20, 31, 31, 20, 21, 32]
+        rel material:binding = </root/mtl/Material__25>
+        point3f[] points = [(-50, -10, 0), (-40, -10, 0), (-30, -10, 0), (-20, -10, 0), (-10, -10, 0), (0, -10, 0), (10, -10, 0), (20, -10, 0), (30, -10, 0), (40, -10, 0), (50, -10, 0), (-50, 0, 0), (-40, 0, 0), (-30, 0, 0), (-20, 0, 0), (-10, 0, 0), (0, 0, 0), (10, 0, 0), (20, 0, 0), (30, 0, 0), (40, 0, 0), (50, 0, 0), (-50, 10, 0), (-40, 10, 0), (-30, 10, 0), (-20, 10, 0), (-10, 10, 0), (0, 10, 0), (10, 10, 0), (20, 10, 0), (30, 10, 0), (40, 10, 0), (50, 10, 0)]
+        color3f[] primvars:displayColor = [(0.23921569, 0.5294118, 0.023529412)]
+        float3[] primvars:normals = [(0, 0, 1)] (
+            interpolation = "constant"
+        )
+        texCoord2f[] primvars:st = [(0.028205112, 0.019980505), (1.0223029, 0.019980505), (2.0164015, 0.019980505), (3.0104988, 0.019980505), (4.004596, 0.019980505), (4.9986944, 0.019980505), (5.992793, 0.019980505), (6.9868903, 0.019980505), (7.9809885, 0.019980505), (8.975087, 0.019980505), (9.969184, 0.019980505), (0.028205112, 0.97818905), (1.0223029, 0.97818905), (2.0164015, 0.97818905), (3.0104988, 0.97818905), (4.004596, 0.97818905), (4.9986944, 0.97818905), (5.992793, 0.97818905), (6.9868903, 0.97818905), (7.9809885, 0.97818905), (8.975087, 0.97818905), (9.969184, 0.97818905), (0.028205112, 1.9363973), (1.0223029, 1.9363973), (2.0164015, 1.9363973), (3.0104988, 1.9363973), (4.004596, 1.9363973), (4.9986944, 1.9363973), (5.992793, 1.9363973), (6.9868903, 1.9363973), (7.9809885, 1.9363973), (8.975087, 1.9363973), (9.969184, 1.9363973)] (
+            interpolation = "vertex"
+        )
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.62921e-7, 1, 0), (0, -1, -1.62921e-7, 0), (-0.526876, -4.5555e-7, 10.4218, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def "mtl"
+    {
+        def Material "Material__25"
+        {
+            token outputs:surface.connect = </root/mtl/Material__25/Material__25.outputs:surface>
+
+            def Shader "Material__25"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0.01
+                color3f inputs:diffuseColor.connect = </root/mtl/Material__25/Map__3.outputs:rgb>
+                float inputs:displacement = 0
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.5
+                float inputs:metallic = 0
+                normal3f inputs:normal = (0, 0, 1)
+                float inputs:occlusion = 1
+                float inputs:opacity = 1
+                float inputs:opacityThreshold = 0
+                float inputs:roughness = 0.5
+                color3f inputs:specularColor = (0, 0, 0)
+                int inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+
+            def NodeGraph "Map__3" (
+                prepend references = </root/mtl/Map__3>
+            )
+            {
+            }
+        }
+
+        def NodeGraph "Map__3"
+        {
+            token inputs:frame:st = "st"
+            float3 outputs:rgb.connect = </root/mtl/Map__3/Map__3.outputs:rgb>
+
+            def Shader "Map__3"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./data/import_udim_test_data/testUsdImagingGLUsdUdims/texture_<UDIM>.jpg@
+                token inputs:sourceColorSpace = "raw"
+                float2 inputs:st.connect = </root/mtl/Map__3/TextureTransform_st.outputs:result>
+                token inputs:wrapS = "repeat"
+                token inputs:wrapT = "repeat"
+                float3 outputs:rgb
+            }
+
+            def Shader "PrimvarReader_st"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname.connect = </root/mtl/Map__3.inputs:frame:st>
+                float2 outputs:result
+            }
+
+            def Shader "TextureTransform_st"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </root/mtl/Map__3/PrimvarReader_st.outputs:result>
+                float2 inputs:scale = (1, 1)
+                float2 outputs:result
+            }
+        }
+    }
+}
+

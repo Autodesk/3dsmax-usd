@@ -1,0 +1,269 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.24.0"
+    }
+    defaultPrim = "mixed"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "mixed"
+{
+    def Xform "Box003" (
+        prepend inherits = </mixed/_class_Box003>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (20.5861, -30.4341, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    class Class "_class_Box003"
+    {
+        def Mesh "Box003"
+        {
+            float3[] extent = [(-19.285103, -24.491625, 0), (19.285103, 24.491625, 15.988516)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+            point3f[] points = [(-19.285103, -24.491625, 0), (19.285103, -24.491625, 0), (-19.285103, 24.491625, 0), (19.285103, 24.491625, 0), (-19.285103, -24.491625, 15.988516), (19.285103, -24.491625, 15.988516), (-19.285103, 24.491625, 15.988516), (19.285103, 24.491625, 15.988516)]
+            color3f[] primvars:displayColor = [(0.03137255, 0.43137255, 0.5294118)]
+            texCoord2f[] primvars:map1 = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            uniform token subsetFamily:materialBind:familyType = "partition"
+
+            def GeomSubset "_1_Material__76" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [1]
+                rel material:binding = </mixed/Materials/Material__76>
+            }
+
+            def GeomSubset "_2_Material__77" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 2
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [0]
+                rel material:binding = </mixed/Materials/Material__77>
+            }
+
+            def GeomSubset "_3_Material__77" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 3
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [5]
+                rel material:binding = </mixed/Materials/Material__77>
+            }
+
+            def GeomSubset "_4_Material__77" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 4
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [3]
+                rel material:binding = </mixed/Materials/Material__77>
+            }
+
+            def GeomSubset "_5_Material__76" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 5
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [2]
+                rel material:binding = </mixed/Materials/Material__76>
+            }
+
+            def GeomSubset "_6_Material__77" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 6
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [4]
+                rel material:binding = </mixed/Materials/Material__77>
+            }
+        }
+    }
+
+    def Mesh "Plane001" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        float3[] extent = [(-30.9691, -26.202293, 0), (30.9691, 26.202293, 0.0001)]
+        int[] faceVertexCounts = [4, 4, 4, 4]
+        int[] faceVertexIndices = [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8]
+        rel material:binding = </mixed/Materials/Material__76>
+        point3f[] points = [(-30.9691, -26.202293, 0), (0, -26.202293, 0), (30.9691, -26.202293, 0), (-30.9691, 0, 0), (0, 0, 0), (30.9691, 0, 0), (-30.9691, 26.202293, 0), (0, 26.202293, 0), (30.9691, 26.202293, 0)]
+        color3f[] primvars:displayColor = [(0.6901961, 0.101960786, 0.101960786)]
+        texCoord2f[] primvars:map1 = [(0, 0), (0.5, 0), (1, 0), (0, 0.5), (0.5, 0.5), (1, 0.5), (0, 1), (0.5, 1), (1, 1)] (
+            interpolation = "vertex"
+        )
+        float3[] primvars:normals = [(0, 0, 1)] (
+            interpolation = "constant"
+        )
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-49.7807, 108.211, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Mesh "Plane002" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        float3[] extent = [(-10.216873, -14.735613, 0), (10.216873, 14.735613, 0.0001)]
+        int[] faceVertexCounts = [4, 4, 4, 4]
+        int[] faceVertexIndices = [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8]
+        rel material:binding = </mixed/Materials/Material__76>
+        point3f[] points = [(-10.216873, -14.735613, 0), (0, -14.735613, 0), (10.216873, -14.735613, 0), (-10.216873, 0, 0), (0, 0, 0), (10.216873, 0, 0), (-10.216873, 14.735613, 0), (0, 14.735613, 0), (10.216873, 14.735613, 0)]
+        color3f[] primvars:displayColor = [(0.6509804, 0.8980392, 0.8980392)]
+        texCoord2f[] primvars:map1 = [(0, 0), (0.5, 0), (1, 0), (0, 0.5), (0.5, 0.5), (1, 0.5), (0, 1), (0.5, 1), (1, 1)] (
+            interpolation = "vertex"
+        )
+        float3[] primvars:normals = [(0, 0, 1)] (
+            interpolation = "constant"
+        )
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-158.904, -6.72655, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Mesh "Plane004" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        float3[] extent = [(-23.074131, -19.23476, 0), (23.074131, 19.23476, 0.0001)]
+        int[] faceVertexCounts = [4, 4, 4, 4]
+        int[] faceVertexIndices = [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8]
+        rel material:binding = </mixed/Materials/Material__77>
+        point3f[] points = [(-23.074131, -19.23476, 0), (0, -19.23476, 0), (23.074131, -19.23476, 0), (-23.074131, 0, 0), (0, 0, 0), (23.074131, 0, 0), (-23.074131, 19.23476, 0), (0, 19.23476, 0), (23.074131, 19.23476, 0)]
+        color3f[] primvars:displayColor = [(0.34117648, 0.88235295, 0.7764706)]
+        texCoord2f[] primvars:map1 = [(0, 0), (0.5, 0), (1, 0), (0, 0.5), (0.5, 0.5), (1, 0.5), (0, 1), (0.5, 1), (1, 1)] (
+            interpolation = "vertex"
+        )
+        float3[] primvars:normals = [(0, 0, 1)] (
+            interpolation = "constant"
+        )
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (88.9606, 14.7531, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box004" (
+        prepend inherits = </mixed/_class_Box003>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-47.4909, -30.4341, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box005" (
+        prepend inherits = </mixed/_class_Box003>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-115.568, -30.4341, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def "Materials"
+    {
+        def Material "Material__77"
+        {
+            token outputs:surface.connect = </mixed/Materials/Material__77/Material__77.outputs:surface>
+
+            def Shader "Material__77"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.5, 0.5, 0.5)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Material "Material__76"
+        {
+            token outputs:surface.connect = </mixed/Materials/Material__76/Material__76.outputs:surface>
+
+            def Shader "Material__76"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (1, 0.5019608, 0.5019608)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+    }
+}
+

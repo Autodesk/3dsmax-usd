@@ -1,0 +1,167 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_LIBDESCRIPTION      "USD Stage Object"
+    IDS_CATEGORY            "USD"
+    IDS_USD_CATEGORY        "USD"
+    IDS_USDSTAGEOBJECT_CLASS_NAME "USD Stage" 
+
+    IDS_USDCONTROLLER_USDSTAGE_PARAM "USD Stage Node"
+    IDS_USDXFORMCONTROLLER_CLASS_NAME "USD Xformable"
+    IDS_USDXFORMCONTROLLER_XFORMABLEPATH_PARAM "Xformable Prim Path" 
+    IDS_USDXFORMCONTROLLER_PREVENTSNODEDELETION_PARAM "Prevent Node Deletion"
+
+    IDS_USDTRANSFORMCONTROLLER_PATH_PARAM "Xformable or Attribute Path"
+    IDS_USDPOSITIONCONTROLLER_CLASS_NAME "USD Position"
+    IDS_USDROTATIONCONTROLLER_CLASS_NAME "USD Rotation"
+    IDS_USDSCALECONTROLLER_CLASS_NAME "USD Scale"
+
+    IDS_USDATTRCONTROLLER_PATH_PARAM "Attribute Path"
+    IDS_USDFLOATCONTROLLER_CLASS_NAME "USD Float"
+    IDS_USDPOINT3CONTROLLER_CLASS_NAME "USD Point3"
+    IDS_USDPOINT4CONTROLLER_CLASS_NAME "USD Point4"
+
+    IDS_USDCAMERA_ROLL_OUT "USD Camera" 
+    IDS_USDCAMERA_USDSTAGE_PARAM "USD Stage Node"
+    IDS_USDCAMERA_CAMERAPATH_PARAM "USD Camera Prim Path"
+    IDS_USDSTAGEOBJECT_ROLL_OUT "USD Stage"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_FILEPATH "Stage path"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_STAGE_MASK "Stage mask"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CACHEID "Cache Id"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_GUID "Guid for the UsdStageObject"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_IS_OPEN_IN_EXPLORER "If the stage object is currently opened in the explorer."
+    IDS_USDSTAGEOBJECT_ROLL_OUT_DISPLAY_GUIDE "Display Guide"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_DISPLAY_RENDER "Display Render"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_DISPLAY_PROXY "Display Proxy"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_LOAD_PAYLOADS "Load Payloads"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_METERS_PER_UNIT "Meters per Unit"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_UP_AXIS "Up Axis" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SOURCE_METERS_PER_UNIT	"Source Meters per Unit" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SOURCE_UP_AXIS "Source Up Axis"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_DISPLAY_MODE "Display Mode"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_GEN_POINT_INSTANCE_DRAW_MODES "Generate Point Instances Draw Modes"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_POINT_INSTANCE_DRAW_MODE "Active Point Instances Draw Mode"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_START_FRAME "Custom Start Frame"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_SPEED "Custom Animation Speed"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_END_FRAME "Custom End Frame"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_PLAYBACK_TIMECODE "Custom Playback TimeCode"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_ANIM_MODE "Animation Mode"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SOURCE_ANIM_START_TIME_CODE "Source Animation Start TimeCode" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SOURCE_ANIM_END_TIME_CODE "Source Animation End TimeCode" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SOURCE_ANIM_TPS "Source Animation TPS (TimeCode Per Second)" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_MAX_ANIM_START_FRAME "3dsMax Animation Start Frame" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_MAX_ANIM_END_FRAME "3dsMax Animation End Frame"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_MAX_ANIM_FPS "3dsMax Animation FPS (Frames Per Second)" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_MAX_ANIM_RENDER_USD_TIMECODE "Resolved Render Usd TimeCode"
+
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MODE "Performance mesh merge mode."
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_TRIANGLES "The maximum number of triangles a prim can have to be considered for merging."
+	IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_CELL_SIZE "The maximum number of triangles in a merged mesh."
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_INSTANCE_COUNT "The maximum number of instances for a prim to be considered for merging."
+    IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_DIAGNOSTICS "Debug view of the merged meshes."
+
+    IDS_USDSTAGEOBJECT_ROLL_OUT_PARAMETERS_TITLE "Parameters"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_DISPLAY_TITLE "Viewport Display"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_PERFORMANCE_TITLE "Viewport Performance"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_ANIMATION_TITLE "Animation"
+
+    IDS_USDSTAGEOBJECT_ROLL_OUT_AXIS_AND_UNIT_TRANSFORM "Axis and Unit transform"
+    IDS_USDSTAGE_ASSET_DESC "USD Layer"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_SHOW_ICON "Show Icon" 
+    IDS_USDSTAGEOBJECT_ROLL_OUT_GENERATE_CAMERAS "Generate Cameras"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_ICON_SCALE "Icon Scale"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_POINTED_PRIM "Currently pointed USD Prim"
+
+    IDS_USDSTAGEOBJECT_ROLL_OUT_RENDER_SETUP_TITLE "Fallback Render Support"
+
+    IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_SELECTION_SETUP_TITLE "Viewport Selection"
+    IDS_USDSTAGEOBJECT_ROLL_OUT_KIND_SELECTION "Kind Selection"
+
+    IDS_SELECTLAYERANDPRIM "Select an USD file via file selection dialog then allow for the selection of a Prim, returns the path to the USD file and the path to the selected Prim in an array of strings."
+    IDS_OPENUSDEXPLORER "Open the USD Explorer dialog."
+    IDS_CLOSEUSDEXPLORER "Close the USD Explorer dialog."
+
+    IDS_USDSNAPS_CLASS_NAME "USDSnaps"
+    IDS_USDSNAPS_VERTEX "Vertex"
+    IDS_USDSNAPS_EDGE "Edge"
+    IDS_USDSNAPS_FACE "Face"
+
+    IDS_PARAMS "Parameters"
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Canada) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENC)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_CAN
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (Canada) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include "VersionOverrides.h"
+#include "../USDComponentVersion.r"
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

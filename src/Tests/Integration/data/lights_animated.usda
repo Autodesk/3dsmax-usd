@@ -1,0 +1,198 @@
+#usda 1.0
+(
+    defaultPrim = "root"
+    endTimeCode = 10
+    framesPerSecond = 30
+    metersPerUnit = 0.001
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def RectLight "RectangleLight"
+    {
+        color3f inputs:color.timeSamples = {
+            0: (1, 0.99999994, 1.0000001),
+            10: (1, 0.99999994, 1.0000001),
+        }
+        bool inputs:enableColorTemperature = 0
+        float inputs:height.timeSamples = {
+            0: 100,
+            10: 50,
+        }
+        float inputs:intensity.timeSamples = {
+            0: 3141592.8,
+            10: 1570796.4,
+        }
+        bool inputs:normalize = 1
+        color3f inputs:shadow:color.timeSamples = {
+            0: (0, 0, 0),
+            10: (0, 0, 0),
+        }
+        bool inputs:shadow:enable = 1
+        float inputs:width.timeSamples = {
+            0: 100,
+            10: 50,
+        }
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-39.3376, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-39.3376, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "CylinderLight"
+    {
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-25, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-25, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def CylinderLight "CylinderLight_Light"
+        {
+            color3f inputs:color.timeSamples = {
+                0: (1, 0.99999994, 1.0000001),
+                10: (1, 0.99999994, 1.0000001),
+            }
+            bool inputs:enableColorTemperature = 0
+            float inputs:intensity.timeSamples = {
+                0: 3141592.8,
+                10: 1570796.4,
+            }
+            float inputs:length.timeSamples = {
+                0: 100,
+                10: 200,
+            }
+            bool inputs:normalize = 1
+            float inputs:radius.timeSamples = {
+                0: 20,
+                10: 40,
+            }
+            color3f inputs:shadow:color.timeSamples = {
+                0: (0, 0, 0),
+                10: (0, 0, 0),
+            }
+            bool inputs:shadow:enable = 1
+            double xformOp:rotateZ = 90
+            uniform token[] xformOpOrder = ["xformOp:rotateZ"]
+        }
+    }
+
+    def RectLight "LineLight"
+    {
+        color3f inputs:color.timeSamples = {
+            0: (1, 0.99999994, 1.0000001),
+            10: (1, 0.99999994, 1.0000001),
+        }
+        bool inputs:enableColorTemperature = 0
+        float inputs:height.timeSamples = {
+            0: 50,
+            10: 100,
+        }
+        float inputs:intensity.timeSamples = {
+            0: 3141592.8,
+            10: 1570796.4,
+        }
+        bool inputs:normalize = 1
+        color3f inputs:shadow:color.timeSamples = {
+            0: (0, 0, 0),
+            10: (0, 0, 0),
+        }
+        bool inputs:shadow:enable = 1
+        float inputs:width = 0.1
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-5, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-5, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def DiskLight "DiscLight"
+    {
+        color3f inputs:color.timeSamples = {
+            0: (1, 0.99999994, 1.0000001),
+            10: (1, 0.99999994, 1.0000001),
+        }
+        bool inputs:enableColorTemperature = 0
+        float inputs:intensity.timeSamples = {
+            0: 3141592.8,
+            10: 1570796.4,
+        }
+        bool inputs:normalize = 1
+        float inputs:radius.timeSamples = {
+            0: 20,
+            10: 40,
+        }
+        color3f inputs:shadow:color.timeSamples = {
+            0: (0, 0, 0),
+            10: (0, 0, 0),
+        }
+        bool inputs:shadow:enable = 1
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (5, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (5, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def SphereLight "SphereLight"
+    {
+        color3f inputs:color.timeSamples = {
+            0: (1, 0.99999994, 1.0000001),
+            10: (1, 0.99999994, 1.0000001),
+        }
+        bool inputs:enableColorTemperature = 0
+        float inputs:intensity.timeSamples = {
+            0: 3141592.8,
+            10: 1570796.4,
+        }
+        bool inputs:normalize = 1
+        float inputs:radius.timeSamples = {
+            0: 10,
+            10: 20,
+        }
+        color3f inputs:shadow:color.timeSamples = {
+            0: (0, 0, 0),
+            10: (0, 0, 0),
+        }
+        bool inputs:shadow:enable = 1
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (25, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (25, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def DiskLight "PointLight"
+    {
+        color3f inputs:color.timeSamples = {
+            0: (1, 1, 1),
+            10: (1, 0.08464151, 0.08464151),
+        }
+        float inputs:colorTemperature.timeSamples = {
+            0: 3600,
+            10: 1000,
+        }
+        bool inputs:enableColorTemperature = 1
+        float inputs:intensity.timeSamples = {
+            0: 3141592.8,
+            10: 1570796.4,
+        }
+        bool inputs:normalize = 1
+        float inputs:radius = 0.001
+        color3f inputs:shadow:color.timeSamples = {
+            0: (0, 0, 0),
+            10: (0, 0, 0),
+        }
+        bool inputs:shadow:enable = 1
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (45, 0, 0, 1) ),
+            10: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (45, 0, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}
+

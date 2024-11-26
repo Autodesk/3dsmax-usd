@@ -1,0 +1,16 @@
+#usda 1.0
+(
+    defaultPrim = "world"
+    endTimeCode = 5
+    framesPerSecond = 24
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
+def Xform "world" {
+    def Xform "Cube1" (
+        prepend payload = @./cube_anim.abc@
+    ){
+    }
+}

@@ -1,0 +1,218 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.24.0 "
+    }
+    defaultPrim = "subset_crash"
+    metersPerUnit = 0.01
+    upAxis = "Z"
+)
+
+def Xform "subset_crash"
+{
+    def Xform "Box001" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (116.5, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    class Class "_class_Box001"
+    {
+        def Mesh "Box001"
+        {
+            float3[] extent = [(-10.01922, -12.82999, 0), (10.01922, 12.82999, 12.527606)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+            point3f[] points = [(-10.01922, -12.82999, 0), (10.01922, -12.82999, 0), (-10.01922, 12.82999, 0), (10.01922, 12.82999, 0), (-10.01922, -12.82999, 12.527606), (10.01922, -12.82999, 12.527606), (-10.01922, 12.82999, 12.527606), (10.01922, 12.82999, 12.527606)]
+            color3f[] primvars:displayColor = [(0.105882354, 0.69411767, 0.5803922)]
+            texCoord2f[] primvars:map1 = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            uniform token subsetFamily:materialBind:familyType = "partition"
+
+            def GeomSubset "_1_Material__36" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [1]
+                rel material:binding = </subset_crash/Materials/Material__36>
+            }
+
+            def GeomSubset "_2_Material__36" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 2
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [0]
+                rel material:binding = </subset_crash/Materials/Material__36>
+            }
+
+            def GeomSubset "_3_Material__36" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 3
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [5]
+                rel material:binding = </subset_crash/Materials/Material__36>
+            }
+
+            def GeomSubset "_4_Material__36" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 4
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [3]
+                rel material:binding = </subset_crash/Materials/Material__36>
+            }
+
+            def GeomSubset "_5_Material__37" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 5
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [2]
+                rel material:binding = </subset_crash/Materials/Material__37>
+            }
+
+            def GeomSubset "_6_Material__37" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 6
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [4]
+                rel material:binding = </subset_crash/Materials/Material__37>
+            }
+        }
+    }
+
+    def Xform "Box002" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (73.7219, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box003" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (30.9437, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box004" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-11.8345, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box005" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-54.6126, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Box006" (
+        prepend inherits = </subset_crash/_class_Box001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-97.3908, -8.56266, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def "Materials"
+    {
+        def Material "Material__37"
+        {
+            token outputs:surface.connect = </subset_crash/Materials/Material__37/Material__37.outputs:surface>
+
+            def Shader "Material__37"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.972549, 0, 0)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Material "Material__36"
+        {
+            token outputs:surface.connect = </subset_crash/Materials/Material__36/Material__36.outputs:surface>
+
+            def Shader "Material__36"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor = (0.5, 0.5, 0.5)
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+    }
+}
+

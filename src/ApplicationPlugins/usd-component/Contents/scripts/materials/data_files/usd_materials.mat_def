@@ -1,0 +1,22 @@
+{
+    "usd_preview_surface": {
+        "id": "UsdPreviewSurface",
+        "domain": "usd",
+        "inputs": {
+            "useSpecularWorkflow": "int",
+            "diffuseColor": "color3f",
+            "specularColor": "color3f",
+            "emissiveColor": "color3f",
+            "displacement": "float",
+            "opacity": "float",
+            "opacityThreshold": "float",
+            "roughness": "float",
+            "metallic": "float",
+            "clearcoat": "float",
+            "clearcoatRoughness": "float",
+            "occlusion": "float",
+            "normal": "normal3f",
+            "ior": "float"
+        }
+    }
+}

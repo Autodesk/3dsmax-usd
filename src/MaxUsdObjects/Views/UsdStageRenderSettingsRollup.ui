@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdStageRenderSettingsRollup</class>
+ <widget class="QWidget" name="UsdStageRenderSettingsRollup">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>140</width>
+    <height>60</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_4">
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Materials:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="AssignMtlToNodeButton">
+     <property name="toolTip">
+      <string>Generates and assigns USDPreviewSurface materials to the USD Stage Node. This lets you work with offline renderers that do not support USD directly.&lt;br&gt;&lt;strong&gt;Warning: This process overrides the material currently assigned to the node referencing the stage.&lt;/strong&gt;</string>
+     </property>
+     <property name="text">
+      <string>Assign USD Materials</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>MaxUsdObjects</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{046CF5D0-8DBF-46FB-8D73-11F1861F81F1}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest>true</EmbedManifest>
+    <TargetName>MaxUsdObjects</TargetName>
+    <TargetExt>.dlo</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2024'">UFE_CLIPBOARD_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MAXUSDOBJECTS_EXPORTS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UfeInc);$(UfeUsdInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>$(ProjectDir)maxusdobjects_banned.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>$(TargetName).def</ModuleDefinitionFile>
+      <AdditionalDependencies>maxutil.lib;FragmentGraph.lib;GraphicsDriver.lib;GraphicsUtility.lib;ViewSystem.lib;MaxGraphicsObjects.lib;core.lib;geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;paramblk2.lib;MaxQtBridge.lib;mnmath.lib;Poly.lib;optimesh.lib;gup.lib;DataBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+    </Link>
+    <PreBuildEvent>
+      <Command>if exist "$(ProjectDir)Icons\UfeRt" rmdir "$(ProjectDir)Icons\UfeRt"
+mklink /j "$(ProjectDir)Icons\UfeRt" "$(UsdUfeLib)\icons"</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Message>Copying UFE/USDUFE runtime files</Message>
+      <Command>robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UfeLib)\..\bin\ $(TargetDir) ufe*.dll ufe*.pdb
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UfeLib)\..\Python\Lib\site-packages\ufe $(TargetDir)\python\ufe /XF *.lib
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UsdUfeLib) $(TargetDir) *.dll *.pdb
+if %errorlevel% geq 4 exit /b 1
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UsdUfeLib)\python\ $(TargetDir)\python\ /XD "__pycache__" /XF *.lib
+if %errorlevel% geq 4 exit /b 1
+exit /b 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ClassDescs.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdHierarchyHandler.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdRootChildHierarchy.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUfeUndoableCmdMgr.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdObject3d.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdObject3dHandler.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdContextOps.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdContextOpsHandler.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdStagesSubject.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdUndoMakeVisibleCommand.cpp" />
+    <ClCompile Include="MaxUsdUfe\QmaxUsdUfeAttributesWidget.cpp" />
+    <ClCompile Include="MaxUsdUfe\StageObjectMap.cpp" />
+    <ClCompile Include="MaxUsdUfe\UfeUtils.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdUIInfoHandler.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdUndoVisibleCommand.cpp" />
+    <ClCompile Include="MaxUsdUfe\MaxUsdEditCommand.cpp" />
+    <ClCompile Include="MaxUsdUfe\UsdTreeColumns.cpp" />
+    <ClCompile Include="DllEntry.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClassDescs.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUfeUndoableCommandMgr.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdHierarchyHandler.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdRootChildHierarchy.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdObject3d.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdObject3dHandler.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdContextOps.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdContextOpsHandler.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdStagesSubject.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdUndoMakeVisibleCommand.h" />
+    <QtMoc Include="MaxUsdUfe\QmaxUsdUfeAttributesWidget.h" />
+    <ClInclude Include="MaxUsdUfe\StageObjectMap.h" />
+    <ClInclude Include="MaxUsdUfe\UfeUtils.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdUIInfoHandler.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdEditCommand.h" />
+    <ClInclude Include="MaxUsdUfe\UsdTreeColumns.h" />
+    <ClInclude Include="MaxUsdUfe\MaxUsdUndoVisibleCommand.h" />
+    <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="Objects\USDBaseController.h" />
+    <ClInclude Include="Objects\USDCameraObject.h" />
+    <ClInclude Include="Objects\USDCameraObjectClassDesc.h" />
+    <ClInclude Include="Objects\USDAttrControllers.h" />
+    <ClInclude Include="Objects\USDAttrControllerClassDescs.h" />
+    <ClInclude Include="Objects\USDTransformControllers.h" />
+    <ClInclude Include="Objects\USDTransformControllersClassDesc.h" />
+    <ClInclude Include="Objects\SubobjectManips.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="USDExplorer.h" />
+    <ClInclude Include="maxusdobjects_banned.h" />
+    <ClInclude Include="Objects\USDSnaps.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MaxUsdObjects.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\maxUsd\maxUsd.vcxproj">
+      <Project>{d02163f8-70ee-4676-b3ea-7c89e71b44d4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\UFEUI\UFEUI.vcxproj">
+      <Project>{0e1a6b42-080b-475c-8f53-613c47a99c81}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\RenderDelegate\RenderDelegate.vcxproj">
+      <Project>{7b707dd2-355b-4232-89e8-f92a821b71b3}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Objects\USDStageObject.h" />
+    <ClInclude Include="Objects\USDStageObjectclassDesc.h" />
+    <ClInclude Include="USDPickingRenderer.h" />
+    <ClCompile Include="Objects\USDBaseController.cpp" />
+    <ClCompile Include="Objects\USDCameraObject.cpp" />
+    <ClCompile Include="Objects\USDCameraObjectClassDesc.cpp" />
+    <ClCompile Include="Objects\USDAttrControllers.cpp" />
+    <ClCompile Include="Objects\USDAttrControllerClassDescs.cpp" />
+    <ClCompile Include="Objects\USDTransformControllers.cpp" />
+    <ClCompile Include="Objects\USDTransformControllersClassDesc.cpp" />
+    <ClInclude Include="USDAssetAccessor.h" />
+    <ClInclude Include="MaxUsdObjectsAPI.h" />
+    <ClInclude Include="Objects\USDStageObjectIcon.h" />
+    <ClInclude Include="Objects\CreateCallbacks\CreateAtPosition.h" />
+    <QtMoc Include="Views\UsdStageNodeParametersRollup.h" />
+    <QtMoc Include="Views\UsdStageNodePrimSelectionDialog.h" />
+    <QtMoc Include="Views\UsdStageViewportDisplayRollup.h" />
+    <QtMoc Include="Views\UsdStageViewportPerformanceRollup.h" />
+    <QtMoc Include="Views\UsdStageRenderSettingsRollup.h" />
+    <QtMoc Include="Views\UsdStageNodeAnimationRollup.h" />
+    <QtMoc Include="Views\UsdStageViewportSelectionRollup.h" />
+    <QtMoc Include="Views\UsdControllerWidget.h" />
+    <QtMoc Include="Views\UsdCameraObjectRollup.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Objects\USDStageObject.cpp" />
+    <ClCompile Include="Objects\USDStageObjectclassDesc.cpp" />
+    <ClCompile Include="Objects\SubobjectManips.cpp" />
+    <ClCompile Include="USDExplorer.cpp" />
+    <ClCompile Include="USDPickingRenderer.cpp" />
+    <ClCompile Include="USDAssetAccessor.cpp" />
+    <ClCompile Include="Objects\USDSnaps.cpp" />
+    <ClCompile Include="Views\UsdCameraObjectRollup.cpp" />
+    <ClCompile Include="Views\UsdStageNodeAnimationRollup.cpp" />
+    <ClCompile Include="Views\UsdStageNodeParametersRollup.cpp" />
+    <ClCompile Include="Views\UsdStageNodePrimSelectionDialog.cpp" />
+    <ClCompile Include="Views\UsdStageViewportDisplayRollup.cpp" />
+    <ClCompile Include="Views\UsdStageViewportPerformanceRollup.cpp" />
+    <ClCompile Include="Views\UsdStageRenderSettingsRollup.cpp" />
+    <ClCompile Include="Views\UsdStageViewportSelectionRollup.cpp" />
+    <ClCompile Include="Views\UsdControllerWidget.cpp" />
+    <ClCompile Include="Objects\CreateCallbacks\CreateAtPosition.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\UsdCameraObjectRollup.ui" />
+    <QtUic Include="Views\UsdControllerWidget.ui" />
+    <QtUic Include="Views\UsdStageNodeAnimationRollup.ui" />
+    <QtUic Include="Views\UsdStageNodeParametersRollup.ui" />
+    <QtUic Include="Views\UsdStageNodePrimSelectionDialog.ui" />
+    <QtUic Include="Views\UsdStageRenderSettingsRollup.ui" />
+    <QtUic Include="Views\UsdStageViewportDisplayRollup.ui" />
+    <QtUic Include="Views\UsdStageViewportPerformanceRollup.ui" />
+    <QtUic Include="Views\UsdStageViewportSelectionRollup.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="resource.qrc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

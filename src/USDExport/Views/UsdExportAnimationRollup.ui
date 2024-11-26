@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportAnimationRollup</class>
+ <widget class="QWidget" name="UsdExportAnimationRollup">
+  <property name="windowTitle">
+   <string>Animation</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="TimeRangeBox">
+     <property name="title">
+      <string>Time Range</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="2" column="1">
+       <widget class="MaxUsd::QmaxUsdDoubleSpinBox" name="FrameNumberDoubleSpinBox"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="CurrentFrameLabel">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="AnimationRangeLabel">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="SamplesPerFrameLabel">
+        <property name="text">
+         <string>Samples per Frame</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="AnimationRangeRadioButton">
+        <property name="toolTip">
+         <string>Select Animation Range to export animation data from the active timeline.</string>
+        </property>
+        <property name="text">
+         <string>Animation Range</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QRadioButton" name="CurrentFrameRadioButton">
+        <property name="toolTip">
+         <string>Select Current Frame to export animation data from the active frame.</string>
+        </property>
+        <property name="text">
+         <string>Current Frame</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QRadioButton" name="FrameNumberRadioButton">
+        <property name="toolTip">
+         <string>Select Frame Number to export animation data from the specified frame.</string>
+        </property>
+        <property name="text">
+         <string>Frame Number</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QRadioButton" name="FrameRangeRadioButton">
+        <property name="toolTip">
+         <string>Select Frame Range to export animation data from the specified start and end frames.</string>
+        </property>
+        <property name="text">
+         <string>Frame Range</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="MaxUsd::QmaxUsdDoubleSpinBox" name="SamplePerFrameDoubleSpinBox">
+        <property name="toolTip">
+         <string>For Animation Range and Frame Range, select the samples per frame to include at export.</string>
+        </property>
+        <property name="minimum">
+         <double>0.010000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <layout class="QHBoxLayout" name="FrameRangeHorizontalLayout" stretch="2,1,2">
+        <item>
+         <widget class="MaxUsd::QmaxUsdDoubleSpinBox" name="FrameRangeStartDoubleSpinBox"/>
+        </item>
+        <item>
+         <widget class="QLabel" name="FrameRangeSeparatorLabel">
+          <property name="text">
+           <string>-</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="MaxUsd::QmaxUsdDoubleSpinBox" name="FrameRangeEndDoubleSpinBox"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="IncludeGroupBox">
+     <property name="title">
+      <string>Deformers</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QCheckBox" name="SkinCheckBox">
+        <property name="toolTip">
+         <string>If selected, this option encodes skin and skeletons as USDSkel in your USD export.</string>
+        </property>
+        <property name="text">
+         <string>Skin</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="MorpherCheckBox">
+        <property name="toolTip">
+         <string>Exports morph targets as USD blend shapes.</string>
+        </property>
+        <property name="text">
+         <string>Morph Targets</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MaxSDK::QmaxDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header location="global">Qt/QmaxSpinBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MaxUsd::QmaxUsdDoubleSpinBox</class>
+   <extends>MaxSDK::QmaxDoubleSpinBox</extends>
+   <header location="global">MaxUsd/Widgets/QmaxUsdDoubleSpinBox.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

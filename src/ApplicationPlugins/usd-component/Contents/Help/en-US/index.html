@@ -1,0 +1,3020 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="USD for Autodesk 3ds Max">
+    <meta name="author" content="Autodesk Inc.">
+
+    <title>USD for Autodesk 3ds Max</title>
+
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <style type="text/css">
+        html {
+            font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+            html {
+                font-size: 16px;
+            }
+        }
+
+        a,
+        a:hover {
+            text-decoration: underline;
+            color: #212529;
+        }
+
+        .container {
+            max-width: 920px;
+        }
+
+        .usd-header {
+            max-width: 700px;
+        }
+
+        .border-top {
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .box-shadow {
+            box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
+        <h5 class="my-0 mr-md-auto font-weight-normal">Autodesk 3ds Max</h5>
+    </div>
+
+    <div class="usd-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+        <h1 class="display-4">USD for Autodesk 3ds Max</h1>
+        <p class="lead">Support for USD content in Autodesk 3ds Max</p>
+    </div>
+
+    <main role="main" class="container">
+        <h4>Overview</h4>
+        <p>This plugin adds support for Pixar's Universal Scene Description (USD) in Autodesk 3ds Max.</p>
+        <p>If you like you what you see or have any feedback about these features, please <a href="#get-in-touch">let us
+                know</a>. We look forward to hearing from you to help us shape the future of this initiative.</p>
+
+        <div class="alert alert-warning rounded-0" role="alert">
+            <p>We may make major breaking changes from one version to the next in order to improve our APIs, or to provide support for new use cases.</p>
+            Please keep that in mind when making purchasing decisions based on the current capabilities.
+        </div>
+
+        <h4 class="pt-4">Uninstalling</h4>
+        <p>To uninstall this plugin:</p>
+        <ol>
+            <li>Open Window's <em>Add or remove program</em> tool.</li>
+            <li>Search for "USD for Autodesk 3ds Max".</li>
+            <li>Select the result and click the "Uninstall" button.</li>
+        </ol>
+
+        <h4 class="pt-4" id="get-in-touch">Get in touch</h4>
+        <p>We are eager to hear what you think of these capabilities!</p>
+        <p>Was there anything you liked? Did you find a bug? Do you have any ideas or USD content that you would like
+            share with us? Let us know on the <a
+                href="https://feedback.autodesk.com/project/forum/default.html?cap=9285baa2a65442e8ae5bc4eec88e790e"
+                target="_blank" id="3ds-max-forums-link">Autodesk 3ds Max Beta forums</a> or give your <a
+                href="https://www.autodesk.com/3dsmax-usd-feedback">feedback here</a>.</p>
+        <p>The success of this initiative depends on how we can serve your needs. Your feedback is important to us in
+            this partnership.</p>
+
+        <h4 class="pt-4">Release notes</h4>
+        <h5 data-current-version="0.9.0">v0.9.0 <small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        What's New:
+        <ul>
+            <li>
+                Bump component version to 0.9 - new public release
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Changed MaterialX plugin utility to export using colorspace "sRGB" by default instead of "gamma22".
+            </li>
+            <li>
+                Fixed an issue where setting Textures for Draw Modes in the Prim Attributes could cause 3ds Max to become unresponsive.
+            </li>
+            <li>
+                Cleaned up USD Attribute Tooltips.
+            </li>
+            <li>
+                Fix expected behavior on PrimReader plugin not being loaded when 'providesTranslator' type is an ancestor type.
+            </li>
+            <li>
+                Fixed spinner for USD Prims to allow negative values.
+            </li>
+            <li>
+                Fixed options for loading a stage not persisting between multiple stage-loading actions.
+            </li>
+            <li>
+                Fixed unnecessary memory usage from textures that should not be loaded from deactivated prims in a USD Stage Object.
+            </li>
+            <li>
+                Update some labels and tooltips around the Draw Mode functions in the USD Stage Object.
+            </li>
+        </ul>
+
+        <h5>v0.8.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Added a rollup to the property editor to display "Extra Attributes" that do not belong to any USD Schema.
+            </li>
+            <li>
+                Added new display option on a USD Stage Object to display PointInstances as Box or Cross cards. The option will author all the necessary settings on the prims in the stage to make draw modes display on Pointinstancers into an anonymous sublayer of the session layer.
+            </li>
+            <li>
+                Added new function to generate a BezierShapeClass object from a USD Curve.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where the Command Panel Rollouts for the USD Stage could undesirably alter the appearance of the Command Panel.
+            </li>
+            <li>
+                Fixed issue where undoable commands were generated while editing spinners interactively in the property editor
+            </li>
+            <li>
+                Fixed an issue where the property editor UI fell out of sync with the data when attempting to edit USD instances.
+            </li>
+            <li>
+                Fixed an issue with transforming prototypes used by point instancers.
+            </li>
+            <li>
+                Fixed the behavior of the Plug-in Configuration Rollup to recall the user's last set state.
+            </li>
+            <li>
+                Fixed an issue where invalid blendshape could crash when importing the stage
+            </li>
+            <li>
+                Fixed changes to a prim's purpose not being displayed immediately in the viewport.
+            </li>
+            <li>
+                Fixed crash related to using USD Snaps on an empty stage.
+            </li>
+            <li>
+                Fix expected behavior on PrimReader plugin not being loaded when 'providesTranslator' type is an ancestor type.
+            </li>
+            <li>
+                Fixed the USD Explorer's ame-light theme readability for text and selection elements.
+            </li>
+        </ul>
+
+        <h5>v0.8.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for USDGeomCurves in the USD Importer.
+            </li>
+            <li>
+                Added ability to select and transform USD Point Instances.
+            </li>
+            <li>
+                Added support for the USD modify tab to remember rollup state even when multiple prims are selected.
+            </li>
+            <li>
+                Added prim attributes to the modify tab when selecting a prim, allowing the user to make edits on prim data as they would with standard Max objects.
+            </li>
+            <li>
+                Updated the USD Exporter to remember the rollup state between sessions.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed command panel not refreshing when undoing some edits to prim properties.
+            </li>
+            <li>
+                Fixed file inputs missing from the USD Attribute editor.
+            </li>
+            <li>
+                Fixed critical error causing a crash when importing USD.
+            </li>
+        </ul>
+
+        <h5>v0.8.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated USD export/import options to use a Dictionary.
+            </li>
+            <li>
+                Added new USD category to Snaps that allows snapping to USD Faces, Vertices and Edges.
+            </li>
+            <li>
+                Updated the functions in the USD Explorer for changing variants, visibility, etc. to respect the current EditTarget a user may have set via scripting. This also works for transforming prims in the viewport. Previously, the edits in the USD Explorer were always going to the session layer.
+            </li>
+        </ul>
+        <h5>v0.8.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated Max USD Export options to Dictionaries.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where deleting and adding a new skin modifier to a mesh will log an error message of multiple bind pose.
+            </li>
+        </ul>
+
+        <h5>v0.8.0</h5>
+        <ul>
+            <li>
+                Public release for the 0.8 version.
+            </li>
+        </ul>
+        <h5>v0.7.9</h5>
+        What's New:
+        <ul>
+            <li>
+                Added missing 'ShaderWriter::GetSubMtlDependencies' Python exposure
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed display of animated focal length when importing animating USD camera
+            </li>
+            <li>
+                Implemented fix for crash when changing root layer of a USD stage with modifiers.
+            </li>
+            <li>
+                Implemented improvements for editing the attribute path of a USD Float controller.
+            </li>
+            <li>
+                Implemented fix for crash when in the USD Float Controller's pick mode.
+            </li>
+            <li>
+                Fixed a defect where USD Stage edits cleared the undo stack.
+            </li>
+            <li>
+                Fixed a defect where undoing a deleted Stage object, that has a USD controlled camera as a child, results in duplicate cameras. 
+            </li>
+        </ul>
+        
+        <h5>v0.7.8</h5>
+        What's New:
+        <ul>
+            <li>
+                Added USD Position/Scale/Rotation controllers.
+            </li>
+            <li>
+                Change to Import/Export "Enter" key interaction to avoid accidental dialog confirmation.
+            </li>
+            <li>
+                Updated viewport selection of prims to default to selecting editable prims when selecting instanceable prims.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a Crash when exporting Skel animation with an invalid root prim
+            </li>
+            <li>
+                Fixed an issue with skinned animation data when Offset Baked was disabled during Export.
+            </li>
+        </ul>
+
+        <h5>v0.7.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated cameras created for a USDStageObject to be undeletable by users. The cameras are controlled by the USDStageObject.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed bad labels in USD float controllers.
+            </li>
+            <li>
+                Fixed an issue where under specific circumstances performing an Undo operation on a USD Stage node generation would crash.
+            </li>
+            <li>
+                Fixed issue where the wrong value was set on "Reset to Default" for the Stage Object animation option "Frames per Second" 
+            </li>
+            <li>
+                Fixed an issue with USD Stage during Animation playback where performance was lost in Proxy mode when switching between Proxy/Render.
+            </li>
+            <li>
+                Fixed a Color Space issue impacting 3ds Max 2024 and later where Gamma was not set to 1.0 for USD Material Nodes.
+            </li>
+            <li>
+                Exposed bump amount value in the UsdPreviewSurface scripted material to allow correcting normal map display issues in the 3dsMax viewport.
+            </li>
+            <li>
+                2x performance improvement of USD Explorer Auto-Expand to Selection.
+            </li>
+        </ul>
+
+        <h5>v0.7.6</h5>
+        What's New:
+        <ul>
+            <li>
+                The default translators (writers/readers) are all plugins to the USD component.
+            </li>
+            <li>
+                Added new USD Float Controller that can drive float, point2, point3 and point4 values in Max.
+            </li>
+            <li>
+                Updated to USD 0.24.05 for the beta build.
+            </li>
+            <li>
+                Exposed the TranslatorMaterial::AssignMaterial helper from the Max USD C++ SDK to Python.
+            </li>
+            <li>
+                Added support to use Zoom Extents on selected USD Prims.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a freeze when loading some USD scenes when the PXR_PLUGINPATH_NAME envirornment variable is set to the pluginInfo.json folder.
+            </li>
+            <li>
+                Fixed an issue where under specific circumstances performing an Undo operation on a USD Stage node generation would crash.
+            </li>
+            <li>
+                Fixed a missing string for USD Stage prim selection action being populated in the Undo stack as a generic action.
+            </li>
+            <li>
+                Fixed USD error in MAXScript listener when reactivating a USD Camera.
+            </li>
+            <li>
+                Fixed performance drop in the viewport when loading a USD Stage with instances containing many geomsubsets.
+            </li>
+            <li>
+                Fixed performance degradation on selecting prims in a USD stage.
+            </li>
+        </ul>
+
+        <h5>v0.7.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Added new USD Xform Controller that allows a Max node transform to be controlled by the transform of an xformable prim in a USD Stage.
+            </li>
+            <li>
+                Added samples to Max USD SDK to demonstrate how to create a custom UI for plugin-configurations in the USD Exporter and Importer.
+            </li>
+            <li>
+                Updated the USD Stage Object to bring in proxy cameras into 3ds Max that are controlled by underlying USD camera data. This allows a user to render from cameras in a USD Stage as well as look through them.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed display of animated focal length when importing animating USD camera
+            </li>
+            <li>
+                Fixed USD Payload load/unload state not being properly restored with Undo/Redo.
+            </li>
+            <li>
+                Fix regression of the kind type combobox in the USD stage object Viewport selection rollup.
+            </li>
+        </ul>
+
+        <h5>v0.7.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Added new USD Xform Controller that allows a Max node transform to be controlled by the transform of an xformable prim in a USD Stage.
+            </li>
+            <li>
+                Added support for multi-selection of USD prims in the viewport. Note that deep selection is not currently supported with USD Prims.
+            </li>
+            <li>
+                Added ability for plugin-developers to share a custom UI for their contexts in the USD Exporter to allow users to set custom plugin settings.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed severe performance degradation when the Undo Stack contains USD prim multi-selection.
+            </li>
+            <li>
+                Python exposure to USDSceneBuilderOptions Content Source option.
+            </li>
+            <li>
+                Fixed an issue where Importing animation data was not setting the Start and End frames to match the incoming animation frame range.
+            </li>
+            <li>
+                Fix issue where user can create prims under deactivated prims even though error message is shown. It is no longer possible to create a prim under a deactivated prim.
+            </li>
+            <li>
+                Fixed a performance issue of visibility switching of some USD large multi-prim selections.
+            </li>
+        </ul>
+
+        <h5>v0.7.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for converting Progressive Morphers to Inbetween Blendshshapes in the USD Exporter.
+            </li>
+            <li>
+                Added support for multi-selection of USD prims in the viewport.
+            </li>
+            <li>
+                Fixed issue with exporting multimaterials with connected material switchers on instanced object.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an import error with Meshes with just a morpher in a scene with other skinned meshes with bones bindings
+            </li>
+            <li>
+                Fixed Python exposure to USDSceneBuilderOptions Content Source option
+            </li>
+            <li>
+                Fixed a Morpher export issue with USD invalid identifier names of morph target starting with numeric values
+            </li>
+            <li>
+                Fixed a current frame export issue with multiple morphers in the scene
+            </li>
+            <li>
+                Fixed getClassName() not returning the correct class name with the USDStageObject class.
+            </li>
+            <li>
+                Fixed a problem in the Import Chaser C++ samples casting floats as doubles.
+            </li>
+        </ul>
+
+        <h5>v0.7.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for converting Progressive Morphers to Inbetween Blenshshapes in the USD Exporter.
+            </li>
+            <li>
+                Added support for toggling the visibility icons on prims in the USD Explorer.
+            </li>
+            <li>
+                Fixed an issue where undo didn't work for some text fields and drop downs on the stage's command panel.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where Undo would not display Prim selections in the Viewport.
+            </li>
+            <li>
+                Fixed issue with possible corruption of the material UI export options when modified from scripting.
+            </li>
+        </ul>
+
+        <h5>v0.7.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Fixed issue with exporting Material switchers with connected multi-materials on instanced object.
+            </li>
+            <li>
+                Added support for undo/redo when selecting USD prims.
+            </li>
+            <li>
+                Added support for selecting multiple USD prims.
+            </li>
+            <li>
+                Removal of the export/import 'onCompletion' callbacks in favor of the export/import Chaser mechanics.
+            </li>
+            <li>
+                C++ SDK changes on the container mapping the exported Nodes to Prims.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed issue with bad relative path resolution when exporting MaterialX materials to separate layers.
+            </li>
+        </ul>
+
+        <h5>v0.7.0</h5>
+        What's New:
+        <ul>
+            <li>
+                Adjusted UI behavior in the USD Exporter to reduce likelihood of unintended changes to values with Spinners when using the scroll wheel.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where toggling USD Visibility within the USD Explorer could impact the Viewports performance.
+            </li>
+            <li>
+                Fix to prevent desynchonization between UI export options set through scripting and the interface.
+            </li>
+            <li>
+                Fixed an issue where changing the Morpher limits would affect the Morpher's animation weight.
+            </li>
+        </ul>
+
+        <h5>v0.6.9</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for mixing the material switcher and multi/sub-object materials in the USD Exporter for creating material variants.
+            </li>
+            <li>
+                Added a column in the USD Explorer to display a prim's authored kind.
+            </li>
+            <li>
+                Added support to import blendshapes from USD into Morphers.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where toggling USD Visibility within the USD Explorer could impact the Viewports performance.
+            </li>
+            <li>
+                USDView no longer causes a lingering 3dsMax Python 3 Interpreter process after closing the window.
+            </li>
+            <li>
+                USD Stage consolidation memory usage improvements.
+            </li>
+            <li>
+                Fix explorer refresh issue with long treeview.
+            </li>
+            <li>
+                Fix issue with row selection in USD Explorer where horizontal scroll position shifts back and forth.
+            </li>
+            <li>
+                Fix animated instance selection display.
+            </li>
+            <li>
+                Fixed selection highlighting issue causing needless errors in the listener, affecting performance.
+            </li>
+            <li>
+                Stabilized the sub-object mode transform operations.
+            </li>
+            <li>
+                Prevent materials from disappearing after prim transform operations.
+            </li>
+            <li>
+                Prevent auto-key feature from interfering with animation import.
+            </li>
+            <li>
+                Only move prims that belong to the selected USD Stage.
+            </li>
+        </ul>
+
+        <h5>v0.6.8</h5>
+        What's New:
+        <ul>
+            <li>    
+                Added ability to expand/contract the entire hierarchy below a prim with CTRL+LMB.
+            </li>
+            <li>
+                Improved the visibility of inactive prims in the USD Explorer.
+            </li>
+            <li>
+                Added a column in the USD Explorer to display a prim's authored kind.
+            </li>
+            <li>
+                Added ability to transform a USD prim in the viewport.
+            </li>
+            <li>
+                Brought back the Load Payloads checkbox in the load stage dialog.
+            </li>
+            <li>
+                Added parent highlighting to selected prims in the USD Explorer.
+            </li>
+            <li>
+                Updated the labels and tooltips in the USD Preview Surface Material.
+            </li>
+            <li>
+                Added support to keep the USD Context menus open when holding down the CRTL key. The is helpful when changing variants on a USD Prim and wanting to test different variant selections.
+            </li>
+            <li>
+                Updated the USD exporter to use the current timeline frame range when initially setting the export range.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed defect in orientation of bones when exporting to USDSkel.
+            </li>
+        </ul>
+        <h5>v0.6.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Added selection highlighting to prims in a USD Stage.
+            </li>
+            <li>
+                Added support for multiple material targets when exporting a Material Switcher.
+            </li>
+            <li>
+                Prim name column now auto-expands to fill available size of USD Explorer.
+            </li>
+            <li>
+                Added ability to customize what columns are available in the USD Explorer.
+            </li>
+            <li>
+                Updated the USD exporter to use the current timeline frame range when initially setting the export range.
+            </li>
+            <li>
+                Fixed Stage Node layout to be consistent with other windows layout.
+            </li>
+            <li>
+                Fixed an issue where toggling the visibility state of some prims could cause it to stay visually out of sync.
+            </li>
+        </ul>
+        <h5>v0.6.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for importing animated attributes for USD lights.
+            </li>
+            <li>
+                Animated camera attributes like FOV are now supported in the USD Importer.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed USD Explorer visibility state to refresh correctly.
+            </li>
+        </ul>
+        <h5>v0.6.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Improved the USD SDK samples to require less effort to get running.
+            </li>
+            <li>
+                Updated several classes in the MaxUSD projects that were not namespaced to be namespaced to maxUsd.
+            </li>
+            <li>
+                Added a new Prim sub-object mode to select prims in a USDStageObject.
+            </li>
+            <li>
+                New option added to the USD explorer to auto-expand the tree to the current selection.
+            </li>
+            <li>
+                Prim name column now auto-expands to fill available size of USD Explorer.
+            </li>
+            <li>
+                The checkbox for loading payloads was removed from the USDStageObject modify tab since payload rules are now working in the USD Explorer.
+            </li>
+            <li>
+                Added ability to specify specific animation ranges in the USD Importer.
+            </li>
+            <li>
+                Update for 3ds Max SDK 2025 freeze (M4479)
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed importing some USDSkel prims into Max.
+            </li>
+            <li>
+                Fixed USD Exporter not fitting onto small screen resolutions.
+            </li>
+            <li>
+                Fixed an undo crash in the USD Explorer after toggling a prim's instanceable setting.
+            </li>
+            <li>
+                Restricted the material layer setting to be output to the same file as the main USD file when exporting a material layer.
+            </li>
+            <li>
+                Fixed an issue where USD Skel exports had deformation results that weren't matching the source animation.
+            </li>
+        </ul>
+        <h5>v0.6.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD Exporter to set the prim type of the material scope from Def to Scope.
+            </li>
+            <li>
+                Updated USD version to 23.11 for 3ds Max 2025.
+            </li>
+            <li>
+                Fixed loading USD files into a Stage node that were coming up empty but could be loaded into USDView.
+            </li>
+            <li>
+                USD Importer now has a setting for using/disabling the progress bar via scripting (UIOption.UseProgressBar = true|false).
+            </li>
+        </ul>
+
+        <h5>v0.6.3</h5>
+ What's New:
+        <ul>
+            <li>
+                Added a new export options to enable or disable the last resort USDPreviewSurface material (options.UseLastResortUSDPreviewSurfaceWriter).
+            </li>
+            <li>
+                Added further validation of target material file paths to prevent unicode characters.
+            </li>
+            <li>
+                Added support for the &lt;filename&gt; token in exported material files paths. It is replaced by the root layer file name at export time.
+            </li>
+            <li>
+                Improved the Prim reader API documentation and sample.
+            </li>
+            <li>
+                Added support for basic rectangle selection of the USD Stage Object (only support's crossing mode).
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed issue with animation import not setting key frames at time 0.
+            </li>
+            <li>
+                Fixed erroneously filtered  typeless prims in the USD Stage prim selection dialog.
+            </li>
+            <li>
+                Fixed a crash when exporting to a material layer already loaded in memory.
+            </li>
+            <li>
+                Fixed a USDSkel bone import issue with Y-up source data.
+            </li>
+            <li>
+                Fixed instance import transform issue with Y-up source data.
+            </li>
+        </ul>
+        
+        <h5>v0.6.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Added a sample to the USD SDK on using an Import Chaser.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed incorrect transforms when importing instances.
+            </li>
+            <li>
+                Fixed error that could cause the USD Explorer to not show any USD data when opened.
+            </li>
+            <li>
+                Fixed the name of the USD Plugin not having a human-readable format in the Windows Control Panel.
+            </li>
+            <li>
+                Fixed defect causing the USD Tools to not launch from the command line.
+            </li>
+            <li>
+                Fixed problem in the USD Importer importing materials on prims with multiple geomsubsets.
+            </li>
+            <li>
+                Fixed incorrect log error in USD Importer when importing some USD files.
+            </li>
+            <li>
+                Fixed incorrect bind transform when importing USDSKel from some USD files.
+            </li>
+            <li>
+                Fixed missing translation and rotation animation at "root" level when importing some USD files (such as the Walking Pixar Female). 
+            </li>
+            <li>
+                Fixed duplicate nodes being created when importing USD files with instances containing hierarchies.
+            </li>
+            <li>
+                Updated the USD Exporter to block the export and warn the user of invalid characters in material names.
+            </li>
+        </ul>
+        
+        <h5>v0.6.1</h5>
+        What's New:
+        <ul>
+            <li>
+                3ds Max USD Component updated to a newer installer framework. With this new installer, previous versions from 0.5 and older need to be manually uninstalled to be removed from the system.
+            </li>
+            <li>
+                The USD Exporter can now export the Material Switcher material as variantSets.
+            </li>
+            <li>
+                Added Context and Chasers to the USD Importer SDK.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue resizing the "Prim name" column in the USD Explorer to not work in odd ways. Note that after this fix, the prim name column will no longer auto-expand to fit available space.
+            </li>
+            <li>
+                Fixed an issue where importing a USD file with different system units format would bring bad data.
+            </li>
+            <li>
+                Fixed an issue when specifying .usdz for Material File Generation caused 3ds Max to crash
+            </li>
+            <li>
+                Fixed an issue where wrong bone animation was being used outside the USD time range when importing a USD file using USDSkel.
+            </li>
+            <li>
+                Fixed an issue where skinned meshes were not being bound to the correct bones when importing USD.
+            </li>
+            <li>
+                Fixed an issue where Blendshape content was exported with Y-up settings would not have the expected spatial coordinates.
+            </li>
+            <li>
+                Fixed an issue where the plugin would throw an error when loaded in localized 3ds Max versions
+            </li>
+            <li>
+                Fixed USDView not launching properly in 3ds Max 2025.
+            </li>
+            <li>
+                Fixed an issue where "Copy Prim Path" menu option would show up in unintended locations.
+            </li>
+        </ul>
+
+        <h5>v0.6.0 <small></h5>
+        What's New:
+        <ul>
+            <li>
+                Updated SDK documentation for 0.6 release to include Import Chasers, ShaderReader and PrimReader.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed issue with animation import not setting key frames at time 0.
+            </li>
+            <li>
+                Fixed a USDSkel bone import issue with Y-up source data.
+            </li>
+            <li>
+                Fixed a crash when exporting to a material layer already loaded in memory.
+            </li>
+            <li>
+                Fix an issue where importing usd data would create duplicate geometry on instances with hierarchies.
+            </li>
+        </ul>
+
+        <h5>v0.5.8</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support to import USD Skel Animations into 3ds Max.
+            </li>
+            <li>
+                It's now possible to the edit the Target layer, and default layer of materials in the exporter.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue with bounding boxes in a Stage with Skel animation and unskinned meshes.
+            </li>
+        </ul>
+
+        <h5>v0.5.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the visibility icon for the USD Explorer to be more legible.
+            </li>
+            <li>
+                Update several tooltips to better inform the user.
+            </li>
+            <li>
+                API Change, new feature: Prim readers.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where the '?' button wouldn't open the documentation page.
+            </li>
+            <li>
+                Fixed an issue where tool tips where not showing up in the correct place for the USD animation roll up.
+            </li>
+            <li>
+                Fixed an issue that could cause a visual bug when docking the USD Explorer.
+            </li>
+        </ul>
+
+        <h5>v0.5.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M3364)
+            </li>
+            <li>
+                Added support for the USD Explorer to respect window snapping.
+            </li>
+            <li>
+                Updated the USD Plugin to use USD 23.08 in Max 2025 builds.
+            </li>
+            <li>
+                Updated the USD Plugin to use Python 3.11.3 in Max 2025 builds.
+            </li>
+            <li>
+                Added new right-click menu in the USD Explorer to copy a prim's path to the clipboard.
+            </li>
+            <li>
+                Added support to import USD UDIM textures to 3ds Max from a UDIM in a USDPreviewSurface shader.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a crash when undoing the loading root layer into a USD Stage.
+            </li>
+            <li>
+                Fixed an issue where clearing session layer was not refreshing with invisible and deactivated prims
+            </li>
+            <li>
+                Fixed an issue where the stage root bounding box would not be correct for scenes exported with UsdSkel
+            </li>
+            <li>
+                Fixed an issue where the USD Explorer would not update properly with user inputs
+            </li>
+        </ul>
+        <h5>v0.5.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M3231)
+            </li>
+            <li>
+                Added support for the USD Explorer to respect window snapping.
+            </li>
+            <li>
+                A display menu has been added to hide inactive prims from the USD Explorer.
+            </li>
+            <li>
+                Clearing a search in the USD Explorer will now restore the previous collapsed or expanded state of the tree view.
+            </li>
+            <li>
+                The USD Explorer now only auto-expands the first level of prims in the tree view.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where material bindings were not always binding to the correct prims.
+            </li>
+            <li>
+                Fixed a crash that could occur when adding prims to instantiated USD content.
+            </li>
+            <li>
+                Fixed an issue preventing users from adding prims to the root of a USD Stage in the USD Explorer.
+            </li>
+        </ul> 
+        <h5>v0.5.4</h5>   
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M3190)
+            </li>
+            <li>
+                Users can now undo edits made from the USD Explorer Tree View.
+            </li>
+            <li>
+                Added support for interface nodes for MaterialX.
+            </li>
+            <li>
+                USD Explorer now supports the Visibility property.
+            </li>
+            <li>
+                A new option is available from USD Parameters rollout to open the USD Explorer.
+            </li>
+            <li>
+                Added a PostExport() Callback for PrimWriters. This is an SDK change.
+            </li>
+            <li>
+                Removed unnecessary UsdTransform2d from material exports.
+            </li>
+            <li>
+                Added Icons and Badges to USD Explorer Tree View.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where it was no longer possible to Copy USD Stages in the Viewport.
+            </li>
+            <li>
+                UFE python bindings now available in all 3dsMax versions.
+            </li>
+        </ul>
+        <h5>v0.5.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M2961)
+            </li>
+            <li>
+                Added an option to disable the export progress bar for script execution.
+            </li>
+            <li>
+                USD Explorer context menu enrichment.
+            </li>
+            <li>
+                USD Exporter supports UDIMs for USD Preview Surface.
+            </li>
+            <li>
+                Updated the USD Exporter to report an export config error if a non-empty node list is provided, but the content source is not properly set.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an incorrect error being generated in the logs anytime a Chaser was enabled during export.
+            </li>
+            <li>
+                Fixed a crash related to instantiated content within a USD Stage.
+            </li>
+            <li>
+                Fixed an issue where baked animation data using Polys could have corrupted normals when exported to .usd.
+            </li>
+               <li>
+                Fixed USD Explorer Focus and Docking behavior.
+            </li>
+        </ul>
+        <h5>v0.5.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M2821)
+            </li>
+            <li>
+                Updated the USDStageObject to not allow an empty stage mask value. <br>
+                If and empty string value is given, the value is automatically set to "/".
+            </li>
+            <li>
+                A tree view of the USD data is now available so that artists can view the prims that make up their stage object.
+
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a crash in the MaterialX Shader when undoing the explode MaterialX function.
+            </li>   
+            <li>
+                Fixed an issue where USD Skel exports had deformation results that weren't matching the source animation.
+            </li>
+            <li>
+                Fixed an issue where baked animation data using Polys could have corrupted normals when exported to .usd.
+            </li>
+            <li>
+                Fixed the command line USD Tools not working when using a string that contains multiple consecutive spaces in the commands.
+            </li>
+        </ul>
+        <h5>v0.5.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M2608)
+            </li>
+            <li>
+                Updated the USDStageObject to not allow an empty stage mask value. If and empty string value is given, the value is automatically set to "/".
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Updated the MaterialX Importer/Exporter to not pop up with a messagebox on every warning; now prints warnings to the MAXScript listener.
+            </li>
+            <li>
+                The USD Exporter now sets Map Channel 1 to be named "st" in meshes by default.
+            </li>    
+            <li>
+                Fixed a crash in the MaterialX Material when undoing the explode MaterialX function.
+            </li>  
+            <li>
+                Fixed an issue where USD and MaterialX shared the same name in the Plug-in Manager.
+            </li>  
+            <li>
+                Fixed an issue where the description for the mtlXIOUtil utility was being truncated. 
+            </li>  
+            <li>
+                Fixed an issue where USD Skel exports had deformation results that weren't matching the source animation.
+            </li>  
+            <li>
+                Fixed an issue where some MaterialX plug-in files were being generated in unexpected locations.
+            </li>        
+        </ul>
+        <h5>v0.5.0</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M2394)
+            </li>
+            <li>
+                Basic MaterialX support is now available with the USD installer.
+            </li>
+            <li>
+                A ShaderWriter is available that exports the MaterialX scripted material in the USD file as a Mtlx Reference. <br>
+                A "MaterialX" target is also available in the Export Dialog UI.
+            </li>
+        </ul>
+        <h5>v0.4.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M2159)
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where Morphers with assigned non-zero values on first frame were not being evaluated correctly.
+            </li>
+            <li>
+                Fixed an issue where Morpher data was not being exported correctly.
+            </li>
+            <li>
+                Fixed an issue where some USD buttons were not being sized correctly for certain screen resolutions.
+            </li>
+            <li>
+                Fixed some erroneous tooltips being displayed in the USD Export UI.
+            </li>
+            <li>
+                Fixed loading a USD Stage into 3ds Max when the USD file referenced MaterialX files.
+            </li>
+        </ul>
+        <h5>v0.4.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support to export Morpher modifier channels as Blend Shapes in USD.
+            </li>
+            <li>
+                Added button in USDStageObject to clear the current session layer. A temporary solution to clearing scripted USD changes in the session layer in preparation for adding a layer editor.
+            </li>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M1979)
+            </li>
+        </ul>
+        <h5>v0.4.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for the 3ds Max Midgard SDK. (M1740)
+            </li>
+        </ul>
+        <h5>v0.4.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Moved Skin option to the Animation rollout in the USD Exporter.
+            </li>
+            <li>
+                Added a new Python class to export materials to USD and bind to prims to help scripters and tool developers to build custom tools with materials.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed some mismatched materials on USD prims compared to some multimaterial setups.
+            </li>
+            <li>
+                Fixed USD exporter UI not respecting several options.
+            </li>
+            <li>
+                Fixed the Display Icon not working properly in the USDStageObject. 
+            </li>
+        </ul>
+
+        <h5>v0.4.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD Exporter to export non-time-varying topology changes for data channels that do not change in animated exports. This reduces file sizes and improves performance for animated meshes viewed in a Stage.
+            </li>
+            <li>
+                Added the ability to supply an explicit python.exe path (via --python-exe) to the USD tools bundled with the USD Plugin. Read RunUsdTool.bat in the bin folder of the plugin for more information.
+            </li>
+            <li>
+                Improved the performance of generating preview materials in the viewport for a USD Stage Object set to display materials.
+            </li>
+            <li>
+                Updated the USD Exporter to properly bind materials to USD GeomSubsets when the material IDs on the mesh are greater than the Multimaterial numsubs.
+            </li>
+            <li>
+                Updated USDView that ships with the 3ds Max USD plugin to display MaterialX.
+            </li>
+            <li>
+                Updated the USD Exporter to use the new menu system introduced in 3ds Max 2025 branch to create the File > Reference > USD Stage... menu.
+            </li>    
+            <li>
+                Refactored the USD Exporter code to be significantly faster at exporting complex scenes with interdependencies that are animated.
+
+                <br/><br/>SDK CHANGES : 
+
+                <br/>The export changes required major changes to the PrimWriter API. The PrimWriter interface now also better aligns with the ShaderWriter interface.
+
+                <br/>All the samples were updated accordingly.
+
+                <br/><br/>Notable changes : 
+                <br/>- Every Node->Prim translation now gets its own PrimWriter instance. Previously, a single instance was created for the entire export.
+                <br/>- The CanConvert() method was renamed to CanExport() and was made static. A static_assert makes sure the method exists in derived PrimWriters.
+                <br/>- As a consequence, the PrimWriter's methods no longer receive a 3dsMax node as argument, instead, the node can be retrieved using PrimWriter::GetNode().
+                <br/>- PrimWriter::Write() is now called multiple times on animated data, for each frame that needs to be exported.
+                <br/>- New PrimWriter method GetValidityInterval() : Enables PrimWriter to specify the validity interval of their exported data at a certain time. From this, the exporter figures out at what frames PrimWriter::Write() needs to be called (base implementation returns the object's validity interval).
+                <br/>- New header TimeUtils.h
+                <br/>- The TimeConfig class has been modified to ease usage, all conversions TimeValue/3dsMax frame/TimeCode are now handled from there.
+                <br/>- New class "ExportTime" : Represents a single time sample export configuration. I.e. the 3dsMax time value, and what USD timecode it corresponds to.
+                <br/>- MeshConverter::ConvertToUSDMesh() now also receives a specific time frame to convert the mesh at.
+            </li>                
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Animation Frame Range now correctly accepts negative values.
+            </li>
+        </ul>
+        <h5>v0.4.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the default material scope in the USD Exporter from "Materials" to "mtl" to align with Maya.
+            </li>
+            <li>
+                Updated the USD Exporter to be organized into rollouts.
+            </li>
+            <li>
+                Updated the USD Exporter to export non-renderable geometry objects with the Guide purpose.
+            </li>
+            <li>
+                Updated USD Exporter to export Group Nodes as the USD "group" kind.
+            </li>
+            <li>
+                Changed the defaultPrim to "root" in the USD Exporter.
+            </li>
+            <li>
+                Separated USDZ from the other USD file types in the USD Exporter to make it easier to understand how to export USDZ.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a defect in the USD Exporter when exporting some scenes with big numbers on their names.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Fixed incorrect USDStageObject ParamBlock parameter SourceAnimationEndTimeCode naming from SourceAnimationEndFrameTimeCode to SourceAnimationEndTimeCode.
+            </li>
+        </ul>
+
+        <h5>v0.4.0</h5>
+        What's New:
+        <ul>
+            <li>
+                The USD Exporter has been updated to merge Plugin-Configuration settings and user-settings, allowing USD Preview Surface materials to be written alongside context-driven materials, such as Vray Materials (when an appropriate version of Vray is installed).
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Updated the USD Exporter to use the Non-Localized name of Material classes in the shader writer.
+            </li>
+        </ul>
+
+        <h5>v0.3.8</h5>
+        Fixes:
+        <ul>
+            <li>
+                Fixed some transparent materials not displaying in the viewport.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Added warnings to the USD Export log when exporting to USDSkel and there are modifiers above the Skin modifier.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Disable modifiers changing the geometry in a way incompatible with UsdSkel on export.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Fixed USDStageObject.SelectRootLayerAndPrim() not returning the Payalods option. The Payloads option now returns as a boolean in the third item in the resulting array.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Removed the term "beta" from the USD plugin.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Updated the USD Exporter label for USDSkel to "Skin" instead of "Skeletons" to match the conventions of other exporters.
+            </li>
+        </ul>
+        <h5>v0.3.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD version to 22.11 for 3ds Max 2024.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Added USDSkel support to the USD Exporter. When enabled, skinned meshes will export as USDSkel instead of animated vertex caches.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Cleaned up some tooltips in the Animation rollout of the USDStageObject.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Cleaned up API to reduce the amount of build warnings when creating plugins for the 3ds Max USD.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed some transparent materials not displaying in the viewport.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Updated USD Exporter default primvar name of UV channel 1 from "st" to "st0". This is a temporary fix to deal with a MaxToA issue introduced with the change to USD 22.11.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Added warnings to the USD Export log when exporting to USDSkel and there are modifiers above the Skin modifier.
+            </li>
+        </ul>
+        <h5>v0.3.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 SDK O888-64 release; SDK freeze.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Improved support for opacity in the MaxUsdPreviewSurface material.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Fixed defect causing unexpected evaluation of the stage while manually editing the Stage mask.
+            </li>
+        </ul>
+        <h5>v0.3.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Update the material target list in USD exporter UI to only list USD Preview Surface, other targets are expected to be enabled part of plugin configurations.
+            </li>
+            <li>
+                The items in the plugin configuration combobox are now checkable. Multiple elements can be selected or none of them can be selected.
+            </li>
+            <li>
+                Fixed missing sourceColorSpace, scale and bias settings for Normal maps in the USD Exporter that was casing incorrect normals display in USD. Also, for non-Normal maps, sourceColorSpace will be set to "raw".
+            </li>
+            <li>
+                Added support for Alembic references in the USD Stage.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed defect where texture paths could be wrong in the USDZ exporter.
+            </li>
+            <li>
+                Fixed crash when changing a USD Stage's prim's active state via scripting and then changing the display settings of the stage.
+            </li>
+            <li>
+                Fixed defect where the RenderUSDTimeCode could only be queried at the current frame in the Max timeline.
+            </li>
+        </ul>
+
+        <h5>v0.3.4</h5>
+        <ul>
+            <li>
+                Fixed crash in USD Exporter when a PrimWriter had changed the USD hierarchy in a way that the exporter did not expect.
+            </li>
+            <li>
+                The USD Exporter now utilizes the Context to set needed Chaser and Shader settings for plugins. Plugins need to update their implementation to use the new Context feature. This removes the need for the user to turn on multiple options in the exporter for custom plugins.
+            </li>
+            <li>
+                Support multiple UV channels for offline USD Stage rendering using the fallback method.
+            </li>
+        </ul>        
+        <h5>v0.3.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD Exporter to comply with USD standards for not nesting shader nodes.
+            </li>
+            <li>
+                Added self.GetNodesToPrims() to PrimWriters that will get a map of prims made from nodes in the scene. Helpful for writing associations to prims created from other nodes in the scene.
+            </li>
+            <li>
+                Added the <tt>.version</tt> property to the maxUsd Python module to know the USD plugin version.
+            </li>
+            <li>
+                Added an option in the USD Exporter to not nest Gprims. This option will now be on by default and makes the USD created from 3ds Max conform more to the general USD guidelines.
+            </li>
+        </ul>
+        <h5>v0.3.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the implementation of Macroscripts in the USD installer to align with how Application Plugins are intended to be packaged.
+            </li>
+            <li>
+                Chaser registration now supports additional fields: a nice name and description. Improves how chasers are displayed in the USD export UI.
+            </li>
+        </ul>
+        <h5>v0.3.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Inform user in case of missing requirements for HdStorm
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed defects around objects that have non-invertible matrices in the USD Exporter and the USD Stage Object.
+            </li>
+        </ul>
+
+        <h5>v0.3.0</h5>
+        What's New:
+        <ul>
+            <li>
+                First public beta release of the USD Stage Node to reference USD files directly into 3ds Max.
+            </li>
+            <li>
+                First public beta release of the Max USD SDK that allows 3rd-party developers to extend the USD Exporter. SDK available in a separate download.
+            </li>
+        </ul>        
+        Fixes:
+        <ul>
+            <li>
+                Fixed viewport clipping on USD data with missing extent information.
+            </li>
+            <li>
+                Fixed python error output to the console on certain USD librairies being initialized.
+            </li>
+        </ul>        
+        <h5>v0.2.26</h5>
+        What's New:
+        <ul>
+            <li>
+                Added a menu item into the File > Reference Menu to load in a USD file as a reference at the scene origin.
+            </li>
+            <li>
+                Updated the order of the rollouts in the USD Stage object.
+            </li>
+            <li>
+                Increased the size of the File and Mask buttons in the USD Stage parameters rollout.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed the Animation rollout in a USD Stage Object not matching the width of other rollouts.
+            </li>
+            <li>
+                Fixed the the "Create Stage from USD File" menu opening while in the USD Stage Object File selection menu and the user presses 'cancel'.
+            </li>
+            <li>
+                Stage performance improvements.
+            </li>
+            <li>
+                Bounding box rework.
+            </li>
+        </ul>
+        <h5>v0.2.25</h5>
+        What's New:
+        <ul>
+            <li>
+                The USD Stage Parameters UI has been cleaned up.
+            </li>
+            <li>
+                The USD Stage now has a Start and Speed option to set animation offsets and scaling.
+            </li>
+            <li>
+                USDGeomSubSet, Material and Shader prims are no longer listed when using the USD Stage's Prim Browser.
+            </li>
+            <li>
+                The Max USD SDK has been updated to expose the MeshConverter to the SDK.
+            </li>
+            <li>
+                New method `OpenInUsdView` in the `maxUsd` Python module to launch USDView from inside a Python or MAXScript script.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a crash loading some USD files into the USD Stage node.
+            </li>
+            <li>
+                Fixed a crash when rendering some USD Stage nodes.
+            </li>
+        </ul>
+        <h5>v0.2.24</h5>
+        What's New:
+        <ul>
+            <li>
+                Added Python and C++ samples for export chasers in the USD SDK.
+            </li>
+            <li>
+                Added new Timeline rollout to the USDStageObject. This rollout gives options to offset, limit and scale the animation of the stage.
+            </li>
+            <li>
+                Added new MAXScript command UsdStageObject.SelectRootLayerAndPrim() that will open a browsing window to select a USD file and a prim path. Returns a string array where element 1 is the path to the USD file and element 2 will return a prim path if one is selected.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed problems picking USD Stage nodes that are instanced.
+            </li>
+            <li>
+                Fix issue around USDView not opening from exporter when the PATH environment variable contains binaries that are conflicting with the ones from the 3ds Max USD component.
+            </li>
+            <li>
+                Fixed a performance regression viewing a USD Stage that had pointinstances.
+            </li>
+            <li>
+                Fixed the Prim Mask list not remembering current selection when opening a USD Stage prim mask dialog and a prim had already been selected.
+            </li>
+            <li>
+                Fixed a display error in the USD Stage prim browser that would show a blank list.
+            </li>
+            <li>
+                Fixed an issue that would cause the USD prim browser window to keep growing in size with some actions.
+            </li>
+            <li>
+                Fixed file references in exported USD to use forward slashes instead of back slashes so that USD files created from Max can load in all USD environments instead of just Windows.
+            </li>
+        </ul>
+
+        <h5>v0.2.23</h5>
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O656-63.16 release.
+            </li>
+            <li>
+                Exposed new UI to configure export chasers from the USD Export dialog.
+            </li>
+            <li>
+                Normalize export asset reference paths (using forward slashes, for compatibility with mac/unix).
+            </li>
+            <li>
+                Fixed issue with "Mesh Merge" when display purposes are toggled.
+            </li>
+            <li>
+                Fixed issue with UsdStageObject material textures not updated as expected when reloading USD layers.
+            </li>
+            <li>
+                Fixed export to USDZ for 3dsMax scene with USD Stage Objects.
+            </li>
+            <li>
+                Properly export USD purpose and kind attribute on 3dsMax object with modifiers applied.
+            </li>
+        </ul>
+        <h5>v0.2.22</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O630-63.15 release.
+            </li>
+            <li>
+                Improvements in material creation speed
+            </li>
+            <li>
+                Fix minor UI related bugs
+            </li>
+        </ul>
+        <h5>v0.2.21</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O608-63.14 release.
+            </li>
+            <li>
+                Fix crash on material export for instanced data from usd stage objects
+            </li>
+            <li>
+                Fix kitchen set instance transforms
+            </li>
+            <li>
+                Subset consolidation improvement
+            </li>
+        </ul>
+        <h5>v0.2.20</h5>
+        What's New:
+        <ul>
+            <li>
+                Removed legacy material conversion scripts. Now always using Shader Writers.
+            </li>
+            <li>
+                Export "chasers" can now be registered for export.
+            </li>
+            <li>
+                Updated to USD 21.11
+            </li>
+            <li>
+                Fixed a bug preventing the user to properly set the root layer paths, when creating multiple USD Stage objects.
+            </li>
+        </ul>
+        <h5>v0.2.19</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O561-63.12 release.
+            </li>
+            <li>
+                There is a new property to the USDStageObject called .PointedPrim which is a string denoting the path to prim currently under the cursor. This property allows tool developers to create scripted tools for working with USD data in the viewport.
+            </li>
+            <li>
+                Added a new dialog in the command panel for a USD Stage node to browse for a USD file to use as a reference.
+            </li>
+            <li>
+                Added PrimWriter and ShaderWriter to new USD Extensibility system.
+            </li>
+        </ul>
+        <h5>v0.2.18</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O545-63.11 release.
+            </li>
+            <li>
+                Fix to 'DisplayGuide' setting does not respect setting during Filo I/O operations.
+            </li>
+            <li>
+                Fix object picking when changing the system units of the 3dsmax scene / payload render problem.
+            </li>
+            <li>
+                Make sure to include the mesh's transform when computing the instance transforms.
+            </li>
+        </ul>
+        <h5>v0.2.17</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O522-63.10 release.
+            </li>
+        </ul>
+        <h5>v0.2.16</h5>
+        What's New:
+        <ul>
+            <li>
+                Improved USD Stage rollup UI, added stage mask functionality and dialog for browsing for a prim. 
+            </li>
+            <li>
+                Added Stage Icon for Stage object in the viewport.
+            </li>
+            <li>
+                Replace Display Mode checkboxes with DropDown.
+            </li>
+            <li>
+                Fixed issues relating to Intel dataset:
+                    <ul>
+                        <li>
+                            Fixed badly exported data on corrupt normals.
+                        </li>
+                        <li>
+                            Fixed crash in the UsdStage object on badly formed USD primvars.
+                        </li>
+                    </ul>
+            </li>
+        </ul>
+        <h5>v0.2.15</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O479-63.8 release.
+            </li>
+        </ul>
+        <h5>v0.2.14</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O457-63.7 release.
+            </li>
+            <li>
+                Added mesh merge viewport performance options.
+            </li>
+        </ul>
+        <h5>v0.2.13</h5>
+        What's New:
+        <ul>
+            <li>
+                Fixed a crash when exporting USD Stage objects are USD references.
+            </li>
+        </ul>        
+        <h5>v0.2.12</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O408-63.4 release.
+            </li>
+            <li>
+                The UsdStageObject now properly displays UsdPreviewSurface materials using texture transforms (UsdTransform2d) and texture wrap modes.
+            </li>
+        </ul>
+        <h5>v0.2.11</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max 2024 Beta O384-63.3 release.
+            </li>
+        </ul>
+        <h5>v0.2.10</h5>
+        What's New:
+        <ul>
+            <li>
+                Improved viewport performance with topology changes in USD stage.
+            </li>
+            <li>
+                Fixed MAXScript not being able to toggle the castShadows parameter of a Photometric Light.
+            </li>
+        </ul>
+
+        <h5>v0.2.9</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for wireframe display.
+            </li>
+            <li>
+                USD Stage now supports computed primvars such as USDSkel.
+            </li>
+        </ul>
+
+        <h5>v0.2.8</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated 2023 maxsdk dependency version to maxsdk-25.0.0-V951-62.0.
+            </li>
+        </ul>
+
+        <h5>v0.2.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Add button to explitly reload layers instead of doing it everytime a stage is added.
+            </li>
+            <li>
+                Hit testing now properly sets up the hit depth, so that the closest object to the camera is prioritized.
+            </li>
+            <li>
+                Updating materials from python now works as expected. Better reuse material across meshes.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue with USDZ exports where dependency (bitmaps, etc.) paths were not correctly built.
+            </li>
+        </ul>
+
+        <h5>v0.2.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Added Basic Frustum Culling.
+            </li>
+            <li>
+                Updated to Python 3.9 and Boost 1.76 in 2023.
+            </li>
+        </ul>
+        <h5>v0.2.5</h5>
+        What's New:
+        <ul>
+            <li>
+                USD Stage Objects can now be exported as USD references.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+              Resizing columns in the USD Export dialog's custom UV mapping dialog now limits the amount of resetting possible so that the columns' header text can still be visible.
+            </li>
+            <li>
+              Fixed an issue when updating primvars via scripting on a USD Stage Object resulting in incorrect mapping.
+            </li>
+            <li>
+              Fixed an issue with vertex color animation not working as expected on the USD Stage Object.
+            </li>
+        </ul>
+
+        <h5>v0.2.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Update to USD 21.08 in USD plugins for 3ds Max 2021, 2022, and 2023.
+            </li>
+            <li>
+                Minimal support for rendering a USD Stage added as default fallback when renderers do not support accessing a USD stage directly.
+            </li>
+        </ul>
+        <h5>v0.2.3</h5>
+        What's New:
+        <ul>
+          <li>
+              USD Stage Node improvements : normals, UVs and UsdPreviewSurface materials are now properly represented in the viewport.
+          </li>
+          <li>
+              Improved performance and reliability of hit testing for the USD Stage Node.
+          </li>
+        </ul>
+        <h5>v0.2.2</h5>
+        What's New:
+        <ul>
+            <li>
+                USD Stage node added to beta build (For 3dsMax 2022, already present in 3dsMax 2023).
+            </li>
+        </ul>
+        <h5>v0.2.1</h5>
+        <ul>
+            <li>
+                Compatibility release for 3ds Max Beta V685-61.16 release.
+            </li>
+            </ul>
+        <h5>v0.2.0</h5>
+        Fixes:
+        <ul>
+            <li>
+                Added UI to configure mapped channels export to USD primvars.
+            </li>
+            <li>
+                Update labels and tooltips in the USD export UI.
+            </li>            
+            <li>
+                Disabled export of transparency maps, as there is no support in USD preview surface.
+            </li>
+        </ul>
+
+        <h5>v0.1.8</h5>
+        What's New:
+        <ul>
+            <li>
+                New MAXScript function USDImporter.ConvertUsdMesh() to convert a USD Mesh Prim to a TriMesh, using the stage cache.
+            </li>
+            <li>
+                Photometric Sun Positioner exports as a simple UsdLuxDistantLight (sun orientation + color and intensity).
+            </li>
+            <li>
+                Greatly reduce the export time of 3dsMax scenes containing many nodes.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue with bad transforms when round-tripping 3dsMax scenes with instances (3dsMax -> Usd -> 3dsMax).
+            </li>
+        </ul>
+
+        <h5>v0.1.7</h5>
+        What's New:
+        <ul>
+            <li>
+                USD Importer has improved support for lights as Photometric Lights.
+            </li>
+            <li>
+                Exporting very large triangle mesh data is now as much as 50% faster than previously in some cases.
+            </li>
+        </ul>
+        <h5>v0.1.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Export Shape objects to linear UsdGeomBasisCurves.
+            </li>
+        </ul>
+        <h5>v0.1.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Added help context to USD Import and Export Dialogs.
+            </li>
+            <li>
+                USD Export options added to choose mesh format type to help speed up exports as well as give users control of whether their geometry should enforce polygon geometry or tris. Previously, all exports were done as Polygon which is slower in export time and performance in USD View. Exporting as tris exports faster and offers better viewport performance in USD View.
+            </li>
+            <li>
+                Photometric lights now export with all mappable properties into USD.
+            </li>
+            <li>
+                Update to USD 21.05 in USD plugins for 3ds Max 2021, 2022, and 2023.
+            </li>
+            <li>
+                Fixed broken sample/frame UI control.
+            </li>
+        </ul>
+        <h5>v0.1.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max Beta V522-61.10 release
+            </li>
+        </ul>
+        <h5>v0.1.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Python module PyOpenGL is now preinstalled to facilitate the use of the USDView tool (user must run the RunUsdView.bat script to benefit from this preinstall).
+            </li>
+            <li>
+                Added new option to open exported USD files in USD View after export.
+            </li>
+            <li>
+                USD exports bone objects to the non-renderable purpose (USDpurpose=guide).
+            </li>
+            <li>
+                USD Exporter now has an option to skip hidden geometry from export. There is also an option to assign USD Visibility to exported prims based on their visibility in the Max scene.
+            </li>
+        </ul>
+        <h5>v0.1.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Transform and Vertex animations now supported in USD Exporter.
+            </li>
+            <li>
+                Added enhanced support for both physical and standard cameras in the importer.
+            </li>
+        </ul>
+        <h5>v0.1.1</h5>
+        What's New
+        <ul>
+            <li>The bitmap texture's Tile, Offset and W Angle information now imports and exports correctly.</li>
+            <li>Added enhanced support for both physical and standard cameras export.</li>
+            <li>Added enhanced support for USD camera import. Imports to physical cameras.</li>            
+        </ul>
+        <h5>v0.1.0</h5>
+        Fixes:
+        <ul>
+            <li>Bad USD Api call causes significant export slow down.</li>
+            <li>Undefined string metadata crash.</li>
+            <li>Metadata property names are case sensitive.</li>
+            <li>Suspend hold for import/export to avoid restore objects being created.</li>
+        </ul>
+        <h5>v0.0.28</h5>
+        What's New:
+        <ul>
+            <li>
+                An export option of RootPrimPath can be used to create a root scope for export.
+                <ul>
+                    <li>
+                        <code>USDExporter.RootPrimPath</code> = string (a valid USD prim path)
+                    </li>
+                    <li>
+                        Default is <code>"/"</code> - this is the USD default, the pseudo-root and the previous
+                        behavior.
+                    </li>
+                    <li>
+                        Specified root is defined as a scope unless <code>"/"</code>.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Pivots are conserved in all cases with World Space Modifiers.
+                <ul>
+                    <li>Inverse of node transform is baked into the geometry to bring points back into local space.</li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>Fixed import of normals and uvs for leftHanded geometry.</li>
+        </ul>
+        <h5>v0.0.27</h5>
+        What's New:
+        <ul>
+            <li>
+                All USD DLLs are prefixed by <code>3dsmax_</code> to prevent colliding with other plugins which may ship
+                with USD (i.e. Omniverse).
+            </li>
+            <li>
+                Textures can use any map channel for import and export.
+                <ul>
+                    <li>
+                        Primvar channel mapping is respected on import and export.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Relative paths are now used when exporting textures.
+            </li>
+        </ul>
+        Fixes
+        <ul><li>Installer ProductCode is unique for each MSI.</li></ul>
+        
+        <h5>v0.0.26</h5>                    
+        What's New:
+        <ul>
+            <li>
+                Added tooltips to import/export dialogs.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>Prevent Python native types from generating log spam when comparing types.</li>
+            <li>Maxcript enum option validation.</li>
+            <li>Default prim should not use prototypes.</li>
+            <li>Fixes/Improvements for handling of world space modifiers on export.</li>
+            <li>Prims are not instanced if a single instance is exported.</li>
+            <li>Save import UI options.</li>
+            <li>Fixes for log spam with material imports</li>
+            <li>USD filename inside a USDZ file kept the same as the USDZ filename.</li>
+            <li>Instances with children not exporting to usd instances properly.</li>
+        </ul>
+        <h5>v0.0.25</h5>
+        What's New:
+        <ul>
+            <li>Added support for OSLBitmap and UberBitmap.osl bitmaps.
+                <ul>
+                    <li>By default, USDImporter now imports USDTextures as UberBitmap and channels are connected as
+                        specified in USD.</li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>USDExporter export frame can now be set to a negative number in export UI.</li>
+            <li>Installers are no longer signed with expired certificate.</li>
+            <li>Export Selected with instance resulting syntax error in USD file.</li>
+            <li>Export Selected could result in name conflicts.</li>
+            <li>Extra crease data properties are no longer created after import and re-export.</li>
+            <li>Material issues:</li>
+            <ul>
+                <li>Roughness is not properly set on export with physical materials when rougness_inv is true.</li>
+                <li>Cutout or opacity map is not mapped on exported in either physical material or VRay material.</li>
+                <li>Exporter is mapping bump maps to the normal input for UsdPreviewSurface.</li>
+            </ul>
+        </ul>
+        <h5>v0.0.24</h5>
+        <ul>
+            <li>
+                <p>Update to USD 21.02 in USD plugins for 3ds Max 2021, 2022 and 2023.</p>
+                <p>UsdMtlx library is available in USD plugin for 3ds Max 2021, 2022 and 2023 in
+                    Contents\plugin\usd\usdMtlx folder.</p>
+            </li>
+            <li>
+                The <code>#onExportComplete</code> and <code>#onImportComplete</code> callbacks have been updated to
+                include the import/export options and the usd filename:
+
+                <ul>
+                    <li>
+                        Maxscript:
+                        <ul>
+                            <li><code>func myCallback &lt;int&gt;stageId &lt;struct&gt;conversionInfo &lt;string&gt;usd_filename &lt;IUSDImportOptions or IUSDExportOptions&gt;options</code>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        Python:
+                        <ul>
+                            <li><code>def myCallback(stageId, conversionInfo, usdFile, options)</code></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p>Added the `creator` metadata as a customLayerData to exported USD files</p>
+                <ul>
+                    <li>Example:</li>
+                    <code>
+                        customLayerData = {<BR/>
+                        string creator = "USD for 3dsMax: v0.0.24 Beta"<BR/>
+                        }<BR/>
+                    </code>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                <p>Removed an error message dialog when cancelling import.</p>
+            </li>
+            <li>
+                <p>Fixed an issue where object pivots were not properly imported.</p>
+            </li>
+        </ul>
+        <h5>v0.0.23</h5>
+        What's New:
+        <ul>
+            <li>
+                <p>Import and Export UI has been updated, exposing missing options.</p>
+            </li>
+            <li>
+                <p>Material import can be enabled/disabled through UI.</p>
+                <p>Material boolean option added to Import/Export options struct.</p>
+            </li>
+            <li>
+                <p>Export time option added to UI and ExportOptions struct:</p>
+                <p>TimeMode = #current exports from the current time code</p>
+                <p>TimeMode = #explicit exports from the time frame specified by .TimeFrame.</p>
+                <p>TimeMode only allows #explicit or #current and not other values (like a random integer or #name)</p>
+                <p>If a non-default (non zero) value is set for TimeFrame, and #current is used, a warning is written to
+                    the log.</p>
+            </li>
+        </ul>
+        <h5>v0.0.22</h5>
+        What's New:
+        <ul>
+            <li>
+                <code>InferMainUvPrimvar</code> option no longer exists, it is replaced by
+                <code>.ImportUnmappedPrimvars</code>
+                <ul>
+                    <li>
+                        If <code>false</code>, only primvars with an explicit mapping are imported.
+                    </li>
+                    <li>
+                        If <code>true</code> :
+                        <ul>
+                            <li>
+                                Channel 1 (main UV) is filled with a primvar of type (prioritized in this order) :
+                                <ul>
+                                    <li>
+                                        <code>TexCoord2fArray</code>
+                                    </li>
+                                    <li>
+                                        <code>TexCoord2dArray</code>
+                                    </li>
+                                    <li>
+                                        <code>TexCoord2hArray</code>
+                                    </li>
+                                    <li>
+                                        <code>TexCoord3fArray</code>
+                                    </li>
+                                    <li>
+                                        <code>TexCoord3dArray</code>
+                                    </li>
+                                    <li>
+                                        <code>TexCoord3hArray</code>
+                                    </li>
+                                    <li>
+                                        <code>Float2Array</code>
+                                    </li>
+                                    <li>
+                                        <code>Double2Array</code>
+                                    </li>
+                                    <li>
+                                        <code>Half2Array</code>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                Channel 0 (VertexColor) if filled with a primvar of type (in this order):
+                                <ul>
+                                    <li>
+                                        <code>Color3fArray</code>
+                                    </li>
+                                    <li>
+                                        <code>Color3dArray</code>
+                                    </li>
+                                    <li>
+                                        <code>Color3hArray</code>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <em>All other</em> unmapped (and still unused) primvars of dimension &lt;= 3 are
+                                imported to <em>unused</em> channels 2+.
+                                <ul>
+                                    <li>For example, if channels 2, 4, 6 are already used by explicit mappings, unmapped
+                                        primvars that are not the main UV or VertexColor are imported to 3,5,7,etc.
+                                        TexCoord types are imported to lower channels.</li>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        </li>
+        <li>
+            Space warp is now supported when exporting to USD.
+        </li>
+        <li>
+            Expose Log interface
+            <ul>
+                <li>Added <code>Log</code> command to <code>USDExporter</code> and <code>USDImporter</code> to log
+                    errors/warnings/info to USD log for import and export during callbacks.</li>
+                <li>Usage:
+                    <p><code>USDExport.Log #info|#warn|#error msg</code><br />
+                        <code>USDImport.Log #info|#warn|#error msg</code></p>
+                </li>
+            </ul>
+        </li>
+        <li>USDStage node now exposes <code>CacheId</code></li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>USD instances round-trip without creating unwanted nodes.</li>
+        </ul>
+        <br />
+        <h5>v0.0.21</h5>
+        What's New:
+            <ul>
+                <li>Export Normals options
+                    <ul>
+                        <li><code>USDExporter.UIoptions.Normals = #primvar|#attribute|#none</code></li>
+                        <li>When set to attribute, normals are exported as attribute instead of primvar. If #none, no normals exported.</li>
+                    </ul>
+                </li>
+            </ul>
+        Fixes:
+        <ul>
+            <li>Fixed a crash when passing <code>undefined</code> to <code>SetPrimvarChannelMapping</code></li>
+            <li>Fixed a performance issue when importing large usd scenes in 2021.3 and above.</li>
+            <ul>
+                <li>Too frequent updates to max's status bar during import was causing huge slowdown in import time</li>
+            </ul>
+        </ul>
+
+        <h5>v0.0.20</h5>
+        What's New:
+            <ul>
+                <li>
+                    <p>TimeCode now can be <code>#startTime</code>, <code>#endTime</code> or <code>#explicit</code>.</p>
+                    <ul>
+                        <li>
+                            <p>Default if importing at <code>#startTime</code> for both UI and script - they should now behave the same, drag and drop as well, as long as options are not touched with scripting.</p>
+                        </li>
+                        <li>
+                            <p>Using <code>#explicit</code> without specifying a value for <code>TimeCodeValue</code> fails with an error.</p>
+                        </li>
+                        <li>
+                            <p>If <code>#explicit</code>, time value (the old <code>.TimeCode</code>) is specified via <code>.TimeCodeValue</code></p>
+                        </li>
+                        <li>
+                            <p>Using <code>#startTime</code> or <code>#endTime</code> with a value specified for TimeCodeValue logs a warning in the log (#warn level).</p>
+                        </li>
+                        <li>
+                            <p>The actual time code used for import is always logged as an info (#info).</p>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <p>Users can now import from a USD stage cache by providing the stageCacheId</p>
+                    <ul>
+                        <li>
+                            Maxscript:<br>
+                            <code>
+                                pyUsd = python.import("pxr.Usd")<br>
+                                pyUsdUtils = python.import("pxr.UsdUtils")<br>
+                                local stage = pyUsd.Stage.Open(@"C:\Kitchen_set.usd")<br>
+                                local stageCache = pyUsdUtils.StageCache.Get()<br>
+                                stageCache.Insert(stage)<br>
+                                local stageId = (stageCache.GetId(stage)).ToLongInt()<br>
+                                local importOptions = USDImporter.CreateOptions()<br>
+                                USDImporter.ImportFromCache stageId importOptions:importOptions<br>
+                            </code>
+                    </li>
+                    <li>
+                        Python:<br>
+                        <code>
+                                from pxr import Usd, UsdUtils<br>
+                                from pymxs import runtime as RT<br>
+                                stage = Usd.Stage.Open(r"C:\Kitchen_set.usd")<br>
+                                stageCache = UsdUtils.StageCache.Get()<br>
+                                stageCache.Insert(stage)<br>
+                                stageId = stageCache.GetId(stage).ToLongInt()<br>
+                                option = RT.USDImporter.CreateOptions()<br>
+                                RT.USDImporter.ImportFromCache(stageId, importOptions=option)<br>
+                            </code>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                <p>USD import no longer changes 3ds Max viewport quality settings.</p>
+            </li>
+            <li>
+                <p>Shader and Material prim will no longer create point helper node on import.</p>
+            </li>
+            <li>
+                <p>Fixed a crash when import USD scene on non-English 3ds Max.</p>
+            </li>
+        </ul>
+        <h5>v0.0.19</h5>
+        What's New:
+            <ul>
+                <li>All known USD files import with their UV data set intact, such that uv#, uv_#, st# and st_# are handled by default.</li>
+                <li>The main uv channel is inferred if <code>.InferMainUvPrimvar</code> is set to true. It is not otherwise.</li>
+                <li><code>texCoord2f</code> and <code>texCoord3f</code> primvar types are prioritized when inferring the main UV primvar. Float and double array primvars can also be used as UVs if found.</li>
+                <li>When the main UV channel is inferred and not explicitly mapped, an info message is logged.</li>
+                <li>Visibility is now correctly computed on import.</li>
+            </ul>
+        <h5>v0.0.18</h5>
+        Fixes:
+        <ul>
+            <li>Fix crash with animated topology in USD Stage.</li>
+            <li>Fix opacity threshold when round-tripping materials.</li>
+            <li>Fix multi-material binding on instanced prims.</li>
+            <li>Fix export of xref materials.</li>
+        </ul>
+        <h5>v0.0.17</h5>
+        What's New:
+        <ul>
+            <li>Export texture paths as absolute paths until relative paths can be properly supported.</li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Disable point helper cross display on import.
+            </li>
+        </ul>
+        <h5>v0.0.16</h5>
+        What's New:
+        <ul>
+            <li>Update to USD 20.11.</li>
+            <li>Use point helpers instead of dummies for groups and empty transforms.</li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>Fixes for round-tripping material Ids.</li>
+            <li>Fix crash when exporting usd without specifying extension.</li>
+            <li>Fix naming and visibility issues when importing usd with instances.</li>
+        </ul>
+        <h5>v0.0.15</h5>
+        What's New:
+        <ul>
+            <li>
+                USD Exporter will convert VRayMtl to USDPreviewSurface on export.
+            </li>
+            <li>Importing USD scenes with instanced prims create instances in Max where possible.</li>
+            <li>Users can import USD files with custom options without affecting the UI options.</li>
+            Import command:
+            <ul>
+                <li>
+                    <code>
+                        local importOptions = USDImporter.CreateOptions()<br>                        
+                        USDImporter.ImportFile importPath importOptions:importOptions
+                    </code>
+                </li>
+            </ul>
+
+            You can also change values of the UI config by assigning it a new one like this:
+            <ul>
+                <li>
+                    <code>
+                        USDImporter.UIOptions = importOptions             
+                    </code>
+                </li>
+            </ul>
+            <li><code>USDExport.fileExport</code> can export a list of scene nodes without requiring selection.</li>
+            <ul>
+                <li>
+                    Example:
+                    <code>USDExporter.ExportFile exportPath exportOptions:options contentSource:#nodeList nodeList:nodes</code>
+                </li>
+                <li>
+                    If <code>exportOption</code> is <code>undefined</code>, default export options are used
+                </li>
+                <li>If <code>contentSource</code> is <code>undefined</code>, we are exporting from the root node</li>
+                <li>If <code>contentSource</code> is set to <code>#selected</code>, we are exporting from the selected
+                    nodes only like before</li>
+                <li>If <code>contentSource</code> is set to <code>#nodeList</code>, the command needs an extra argument
+                    <code>nodeList</code> to be defined which will behave like the selected option, but without changing
+                    the scene selection.</li>
+            </ul>
+            <li>USD exports quads to triangles when vertices are non-coplanar when
+                <code>Preserve Edge Orientation</code> is
+                enabled.</li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Material IDs are now correctly exported with their appropriate materials.
+            </li>
+            <li>Fix for round-tripping opacityThreshold</li>
+        </ul>
+        <h5>v0.0.14</h5>
+        What's New:
+        <ul>
+            <li>
+                Added a new experimental <code>USD Stage</code> node for 3ds Max 2022 and higher. Use this node to
+                reference USD scenes in a 3ds Max scene.<br>
+                Known issues :
+                <ul>
+                    <li>All normals are computed smooth normals.</li>
+                    <li>Animated topology may cause crashes.</li>
+                    <li>No support for skeletal animations / computed geometry & primvars.</li>
+                    <li>No Frustum culling.</li>
+                    <li>No consolidation within render nodes (affects viewport performance).</li>
+                    <li>No UVS / materials.</li>
+                    <li>No Wireframe viewport support</li>
+                    <li>No rendering support</li>
+                </ul>
+            </li>
+            <li>
+                Added new <code>USDPreviewSurface</code> scripted interface for Physical Material. This provides a
+                1-to-1 implementation of <code>USDPreviewSurface</code> to simplify interop with USD.<br>
+                <code>USDPreviewSurface</code> is the default material used for importing USD scenes with materials.
+                <ul>Known issues:
+                    <li>Export from <code>PBRSpecGloss</code> does not set <code>UseSpecularWorkflow</code> to true for
+                        <code>UsdPreviewSurface</code>.</li>
+                    <li>Not fully compatible with 3ds Max 2018.</li>
+                    <li>Imports in 2019 fail to add textures.</li>
+                </ul>
+
+            </li>
+            <li>
+                USDZ added as an export option.
+            </li>
+            <li>
+                Added Maxscript export API to export without affecting global state.
+                <ul>
+                    <li>
+                        Added <code>USDExporter.ExportFile exportPath exportOptions:exportOptions</code> maxscript
+                        command
+                        which has an optional argument for export options.
+                    </li>
+                    <li>
+                        To create a new export options object: <code>exportOptions = USDExporter.CreateOptions()</code>
+                    </li>
+                    <li>
+                        If not specified, default export options are used. Default options are NOT the same as UI export
+                        options.
+                    </li>
+                    <li>
+                        UI export options are accessible: <code>uiExportOptions = USDExporter.UIOptions</code>
+                    </li>
+                    <li>
+                        Export options example:
+                        <ul>
+                            <code>
+                                uiExportOptions.Meshes = false<br>
+                                uiExportOptions.Lights = false<br>
+                                uiExportOptions.Cameras = false<br>
+                                uiExportOptions.FileFormat = #ascii<br>
+                                uiExportOptions.UpAxis = #y<br>
+                                uiExportOptions.LogLevel = #info<br>
+                                uiExportOptions.LogPath = ("somepath/log_path.txt")<br>
+                                uiExportOptions.SetChannelPrimvarMapping 1 undefined<br>
+                                uiExportOptions.RegisterCallback testCallback1 #testCallback #onExportComplete<br>
+                            </code>
+                        </ul>
+
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p>USD version has been updated to <code>20.08</code>.</p>
+            </li>
+        </ul>
+        <h5>v0.0.13</h5>
+        What's New:
+        <ul>
+            <li>
+                A batch script (RunUsdTool.bat) to run usd tools is now installed in bin folder to make using USD Tools
+                with Max Python easier.
+                <ul>
+                    Usage: <code>RunUsdTool {usd_tool} {options}</options></usdtool></code><br>
+                    For example: <code>RunUsdTool UsdView MyFile.usd</code>
+                    <li>
+                        Usdcat/Usdzip work out-of-box for 3dsMax 2018-2022.
+                    </li>
+                    <li>Usdview should work for 3dsMax 2021+ after following on-screen instructions/warnings to resolve
+                        missing dependencies if any.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Material import/export enabled via post import/export scripts.
+                <ul>
+                    <li>Material conversion is customizable by editing JSON config files and placing in user folders.
+                    </li>
+                    <li>Default settings convert <code>USDPreviewSurface</code> materials conversion to
+                        PBRMetalRoughness materials.</li>
+                </ul>
+            </li>
+        </ul>
+        <h5>v0.0.12</h5>
+        What's new
+        <ul>
+            <li>
+                USD Python Toolset is now included in the plugin package. See <a
+                    href="https://graphics.pixar.com/usd/docs/USD-Toolset.html">USD Toolset documentation</a> page for
+                more info on
+                usage.
+                <div class="alert alert-warning rounded-0" role="alert">
+                    <strong>Note:</strong> These tools require PATH changes to function as well as some Python modules
+                    to be pip-installed.
+
+                </div>
+                <p>Windows <code>PATH</code> should contain
+                    <code>&lt;install_path_to_max_usd_plugin&gt;\Contents\bin</code></p>
+
+                <p><code>PYTHONPATH</code> should contain
+                    <code>&lt;install_path_to_max_usd_plugin&gt;\Contents\bin\python</code></p>
+            </li>
+            <li>
+                Crease data is now supported for Import/Export with USD.
+            </li>
+        </ul>
+        <ul>
+            <li>
+                Hidden objects in Max scene are exported with <code>visibility=invisible</code> in USD. Invisible prims
+                are hidden on import.
+            </li>
+        </ul>
+        <h5>v0.0.11</h5>
+        What's New:
+        <ul>
+            <li>
+                Added command to disable/filter metadata being imported via maxscript interface:
+                <ul>
+                    <li><code>USDImporter.Metadata = #(#kind, #hidden, #purpose)</code></li>
+                    <li>Defines the metadatas that are imported.</.i>
+                </ul>
+            <li>
+                Fixed import time performance with metadata.
+                <div class="alert alert-warning rounded-0" role="alert">
+                    <strong>Note:</strong> It is recommended to disable the MacroRecorder during import. When importing
+                    many nodes with metadata, USDImporter can output a large amount of MacroRecorder text which affects
+                    performance.
+                </div>
+            </li>
+            </li>
+            <li>
+                Transform offset is no longer exported to a child prim.
+            </li>
+        </ul>
+        <h5>v0.0.10</h5>
+        What's New:
+        <ul>
+            <li>
+                Added maxscript callbacks for <code>UsdExporter</code>/<code>UsdImporter</code> :
+                <code>#onImportComplete</code>
+                and <code>#onExportComplete</code>.
+                <p>
+                    These callbacks are triggered before closing or writing the USD stage to disk, and are passed the
+                    Usd
+                    <code>stageId</code>.
+                <p>
+                    This allows a scripter to make additional imports/exports, such as special-case metadata handling,
+                    custom
+                    classes, etc.
+                <p>
+                    The Usd stage can be accessed during export and import time by <code>stageId</code>:
+                    <br>
+                <p style="background-color:whitesmoke">
+                    <code>
+                cache = UsdUtils.StageCache.Get()<br>
+                stage = cache.Find(Usd.StageCache.Id.FromLongInt(stageId))<br>
+                </code>
+                </p>
+                <p>The following functions are identical for <code>UsdExporter</code> and <code>UsdImporter</code>:</p>
+                <ul>
+                    <li>
+                        <code>RegisterCallback &lt;value&gt;callback &lt;value&gt;id &lt;enum&gt;event</code>
+                        <ul>
+                            <li>
+                                USDExporter event enums: <code>#onExportComplete</code>
+                            </li>
+                            <li>
+                                USDImporter event enums: <code>#onImportComplete</code>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <code>UnregisterCallbacks id:&lt;value&gt; event:&lt;enum&gt;</code>
+                        <ul>
+                            <li>
+                                If <code>id</code> not specified then all callback ids are unregistered.
+                            </li>
+                            <li>
+                                If <code>event</code> not specified, callbacks are unregistered for all event types.
+                                <ul>
+                                    <li>
+                                        USDExporter event enums: <code>#onExportComplete</code>
+                                    </li>
+                                    <li>
+                                        USDImporter event enums: <code>#onImportComplete</code>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <code>GetCallbacks()</code>
+                        <ul>
+                            <li>
+                                Returns a dictionary to access all the registered callbacks.
+                            </li>
+                            <li>
+                                The key is the callback type (for now only the <code>#onImportComplete</code> or
+                                <code>#onExportComplete</code>, and the value is another dictionary of callback IDs
+                                (Name type)
+                                to callback functions.
+                            </li>
+                            <li>
+                                For example :
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <p style="background-color:whitesmoke">
+                    <code>USDExporter.RegisterCallback convertMaterials #someId #onExportComplete</code><br>
+                    <code>print (USDExporter.GetCallbacks())</code><br>
+                    <code>-&gt; (DataPair key:#onExportComplete value:Dictionary #name someId:convertMaterials() )</code><br>
+                </p>
+                The <code>#onExportComplete</code> and <code>#onImportComplete</code> callbacks should have the
+                following
+                signature:
+                <ul>
+                    <li>
+                        Maxscript:
+                        <ul>
+                            <li><code>func myCallback &lt;int&gt;stageId &lt;struct&gt;conversionInfo</code></li>
+                        </ul>
+                    </li>
+                    <li>
+                        Python:
+                        <ul>
+                            <li><code>def myCallback(stageId, conversionInfo)</code></li>
+                        </ul>
+                    </li>
+                </ul>
+                The <code>conversionInfo</code> struct is of the form:
+                <p style="background-color:whitesmoke">
+                    <code>struct conversionInfo(</code><br>
+                    <code><code>&nbsp;&nbsp;&nbsp;&nbsp;&lt;dictionary&gt; primsToNodes (</code><br>
+                    <code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#('prim/Path':&lt;INode&gt;)</code><br>
+                    <code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...</code><br>
+                    <code>&nbsp;&nbsp;&nbsp;&nbsp;)</code><br>
+                    <code>)</code><br>
+                    </code>
+                </p>
+            </li>
+            <li>
+                USDImport now adds standard USD metadata fields as custom attributes. These custom attributes export to
+                USD when
+                found on exported nodes:
+                <ul>
+                    <li>
+                        hidden as <code>usd_hidden</code>
+                    </li>
+                    <li>
+                        kind as <code>usd_kind</code>
+                    </li>
+                    <li>
+                        purpose as <code>usd_purpose</code>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                By default, vertex colors (channel 0) are mapped to <code>primvar:vertexColor</code> (a generic primvar)
+                instead of
+                <code>primvar:displayColor</code> (well known usd primvar).
+                <ul>
+                    <li>
+                        Output the wire color to <code>primvar:displayColor</code>, which matches the intent of that
+                        primvar
+                        (fast display).
+                    </li>
+                    <li>
+                        Change the import mappings accordingly to recognize vertexColor on import as well / set
+                        wireColor from
+                        displayColor. If not a constant primvar (i.e. different colors per vertex), use the first value.
+                    </li>
+                    <li>
+                        All of this can still be overridden with the current system for configuring mappings, i.e.
+                        should only
+                        export <code>wireColor</code> to <code>displayColor</code> if no explicit mapping is set for
+                        displayColor.
+                        Same for import. User can always explicitly import the values to a channel if needed via script.
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Vertices that don't belong to any faces are removed upon import.
+            </li>
+        </ul>
+        <h5>v0.0.9</h5>
+        What's New:
+        <ul>
+            <li>
+                Mesh materialIds are imported and exported as <code>GeomSubset</code> prims. MultiSub material slot
+                names are used if possible, otherwise the materialId is converted to a string: <code>_1_</code>,
+                <code>_2_</code>, etc.
+            </li>
+            <li>
+                Meshes now import as EditablePoly instead of PolyMesh
+            </li>
+            <li>
+                USDImport now adds standard USD metadata fields as custom attributes. These custom attributes export to
+                USD when found on exported nodes:
+                <ul>
+                    <li>hidden as <code>usd_hidden</code></li>
+                    <li>kind as <code>usd_kind</code></li>
+                    <li>purpose as <code>usd_purpose</code></li>
+                </ul>
+            </li>
+            <li>
+                Added Logging support
+                <ul>
+                    <li>
+                        Logging is disabled by default, and no log file is created.
+                    </li>
+                    <li>
+                        Log path can be specified (import/export) with
+                        <code>USDImporter.LogPath</code>/<code>USDExporter.LogPath</code> - default to Max temp folder
+                    </li>
+                    <li>
+                        Log level can be specified with
+                        <code>USDImporter.LogLevel</code>/<code>USDExporter.LogLevel</code> - default <code>#off</code>
+                        <ul>
+                            <li>
+                                <code>#info</code> -&gt; All is logged.
+                            </li>
+                            <li>
+                                <code>#warn</code> -&gt; Only warnings and errors are logged.
+                            </li>
+                            <li>
+                                <code>#error</code> -&gt; Only errors are logged.
+                            </li>
+                            <li>
+                                <code>#off</code> -&gt; Logging disabled.
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        Logging is set to 5 rotating files with a 200mb max size.
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>Objects imported from Y-Up scenes were facing the wrong direction. They are now rotated correctly.</li>
+            <li>UsdImport was creating "standard" materials for each mesh. Import now only sets wireColor - no materials are created.</li>
+        </ul>
+        <h5>v0.0.8</h5>
+        What's New:
+        <ul>
+            <li>Added mappings from USD Primvars to 3ds Max mapped channels on import:
+                <ul>
+                    <li><code>primvars:displayColor</code> to Channel 0/Vertex color.</li>
+                    <li><code>primvars:st</code> or <code>primvars:map1</code> to the main UV channel.</li>
+                    <li><code>primvars:mapN</code> to channel N, up to 99.</li>
+                    <li><code>primvars:mapShading</code> to the shading channel (MAP_SHADING, -1)</li>
+                    <li><code>primvars:displayOpacity</code> to the alpha channel (MAP_ALPHA, -2)</li>
+                </ul>
+                All primvar to channel mappings are configurable via Maxscript. It should be possible to import any USD
+                primvar to any 3ds Max channel - as long as the primvar’s data type is compatible.
+            </li>
+            <li>
+                Support for upAxis in USD:
+                <ul>
+                    <li>3ds Max only support z-up axis. Therefore if y-up axis is used on import or export, 3ds Max will
+                        automatically convert the up-axis.</li>
+                    <li>On export, if y-up axis is specified, the conversion from z-up to y-up will be saved inside the
+                        root prims transform matrix.</li>
+                    <li>On import, if the USD stage is set up with y-up axis, the axis conversion will be automatically
+                        done to z-up axis.</li>
+                </ul>
+            </li>
+        </ul>
+        <h5>v0.0.7</h5>
+        What's New:
+        <ul>
+            <li>
+                For 3ds Max 2021 and newer, USD python bindings are provided for Python3.
+            </li>
+            <li>
+                DefaultPrim is now set on export to the first valid prim.
+            </li>
+            <li>
+                Added default map channels export defaults:
+                <ul>
+                    <li>
+                        Vertex color exports by default to <code>primvars:displayColor</code>.
+                    </li>
+                    <li>
+                        Vertex alphas export by default to <code>primvars:displayOpacity</code>.
+                    </li>
+                    <li>
+                        UVs are exported to <code>primvars:map1</code> to <code>primvars:map99</code>.
+                    </li>
+                    <li>
+                        Shading map <code>-1</code> is exported to <code>primvars:mapShading</code>.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p></p>The following interfaces have been added to <code>USDExporter</code>:</p>
+                <p style="background-color:whitesmoke">
+                    <code>&lt;void&gt;<strong>SetChannelPrimvarMappingDefaults()</strong></code></p>
+                <p>Reset mapping to default.</p>
+                <p>Default mapping is as follows, with <code>autoExpandType</code> set to <code>true</code>:</p>
+                <ul>
+                    <li>
+                        Vertex color (<code>0</code>) exports by default to <code>primvars:displayColor</code> as
+                        <code>#color3fArray</code>.
+                    </li>
+                    <li>
+                        UVs (<code>1-99</code>) are exported to <code>primvars:map1</code> to
+                        <code>primvars:map99</code> as <code>#textCoord2fArray</code>.
+                    </li>
+                    <li>
+                        Vertex alphas (<code>-2</code>) export by default to <code>primvars:displayOpacity</code> as
+                        <code>#floatArray</code>.
+                    </li>
+                    <li>
+                        Shading map values (<code>-1</code>) are exported to <code>primvars:mapShading</code> as
+                        <code>#color3fArray</code>.</p>
+                    </li>
+                </ul>
+                <p style="background-color:whitesmoke">
+                    <code>&lt;void&gt;<strong>SetChannelPrimvarMapping</strong> &lt;integer&gt;<strong>channel</strong> &lt;value&gt;<strong>targetPrimvar</strong> <strong>type:</strong>&lt;enum&gt; <strong>autoExpandType</strong></strong>:&lt;boolean&gt;</code>
+                </p>
+                <ul>
+                    <li>
+                        <code>type</code> enums:
+                        <code>#texCoord2fArray</code>, <code>#texCoord3fArray</code>, <code>#floatArray</code>,
+                        <code>#float2Array</code>, <code>#float3Array</code>, <code>#color3fArray</code>
+                    </li>
+                    <li>
+                        <code>type</code> default value: <code>#float3Array</code>
+                    </li>
+                    <li>
+                        <code>autoExpandType</code> default value: <code>true</code>
+                    </li>
+                </ul>
+                <p></p>Set the target <code>primvar</code> name and type per channel.</p>
+                <p>When <code>AutoExpandType</code> is true, type will expand depending on input values. For example, if
+                    <code>type</code> is <code>#textCoord2fArray</code> and the texture coordinate channel has non-zero
+                    values
+                    in <code>W</code>, then the type will expand to <code>#textCoord3fArray</code>.</p>
+                <p style="background-color:whitesmoke">
+                    <code>&lt;enum&gt; <strong>GetChannelPrimvarType</strong> &lt;integer&gt;<strong>channel</strong></code>
+                </p>
+                <ul>
+                    <li><code>GetChannelPrimvarType</code> enums:
+                        <code>#texCoord2fArray</code>, <code>#texCoord3fArray</code>, <code>#floatArray</code>,
+                        <code>#float2Array</code>, <code>#float3Array</code>, <code>#color3fArray</code></li>
+                    </p>
+                </ul>
+                <p>Returns channel primvar type.</p>
+                <p style="background-color:whitesmoke">
+                    <code>&lt;string&gt;<strong>GetChannelPrimvarName</strong> &lt;integer&gt;<strong>channel</strong></code>
+                </p>
+                <p>Returns channel primvar name.</p>
+                <p style="background-color:whitesmoke">
+                    <code>&lt;boolean&gt;<strong>GetChannelPrimvarAutoExpandType</strong> &lt;integer&gt;<strong>channel</strong></code>
+                </p>
+                <p>Returns channel primvar <code>autoExpandType</code> flag.</p>
+            </li>
+        </ul>
+        <h5>v0.0.6</h5>
+        What's New:
+        <ul>
+            <li>Added support for Export Selected and prim name conflict resolution.</li>
+            <ul>
+                <li>ONLY selected object are exported.</li>
+                <li>If the parent of a selected object is not itself selected, then it will be at the root level in USD.
+                    i.e. <code>/nodename</code></li>
+                <li>Children of selected objects are not exported</li>
+            </ul>
+            <li>Added support for <code>metersPerUnit</code> for import and export.</li>
+            <ul>
+                <li>On import we will scale to match the units currently set in max.</li>
+                <li>On export we export the units set in max to the MetersPerUnit attribute of the stage.</li>
+            </ul>
+            <li>Fix: Do not export or import invalid faces.</li>
+            <li>Fix: Clean up bad geometry produced by triMeshes with hidden edges on curved surfaces.</li>
+        </ul>
+        <h5>v0.0.5</h5>
+        What's New:
+        <ul>
+            <li>USD updated to v20.05</li>
+            <div class="alert alert-warning rounded-0" role="alert">
+                <strong>Note:</strong> Alembic is not enabled in this build of USD. Referencing Alembic in USD is not
+                yet supported.
+            </div>
+            <li>Maxscript Import options:
+                <ul>
+                    <li><code>USDImporter.TimeCode</code> : double (what time sample to import)
+                        <ul>
+                            <li>Read about TimeCode here: <a
+                                    href="http://graphics.pixar.com/usd/docs/api/class_usd_time_code.html#details">http://graphics.pixar.com/usd/docs/api/class_usd_time_code.html#details</a>
+                            </li>
+                            <li>Set to <code>undefined</code> for <code>UsdTimeCode::Default()</code></li>
+                        </ul>
+                    </li>
+                    <li><code>USDImporter.InitialLoadSet</code> : can be <code>#loadAll</code> VS <code>#loadNone</code>
+                        (whether to load payloads or not)</li>
+                    <li><code>USDImporter.StageMask</code> : Array of Strings (stage mask paths to use)</li>
+                    <li><code>USDImporter.SetDefaults()</code> -> Resets to these default options : </li>
+                    <ul>
+                        <li><code>TimeCode</code> = <code>undefined</code> </li>
+                        <li><code>InitialLoadSet</code> = <code>#loadAll</code></li>
+                        <li><code>StageMask</code> = <code>"/"</code> (imports everything)</li>
+                    </ul>
+                    <li>Options set via <code>USDImporter.XYZ</code> are not reflected in the UI, nor should they be
+                        affected by imports going through the UI.</li>
+                </ul>
+            </li>
+            <li>Export object Transforms:
+                <ul>
+                    <li><code>USDExporter.BakeObjectOffsetTransform</code> : Option to bake the object offset in the
+                        geometry.</li>
+                    <li>When not baking the transforms, only use the extra xform when necessary, i.e. the offset is not
+                        the identity matrix.</li>
+                    <li>Groups/helper object transforms are properly exported. When you filter out meshes for example,
+                        you really only filter out the meshes - not its hierarchy.</li>
+                </ul>
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fix unused vertices crash. Do not export or import invalid faces.
+            </li>
+        </ul>
+        <h5>v0.0.4 </h5>
+        What's New:
+        <ul>
+            <li>Adds maxscript exposure to the Export plugin - the same options as already in the UI.
+                <ul>
+                    <li>From script, not allowed to mismatch the extension VS the output format.</li>
+                    <li>UI / Global options state stay synchronised - only saved in memory so the max session.</li>
+                    <li>Changes made from the UI are only applied if the Import goes through (I.e. not if you cancel or
+                        close from the export window).</li>
+                </ul>
+            </li>
+            <li>Normals support - Default behavior is exporting normals if specified OR smoothing groups exist.</li>
+        </ul>
+        <h5>v0.0.3</h5>
+        What's New:
+        <ul>
+            <li>Added export of Photometric Lights to USD Lights, with a limited set of attributes. Supported
+                Photometric Light shapes include Point, Line, Rectangle, Disc, Sphere and Cylinder.</li>
+            <li>Added export of Standard Cameras to USD Cameras, with a limited set of attributes.</li>
+            <li>Added option to import USD content from a specific time code via a slider on the <em>Import</em> dialog.
+            </li>
+            <li>Added options to the <em>Export</em> dialog, allowing:
+                <ul>
+                    <li>Export of USD content in ASCII (USDA) or binary format (USDC).</li>
+                    <li>Selecting the up axis of the exported USD Stage.</li>
+                    <li>Export of meshes, lights and/or cameras.</li>
+                </ul>
+            </li>
+        </ul>
+        <h5>v0.0.2</h5>
+        What's New:
+        <ul>
+            <li>Support exporting USD content via the <em>File</em> &gt; <em>Export</em> &gt; <em>Export...</em> menu.
+            </li>
+            <li>Added some USD diagnostic information when displaying the USD import dialog. This should help
+                identifying potential issues when importing content &ndash; thanks for reporting any issues!</li>
+            <li>Added limited import of USD Light attributes. Supported attributes for <em>SphereLight</em>,
+                <em>RectLight</em>, <em>DiskLight</em> and <em>CylinderLight</em> include <code>color</code>,
+                <code>enableColorTemperature</code>, <code>colorTemperature</code>, <code>intensity</code>,
+                <code>shadow:enable</code>, <code>shadow:color</code>, <code>radius</code>, <code>width</code>,
+                <code>height</code>, <code>length</code> and <code>shaping:ies:file</code>.</li>
+            <li>Added limited import of USD Camera attributes. Supported attributes include <code>projection</code>,
+                <code>clippingRange</code>, <code>focalLength</code> and <code>horizontalAperture</code></li>
+        </ul>
+        <h5>v0.0.1</h5>
+        What's New:
+        <ul>
+            <li>Initial release! 🎉</li>
+            <li>Support importing USD content via the <em>File</em> &gt; <em>Import</em> &gt; <em>Import...</em> menu.
+            </li>
+        </ul>
+    </main>
+
+    <div class="container">
+        <footer class="pt-4 my-md-5 pt-md-5 border-top">
+            <div class="row">
+                <div class="col-12 col-md">
+                    <small class="d-block mb-3 text-muted">&copy; Autodesk Inc., 2020</small>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

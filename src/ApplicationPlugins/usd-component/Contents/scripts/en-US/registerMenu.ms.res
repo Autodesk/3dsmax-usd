@@ -1,0 +1,5 @@
+USD_STAGE_MENU_ITEM   =   "USD Stage..."
+FILE_MENU_MAIN   =   "&File"
+REFERENCE_MENU_ITEM   =   "&Reference"
+USD_EXPLORER_MENU_ITEM   =   "USD Explorer..."
+TOOLS_MENU_ITEM   =   "&Tools"

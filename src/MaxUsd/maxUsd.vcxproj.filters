@@ -1,0 +1,681 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ChannelBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MappedAttributeBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USDCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USDSceneController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UsdStageSource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\ResizeEventFilter.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QSpinnerOverlayWidget.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QSpinnerWidget.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QTreeItem.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QTreeModel.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\TreeModelFactory.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\USDSearchThread.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QDiagnosticMessagesModel.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\DiagnosticMessagesModelFactory.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorMaterial.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShaderWriter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShaderWriterRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\RegistryHelper.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\WriteJobContext.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeExporter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeExporterContext.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeUseRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingUtils.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\UiUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\Logging.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MaterialUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MathUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MaxProgressBar.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MeshUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MetaDataUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\PluginUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MaterialRef.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\MaxSceneBuilder.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\MaxSceneBuilderOptions.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\SceneBuilderOptions.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\USDSceneBuilder.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\USDSceneBuilderOptions.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Interfaces\IOLoggingMxsInterface.cpp">
+      <Filter>Source Files\Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="Interfaces\IUSDExportOptions.cpp">
+      <Filter>Source Files\Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="Interfaces\IUSDImportOptions.cpp">
+      <Filter>Source Files\Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="MaxTokens.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\PrimWriter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\DiagnosticDelegate.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Chaser\ExportChaser.cpp">
+      <Filter>Source Files\Chaser</Filter>
+    </ClCompile>
+    <ClCompile Include="Chaser\ExportChaserRegistry.cpp">
+      <Filter>Source Files\Chaser</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\TranslationUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\UsdToolsUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshConversion\MaxMeshConversionOptions.cpp">
+      <Filter>Source Files\MeshConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshConversion\MeshConverter.cpp">
+      <Filter>Source Files\MeshConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshConversion\MeshFacade.cpp">
+      <Filter>Source Files\MeshConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshConversion\PrimvarMappingOptions.cpp">
+      <Filter>Source Files\MeshConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MxsUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\JobContextRegistry.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\VtDictionaryUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Builders\JobContextRegistry.cpp">
+      <Filter>Source Files\Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\VtDictionaryUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\DiagnosticDelegate.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\PrimReader.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShaderReaderRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ReadJobContext.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShaderReader.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\FunctorPrimReader.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeImporter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\AnimExportTask.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialConversion\MaterialConverter.cpp">
+      <Filter>Source Files\MaterialConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\TooltipEventFilter.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\PrimWriterRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\ShadingModeImporter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\FunctorPrimReader.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\PrimReaderRegistry.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorXformable.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorPrim.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorLight.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\ListenerUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MaxSupportUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\MaxRestrictedSupportUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorUtils.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorSkel.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Chaser\ImportChaser.cpp">
+      <Filter>Source Files\Chaser</Filter>
+    </ClCompile>
+    <ClCompile Include="Chaser\ImportChaserRegistry.cpp">
+      <Filter>Source Files\Chaser</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\TimeUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\TranslatorMorpher.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraConversion\CameraConverter.cpp">
+      <Filter>Source Files\CameraConversion</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\ElidedLabel.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\UsdLinkUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\FallbackPrimReader.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Translators\LastResortUSDPreviewSurfaceWriter.cpp">
+      <Filter>Source Files\Translators</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\QmaxUsdDoubleSpinBox.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\OptionUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveConversion\CurveConverter.cpp">
+      <Filter>Source Files\CurveConversion</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="USDSceneController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxTokens.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MappedAttributeBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ChannelBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaxUSDAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UsdStageSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VersionOverrides.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\USDComponentVersion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\QSpinnerOverlayWidget.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\ResizeEventFilter.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\QSpinnerWidget.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\QTreeItem.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\QTreeModel.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\TreeModelFactory.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\USDSearchThread.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\QDiagnosticMessagesModel.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\DiagnosticMessagesModelFactory.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorMaterial.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\RegistryHelper.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShaderWriter.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShaderWriterRegistry.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\WriteJobContext.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugCodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShadingModeRegistry.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShadingModeExporter.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShadingModeExporterContext.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShadingUtils.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\Logging.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MaterialUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MathUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MaxProgressBar.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MeshUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MetaDataUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\NodeRange.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\PluginUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\UiUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\VtUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\ScopeGuard.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\MaxSceneBuilder.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\MaxSceneBuilderOptions.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\SceneBuilderOptions.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\USDSceneBuilder.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\USDSceneBuilderOptions.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Interfaces\IOLoggingMxsInterface.h">
+      <Filter>Header Files\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Interfaces\IUSDExportOptions.h">
+      <Filter>Header Files\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Interfaces\IUSDImportOptions.h">
+      <Filter>Header Files\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Interfaces\IUSDStageProvider.h">
+      <Filter>Header Files\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MaxUsd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\USDComponentVersionNumber.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\PrimWriter.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\PrimWriterRegistry.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Chaser\ExportChaser.h">
+      <Filter>Header Files\Chaser</Filter>
+    </ClInclude>
+    <ClInclude Include="Chaser\ExportChaserRegistry.h">
+      <Filter>Header Files\Chaser</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\TupleUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\TypeUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\TranslationUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MaxSupportUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\GraphUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\ProgressReporter.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\UsdToolsUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshConversion\MaxMeshConversionOptions.h">
+      <Filter>Header Files\MeshConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshConversion\MeshConverter.h">
+      <Filter>Header Files\MeshConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshConversion\MeshFacade.h">
+      <Filter>Header Files\MeshConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshConversion\PrimvarMappingOptions.h">
+      <Filter>Header Files\MeshConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MxsUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Builders\JobContextRegistry.h">
+      <Filter>Header Files\Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\VtDictionaryUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\DiagnosticDelegate.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\PrimReader.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShaderReaderRegistry.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ReadJobContext.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShaderReader.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\FunctorPrimReader.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\TimeUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\TooltipEventFilter.h">
+      <Filter>Header Files\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\AnimExportTask.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\ShadingModeImporter.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\FunctorPrimReader.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\PrimReaderRegistry.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorXformable.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorPrim.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorLight.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\ListenerUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MaxRestrictedSupportUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorUtils.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorSkel.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Chaser\ImportChaser.h">
+      <Filter>Header Files\Chaser</Filter>
+    </ClInclude>
+    <ClInclude Include="Chaser\ImportChaserRegistry.h">
+      <Filter>Header Files\Chaser</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\TranslatorMorpher.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\UsdLinkUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialConversion\MaterialConverter.h">
+      <Filter>Header Files\MaterialConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraConversion\CameraConverter.h">
+      <Filter>Header Files\CameraConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\LastResortUSDPreviewSurfaceWriter.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="Translators\FallbackPrimReader.h">
+      <Filter>Header Files\Translators</Filter>
+    </ClInclude>
+    <ClInclude Include="maxusd_banned.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\DictionaryOptionProvider.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\OptionUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveConversion\CurveConverter.h">
+      <Filter>Header Files\CurveConversion</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{dd8c0df5-1594-4401-b1e4-531318d222f4}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Widgets">
+      <UniqueIdentifier>{e80d0938-fe5c-4496-b88f-3b2e7283daf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Widgets">
+      <UniqueIdentifier>{5b69a3dd-b5ff-403f-b685-4dbfb8fc5c7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Translators">
+      <UniqueIdentifier>{12147285-f96f-4bc2-9e21-59e02d9d53f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Translators">
+      <UniqueIdentifier>{d6d112c1-7056-45a5-9a27-d21e45fe5677}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utilities">
+      <UniqueIdentifier>{5ec25a34-34fd-451f-a2f4-a7e3da17b3e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utilities">
+      <UniqueIdentifier>{c8a35927-d207-4979-b4e9-85c270da95c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Statistics">
+      <UniqueIdentifier>{16afde41-a083-404b-a1b5-b2a6daa71f5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Builders">
+      <UniqueIdentifier>{3b96c177-8409-40bd-bb00-aed61f6380a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Builders">
+      <UniqueIdentifier>{61b85154-7c32-4d40-9403-82c528790a07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Interfaces">
+      <UniqueIdentifier>{970eb135-3643-43f5-a488-313211a7ca27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Interfaces">
+      <UniqueIdentifier>{abd61841-8e78-4847-8e9c-4609b91321fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Chaser">
+      <UniqueIdentifier>{080c9d64-6463-47f2-8e10-cd5e74dcba7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Chaser">
+      <UniqueIdentifier>{a56290e5-4e77-4dfe-8d56-3a946b65bd19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MeshConversion">
+      <UniqueIdentifier>{3d99c708-c8f1-4986-8f3f-7053868950dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MeshConversion">
+      <UniqueIdentifier>{c96e8edd-a58d-4c08-98df-f2d38b7a0add}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MaterialConversion">
+      <UniqueIdentifier>{01aefcfc-3126-4745-b0eb-ed3b4bbb2d8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MaterialConversion">
+      <UniqueIdentifier>{d7ebbd2e-27f5-4617-b8da-f5ab6d93b6cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CameraConversion">
+      <UniqueIdentifier>{4a6e1f44-4715-42cc-b1d6-405ada06f935}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\CameraConversion">
+      <UniqueIdentifier>{9272104a-abe5-47eb-9582-4171d061c63e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CurveConversion">
+      <UniqueIdentifier>{b4e92579-18e6-4481-ae3d-e097b779f612}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\CurveConversion">
+      <UniqueIdentifier>{07bf7a3a-5361-4ad2-92dc-8f86ca898e74}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Widgets\ElidedLabel.h">
+      <Filter>Header Files\Widgets</Filter>
+    </QtMoc>
+    <QtMoc Include="Widgets\QmaxUsdDoubleSpinBox.h">
+      <Filter>Header Files\Widgets</Filter>
+    </QtMoc>
+    <QtMoc Include="Widgets\ElidedLabel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+  </ItemGroup>
+</Project>

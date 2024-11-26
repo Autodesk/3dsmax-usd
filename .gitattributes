@@ -1,0 +1,7 @@
+*.png filter=lfs diff=lfs merge=lfs -text
+*.max filter=lfs diff=lfs merge=lfs -text
+*.mui filter=lfs diff=lfs merge=lfs -text
+*.rc text working-tree-encoding=UTF-16LE-BOM eol=CRLF
+*.r text working-tree-encoding=UTF-16LE-BOM eol=CRLF
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.usdc filter=lfs diff=lfs merge=lfs -text

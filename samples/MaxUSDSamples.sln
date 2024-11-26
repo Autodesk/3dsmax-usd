@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31624.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glTFMaterialWriterPlugin", "GlTFMaterialWriterSample\GlTFMaterialWriterPlugin.vcxproj", "{C8835A49-1ACD-4952-8541-44E269EA9D6A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpherePrimWriterPlugin", "SpherePrimWriterSample\SpherePrimWriterPlugin.vcxproj", "{68768A54-4E41-4C50-92BC-3D1930ECB8B3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UserDataExportChaserPlugin", "UserDataExportChaserSample\UserDataExportChaser.vcxproj", "{1EF31957-1C1A-4869-B52D-D733FE24F0A9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpherePrimReaderPlugin", "SpherePrimReaderSample\SpherePrimReaderPlugin.vcxproj", "{D472D226-4ACE-4A25-85B7-3263B3FFEE59}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestSdk", "TestSdk\TestSdk.vcxproj", "{BCDDCE76-F91F-4035-933F-F486B72EE818}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UserDataImportChaserPlugin", "UserDataImportChaserSample\UserDataImportChaser.vcxproj", "{CAE8A112-333A-4CB5-81DD-9F9503D004A2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Hybrid|x64 = Hybrid|x64
+		Hybrid|x86 = Hybrid|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Hybrid|x64.Build.0 = Hybrid|x64
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Release|x64.ActiveCfg = Release|x64
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Release|x64.Build.0 = Release|x64
+		{C8835A49-1ACD-4952-8541-44E269EA9D6A}.Release|x86.ActiveCfg = Release|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Hybrid|x64.Build.0 = Hybrid|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Release|x64.ActiveCfg = Release|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Release|x64.Build.0 = Release|x64
+		{68768A54-4E41-4C50-92BC-3D1930ECB8B3}.Release|x86.ActiveCfg = Release|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Hybrid|x64.Build.0 = Hybrid|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Release|x64.ActiveCfg = Release|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Release|x64.Build.0 = Release|x64
+		{1EF31957-1C1A-4869-B52D-D733FE24F0A9}.Release|x86.ActiveCfg = Release|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Hybrid|x64.Build.0 = Hybrid|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Release|x64.ActiveCfg = Release|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Release|x64.Build.0 = Release|x64
+		{D472D226-4ACE-4A25-85B7-3263B3FFEE59}.Release|x86.ActiveCfg = Release|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Hybrid|x64.Build.0 = Hybrid|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Release|x64.ActiveCfg = Release|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Release|x64.Build.0 = Release|x64
+		{BCDDCE76-F91F-4035-933F-F486B72EE818}.Release|x86.ActiveCfg = Release|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Hybrid|x64.Build.0 = Hybrid|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Release|x64.ActiveCfg = Release|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Release|x64.Build.0 = Release|x64
+		{CAE8A112-333A-4CB5-81DD-9F9503D004A2}.Release|x86.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7134C1FA-2164-4BB8-BA27-91494A5223AA}
+	EndGlobalSection
+EndGlobal
