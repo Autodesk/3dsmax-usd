@@ -70,13 +70,14 @@ public:
         case 1: return attribute.Set(*floatArray, timeCode);
         case 2: return attribute.Set(*float2Array, timeCode);
         case 3: return attribute.Set(*float3Array, timeCode);
-        }
+		}
         return false;
     }
 
     void Set(size_t index, const Point3& p)
     {
-        switch (dimension) {
+        switch (dimension)
+		{
         case 1: (*floatArray)[index] = p.x; break;
         case 2: (*float2Array)[index] = pxr::GfVec2f(p.x, p.y); break;
         case 3: (*float3Array)[index] = pxr::GfVec3f(p.x, p.y, p.z); break;
