@@ -1,4 +1,4 @@
-![3ds Max USD](doc/images/header-2.png)
+![3ds Max USD](doc/images/header.png)
 # 3ds Max USD Plugin
 **3dsmax-usd** is a feature-rich plugin for 3ds Max that provides support for [OpenUSD](http://openusd.org/) as part of [AOUSD](https://aousd.org/).  While the plugin provides traditional methods for import and export, the most important and exciting capability it provides is to load USD stages directly in the viewport for interactive editing without import/export.
 
