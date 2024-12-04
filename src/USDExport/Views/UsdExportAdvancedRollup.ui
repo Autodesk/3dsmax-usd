@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdExportAdvancedRollup</class>
+ <widget class="QWidget" name="UsdExportAdvancedRollup">
+  <property name="windowTitle">
+   <string>Advanced</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="LogFileGroupBox">
+     <property name="toolTip">
+      <string>If selected, a log file is output with your render.</string>
+     </property>
+     <property name="title">
+      <string>Log File</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout" columnstretch="3,5,1">
+      <item row="0" column="0">
+       <widget class="QLabel" name="LogOutputTypeLabel">
+        <property name="toolTip">
+         <string>Select the type of log data to be stored from exporting your scene. By default, log data is not stored.</string>
+        </property>
+        <property name="text">
+         <string>Output</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" colspan="2">
+       <widget class="QComboBox" name="LogOutputTypeComboBox">
+        <item>
+         <property name="text">
+          <string>Errors Only</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Errors and Warnings</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Full Log Data</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="LogFilePathLabel">
+        <property name="toolTip">
+         <string>Specify the file path for log data storage.</string>
+        </property>
+        <property name="text">
+         <string>Path</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="LogFilePathLineEdit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QToolButton" name="LogFilePathToolButton">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="AllowNestedGprimsCheckBox">
+     <property name="toolTip">
+      <string>If selected, the export allows for nested geometric prims (Gprims). This can maintain existing hierarchy and help performance by reducing prim counts. Warning: This is not strictly valid in USD and usdchecker will issue warnings.</string>
+     </property>
+     <property name="text">
+      <string>Allow Nested Gprims</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

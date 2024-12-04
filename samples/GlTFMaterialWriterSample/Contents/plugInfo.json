@@ -1,0 +1,28 @@
+{
+    # Comments are allowed and indicated by a hash at the start of a
+    # line or after spaces and tabs.  They continue to the end of line.
+    # Blank lines are okay, too.
+    "Plugins": [
+        {
+            "Info": {
+                # Max specific token
+                "MaxUsd": {
+                    "ShaderWriter": {
+                        # Here we fill the array with the names of the materials supported by the plugin.
+                        # In this sample, this is just the glTF material.
+                        # To find the name you need to put here, you need to find the non localized name of the material, to do that :
+                        # Create an object and assign the material you want to work with in this plugin to it. Select the object.
+                        # Querry the class ID of this material in maxscript "classof $.material".
+                        # Use the returned value (for glTF material it would be "glTFMaterial") in maxscript listener to call "glTFMaterial.nonLocalizedName"
+                        "providesTranslator": [
+                            "glTF Material"
+                        ]
+                    }
+                }
+            },
+            "Name": "glTFMaterialWriter",
+            "Type": "library",
+            "LibraryPath": "glTFMaterialWriter.dll"
+        }
+    ]
+}

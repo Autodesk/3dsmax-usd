@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Explorer</class>
+ <widget class="QWidget" name="Explorer">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>305</width>
+    <height>564</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLineEdit" name="filterLineEdit">
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string>Filter by prim name...</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="qExplorerTreeView" name="treeView">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>false</bool>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>qExplorerTreeView</class>
+   <extends>QTreeView</extends>
+   <header>qExplorerTreeView.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,409 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.6.4.0"
+    }
+    defaultPrim = "root"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Xform "Box001"
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-26.2406, -1.05894, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def Mesh "Box001_Shape"
+        {
+            float3[] extent = [(-12.270506, -19.838436, 0), (12.270506, 19.838436, 10.472961)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+            point3f[] points = [(-12.270506, -19.838436, 0), (12.270506, -19.838436, 0), (-12.270506, 19.838436, 0), (12.270506, 19.838436, 0), (-12.270506, -19.838436, 10.472961), (12.270506, -19.838436, 10.472961), (-12.270506, 19.838436, 10.472961), (12.270506, 19.838436, 10.472961)]
+            color3f[] primvars:displayColor = [(0.6, 0.89411765, 0.72156864)]
+            float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                interpolation = "faceVarying"
+            )
+            texCoord2f[] primvars:st = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            uniform token subsetFamily:materialBind:familyType = "partition"
+
+            def GeomSubset "_1_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [1]
+            }
+
+            def GeomSubset "_2_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 2
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [0]
+            }
+
+            def GeomSubset "_3_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 3
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [5]
+            }
+
+            def GeomSubset "_4_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 4
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [3]
+            }
+
+            def GeomSubset "_5_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 5
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [2]
+            }
+
+            def GeomSubset "_6_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 6
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [4]
+            }
+        }
+
+        def Mesh "Box002"
+        {
+            float3[] extent = [(-9.678581, -11.415054, 0), (9.678581, 11.415054, 7.9405994)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+            point3f[] points = [(-9.678581, -11.415054, 0), (9.678581, -11.415054, 0), (-9.678581, 11.415054, 0), (9.678581, 11.415054, 0), (-9.678581, -11.415054, 7.9405994), (9.678581, -11.415054, 7.9405994), (-9.678581, 11.415054, 7.9405994), (9.678581, 11.415054, 7.9405994)]
+            color3f[] primvars:displayColor = [(0.69411767, 0.34509805, 0.105882354)]
+            float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                interpolation = "faceVarying"
+            )
+            texCoord2f[] primvars:st = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            uniform token subsetFamily:materialBind:familyType = "partition"
+            matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (48.0886, 23.84444, 0, 1) )
+            uniform token[] xformOpOrder = ["xformOp:transform"]
+
+            def GeomSubset "_1_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [1]
+            }
+
+            def GeomSubset "_2_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 2
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [0]
+            }
+
+            def GeomSubset "_3_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 3
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [5]
+            }
+
+            def GeomSubset "_4_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 4
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [3]
+            }
+
+            def GeomSubset "_5_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 5
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [2]
+            }
+
+            def GeomSubset "_6_" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 6
+                    }
+                }
+            )
+            {
+                uniform token elementType = "face"
+                uniform token familyName = "materialBind"
+                int[] indices = [4]
+            }
+        }
+
+        def Xform "Box003"
+        {
+            matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (44.275999999999996, -35.12906, 0, 1) )
+            uniform token[] xformOpOrder = ["xformOp:transform"]
+
+            def Mesh "Box003_Shape"
+            {
+                float3[] extent = [(-13.393346, -15.111807, 0), (13.393346, 15.111807, 9.788313)]
+                int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+                int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+                point3f[] points = [(-13.393346, -15.111807, 0), (13.393346, -15.111807, 0), (-13.393346, 15.111807, 0), (13.393346, 15.111807, 0), (-13.393346, -15.111807, 9.788313), (13.393346, -15.111807, 9.788313), (-13.393346, 15.111807, 9.788313), (13.393346, 15.111807, 9.788313)]
+                color3f[] primvars:displayColor = [(0.10980392, 0.10980392, 0.69411767)]
+                float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                    interpolation = "faceVarying"
+                )
+                texCoord2f[] primvars:st = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                    interpolation = "faceVarying"
+                )
+                uniform token subdivisionScheme = "none"
+                uniform token subsetFamily:materialBind:familyType = "partition"
+
+                def GeomSubset "_1_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 1
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [1]
+                }
+
+                def GeomSubset "_2_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 2
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [0]
+                }
+
+                def GeomSubset "_3_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 3
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [5]
+                }
+
+                def GeomSubset "_4_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 4
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [3]
+                }
+
+                def GeomSubset "_5_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 5
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [2]
+                }
+
+                def GeomSubset "_6_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 6
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [4]
+                }
+            }
+
+            def Mesh "Box004"
+            {
+                float3[] extent = [(-11.778112, -12.535772, 0), (11.778112, 12.535772, 11.930952)]
+                int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+                int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+                point3f[] points = [(-11.778112, -12.535772, 0), (11.778112, -12.535772, 0), (-11.778112, 12.535772, 0), (11.778112, 12.535772, 0), (-11.778112, -12.535772, 11.930952), (11.778112, -12.535772, 11.930952), (-11.778112, 12.535772, 11.930952), (11.778112, 12.535772, 11.930952)]
+                color3f[] primvars:displayColor = [(0.34117648, 0.88235295, 0.56078434)]
+                float3[] primvars:normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)] (
+                    interpolation = "faceVarying"
+                )
+                texCoord2f[] primvars:st = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)] (
+                    interpolation = "faceVarying"
+                )
+                uniform token subdivisionScheme = "none"
+                uniform token subsetFamily:materialBind:familyType = "partition"
+                matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (49.1486, 33.29034, 0, 1) )
+                uniform token[] xformOpOrder = ["xformOp:transform"]
+
+                def GeomSubset "_1_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 1
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [1]
+                }
+
+                def GeomSubset "_2_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 2
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [0]
+                }
+
+                def GeomSubset "_3_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 3
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [5]
+                }
+
+                def GeomSubset "_4_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 4
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [3]
+                }
+
+                def GeomSubset "_5_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 5
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [2]
+                }
+
+                def GeomSubset "_6_" (
+                    customData = {
+                        dictionary "3dsmax" = {
+                            int matId = 6
+                        }
+                    }
+                )
+                {
+                    uniform token elementType = "face"
+                    uniform token familyName = "materialBind"
+                    int[] indices = [4]
+                }
+            }
+        }
+    }
+}
+

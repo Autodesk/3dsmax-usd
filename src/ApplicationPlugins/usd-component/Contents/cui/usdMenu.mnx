@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MaxMenuTransformations>
+    <!-- Add menu entry to create a stage object from the reference menu.-->
+    <CreateMenuAction MenuId="200b07d2-fa91-4479-8adc-24c7dae1c307" Id="be0d0fc0-a7ca-4853-8e01-0729c3c3c75a" ActionId="647394-CreateUSDStage`USD"/>
+    <!-- Add USD submenu under Tools.-->
+    <CreateMenuSeparator MenuId="88e2fb4c-3e71-4401-a601-7cc61cbb0358" Id="9ae9049b-d8ba-4e74-898f-52ee394cb379"/>
+    <CreateMenu ParentId="88e2fb4c-3e71-4401-a601-7cc61cbb0358" MenuId="63afe2a3-5e5b-47e7-8b20-dfb1dcf8bf5d" Title="USD"/>
+    <CreateMenuAction MenuId="63afe2a3-5e5b-47e7-8b20-dfb1dcf8bf5d" Id="576c623b-ea72-4aea-ac75-f788de6a2ad7" ActionId="647394-OpenUsdExplorer`USD"/>
+</MaxMenuTransformations>

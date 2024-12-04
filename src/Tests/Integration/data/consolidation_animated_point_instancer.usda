@@ -1,0 +1,47 @@
+#usda 1.0
+(
+    startTimeCode = 0
+    endTimeCode = 1
+)
+
+def Xform "ProtoRed" () {
+    def Cube "cube" () {
+        ColorFloat[] primvars:displayColor = [(1,0,0)]
+    }
+    token visibility = "invisible"
+}
+
+def Xform "ProtoGreen" () {
+    def Cone "cone" () {
+        ColorFloat[] primvars:displayColor = [(0,1,0)]
+    }
+    token visibility = "invisible"
+}
+
+def PointInstancer "Instancer" {
+    int[] protoIndices.timeSamples = {
+		0:[ 0, 1, 1 ],
+		1:[ 0, 1, 1 ],
+		2:[ 0, 1, 1, 1, 0]
+	}
+    rel prototypes = [ <Protos/Proto1>, <Protos/Proto2> ]
+    PointFloat[] positions.timeSamples = {
+		0:[ (0,0,0), (0,2.5,0), (2.5,2.5,2.5) ],
+		1:[ (0,0,1), (0,2.5,1), (2.5,2.5,10.5) ],
+		2:[ (0,0,1), (0,2.5,1), (2.5,2.5,10.5),(5,5,5),(10,10,10)]
+	}
+
+    def "Protos" {
+
+        def "Proto1" (
+            references = </ProtoRed>
+        ) {
+            token visibility = "visible"
+        }
+        def Xform "Proto2" (
+            references = </ProtoGreen>
+        ) {
+            token visibility = "visible"
+        }
+    }
+}

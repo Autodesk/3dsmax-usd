@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdStageViewportPerformanceRollup</class>
+ <widget class="QWidget" name="UsdStageViewportPerformanceRollup">
+  <layout class="QGridLayout" name="gridLayout" columnstretch="1,1">
+   <item row="2" column="1">
+    <widget class="MaxSDK::QmaxSpinBox" name="MaxMergedMeshTriangles"/>
+   </item>
+   <item row="2" column="0" alignment="Qt::AlignRight">
+    <widget class="QLabel" name="MaxMergedMeshTrianglesLabel">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>30</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>Defines the maximum size in triangles for a single merged mesh.&lt;br&gt;&lt;b&gt;Note:&lt;/b&gt; Single merged meshes will remain under the amount of triangles entered in this spinner.</string>
+     </property>
+     <property name="text">
+      <string>Max Size</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QCheckBox" name="MeshMergeDiagnosticView">
+     <property name="toolTip">
+      <string>Enable to visualize the mesh merge results.&lt;br&gt;&lt;b&gt;Note:&lt;/b&gt; Each merged mesh is represented in a single color.</string>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="text">
+      <string>Visualize</string>
+     </property>
+     <property name="tristate">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <widget class="QGroupBox" name="MergeThresholdsGroup">
+     <property name="title">
+      <string>Merge Thresholds</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1">
+      <item row="0" column="0">
+       <widget class="QLabel" name="MeshMergeMaxTrianglesLabel">
+        <property name="toolTip">
+         <string>Maximum triangle size to consider a mesh for merging with other meshes.&lt;br&gt;&lt;b&gt;Note:&lt;/b&gt; Individual USD meshes that have more triangles than this value will not be included in merge operations.</string>
+        </property>
+        <property name="text">
+         <string>Mesh Size</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="MaxSDK::QmaxSpinBox" name="MeshMergeMaxTriangles"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="MeshMergeMaxInstancesLabel">
+        <property name="toolTip">
+         <string>Defines the maximum of times a mesh can be instanced for it to be merged.&lt;br&gt;&lt;b&gt;Note:&lt;/b&gt; If more instances exist in the USD Stage than the value entered, those will not be merged together.</string>
+        </property>
+        <property name="text">
+         <string>Instances</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="MaxSDK::QmaxSpinBox" name="MeshMergeMaxInstances"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="MeshMergeMode"/>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="MeshMergeModeLabel">
+     <property name="toolTip">
+      <string>Merge meshes based on common material to improve display performances.&lt;br&gt;Choose &lt;b&gt;Static&lt;/b&gt; for a single merge operation or &lt;b&gt;Dynamic&lt;/b&gt; for a merge operation at every frame update.</string>
+     </property>
+     <property name="text">
+      <string>Mesh Merge</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MaxSDK::QmaxSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header location="global">Qt/QmaxSpinBox.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

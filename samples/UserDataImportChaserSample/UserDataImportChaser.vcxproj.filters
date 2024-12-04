@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="UserDataImportChaser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CAMetaDataUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{7d196c1f-86cb-4a3f-8bc2-e2788d383984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4fb15ec8-cc4f-4f93-b920-33d3011bb075}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\python">
+      <UniqueIdentifier>{89532428-a715-4c03-8226-84255c57f907}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Contents">
+      <UniqueIdentifier>{63c81035-1c90-4ae6-aff4-c3fb4989b183}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CAMetaDataUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Contents\python\plugInfo.json">
+      <Filter>Source Files\python</Filter>
+    </None>
+    <None Include="Contents\python\UserDataImportChaser.py">
+      <Filter>Source Files\python</Filter>
+    </None>
+    <None Include="Contents\plugInfo.json">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+    <None Include="Contents\RegisterPlugin.ms">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="PackageContents.xml">
+      <Filter>Source Files</Filter>
+    </Xml>
+  </ItemGroup>
+</Project>

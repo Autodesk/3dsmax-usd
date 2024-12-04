@@ -1,0 +1,27 @@
+#usda 1.0
+(
+    defaultPrim = "StagePayloadTest"
+    upAxis = "Z"
+)
+
+def "StagePayloadTest"
+{
+    def "NativeGeoms"
+    {
+        def "Cone" (
+            prepend payload = @./cone_native.usda@</cone>
+        )
+        {
+            double3 xformOp:translate = (-10, -10, -10)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def "Cube" (
+            prepend payload = @./cube_native.usda@</box>
+        )
+        {
+            double3 xformOp:translate = (10, 10, 10)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+}
+

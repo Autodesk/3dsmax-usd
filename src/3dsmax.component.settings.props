@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+	<ImportGroup Label="PropertySheets">
+		<Import Project="./3dsmax.common.settings.props" Condition="$(HasImportedCommonProps) != '1'" />
+	</ImportGroup>
+	
+	<!-- common properties -->
+	<PropertyGroup>
+		<!-- If the "MaxBinariesDir" env variable is not set, default to the build output -->
+		<OutDirTests Condition="'$(MaxBinariesDir)' == ''">$(OutDir)</OutDirTests>
+		<OutDirTests Condition="'$(MaxBinariesDir)' != ''">$(MaxBinariesDir)\</OutDirTests>
+	</PropertyGroup>
+
+	<!-- Project settings -->
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<AdditionalIncludeDirectories>$(MaxSdkInc);$(MaxRestrictedSdkInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<PreprocessorDefinitions>MAX_$(VersionTarget);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+		</ClCompile>
+		<Link>
+			<AdditionalLibraryDirectories>$(MaxSdkLibRelease);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+		</Link>
+	</ItemDefinitionGroup>
+</Project>

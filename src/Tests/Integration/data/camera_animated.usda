@@ -1,0 +1,51 @@
+#usda 1.0
+(
+    endTimeCode = 10
+    framesPerSecond = 30
+    metersPerUnit = 0.001
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Z"
+)
+
+def Camera "Camera001"
+{
+	float2 clippingRange.timeSamples = {
+		0: (200, 1000),
+		10: (400, 800),
+	}
+	float exposure.timeSamples = {
+		0: 6,
+		10: 12,
+	}
+	float focalLength.timeSamples = {
+		0: 40.322582,
+		10: 45.82485,
+	}
+	float focusDistance.timeSamples = {
+		0: 5000,
+		10: 2500,
+	}
+	float fStop.timeSamples = {
+		0: 8,
+		10: 16,
+	}
+	float horizontalAperture.timeSamples = {
+		0: 35.999996,
+		10: 34.999996,
+	}
+	token projection = "perspective"
+	double shutter:close.timeSamples = {
+		0: 449.99997653067237,
+		10: 449.9999832361945,
+	}
+	double shutter:open.timeSamples = {
+		0: 0,
+		10: 89.9999966472389,
+	}
+	float verticalAperture.timeSamples = {
+		0: 20.249998,
+		10: 19.687498,
+	}
+}
+

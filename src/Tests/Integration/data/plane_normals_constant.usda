@@ -1,0 +1,33 @@
+#usda 1.0
+(
+    defaultPrim = "plane_normals_constant"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+    endTimeCode = 1
+    startTimeCode = 0
+)
+
+def Xform "plane_normals_constant"
+{
+    def Mesh "Plane001" (
+    )
+    {
+        float3[] extent = [(-5, -5, 0), (5, 5, 0.0001)]
+        int[] faceVertexCounts = [4, 4, 4, 4]
+        int[] faceVertexIndices = [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8]
+        point3f[] points = [(-5, -5, 0), (0, -5, 0), (5, -5, 0), (-5, 0, 0), (0, 0, 0), (5, 0, 0), (-5, 5, 0), (0, 5, 0), (5, 5, 0)]
+        color3f[] primvars:displayColor = [(0.6, 0.89411765, 0.6)]
+
+        float3[] primvars:normals(
+            interpolation = "constant"
+        )
+
+        float3[] primvars:normals.timeSamples = {
+          0 : [(0, 0, 1)],
+          1 : [(0, 0, -1)]
+        }
+        
+        uniform token subdivisionScheme = "none"
+    }
+}
+

@@ -1,0 +1,17 @@
+{
+   "Plugins": [
+      {
+         "Info": {
+            "MaxUsd": {
+               "ShaderWriter": {
+                  "providesTranslator": [
+                     "Matte/Shadow"
+                  ]
+               }
+            }
+         },
+         "Name": "shaderWriterFromJson",
+         "Type": "python"
+      }
+   ]
+}

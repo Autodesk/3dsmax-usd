@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="UserDataExportChaser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="plugInfo.json">
+      <Filter>Package Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="RegisterPlugin.ms">
+      <Filter>Package Files</Filter>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="python\UserDataExportChaser.py">
+      <Filter>Source Files\python</Filter>
+    </None>
+    <None Include="python\plugInfo.json">
+      <Filter>Source Files\python</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{736bd8fe-eeb6-4c2b-a0ab-dc1037725910}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\python">
+      <UniqueIdentifier>{c3509517-bd52-40a7-ab6f-a09227ec306b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Package Files">
+      <UniqueIdentifier>{05cf4688-3af7-4d00-80d5-993a79604ba2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{a6749ed4-ce14-4a10-9eeb-afdaff80a895}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="PackageContents.xml">
+      <Filter>Package Files</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

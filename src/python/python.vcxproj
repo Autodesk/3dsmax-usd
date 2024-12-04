@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="wrapImportChaser.cpp" />
+    <ClCompile Include="wrapMaterialConverter.cpp" />
+    <ClCompile Include="module.cpp" />
+    <ClCompile Include="moduleDeps.cpp" />
+    <ClCompile Include="pythonObjectRegistry.cpp" />
+    <ClCompile Include="wrapExportTime.cpp" />
+    <ClCompile Include="wrapInterval.cpp" />
+    <ClCompile Include="wrapJobContextRegistry.cpp" />
+    <ClCompile Include="wrapMaxSceneBuilderOptions.cpp" />
+    <ClCompile Include="wrapMeshConverter.cpp" />
+    <ClCompile Include="wrapPrimReader.cpp" />
+    <ClCompile Include="wrapPrimWriter.cpp" />
+    <ClCompile Include="wrapExportChaser.cpp" />
+    <ClCompile Include="wrapReadJobContext.cpp" />
+    <ClCompile Include="wrapShaderWriter.cpp" />
+    <ClCompile Include="wrapShadingMode.cpp" />
+    <ClCompile Include="wrapTranslationUtils.cpp" />
+    <ClCompile Include="wrapTranslatorMaterial.cpp" />
+    <ClCompile Include="wrapUSDSceneBuilderOptions.cpp" />
+    <ClCompile Include="wrapUtilities.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pythonObjectRegistry.h" />
+    <ClInclude Include="wrapInterval.h" />
+    <ClInclude Include="wrapMaxSceneBuilderOptions.h" />
+    <ClInclude Include="wrapReadJobContext.h" />
+    <ClInclude Include="wrapUSDSceneBuilderOptions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ManualScript Include="$(ProjectDir)maxUsd.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="maxUsd.py" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>Python</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{1ABE147E-CB5A-485B-8B06-86C19CB5A553}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <OutName>maxUsd</OutName>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">true</EmbedManifest>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EmbedManifest>
+    <TargetName>_$(OutName)</TargetName>
+    <TargetExt>.pyd</TargetExt>
+    <OutDir>$(ContentsDir)bin\python\$(OutName)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>MFB_PACKAGE_NAME=$(OutName);MFB_ALT_PACKAGE_NAME=$(OutName);MFB_PACKAGE_MODULE=$(OutName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">false</ShowIncludes>
+      <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoveUnreferencedCodeData>
+      <ForcedIncludeFiles>..\usd_banned.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(PySideInc);$(PySideShibokenInc);$(PySideInc)/QtCore;$(PySideInc)/QtGui;$(PySideInc)/QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>Maxscrpt.lib;maxUsd.lib;core.lib;geom.lib;maxutil.lib;MaxUsdObjects.lib;$(PySideLibraries);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LibDir);$(PySideLib);$(PySideShibokenLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyManualScript" BeforeTargets="ClCompile">
+    <Copy SourceFiles="@(ManualScript)" DestinationFiles="$(OutDir)__init__.py" SkipUnchangedFiles="true" />
+  </Target>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

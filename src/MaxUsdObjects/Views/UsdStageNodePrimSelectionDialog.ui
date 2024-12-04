@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdStageNodePrimSelectionDialog</class>
+ <widget class="QDialog" name="UsdStageNodePrimSelectionDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>474</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Create USD Stage from File</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Root Layer</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLineEdit" name="RootLayerLineEdit"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="RootLayerPathButton">
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="SceneContentGroupBox">
+     <property name="title">
+      <string>Scene Content</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_6">
+      <item>
+       <widget class="QCheckBox" name="LoadPayloadsCheckbox">
+        <property name="text">
+         <string>Load Payloads</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="toolTip">
+         <string>The prim path used to mask the stage. When set, only that prim and its children are displayed in the stage.</string>
+        </property>
+        <property name="text">
+         <string>Select Stage Mask Path </string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSplitter" name="splitter">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <widget class="QWidget" name="verticalLayoutWidget_2">
+         <layout class="QVBoxLayout" name="verticalLayout_5" stretch="0,1">
+          <item>
+           <widget class="QLineEdit" name="filterLineEdit">
+            <property name="inputMask">
+             <string/>
+            </property>
+            <property name="placeholderText">
+             <string>Filter by prim name...</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTreeView" name="treeView">
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="uniformRowHeights">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="5,0,0">
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="OpenInUsdExplorerCheckbox">
+       <property name="toolTip">
+        <string>If selected, opens the USD Explorer to view the stage's prim hierarchy.</string>
+       </property>
+       <property name="text">
+        <string>Open In USD Explorer</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="Buttons">
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>Buttons</sender>
+   <signal>accepted()</signal>
+   <receiver>UsdStageNodePrimSelectionDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+  <connection>
+   <sender>Buttons</sender>
+   <signal>rejected()</signal>
+   <receiver>UsdStageNodePrimSelectionDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+ </connections>
+</ui>

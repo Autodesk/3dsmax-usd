@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ManualScript Include="$(ProjectDir)plugInfo.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CameraWriter.h" />
+    <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="HelperWriter.h" />
+    <ClInclude Include="MeshWriter.h" />
+    <ClInclude Include="MtlSwitcherWriter.h" />
+    <ClInclude Include="PhotometricLightWriter.h" />
+    <ClInclude Include="ShapeWriter.h" />
+    <ClInclude Include="SkeletonWriter.h" />
+    <ClInclude Include="SkinMorpherWriter.h" />
+    <ClInclude Include="StageWriter.h" />
+    <ClInclude Include="SunPositionerWriter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BaseWriters.cpp" />
+    <ClCompile Include="CameraReader.cpp" />
+    <ClCompile Include="CameraWriter.cpp" />
+    <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="HelperWriter.cpp" />
+    <ClCompile Include="LightReader.cpp" />
+    <ClCompile Include="MeshReader.cpp" />
+    <ClCompile Include="MeshWriter.cpp" />
+    <ClCompile Include="MtlSwitcherWriter.cpp" />
+    <ClCompile Include="NurbsCurvesReader.cpp" />
+    <ClCompile Include="PhotometricLightWriter.cpp" />
+    <ClCompile Include="ScopeReader.cpp" />
+    <ClCompile Include="BasisCurvesReader.cpp" />
+    <ClCompile Include="ShapeWriter.cpp" />
+    <ClCompile Include="SkeletonWriter.cpp" />
+    <ClCompile Include="SkelReader.cpp" />
+    <ClCompile Include="SkinMorpherWriter.cpp" />
+    <ClCompile Include="StageWriter.cpp" />
+    <ClCompile Include="SunPositionerWriter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MaxUsd_Translators.def" />
+    <None Include="plugInfo.json" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>MaxUsd_Translators</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{3F78B1EF-5A80-42C4-814B-22FD43912DD7}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest>true</EmbedManifest>
+    <TargetName>$(ProjectName)</TargetName>
+    <TargetExt>.dll</TargetExt>
+    <OutDir>$(ContentsDir)plugin\$(ProjectName)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>MFB_PACKAGE_NAME=$(ProjectName);MFB_ALT_PACKAGE_NAME=$(ProjectName);MFB_PACKAGE_MODULE=$(ProjectName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <!--DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings-->
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <ForcedIncludeFiles>..\usd_banned.h</ForcedIncludeFiles>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>maxUsd.lib;core.lib;geom.lib;edmodel.lib;maxutil.lib;maxscrpt.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <Target Name="CopyManualScript" BeforeTargets="ClCompile">
+    <Copy SourceFiles="@(ManualScript)" DestinationFiles="$(OutDir)plugInfo.json" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

@@ -1,0 +1,190 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.2.12.0"
+    }
+    defaultPrim = "consolidation_2_planes_anim"
+    endTimeCode = 1
+    framesPerSecond = 30
+    metersPerUnit = 0.0254
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Z"
+)
+
+def Xform "consolidation_2_planes_anim"
+{
+    def Mesh "Plane001" (
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        rel material:binding = </consolidation_2_planes_anim/Materials/Material__25>
+        
+        float3[] extent.timeSamples = {
+            0: [(-12.20685, -11.817253, 0), (12.20685, 11.817253, 0.0001)],
+        }
+        int[] faceVertexCounts.timeSamples = {
+            0: [4, 4, 4, 4],
+        }
+        int[] faceVertexIndices.timeSamples = {
+            0: [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8],
+        }
+        point3f[] points.timeSamples = {
+            0: [(-12.20685, -11.817253, 0), (0, -11.817253, 0), (12.20685, -11.817253, 0), (-12.20685, 0, 0), (0, 0, 0), (12.20685, 0, 0), (-12.20685, 11.817253, 0), (0, 11.817253, 0), (12.20685, 11.817253, 0)],
+        }
+        color3f[] primvars:displayColor = [(0.03137255, 0.43137255, 0.5294118)]
+        texCoord2f[] primvars:map1 (
+            interpolation = "faceVarying"
+        )
+        texCoord2f[] primvars:map1.timeSamples = {
+            0: [(0, 0), (0.5, 0), (1, 0), (0, 0.5), (0.5, 0.5), (1, 0.5), (0, 1), (0.5, 1), (1, 1)],
+        }
+        int[] primvars:map1:indices.timeSamples = {
+            0: [3, 0, 1, 4, 4, 1, 2, 5, 6, 3, 4, 7, 7, 4, 5, 8],
+        }
+        float3[] primvars:normals (
+            interpolation = "faceVarying"
+        )
+        float3[] primvars:normals.timeSamples = {
+            0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+        }
+        int[] primvars:normals:indices.timeSamples = {
+            0: [0, 1, 2, 3, 3, 2, 4, 5, 6, 0, 3, 7, 7, 3, 5, 8],
+        }
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-10.2058, -2.0473, 0, 1) ),
+            0.5: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-10.2058, -2.0473, 0, 1) ),
+            1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-10.2058, -2.0473, 0, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Mesh "Plane002" (
+        customData = {
+            dictionary "3dsmax" = {
+                int matId = 1
+            }
+        }
+    )
+    {
+        rel material:binding = </consolidation_2_planes_anim/Materials/Material__25>
+        
+        float3[] extent.timeSamples = {
+            0: [(-12.20685, -11.817253, 0), (12.20685, 11.817253, 0.0001)],
+            0.5: [(-12.20685, -11.817253, 0), (12.20685, 11.817253, 0.0001)],
+            1: [(-12.20685, -11.817253, 0), (12.20685, 11.817253, 0.0001)],
+        }
+        int[] faceVertexCounts.timeSamples = {
+            0: [3, 3, 3, 3, 3, 3, 3, 3],
+            0.5: [3, 3, 3, 3, 3, 3, 3, 3],
+            1: [3, 3, 3, 3, 3, 3, 3, 3],
+        }
+        int[] faceVertexIndices.timeSamples = {
+            0: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+            0.5: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+            1: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+        }
+        point3f[] points.timeSamples = {
+            0: [(-12.20685, -11.817253, 0), (0, -11.817253, 0), (12.20685, -11.817253, 0), (-12.20685, 0, 0), (0, 0, 0), (12.20685, 0, 0), (-12.20685, 11.817253, 0), (0, 11.817253, 0), (12.20685, 11.817253, 0)],
+            0.5: [(-12.20685, -11.817253, 0), (0, -11.817253, 0), (12.20685, -11.817253, 0), (-12.20685, 0, 0), (0, 0, 0), (12.20685, 0, 0), (-12.20685, 11.817253, 0), (0, 11.817253, 0), (12.20685, 11.817253, 0)],
+            1: [(-12.20685, -11.817253, 0), (0, -11.817253, 0), (12.20685, -11.817253, 0), (-12.20685, 0, 0), (0, 0, 0), (12.20685, 0, 0), (-12.20685, 11.817253, 0), (0, 11.817253, 0), (12.20685, 11.817253, 0)],
+        }
+        color3f[] primvars:displayColor = [(0.03137255, 0.43137255, 0.5294118)]
+        texCoord2f[] primvars:map1 (
+            interpolation = "faceVarying"
+        )
+        texCoord2f[] primvars:map1.timeSamples = {
+            0: [(5.7220458e-8, -1.3947486e-7), (0.95999974, -7.7486035e-8), (1.9199995, -1.5497207e-8), (2.8610228e-7, -0.26000005), (0.96, -0.26), (1.9199997, -0.25999993), (5.149841e-7, -0.52), (0.9600002, -0.5199999), (1.92, -0.51999986)],
+            0.5: [(0.46259066, -0.5441529), (0.95999986, -0.5441529), (1.457409, -0.54415303), (0.46259078, -0.2599999), (0.96, -0.26), (1.4574091, -0.26000005), (0.4625909, 0.024153048), (0.9600001, 0.024152987), (1.4574093, 0.024152923)],
+            1: [(0.62433565, -0.35187274), (0.9599999, -0.35187277), (1.2956641, -0.3518728), (0.6243357, -0.25999996), (0.96, -0.26), (1.2956642, -0.26000002), (0.62433577, -0.16812718), (0.9600001, -0.16812721), (1.2956643, -0.16812725)],
+        }
+        int[] primvars:map1:indices.timeSamples = {
+            0: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+            0.5: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+            1: [3, 0, 4, 1, 4, 0, 4, 1, 5, 2, 5, 1, 6, 3, 7, 4, 7, 3, 7, 4, 8, 5, 8, 4],
+        }
+        float3[] primvars:normals (
+            interpolation = "faceVarying"
+        )
+        float3[] primvars:normals.timeSamples = {
+            0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+            0.5: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+            1: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+        }
+        int[] primvars:normals:indices.timeSamples = {
+            0: [0, 1, 2, 3, 2, 1, 2, 3, 4, 5, 4, 3, 6, 0, 7, 2, 7, 0, 7, 2, 8, 4, 8, 2],
+            0.5: [0, 1, 2, 3, 2, 1, 2, 3, 4, 5, 4, 3, 6, 0, 7, 2, 7, 0, 7, 2, 8, 4, 8, 2],
+            1: [0, 1, 2, 3, 2, 1, 2, 3, 4, 5, 4, 3, 6, 0, 7, 2, 7, 0, 7, 2, 8, 4, 8, 2],
+        }
+        uniform token subdivisionScheme = "none"
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (0.713597, 0.700556, 0, 0), (-0.539642, 0.549688, 0.327946, 0), (0.229744, -0.234021, 0.770306, 0), (24.0619, -2.0473, 15.7368, 1) ),
+            0.5: ( (-0.665787, -0.0917436, -0.10246, 0), (-0.0302892, 0.506906, -0.257069, 0), (0.111087, -0.247189, -0.500513, 0), (24.0619, -2.0473, 15.7368, 1) ),
+            1: ( (0.300935, -0.165304, -0.107179, 0), (0.164737, 0.203048, 0.14938, 0), (-0.00814782, -0.174068, 0.245591, 0), (24.0619, -2.0473, 15.7368, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def "Materials"
+    {
+        def Material "Material__25"
+        {
+            token inputs:frame:map1 = "map1"
+            token outputs:surface.connect = </consolidation_2_planes_anim/Materials/Material__25/UsdPreviewSurface.outputs:surface>
+  
+            def Shader "UsdPreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor.connect = </consolidation_2_planes_anim/Materials/Map__1.outputs:rgb>
+                float inputs:displacement = 0
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                normal3f inputs:normal = (0, 0, 1)
+                float inputs:occlusion = 1
+                float inputs:opacity = 1
+                float inputs:opacityThreshold = 0
+                float inputs:roughness = 0
+                color3f inputs:specularColor = (0, 0, 0)
+                int inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+        }
+    
+        def Shader "Map__1"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @uv_checker.png@
+            float2 inputs:st.connect = </consolidation_2_planes_anim/Materials/Map__1/TextureTransform_map1.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+  
+            def Shader "PrimvarReader_map1"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname.connect = </consolidation_2_planes_anim/Materials/Material__25.inputs:frame:map1>
+                float2 outputs:result
+            }
+  
+            def Shader "TextureTransform_map1"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </consolidation_2_planes_anim/Materials/Map__1/PrimvarReader_map1.outputs:result>
+                float inputs:rotation = 0
+                float2 inputs:scale = (1, 1)
+                float2 inputs:translation = (0, 0)
+                float2 outputs:result
+            }
+        }  
+    }
+    
+}
+

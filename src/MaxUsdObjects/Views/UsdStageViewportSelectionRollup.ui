@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdStageViewportSelectionRollup</class>
+ <widget class="QWidget" name="UsdStageViewportSelectionRollup">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="selectionLevelGroup">
+     <property name="title">
+      <string>Selection Level</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QRadioButton" name="stageRadioButton">
+        <property name="text">
+         <string>Stage</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="primRadioButton">
+        <property name="text">
+         <string>Prim</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="byKindGroup">
+     <property name="title">
+      <string>By Kind</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QComboBox" name="kindSelection"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="highlightGroup">
+     <property name="title">
+      <string>Show Highlight</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QCheckBox" name="selectionHighlightCheckbox">
+        <property name="text">
+         <string>Selection</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MaxSDK::QMaxColorSwatch" name="selectionColorSwatch">
+       </widget>
+      </item>	  
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MaxSDK::QMaxColorSwatch</class>
+   <extends>QWidget</extends>
+   <header location="global">Qt/QMaxColorSwatch.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

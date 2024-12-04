@@ -1,0 +1,29 @@
+#usda 1.0
+(
+    defaultPrim = "cube_displayColor_uniform"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+    endTimeCode = 1
+    startTimeCode = 0
+)
+
+def Xform "cube_displayColor_uniform"
+{
+    def Mesh "Box001"
+    {
+        float3[] extent = [(-5, -5, 0), (5, 5, 10)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+        point3f[] points = [(-5, -5, 0), (5, -5, 0), (-5, 5, 0), (5, 5, 0), (-5, -5, 10), (5, -5, 10), (-5, 5, 10), (5, 5, 10)]
+
+        float3[] primvars:displayColor (
+            interpolation = "uniform"
+        )
+        
+        float3[] primvars:displayColor.timeSamples = {
+          0 : [(0, 0, -1), (0, 0, 1), (0, -1, 0), (1, 0, 0), (0, 1, 0), (-1, 0, 0)],
+          1 : [(0, 0, 1), (0, 0, -1), (0, 1, 0), (-1, 0, 0), (0, -1, 0), (1, 0, 0)]
+        }
+    }
+}
+

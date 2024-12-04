@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{25315e12-ed5d-4ac2-b13c-ba8f290f8531}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{6f2f59da-a1f4-4d91-84ed-9453ed9aa3b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{895ead2c-9600-4cb7-bf86-f6e7212d472a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\python">
+      <UniqueIdentifier>{c84288c0-608c-4777-b0bd-330ac9d0e0aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Contents">
+      <UniqueIdentifier>{3aa8115e-cee5-47cc-a3dc-261479d40856}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DllEntry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GlTFMaterialWriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GlTFMaterialWriter.h">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Contents\plugInfo.json">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+    <None Include="Contents\RegisterPlugin.ms">
+      <Filter>Source Files\Contents</Filter>
+    </None>
+    <None Include="Contents\python\glTFShaderWriter.py">
+      <Filter>Source Files\python</Filter>
+    </None>
+    <None Include="Contents\python\plugInfo.json">
+      <Filter>Source Files\python</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="PackageContents.xml">
+      <Filter>Source Files</Filter>
+    </Xml>
+  </ItemGroup>
+</Project>

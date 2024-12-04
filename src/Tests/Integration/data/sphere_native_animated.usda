@@ -1,0 +1,21 @@
+#usda 1.0
+(
+    upAxis = "Z"
+	metersPerUnit = 0.001
+    endTimeCode = 40
+    framesPerSecond = 30
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+)
+def Sphere "sphere" {
+		float3[] extent.timeSamples = {
+			0: [(-8, -8, -8), (8, 8, 8)],
+			20: [(-4, -4, -4), (4, 4, 4)],
+			40: [(-16, -16, -16), (16, 16, 16)],
+        }
+        double radius.timeSamples = {
+            0: 8,
+            20: 4,
+            40: 16,
+        }
+}

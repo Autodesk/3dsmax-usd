@@ -1,0 +1,22 @@
+{
+   # Comments are allowed and indicated by a hash at the start of a
+   # line or after spaces and tabs.  They continue to the end of line.
+   # Blank lines are okay, too.
+   "Plugins": [
+      {
+         "Info": {
+            # Max specific token
+            "MaxUsd": {
+               "PrimReader": {
+                  "providesTranslator": [
+                     "UsdGeomSphere"
+                  ]
+               }
+            }
+         },
+         "Name": "SpherePrimReader",
+         "Type": "library",
+         "LibraryPath": "SpherePrimReader.dll"
+      }
+   ]
+}

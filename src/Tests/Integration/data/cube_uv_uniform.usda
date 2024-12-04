@@ -1,0 +1,81 @@
+#usda 1.0
+(
+    defaultPrim = "cube_uv_uniform"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+    endTimeCode = 1
+    startTimeCode = 0
+)
+
+def Xform "cube_uv_uniform"
+{
+    def Mesh "Box001"
+    {
+        float3[] extent = [(-5, -5, 0), (5, 5, 10)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 2, 3, 1, 4, 5, 7, 6, 0, 1, 5, 4, 1, 3, 7, 5, 3, 2, 6, 7, 2, 0, 4, 6]
+        point3f[] points = [(-5, -5, 0), (5, -5, 0), (-5, 5, 0), (5, 5, 0), (-5, -5, 10), (5, -5, 10), (-5, 5, 10), (5, 5, 10)]
+        color3f[] primvars:displayColor = [(0.6039216, 0.7254902, 0.8980392)]
+
+        texCoord2f[] primvars:map1 (
+            interpolation = "uniform"
+        )
+        
+        texCoord2f[] primvars:map1.timeSamples = {
+            0 : [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0)],
+            1 : [(0, 1), (0, 0), (1, 0), (1, 1), (1, 1), (0, 1)]
+        }
+        
+        rel material:binding = </cube_uv_uniform/Materials/Material__25>
+    }
+    
+    def "Materials"
+    {
+        def Material "Material__25"
+        {
+            token inputs:frame:map1 = "map1"
+            token outputs:surface.connect = </cube_uv_uniform/Materials/Material__25/UsdPreviewSurface.outputs:surface>
+
+            def Shader "UsdPreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0
+                float inputs:clearcoatRoughness = 0
+                color3f inputs:diffuseColor.connect = </cube_uv_uniform/Materials/Map__1.outputs:rgb>
+                color3f inputs:emissiveColor = (0, 0, 0)
+                float inputs:ior = 1.52
+                float inputs:metallic = 0
+                float inputs:opacity = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Shader "Map__1"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @uv_checker.png@
+            float2 inputs:st.connect = </cube_uv_uniform/Materials/Map__1/TextureTransform_map1.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+
+            def Shader "PrimvarReader_map1"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname.connect = </cube_uv_uniform/Materials/Material__25.inputs:frame:map1>
+                float2 outputs:result
+            }
+
+            def Shader "TextureTransform_map1"
+            {
+                uniform token info:id = "UsdTransform2d"
+                float2 inputs:in.connect = </cube_uv_uniform/Materials/Map__1/PrimvarReader_map1.outputs:result>
+                float inputs:rotation = 0
+                float2 inputs:scale = (1, 1)
+                float2 inputs:translation = (0, 0)
+                float2 outputs:result
+            }
+        }
+    }
+}
