@@ -233,7 +233,7 @@ public:
     private:
         // Function object constructor. Requires only the index of the Python class to use.
         FactoryFnWrapper(size_t classIndex)
-            : _classIndex(classIndex) {};
+            : _classIndex(classIndex) { };
 
         size_t _classIndex;
 

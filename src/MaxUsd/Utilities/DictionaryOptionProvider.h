@@ -15,10 +15,11 @@
 //
 #pragma once
 
-#include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
 #include <pxr/base/vt/dictionary.h>
+
+#include <MaxUsd.h>
 
 namespace MAXUSD_NS_DEF {
 

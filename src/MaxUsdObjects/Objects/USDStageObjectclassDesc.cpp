@@ -28,8 +28,8 @@
 #include <MaxUsdObjects/Views/UsdStageViewportSelectionRollup.h>
 #include <MaxUsdObjects/resource.h>
 
-#include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 
 #include <Qt/QmaxMainWindow.h>
 #include <maxscript/foundation/arrays.h>
@@ -173,7 +173,7 @@ protected:
             }
         }
 
-        pxr::VtDictionary options;
+        pxr::VtDictionary        options;
         static const std::string optionsCategoryKey = "PrimSelectionDialogPreferences";
         if (useUserSettings) {
             MaxUsd::OptionUtils::LoadUiOptions(optionsCategoryKey, options);
@@ -183,8 +183,7 @@ protected:
             if (!options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer].IsHolding<bool>()) {
                 options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer] = true;
             }
-        }
-        else {
+        } else {
             if (showLoadPayloadsOption) {
                 options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads] = true;
             }
@@ -249,13 +248,13 @@ protected:
         eidFilteringType
     };
 
-// clang-format off
+    // clang-format off
     BEGIN_FUNCTION_MAP
         FN_6(fnIdSelectRootLayerAndPrim, TYPE_VALUE, SelectRootLayerAndPrim, TYPE_STRING, TYPE_ENUM, TYPE_STRING_TAB, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL);
         VFN_0(fnIdOpenUsdExplorer, OpenUsdExplorer);
         VFN_0(fnIdCloseUsdExplorer, CloseUsdExplorer);
     END_FUNCTION_MAP
-// clang-format on
+    // clang-format on
 };
 
 #define USDSTAGEOBJECT_FP_INTERFACE Interface_ID(0x130335d6, 0xe7a7529)

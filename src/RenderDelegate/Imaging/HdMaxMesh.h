@@ -146,7 +146,8 @@ protected:
 
     /**
      * \brief Initializes the render data for all UsdGeomSubset of the mesh, we need one for every different material bound.
-     * If no subsets are defined in the mesh, a single subset is created, containing the entire geometry.
+     * If no subsets are defined in the mesh, a single subset is created, containing the entire
+     * geometry.
      * \param delegate The scene delegate.
      * \param materialId The material bound to the mesh itself (used if we need to create a subset for geometry that is
      * not already part of any subsets).

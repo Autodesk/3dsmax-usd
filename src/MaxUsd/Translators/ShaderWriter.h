@@ -65,7 +65,7 @@ public:
     /// Another static function can be declared (not required) and allows
     /// declaring if the material(s) the Writer is registered for are target agnostic.
     ///	A target agnostic material is a material that can be exported to any target, and doesn't
-    ///need to be exported to each specific target.
+    /// need to be exported to each specific target.
     ///
     /// The prototype is:
     ///

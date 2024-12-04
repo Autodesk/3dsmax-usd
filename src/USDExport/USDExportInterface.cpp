@@ -124,7 +124,7 @@ public:
         fid_CreateOptionsFromJsonString
     };
 
-// clang-format off
+    // clang-format off
     BEGIN_FUNCTION_MAP
         PROP_FNS(fid_GetUIOptions, GetUIOptions, fid_SetUIOptions, SetUIOptions, TYPE_INTERFACE);
         FN_4(fid_ExportFile, TYPE_INT, ExportFile, TYPE_STRING, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB);

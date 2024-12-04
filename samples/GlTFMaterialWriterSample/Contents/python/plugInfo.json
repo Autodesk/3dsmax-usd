@@ -13,8 +13,7 @@
                         # To find the name you need to put here, you need to find the non localized name of the material, to do that :
                         # Create an object and assign the material you want to work with in this plugin to it. Select the object.
                         # Querry the class ID of this material in maxscript "classof $.material".
-                        # Use the returned value (for glTF material it would be "glTFMaterial") in maxscript listener to call "glTFMaterial.nonLocalizedName"
-                        "providesTranslator": [
+                        # Use the returned value (for glTF material it would be "glTFMaterial") in maxscript listener to call "glTFMaterial.nonLocalizedName""providesTranslator": [
                             "glTF Material"
                         ]
                     }

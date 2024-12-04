@@ -87,8 +87,9 @@ USDPickingRenderer::USDPickingRenderer(const pxr::UsdStageWeakPtr stage)
                 logger->enableMessages();
                 // Disable NVidia perforamce spam "APISource", 131185,
                 // 		"Buffer detailed info: Buffer object 1 (bound to
-                // GL_ARRAY_BUFFER_ARB, usage hint is " 		"GL_STATIC_DRAW) will use VIDEO memory as
-                // the source for buffer object operations.", 		"NotificationSeverity", "OtherType"
+                // GL_ARRAY_BUFFER_ARB, usage hint is " 		"GL_STATIC_DRAW) will use
+                // VIDEO memory as the source for buffer object operations.",
+                // "NotificationSeverity", "OtherType"
 
                 logger->disableMessages(QVector<GLuint> { 131185 });
             } else {

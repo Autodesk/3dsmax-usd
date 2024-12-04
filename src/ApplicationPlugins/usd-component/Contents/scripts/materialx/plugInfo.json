@@ -1,17 +1,17 @@
 {
-   "Plugins":[
-      {
-         "Info": {
-             "MaxUsd": {
-                 "ShaderWriter": {
-                     "providesTranslator": [
-                         "MaterialX Material"
-                     ]
-                 }
-             }
-         },
-         "Name": "materialXShaderWriter",
-         "Type": "python"
-     }
-   ]
+    "Plugins": [
+        {
+            "Info": {
+                "MaxUsd": {
+                    "ShaderWriter": {
+                        "providesTranslator": [
+                            "MaterialX Material"
+                        ]
+                    }
+                }
+            },
+            "Name": "materialXShaderWriter",
+            "Type": "python"
+        }
+    ]
 }

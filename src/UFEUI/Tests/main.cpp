@@ -57,8 +57,8 @@ int main(int argc, char** argv)
         {
         public:
             using UfeUi::EditCommand::EditCommand;
-            void pre() override {};
-            void post() override {};
+            void pre() override { };
+            void post() override { };
         };
         auto create = [](const Ufe::Path&                 path,
                          const Ufe::UndoableCommand::Ptr& cmd,

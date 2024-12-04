@@ -44,7 +44,7 @@ public:
         MaxUsd::MaxProgressBar&                                 progress);
 
     /// Called once, before any exports are started.
-    MaxUSDAPI virtual void PreExport(MaxUsdShadingModeExportContext* /* context */) {};
+    MaxUSDAPI virtual void PreExport(MaxUsdShadingModeExportContext* /* context */) { };
 
     /// Called inside of a loop, per-material
     MaxUSDAPI virtual void Export(

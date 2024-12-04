@@ -49,7 +49,7 @@ Ufe::UIInfoHandler::Icon MaxUsdUIInfoHandler::treeViewIcon(const Ufe::SceneItem:
     }
 
     // If the base implementation couldn't figure out the icon, look at the ancestor types.
-// clang-format off
+    // clang-format off
     static std::set<std::string> supportedAncestorTypes{
         "BlendShape",
         "Camera",
@@ -80,7 +80,7 @@ Ufe::UIInfoHandler::Icon MaxUsdUIInfoHandler::treeViewIcon(const Ufe::SceneItem:
         "UsdTyped",
         "Volume"
     };
-// clang-format on
+    // clang-format on
 
     const UsdUfe::UsdSceneItem::Ptr usdItem = std::dynamic_pointer_cast<UsdUfe::UsdSceneItem>(item);
     if (!usdItem) {

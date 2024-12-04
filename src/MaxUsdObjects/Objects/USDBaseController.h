@@ -40,8 +40,8 @@ public:
     int             NumParamBlocks() override;
     IParamBlock2*   GetParamBlock(int i) override;
     IParamBlock2*   GetParamBlockByID(BlockID id) override;
-    void            Copy(Control* from) override {};
-    void            SetValue(TimeValue t, void* val, int commit, GetSetMethod method) override {};
+    void            Copy(Control* from) override { };
+    void            SetValue(TimeValue t, void* val, int commit, GetSetMethod method) override { };
 
     /**
      * Whether the USD object being read by this controller is valid (I.e. a valid

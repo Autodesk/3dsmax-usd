@@ -51,7 +51,7 @@ inline double GetFrameFromTimeValue(TimeValue time)
 class TimeConfig
 {
 public:
-    TimeConfig() {};
+    TimeConfig() { };
 
     TimeConfig(double startFrame, double endFrame, double samplesPerFrame)
     {

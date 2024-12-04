@@ -20,18 +20,19 @@
 // MaxUsd public namespace string will never change.
 #define MAXUSD_NS MaxUsd
 // C preprocessor trickery to expand arguments.
-#define MAXUSD_CONCAT(A, B) MAXUSD_CONCAT_IMPL(A, B)
+#define MAXUSD_CONCAT(A, B)      MAXUSD_CONCAT_IMPL(A, B)
 #define MAXUSD_CONCAT_IMPL(A, B) A##B
 // Versioned namespace includes the major version number.
-#define MAXUSD_VERSIONED_NS MAXUSD_CONCAT(MAXUSD_NS, MAXUSD_CONCAT(_v,COMPONENT_VERSION_MAJOR))
+#define MAXUSD_VERSIONED_NS MAXUSD_CONCAT(MAXUSD_NS, MAXUSD_CONCAT(_v, COMPONENT_VERSION_MAJOR))
 
-namespace MAXUSD_VERSIONED_NS {}
+namespace MAXUSD_VERSIONED_NS {
+}
 
 // With a using namespace declaration, pull in the versioned namespace into the
 // MaxUsd public namespace, to allow client code to use the plain MaxUsd
 // namespace, e.g. MaxUsd::Class.
 namespace MAXUSD_NS {
-    using namespace MAXUSD_VERSIONED_NS;
+using namespace MAXUSD_VERSIONED_NS;
 }
 
 // Macro to place the MaxUsd symbols in the versioned namespace, which is how

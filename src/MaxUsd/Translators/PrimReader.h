@@ -64,14 +64,14 @@ public:
     /// are run in the order:
     /// (1) Read A (2) Read B (3) PostReadSubtree B (4) PostReadSubtree A,
     /// (5) Read C (6) PostReadSubtree C
-    MaxUSDAPI virtual void PostReadSubtree() {};
+    MaxUSDAPI virtual void PostReadSubtree() { };
 
     /// Method called when a 3ds Max instance is created (cloned) from a Node which originally was
     /// created using this reader instance. Could be used to assign a material to this specific
     /// instance.
     /// \param prim Current instance prim
     /// \param instance Instanced 3ds Max Node
-    MaxUSDAPI virtual void InstanceCreated(const UsdPrim& prim, INode* instance) {};
+    MaxUSDAPI virtual void InstanceCreated(const UsdPrim& prim, INode* instance) { };
 
 protected:
     /// The imported USD prim

@@ -62,9 +62,9 @@ public:
      * already bound to the the UFE attributes of the individual objects in the
      * given selection. */
     static std::unique_ptr<QmaxUsdUfeAttributesWidget> create(
-        const Ufe::Selection&     selection,
+        const Ufe::Selection&           selection,
         const std::vector<std::string>& attributeNames,
-        std::set<std::string>&    handledAttributeNames);
+        std::set<std::string>&          handledAttributeNames);
 
     /** Create a new QmaxUsdUfeAttributesWidget containing some common controls
      * as well as controls for the supported attributes that are not already

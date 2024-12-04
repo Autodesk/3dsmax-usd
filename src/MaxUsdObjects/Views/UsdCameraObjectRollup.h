@@ -36,7 +36,7 @@ public:
     void SetParamBlock(ReferenceMaker* owner, IParamBlock2* const paramBlock) override;
     void UpdateUI(const TimeValue t) override;
     // Abstract in older max versions, but nothing for us to do in it.
-    void UpdateParameterUI(const TimeValue, const ParamID, const int) override {};
+    void UpdateParameterUI(const TimeValue, const ParamID, const int) override { };
 
 private:
     /// Model ParamBlock pointer

@@ -250,7 +250,7 @@ public:
      */
     void SetMtlSwitcherExportStyle(int exportStyle);
 #endif
-// clang-format off
+    // clang-format off
     enum
     {
         fnIdGetTranslateMeshes, fnIdSetTranslateMeshes,
@@ -370,7 +370,7 @@ public:
         FN_0(fnIdGetAvailableChasers, TYPE_STRING_TAB_BV, GetAvailableChasers);
         FN_0(fidSerialize, TYPE_STRING, Serialize);
     END_FUNCTION_MAP
-// clang-format on
+    // clang-format on
 
 private:
     IOLoggingMxsInterface logInterface { this };

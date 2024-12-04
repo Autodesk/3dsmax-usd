@@ -16,6 +16,6 @@
 #pragma once
 
 // Definitions specific to the present .dll
-#define USD_COMPONENT_BINARY_INTERNAL_NAME "USDComponent\0"
+#define USD_COMPONENT_BINARY_INTERNAL_NAME      "USDComponent\0"
 #define USD_COMPONENT_BINARY_ORIGINAL_FILE_NAME "USDImport.dli\0"
-#define USD_COMPONENT_BINARY_FILE_DESCRIPTION "3ds Max USD plugin\0"
+#define USD_COMPONENT_BINARY_FILE_DESCRIPTION   "3ds Max USD plugin\0"

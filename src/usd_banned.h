@@ -21,28 +21,32 @@
 // we need to update our dependencies to be compatible
 // in the meantime, we will hide the issue using this trick
 namespace std {
-template <class Arg1, class Arg2, class Result>
-struct binary_function
+template <class Arg1, class Arg2, class Result> struct binary_function
 {
-	using first_argument_type = Arg1;
-	using second_argument_type = Arg2;
-	using result_type = Result;
+    using first_argument_type = Arg1;
+    using second_argument_type = Arg2;
+    using result_type = Result;
 };
 } // namespace std
 #endif
 
 // Bunch of headers bringing memcpy calls
 #include <atomic>
-#include <locale>
-#include <boost/functional/hash.hpp>
 #include <boost/container/detail/copy_move_algo.hpp>
+#include <boost/functional/hash.hpp>
+#include <locale>
 
 // Some macro conflicts
-#include <boost/random.hpp>
 #include <boost/bimap.hpp>
+#include <boost/random.hpp>
 
 #pragma warning(push)
 #pragma warning(disable : 4244 4305 4267 4003 4305 6011 6319 6386 26451 26439 26478 26487)
+#include <pxr/base/gf/matrix3f.h>
+#include <pxr/base/gf/matrix4d.h>
+#include <pxr/base/gf/matrixData.h>
+#include <pxr/base/gf/quath.h>
+#include <pxr/base/gf/range1f.h>
 #include <pxr/base/gf/vec2f.h>
 #include <pxr/base/gf/vec2h.h>
 #include <pxr/base/gf/vec2i.h>
@@ -52,42 +56,37 @@ struct binary_function
 #include <pxr/base/gf/vec4f.h>
 #include <pxr/base/gf/vec4h.h>
 #include <pxr/base/gf/vec4i.h>
-#include <pxr/base/gf/quath.h>
-#include <pxr/base/gf/matrix4d.h>
-#include <pxr/base/gf/matrix3f.h>
-#include <pxr/base/gf/range1f.h>
-#include <pxr/base/gf/matrixData.h>
-#include <pxr/base/vt/array.h>
-#include <pxr/usd/pcp/mapfunction.h>
 #include <pxr/base/tf/anyUniquePtr.h>
+#include <pxr/base/tf/diagnosticLite.h>
 #include <pxr/base/tf/refPtr.h>
 #include <pxr/base/tf/smallVector.h>
-#include <pxr/base/tf/diagnosticLite.h>
+#include <pxr/base/vt/array.h>
+#include <pxr/usd/pcp/mapfunction.h>
 #if MAX_RELEASE >= 25900
 #include <pxr/base/tf/pxrTslRobinMap/robin_growth_policy.h>
 #endif
-#include <pxr/imaging/pxOsd/meshTopology.h>
-#include <pxr/usd/pcp/dynamicFileFormatDependencyData.h>
 #include <pxr/base/trace/dataBuffer.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/tokens.h>
-#include <pxr/usdImaging/usdImaging/resolvedAttributeCache.h>
 #include <pxr/imaging/hdx/taskController.h>
+#include <pxr/imaging/pxOsd/meshTopology.h>
 #include <pxr/imaging/pxosd/tokens.h>
-#include <pxr/usd/sdf/schema.h>
+#include <pxr/usd/pcp/dynamicFileFormatDependencyData.h>
 #include <pxr/usd/sdf/assetPath.h>
+#include <pxr/usd/sdf/schema.h>
 #include <pxr/usd/sdr/shadernode.h>
-#include <pxr/usd/usd/primData.h>
 #include <pxr/usd/usd/notice.h>
-#include <pxr/usd/usdgeom/xformOp.h>
+#include <pxr/usd/usd/primData.h>
 #include <pxr/usd/usdUtils/stageCache.h>
+#include <pxr/usd/usdgeom/xformOp.h>
+#include <pxr/usdImaging/usdImaging/resolvedAttributeCache.h>
 #pragma warning(pop)
 
 #pragma warning(push)
 #pragma warning(disable : 26451)
 #include <spdlog/fmt/bundled/core.h>
-#include <spdlog/fmt/bundled/format.h>
 #include <spdlog/fmt/bundled/format-inl.h>
+#include <spdlog/fmt/bundled/format.h>
 #pragma warning(pop)
 
 #pragma warning(push)

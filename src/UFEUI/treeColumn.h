@@ -65,7 +65,7 @@ public:
      * \param treeItem The treeItem to get flags for.
      * \param flags The flags.
      */
-    virtual UFEUIAPI void flags(const TreeItem* treeItem, Qt::ItemFlags& flags) {};
+    virtual UFEUIAPI void flags(const TreeItem* treeItem, Qt::ItemFlags& flags) { };
 
     /**
      * \brief Sets the data in the column.

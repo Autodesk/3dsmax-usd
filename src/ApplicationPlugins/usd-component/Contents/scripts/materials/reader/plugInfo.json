@@ -1,18 +1,18 @@
 {
-   "Plugins":[
+   "Plugins": [
       {
-         "Info":{
-            "MaxUsd":{
+         "Info": {
+            "MaxUsd": {
                "ShadingModePlugin": {},
-               "ShaderReader":{
-                  "providesTranslator":[
+               "ShaderReader": {
+                  "providesTranslator": [
                      "UsdPreviewSurface"
                   ]
                }
             }
          },
-         "Name":"shaderReader",
-         "Type":"python"
+         "Name": "shaderReader",
+         "Type": "python"
       }
    ]
 }

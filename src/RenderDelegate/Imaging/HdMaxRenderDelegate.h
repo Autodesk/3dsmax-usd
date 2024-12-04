@@ -51,7 +51,8 @@ public:
     /**
      * \brief Attempt to get the render data from its last known index. Indices of render data can change (rarely) over
      * time (for example if a prim is deactivated). This allows us to avoid a map lookup, in most
-     * cases. If the given id doesn't match the path, we fallback to using the path to find the render data.
+     * cases. If the given id doesn't match the path, we fallback to using the path to find the
+     * render data.
      * \param index The index of the render data.
      * \param primpath The prim path of render data.
      * \return A reference to the render data.

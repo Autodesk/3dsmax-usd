@@ -31,7 +31,6 @@ UsdStageViewportDisplayRollup::UsdStageViewportDisplayRollup(
 {
     SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
 
-
     ui->setupUi(this);
     modelObj = static_cast<USDStageObject*>(&owner);
 

@@ -14,406 +14,378 @@
 // limitations under the License.
 //
 
-#include <maxscript/maxwrapper/mxsmaterial.h>
-#include <maxscript/foundation/DataPair.h>
-#include <maxscript/util/listener.h>
-#include <maxscript/foundation/3dmath.h>
-#include <maxscript/maxscript.h>
+#include "USDImport.h"
 
+#include <MaxUsd/CurveConversion/CurveConverter.h>
 #include <MaxUsd/Interfaces/IUSDImportOptions.h>
 #include <MaxUsd/USDSceneController.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
-#include <MaxUsd/CurveConversion/CurveConverter.h>
 
 #include <pxr/usd/usdGeom/basisCurves.h>
 
-#include "USDImport.h"
+#include <maxscript/foundation/3dmath.h>
+#include <maxscript/foundation/DataPair.h>
+#include <maxscript/maxscript.h>
+#include <maxscript/maxwrapper/mxsmaterial.h>
+#include <maxscript/util/listener.h>
 
 #define ScriptPrint (the_listener->edit_stream->_tprintf)
 
 class USDImportInterface : public FPStaticInterface
 {
 public:
-	DECLARE_DESCRIPTOR(USDImportInterface)
+    DECLARE_DESCRIPTOR(USDImportInterface)
 
-	void SetUIOptions(FPInterface* options)
-	{
-		if (options && options->GetID() == IUSDImportOptions_INTERFACE_ID)
-		{
-			MaxUsd::IUSDImportOptions* importOptions = dynamic_cast<MaxUsd::IUSDImportOptions*>(options);
-			if (!importOptions)
-			{
-				throw MAXException(MSTR(L"Invalid Import Options object."));
-			}
-			USDImporter::SetUIOptions((*importOptions));
-		}
-	}
+    void SetUIOptions(FPInterface* options)
+    {
+        if (options && options->GetID() == IUSDImportOptions_INTERFACE_ID) {
+            MaxUsd::IUSDImportOptions* importOptions
+                = dynamic_cast<MaxUsd::IUSDImportOptions*>(options);
+            if (!importOptions) {
+                throw MAXException(MSTR(L"Invalid Import Options object."));
+            }
+            USDImporter::SetUIOptions((*importOptions));
+        }
+    }
 
-	FPInterface* GetUIOptions()
-	{
-		return &USDImporter::GetUIOptions();
-	}
+    FPInterface* GetUIOptions() { return &USDImporter::GetUIOptions(); }
 
-	static int ImportFile(const MCHAR* filePath, FPInterface* usdImportOptions)
-	{
-		if (usdImportOptions)
-		{
-			MaxUsd::IUSDImportOptions* importOptions = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
-			if (!importOptions)
-			{
-				throw MAXException(MSTR(L"Invalid Import Options object."));
-			}
-			return USDImporter::ImportFile(filePath, (*importOptions), true);
-		}
-		MaxUsd::IUSDImportOptions importOptions;
-		importOptions.SetDefaults();
-		return USDImporter::ImportFile(filePath, importOptions, true);
-	}
+    static int ImportFile(const MCHAR* filePath, FPInterface* usdImportOptions)
+    {
+        if (usdImportOptions) {
+            MaxUsd::IUSDImportOptions* importOptions
+                = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
+            if (!importOptions) {
+                throw MAXException(MSTR(L"Invalid Import Options object."));
+            }
+            return USDImporter::ImportFile(filePath, (*importOptions), true);
+        }
+        MaxUsd::IUSDImportOptions importOptions;
+        importOptions.SetDefaults();
+        return USDImporter::ImportFile(filePath, importOptions, true);
+    }
 
+    static int ImportFromCache(INT64 cacheId, FPInterface* usdImportOptions)
+    {
+        const MaxUsd::UsdStageSource cachedStage { pxr::UsdStageCache::Id::FromLongInt(
+            static_cast<long>(cacheId)) };
+        if (usdImportOptions) {
+            MaxUsd::IUSDImportOptions* importOptions
+                = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
+            if (!importOptions) {
+                throw MAXException(MSTR(L"Invalid Import Options object."));
+            }
+            if (!USDImporter::ValidateImportOptions(*importOptions)) {
+                return IMPEXP_FAIL;
+            }
+            return MaxUsd::GetUSDSceneController()->Import(cachedStage, *importOptions);
+        }
+        MaxUsd::MaxSceneBuilderOptions defaultOptions;
+        defaultOptions.SetDefaults();
+        return MaxUsd::GetUSDSceneController()->Import(cachedStage, defaultOptions);
+    }
 
-	static int ImportFromCache(INT64 cacheId, FPInterface* usdImportOptions)
-	{
-		const MaxUsd::UsdStageSource cachedStage{ pxr::UsdStageCache::Id::FromLongInt(static_cast<long>(cacheId)) };
-		if (usdImportOptions)
-		{
-			MaxUsd::IUSDImportOptions* importOptions = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
-			if (!importOptions)
-			{
-				throw MAXException(MSTR(L"Invalid Import Options object."));
-			}
-			if (!USDImporter::ValidateImportOptions(*importOptions))
-			{
-				return IMPEXP_FAIL;
-			}
-			return MaxUsd::GetUSDSceneController()->Import(cachedStage, *importOptions);
-		}
-		MaxUsd::MaxSceneBuilderOptions defaultOptions;
-		defaultOptions.SetDefaults();
-		return MaxUsd::GetUSDSceneController()->Import(cachedStage, defaultOptions);
-	}
+    static Value*
+    ConvertUsdMesh(INT64 stageCacheId, const wchar_t* path, FPInterface* usdImportOptions)
+    {
+        MaxUsd::IUSDImportOptions importOptions;
+        importOptions.SetDefaults();
+        if (usdImportOptions) {
+            auto specifiedImportOptions
+                = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
+            if (!specifiedImportOptions) {
+                throw RuntimeError(MSTR(L"Invalid Import Options object."));
+            }
+            importOptions = *specifiedImportOptions;
+        }
 
-	static Value* ConvertUsdMesh(INT64 stageCacheId, const wchar_t* path, FPInterface* usdImportOptions)
-	{
-		MaxUsd::IUSDImportOptions importOptions;
-		importOptions.SetDefaults();
-		if (usdImportOptions)
-		{
-			auto specifiedImportOptions = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
-			if (!specifiedImportOptions)
-			{
-				throw RuntimeError(MSTR(L"Invalid Import Options object."));
-			}
-			importOptions = *specifiedImportOptions;
-		}
+        const MaxUsd::UsdStageSource cachedStage { pxr::UsdStageCache::Id::FromLongInt(
+            static_cast<long>(stageCacheId)) };
+        const auto                   stage = cachedStage.LoadStage(importOptions);
+        if (!stage) {
+            throw RuntimeError(MSTR(L"Unable to fetch the stage from the global cache using the "
+                                    L"given stage cache id."));
+        }
 
-		const MaxUsd::UsdStageSource cachedStage{ pxr::UsdStageCache::Id::FromLongInt(static_cast<long>(stageCacheId)) };
-		const auto stage = cachedStage.LoadStage(importOptions);
-		if (!stage)
-		{
-			throw RuntimeError(MSTR(L"Unable to fetch the stage from the global cache using the given stage cache id."));
-		}
+        const auto prim = stage->GetPrimAtPath(pxr::SdfPath { MaxUsd::MaxStringToUsdString(path) });
+        if (!prim.IsValid() || !prim.IsA<pxr::UsdGeomMesh>()) {
+            throw RuntimeError(MSTR(L"The given path does not point to a USD Mesh prim."));
+        }
 
-		const auto prim = stage->GetPrimAtPath(pxr::SdfPath{ MaxUsd::MaxStringToUsdString(path) });
-		if (!prim.IsValid() || !prim.IsA<pxr::UsdGeomMesh>())
-		{
-			throw RuntimeError(MSTR(L"The given path does not point to a USD Mesh prim."));
-		}
+        MNMesh                mesh;
+        MaxUsd::MeshConverter converter;
 
-		MNMesh mesh;
-		MaxUsd::MeshConverter converter;
+        const auto timeMode = static_cast<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>(
+            importOptions.GetTimeMode());
+        const auto                 timeConfig = importOptions.GetResolvedTimeConfig(stage);
+        auto                       timeCodeValue = pxr::UsdTimeCode::Default();
+        bool                       validOptions = USDImporter::ValidateImportOptions(importOptions);
+        MultiMtl*                  materialBind = nullptr;
+        std::map<int, std::string> channelNames;
 
-		const auto timeMode = static_cast<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>(importOptions.GetTimeMode());
-		const auto timeConfig = importOptions.GetResolvedTimeConfig(stage);
-		auto timeCodeValue = pxr::UsdTimeCode::Default();
-		bool validOptions = USDImporter::ValidateImportOptions(importOptions);
-		MultiMtl* materialBind = nullptr;
-		std::map<int, std::string> channelNames;
+        if (!validOptions) {
+            throw RuntimeError(MSTR(
+                L"The import configuration is not valid. Set a valid mode and/or time range."));
+        }
 
-		if (!validOptions)
-		{
-			throw RuntimeError(MSTR(L"The import configuration is not valid. Set a valid mode and/or time range."));
-		}
+        switch (timeMode) {
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::StartTime: {
+            timeCodeValue = stage->GetStartTimeCode();
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::EndTime: {
+            timeCodeValue = stage->GetEndTimeCode();
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::CustomRange: {
+            timeCodeValue = timeConfig.GetStartTimeCode();
+            if (timeCodeValue != timeConfig.GetEndTimeCode()) {
+                MaxUsd::Log::Warn(
+                    "#customRange TimeMode not supported for USDImporter.ConvertUsdMesh, the "
+                    "conversion will be performed at the configured start time {}.",
+                    std::to_string(timeCodeValue.GetValue()));
+            }
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::AllRange: {
+            timeCodeValue = stage->GetStartTimeCode();
+            MaxUsd::Log::Warn(
+                "#allrange TimeMode not supported for USDImporter.ConvertUsdMesh, the "
+                "conversion will be performed at the stage's start time code {}.",
+                std::to_string(timeCodeValue.GetValue()));
+            break;
+        }
+        default: DbgAssert("unsupported TimeCode for USDImporter.ConvertUsdMesh");
+        }
 
-		switch (timeMode)
-		{
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::StartTime: {
-			timeCodeValue = stage->GetStartTimeCode();
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::EndTime: {
-			timeCodeValue = stage->GetEndTimeCode();
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::CustomRange: {
-			timeCodeValue = timeConfig.GetStartTimeCode();
-			if (timeCodeValue != timeConfig.GetEndTimeCode())
-			{
-				MaxUsd::Log::Warn("#customRange TimeMode not supported for USDImporter.ConvertUsdMesh, the "
-								  "conversion will be performed at the configured start time {}.",
-						std::to_string(timeCodeValue.GetValue()));
-			}
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::AllRange: {
-			timeCodeValue = stage->GetStartTimeCode();
-			MaxUsd::Log::Warn("#allrange TimeMode not supported for USDImporter.ConvertUsdMesh, the "
-							  "conversion will be performed at the stage's start time code {}.",
-					std::to_string(timeCodeValue.GetValue()));
-			break;
-		}
-		default:
-			DbgAssert("unsupported TimeCode for USDImporter.ConvertUsdMesh");
-		}
+        converter.ConvertToMNMesh(
+            pxr::UsdGeomMesh(prim),
+            mesh,
+            importOptions.GetPrimvarMappingOptions(),
+            channelNames,
+            &materialBind,
+            timeCodeValue);
 
-		converter.ConvertToMNMesh(pxr::UsdGeomMesh(prim), mesh, importOptions.GetPrimvarMappingOptions(), channelNames,
-				&materialBind, timeCodeValue);
+        Mesh* triMesh = new Mesh();
+        mesh.OutToTri(*triMesh);
 
-		Mesh* triMesh = new Mesh();
-		mesh.OutToTri(*triMesh);
+        three_typed_value_locals(DataPair * dataPair, MeshValue * mesh, Value * materialBind);
+        vl.mesh = new MeshValue { triMesh };
+        vl.materialBind = MAXMaterial::intern(materialBind);
+        vl.dataPair = new DataPair(
+            vl.mesh, vl.materialBind, n_mesh, Name::intern(_T("usdGeomSubsetsBindMaterial")));
 
-		three_typed_value_locals(DataPair* dataPair, MeshValue* mesh, Value* materialBind);
-		vl.mesh = new MeshValue{ triMesh };
-		vl.materialBind = MAXMaterial::intern( materialBind );
-		vl.dataPair = new DataPair(vl.mesh, vl.materialBind, n_mesh, Name::intern(_T("usdGeomSubsetsBindMaterial")));
+        return vl.dataPair;
+    }
 
-		return vl.dataPair;
-	}
+    static Value* ConvertUsdBasisCurve(
+        INT64          stageCacheId,
+        const wchar_t* path,
+        bool           asBezierShape,
+        FPInterface*   usdImportOptions)
+    {
+        MaxUsd::IUSDImportOptions importOptions;
+        importOptions.SetDefaults();
+        if (usdImportOptions) {
+            auto specifiedImportOptions
+                = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
+            if (!specifiedImportOptions) {
+                throw RuntimeError(MSTR(L"Invalid Import Options object."));
+            }
+            importOptions = *specifiedImportOptions;
+        }
 
-	static Value* ConvertUsdBasisCurve(
-			INT64 stageCacheId, const wchar_t* path, bool asBezierShape, FPInterface* usdImportOptions)
-	{
-		MaxUsd::IUSDImportOptions importOptions;
-		importOptions.SetDefaults();
-		if (usdImportOptions)
-		{
-			auto specifiedImportOptions = dynamic_cast<MaxUsd::IUSDImportOptions*>(usdImportOptions);
-			if (!specifiedImportOptions)
-			{
-				throw RuntimeError(MSTR(L"Invalid Import Options object."));
-			}
-			importOptions = *specifiedImportOptions;
-		}
+        const MaxUsd::UsdStageSource cachedStage { pxr::UsdStageCache::Id::FromLongInt(
+            static_cast<long>(stageCacheId)) };
+        const auto                   stage = cachedStage.LoadStage(importOptions);
+        if (!stage) {
+            throw RuntimeError(MSTR(L"Unable to fetch the stage from the global cache using the "
+                                    L"given stage cache id."));
+        }
 
-		const MaxUsd::UsdStageSource cachedStage{ pxr::UsdStageCache::Id::FromLongInt(
-				static_cast<long>(stageCacheId)) };
-		const auto stage = cachedStage.LoadStage(importOptions);
-		if (!stage)
-		{
-			throw RuntimeError(
-					MSTR(L"Unable to fetch the stage from the global cache using the given stage cache id."));
-		}
+        const auto prim = stage->GetPrimAtPath(pxr::SdfPath { MaxUsd::MaxStringToUsdString(path) });
+        if (!prim.IsValid() || !prim.IsA<pxr::UsdGeomBasisCurves>()) {
+            throw RuntimeError(MSTR(L"The given path does not point to a USD BasisCurve prim."));
+        }
 
-		const auto prim = stage->GetPrimAtPath(pxr::SdfPath{ MaxUsd::MaxStringToUsdString(path) });
-		if (!prim.IsValid() || !prim.IsA<pxr::UsdGeomBasisCurves>())
-		{
-			throw RuntimeError(MSTR(L"The given path does not point to a USD BasisCurve prim."));
-		}
+        const auto timeMode = static_cast<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>(
+            importOptions.GetTimeMode());
+        const auto                 timeConfig = importOptions.GetResolvedTimeConfig(stage);
+        auto                       timeCodeValue = pxr::UsdTimeCode::Default();
+        bool                       validOptions = USDImporter::ValidateImportOptions(importOptions);
+        MultiMtl*                  materialBind = nullptr;
+        std::map<int, std::string> channelNames;
 
-		const auto timeMode = static_cast<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>(importOptions.GetTimeMode());
-		const auto timeConfig = importOptions.GetResolvedTimeConfig(stage);
-		auto timeCodeValue = pxr::UsdTimeCode::Default();
-		bool validOptions = USDImporter::ValidateImportOptions(importOptions);
-		MultiMtl* materialBind = nullptr;
-		std::map<int, std::string> channelNames;
+        if (!validOptions) {
+            throw RuntimeError(MSTR(
+                L"The import configuration is not valid. Set a valid mode and/or time range."));
+        }
 
-		if (!validOptions)
-		{
-			throw RuntimeError(MSTR(L"The import configuration is not valid. Set a valid mode and/or time range."));
-		}
+        switch (timeMode) {
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::StartTime: {
+            timeCodeValue = stage->GetStartTimeCode();
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::EndTime: {
+            timeCodeValue = stage->GetEndTimeCode();
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::CustomRange: {
+            timeCodeValue = timeConfig.GetStartTimeCode();
+            if (timeCodeValue != timeConfig.GetEndTimeCode()) {
+                MaxUsd::Log::Warn(
+                    "#customRange TimeMode not supported for USDImporter.ConvertUsdBasisCurve, the "
+                    "conversion will be performed at the configured start time {}.",
+                    std::to_string(timeCodeValue.GetValue()));
+            }
+            break;
+        }
+        case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::AllRange: {
+            timeCodeValue = stage->GetStartTimeCode();
+            MaxUsd::Log::Warn(
+                "#allrange TimeMode not supported for USDImporter.ConvertUsdBasisCurve, the "
+                "conversion will be performed at the stage's start time code {}.",
+                std::to_string(timeCodeValue.GetValue()));
+            break;
+        }
+        default: DbgAssert("unsupported TimeCode for USDImporter.ConvertUsdBasisCurve");
+        }
 
-		switch (timeMode)
-		{
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::StartTime: {
-			timeCodeValue = stage->GetStartTimeCode();
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::EndTime: {
-			timeCodeValue = stage->GetEndTimeCode();
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::CustomRange: {
-			timeCodeValue = timeConfig.GetStartTimeCode();
-			if (timeCodeValue != timeConfig.GetEndTimeCode())
-			{
-				MaxUsd::Log::Warn("#customRange TimeMode not supported for USDImporter.ConvertUsdBasisCurve, the "
-								  "conversion will be performed at the configured start time {}.",
-						std::to_string(timeCodeValue.GetValue()));
-			}
-			break;
-		}
-		case MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::AllRange: {
-			timeCodeValue = stage->GetStartTimeCode();
-			MaxUsd::Log::Warn("#allrange TimeMode not supported for USDImporter.ConvertUsdBasisCurve, the "
-							  "conversion will be performed at the stage's start time code {}.",
-					std::to_string(timeCodeValue.GetValue()));
-			break;
-		}
-		default:
-			DbgAssert("unsupported TimeCode for USDImporter.ConvertUsdBasisCurve");
-		}
+        const pxr::UsdGeomBasisCurves    basisCurvesPrim(prim);
+        TypedSingleRefMaker<SplineShape> shapeObj(
+            (SplineShape*)GetCOREInterface()->CreateInstance(SHAPE_CLASS_ID, splineShapeClassID));
 
-		const pxr::UsdGeomBasisCurves basisCurvesPrim(prim);
-		TypedSingleRefMaker<SplineShape> shapeObj(
-				(SplineShape*)GetCOREInterface()->CreateInstance(SHAPE_CLASS_ID, splineShapeClassID));
+        MaxUsd::CurveConverter::ConvertToSplineShape(basisCurvesPrim, *shapeObj, timeCodeValue);
 
-		MaxUsd::CurveConverter::ConvertToSplineShape(basisCurvesPrim, *shapeObj, timeCodeValue);
+        one_typed_value_local(Value * res);
+        if (asBezierShape) {
+            BezierShape* bshape = new BezierShape { shapeObj->GetShape() };
+            vl.res = new BezierShapeValue(bshape, 1);
+        } else {
+            INode* shapeNode = GetCOREInterface()->CreateObjectNode(shapeObj);
+            vl.res = MAXNode::intern(shapeNode);
+        }
+        return_value(vl.res);
+    }
 
-		one_typed_value_local(Value * res);
-		if (asBezierShape)
-		{
-			BezierShape* bshape = new BezierShape{ shapeObj->GetShape() };
-			vl.res = new BezierShapeValue(bshape, 1);
-		}
-		else {
-			INode* shapeNode = GetCOREInterface()->CreateObjectNode(shapeObj);
-			vl.res = MAXNode::intern(shapeNode);
-		}
-		return_value(vl.res);
-	}
+    FPInterface* CreateOptions()
+    {
+        auto options = new MaxUsd::IUSDImportOptions;
+        options->SetDefaults();
+        return options;
+    }
 
-	FPInterface* CreateOptions()
-	{
-		auto options = new MaxUsd::IUSDImportOptions;
-		options->SetDefaults();
-		return options;
-	}
+    void Log(int messageType, const std::wstring& message)
+    {
+        MaxUsd::Log::Message(MaxUsd::Log::Level(messageType), message);
+    }
 
-	void Log(int messageType, const std::wstring& message)
-	{
-		MaxUsd::Log::Message(MaxUsd::Log::Level(messageType), message);
-	}
+    FPInterface* CreateOptionsFromJsonString(const MCHAR* jsonString)
+    {
+        if (jsonString) {
+            MaxUsd::MaxSceneBuilderOptions options(MaxUsd::OptionUtils::DeserializeOptionsFromJson(
+                QString::fromWCharArray(jsonString).toUtf8()));
+            return new MaxUsd::IUSDImportOptions(options);
+        }
+        throw MAXException(L"Invalid JSON string");
+    }
 
-	FPInterface* CreateOptionsFromJsonString(const MCHAR* jsonString)
-	{
-		if (jsonString)
-		{
-			MaxUsd::MaxSceneBuilderOptions options(
-					MaxUsd::OptionUtils::DeserializeOptionsFromJson(QString::fromWCharArray(jsonString).toUtf8()));
-			return new MaxUsd::IUSDImportOptions(options);
-		}
-		throw MAXException(L"Invalid JSON string");
-	}
+    enum
+    {
+        eid_LogLevel
+    };
 
-	enum
-	{
-		eid_LogLevel
-	};
+    enum
+    {
+        fid_SetUIOptions,
+        fid_GetUIOptions,
+        fid_ImportFile,
+        fid_ImportFromCache,
+        fid_CreateOptions,
+        fid_ConvertUsdMesh,
+        fid_ConvertUsdBasisCurve,
+        fid_Log,
+        fid_SetMaterialParamByName,
+        fid_SetTexmapParamByName,
+        fid_CreateOptionsFromJsonString
+    };
 
-	enum
-	{
-		fid_SetUIOptions,
-		fid_GetUIOptions,
-		fid_ImportFile,
-		fid_ImportFromCache,
-		fid_CreateOptions,
-		fid_ConvertUsdMesh,
-		fid_ConvertUsdBasisCurve,
-		fid_Log,
-		fid_SetMaterialParamByName,
-		fid_SetTexmapParamByName,
-		fid_CreateOptionsFromJsonString
-	};
+    /**
+     * \brief Sets a paramblock parameter by name. Setting PB params from MXS is slow, using the C++ implementation
+     * is useful to bypass the slowness. The function will look at all paramblocks until it finds a
+     * matching param, it is then set using to the passed Value.
+     * \param mtlBase The base material object, for which to set a param.
+     * \param name The name of the param.
+     * \param value The value to set.
+     */
+    static void SetMtlBaseParamByName(MtlBase* mtlBase, const wchar_t* name, Value* value)
+    {
+        if (!mtlBase) {
+            ScriptPrint(_T("ERROR : Undefined material passed to SetMtlBaseParamByName().\n"));
+            return;
+        }
 
-	/**
-	 * \brief Sets a paramblock parameter by name. Setting PB params from MXS is slow, using the C++ implementation
-	 * is useful to bypass the slowness. The function will look at all paramblocks until it finds a matching param,
-	 * it is then set using to the passed Value.
-	 * \param mtlBase The base material object, for which to set a param.
-	 * \param name The name of the param.
-	 * \param value The value to set.
-	 */
-	static void SetMtlBaseParamByName(MtlBase* mtlBase, const wchar_t* name, Value* value)
-	{
-		if (!mtlBase)
-		{
-			ScriptPrint(_T("ERROR : Undefined material passed to SetMtlBaseParamByName().\n"));
-			return;
-		}
+        const bool isUndefined = value == &undefined;
 
-		const bool isUndefined = value == &undefined;
+        for (int i = 0; i < mtlBase->NumParamBlocks(); ++i) {
+            const auto pb = mtlBase->GetParamBlock(i);
+            const auto idx = pb->GetDesc()->NameToIndex(name);
 
-		for (int i = 0; i < mtlBase->NumParamBlocks(); ++i)
-		{
-			const auto pb = mtlBase->GetParamBlock(i);
-			const auto idx = pb->GetDesc()->NameToIndex(name);
+            if (idx == -1) {
+                continue;
+            }
 
-			if (idx == -1)
-			{
-				continue;
-			}
+            // We found the paramblock for this parameter
+            const auto paramDef = pb->GetDesc()->GetParamDefByIndex(idx);
+            const auto paramId = paramDef->ID;
 
-			// We found the paramblock for this parameter
-			const auto paramDef = pb->GetDesc()->GetParamDefByIndex(idx);
-			const auto paramId = paramDef->ID;
+            switch (paramDef->type) {
+            case TYPE_FLOAT: pb->SetValue(paramId, 0, value->to_float()); break;
+            case TYPE_INT: pb->SetValue(paramId, 0, value->to_int()); break;
+            case TYPE_BOOL: pb->SetValue(paramId, 0, value->to_bool()); break;
+            case TYPE_RGBA:
+            case TYPE_RGBA_BV: pb->SetValue(paramId, 0, value->to_point3()); break;
+            case TYPE_STRING:
+            case TYPE_FILENAME:
+                pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_string());
+                break;
+            case TYPE_INODE:
+                pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_node());
+                break;
+            case TYPE_REFTARG:
+                pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_reftarg());
+                break;
+            case TYPE_TEXMAP:
+                pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_texmap());
+                break;
+            case TYPE_BITMAP: {
+                if (isUndefined) {
+                    pb->SetValue(paramId, 0, static_cast<PBBitmap*>(nullptr));
+                } else {
+                    FPValue val;
+                    value->to_fpvalue(val);
+                    pb->SetValue(paramId, 0, val.bm);
+                }
+                break;
+            }
+            case TYPE_MTL: pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_mtl()); break;
+            case TYPE_FRGBA_BV:
+            case TYPE_FRGBA: pb->SetValue(paramId, 0, value->to_acolor()); break;
+            case TYPE_POINT2: pb->SetValue(paramId, 0, value->to_point2()); break;
+            case TYPE_POINT3: pb->SetValue(paramId, 0, value->to_point3()); break;
+            case TYPE_POINT4: pb->SetValue(paramId, 0, value->to_point4()); break;
+            default:
+                DbgAssert(false);
+                ScriptPrint(
+                    _T("ERROR : Unsupported parameter type for SetMtlBaseParamByName().\n"));
+                break;
+            }
 
-			switch (paramDef->type)
-			{
-			case TYPE_FLOAT:
-				pb->SetValue(paramId, 0, value->to_float());
-				break;
-			case TYPE_INT:
-				pb->SetValue(paramId, 0, value->to_int());
-				break;
-			case TYPE_BOOL:
-				pb->SetValue(paramId, 0, value->to_bool());
-				break;
-			case TYPE_RGBA:
-			case TYPE_RGBA_BV:
-				pb->SetValue(paramId, 0, value->to_point3());
-				break;
-			case TYPE_STRING:
-			case TYPE_FILENAME:
-				pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_string());
-				break;
-			case TYPE_INODE:
-				pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_node());
-				break;
-			case TYPE_REFTARG:
-				pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_reftarg());
-				break;
-			case TYPE_TEXMAP:
-				pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_texmap());
-				break;
-			case TYPE_BITMAP: {
-				if (isUndefined)
-				{
-					pb->SetValue(paramId, 0, static_cast<PBBitmap*>(nullptr));
-				}
-				else
-				{
-					FPValue val;
-					value->to_fpvalue(val);
-					pb->SetValue(paramId, 0, val.bm);
-				}
-				break;
-			}
-			case TYPE_MTL:
-				pb->SetValue(paramId, 0, isUndefined ? nullptr : value->to_mtl());
-				break;
-			case TYPE_FRGBA_BV:
-			case TYPE_FRGBA:
-				pb->SetValue(paramId, 0, value->to_acolor());
-				break;
-			case TYPE_POINT2:
-				pb->SetValue(paramId, 0, value->to_point2());
-				break;
-			case TYPE_POINT3:
-				pb->SetValue(paramId, 0, value->to_point3());
-				break;
-			case TYPE_POINT4:
-				pb->SetValue(paramId, 0, value->to_point4());
-				break;
-			default:
-				DbgAssert(false);
-				ScriptPrint(_T("ERROR : Unsupported parameter type for SetMtlBaseParamByName().\n"));
-				break;
-			}
+            break;
+        }
+    }
 
-			break;
-		}
-	}
-
-	// clang-format off
+    // clang-format off
 	BEGIN_FUNCTION_MAP
 		PROP_FNS(fid_GetUIOptions, GetUIOptions, fid_SetUIOptions, SetUIOptions, TYPE_INTERFACE);
 		FN_2(fid_ImportFile, TYPE_INT, ImportFile, TYPE_STRING, TYPE_INTERFACE);
@@ -426,7 +398,7 @@ public:
 		VFN_3(fid_SetMaterialParamByName, SetMtlBaseParamByName, TYPE_MTL, TYPE_STRING, TYPE_VALUE);
 		VFN_3(fid_SetTexmapParamByName, SetMtlBaseParamByName, TYPE_TEXMAP, TYPE_STRING, TYPE_VALUE);
 	END_FUNCTION_MAP
-	// clang-format on
+    // clang-format on
 };
 
 #define USDIMPORT_INTERFACE Interface_ID(0x2b240ddb, 0x61f331e8)
