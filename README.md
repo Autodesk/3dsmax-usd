@@ -4,7 +4,7 @@
 
 ![3ds Max USD](doc/images/3dsmax-usd.png)
 
-The USD for 3ds Max extension lets you create, edit, work in, work with and collaborate on USD data, while enabling data to move between products (ie. Maya and 3ds Max). By enabling USD data to flow in and out of 3ds Max, you can take advantage of the following key benefits of USD: supporting DCC-agnostic pipelines, workflows, and enabling non-linear collaboration. While not necessarily a replacement for the core 3ds Max referencing workflows (Object XRef and Scene XRef), the USD features can be used as a modern cross-DCC referencing pipeline that can enhance, and in many use-cases, replace existing referencing setups.
+The USD for 3ds Max extension lets you create, edit, work in, work with and collaborate on USD data, while enabling data to move between products (ie. Maya and 3ds Max). By enabling USD data to flow in and out of 3ds Max, you can take advantage of the following key benefits of USD: supporting DCC-agnostic pipelines/workflows and enabling non-linear collaboration. While not necessarily a replacement for the core 3ds Max referencing workflows (Object XRef and Scene XRef), the USD features can be used as a modern cross-DCC referencing pipeline that can enhance, and in many use-cases, replace existing referencing setups.
 
 The plugin comes with a complete API to allow extending the default import and export process and also to manipulate USD data directly via C++ and Python.
 
