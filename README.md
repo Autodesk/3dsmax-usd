@@ -13,7 +13,6 @@ The plugin comes with a complete API to allow extending the default import and e
 - Import and Export ASCII And Binary USD formats
 - Open a USD Stage directly for editing
 - USD Explorer
-- Layer Editor
 - USD Cameras
 - USD Lights
 - 3ds Max Controller Support
