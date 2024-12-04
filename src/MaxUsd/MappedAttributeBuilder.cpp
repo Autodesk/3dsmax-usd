@@ -47,7 +47,7 @@ namespace MAXUSD_NS_DEF {
 class FloatNArray
 {
 
-    size_t                             dimension;
+    size_t dimension;
     std::unique_ptr<pxr::VtFloatArray> floatArray;
     std::unique_ptr<pxr::VtVec2fArray> float2Array;
     std::unique_ptr<pxr::VtVec3fArray> float3Array;
