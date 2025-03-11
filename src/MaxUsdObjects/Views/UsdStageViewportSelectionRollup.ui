@@ -39,7 +39,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QComboBox" name="kindSelection"/>
+       <widget class="QComboBox" name="KindSelection"/>
       </item>
      </layout>
     </widget>

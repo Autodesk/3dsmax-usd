@@ -15,6 +15,8 @@
 //
 #include "USDExplorer.h"
 
+#include "LayerEditor/MaxLayerEditor.h"
+#include "MaxUsdUfe/StageObjectMap.h"
 #include "MaxUsdUfe/UfeUtils.h"
 #include "MaxUsdUfe/UsdTreeColumns.h"
 #include "Objects/USDStageObject.h"
@@ -44,7 +46,6 @@ std::unique_ptr<USDExplorer> USDExplorer::instance;
 MaxSDK::QmaxDockWidget* getHostDockWidget();
 
 namespace {
-const std::string filterNames = "InactivePrims";
 
 void PopulateCustomizeColumnMenu(QMenu* configureColumnsMenu)
 {
@@ -138,6 +139,29 @@ protected:
     }
 };
 
+/**
+ * Simple observer to react to tabs being closed from the Explorer Host.
+ * When a tab is closed from the UI, we need to update the pb param to properly
+ * persist that new state.
+ */
+class ExplorerHostObserver : public Ufe::Observer
+{
+public:
+    void operator()(const Ufe::Notification& notification) override
+    {
+        if (const auto ec
+            = dynamic_cast<const UfeUi::ExplorerHost::ExplorerClosedNotification*>(&notification)) {
+            if (!ec->fromUI()) {
+                return;
+            }
+            const auto explorer = ec->explorer();
+            auto       stageObjectPath = explorer->rootItem()->path().head(1);
+            auto       stageObject = StageObjectMap::GetInstance()->Get(stageObjectPath);
+            stageObject->GetParamBlock(0)->SetValue(IsOpenInExplorer, false, 0);
+        }
+    }
+};
+
 } // namespace
 
 MaxSDK::QmaxDockWidget* getHostDockWidget()
@@ -153,6 +177,9 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
 
         auto explorer_main_window = new USDExplorerQMaxMainWindow(dockWidget, Qt::Widget);
         auto explorerHost = new UfeUi::ExplorerHost(explorer_main_window);
+
+        static auto observer = std::make_shared<ExplorerHostObserver>();
+        explorerHost->addObserver(observer);
         explorerHost->setPlaceHolderText(
             QObject::tr("No stage data currently displayed.\nSelect a USD Stage Object "
                         "and open it in the explorer, from the Parameters rollup."));
@@ -191,10 +218,25 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
         const auto inactivePrimAction = displayMenu->addAction("Inactive Prims", []() {
             // Toggle display of inactive prims.
             const auto explorer = USDExplorer::Instance();
-            explorer->SetShowInactivePrims(!explorer->ShowInactivePrims());
+            explorer->SetFilterFlag(
+                USDExplorer::inactiveFilterName,
+                !explorer->GetFilterFlag(USDExplorer::inactiveFilterName));
         });
         inactivePrimAction->setCheckable(true);
-        inactivePrimAction->setChecked(USDExplorer::Instance()->ShowInactivePrims());
+        inactivePrimAction->setChecked(
+            USDExplorer::Instance()->GetFilterFlag(USDExplorer::inactiveFilterName));
+
+        // Show class prims option.
+        const auto classPrimAction = displayMenu->addAction("Class Prims", []() {
+            // Toggle display of class prims.
+            const auto explorer = USDExplorer::Instance();
+            explorer->SetFilterFlag(
+                USDExplorer::classFilterName,
+                !explorer->GetFilterFlag(USDExplorer::classFilterName));
+        });
+        classPrimAction->setCheckable(true);
+        classPrimAction->setChecked(
+            USDExplorer::Instance()->GetFilterFlag(USDExplorer::classFilterName));
 
         // Auto-expand to selection option.
         const auto autoExpandAction = displayMenu->addAction("Auto-Expand to Selection", []() {
@@ -209,6 +251,20 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
         const auto configureColumnsMenu = customizeMenu->addMenu(QObject::tr("Configure Columns"));
         PopulateCustomizeColumnMenu(configureColumnsMenu);
 
+        // tools menu
+        const auto toolsMenu = menuBar->addMenu(QObject::tr("Tools"));
+        toolsMenu->addAction("USD Layer Editor...", []() {
+            const auto explorer = USDExplorer::Instance();
+            auto       activeExplorer = explorer->ActiveStageExplorer();
+            if (!activeExplorer) {
+                MaxLayerEditor::Instance()->Open();
+                return;
+            }
+
+            auto stageObject
+                = MaxUsd::ufe::getUsdStageObjectFromPath(activeExplorer->rootItem()->path());
+            MaxLayerEditor::Instance()->OpenStage(stageObject);
+        });
         return dockWidget;
     }();
 
@@ -223,6 +279,9 @@ static UfeUi::ExplorerHost* getExplorerHost()
         = getHostDockWidget()->findChild<UfeUi::ExplorerHost*>("ExplorerHost");
     return host;
 }
+
+const std::string USDExplorer::inactiveFilterName = "InactivePrims";
+const std::string USDExplorer::classFilterName = "ClassPrims";
 
 USDExplorer* USDExplorer::Instance()
 {
@@ -327,9 +386,7 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
             treeViewBranchAdjustStyle,
             colors);
 
-        const auto        layerNameWithExt = stage->GetRootLayer()->GetDisplayName();
-        const size_t      lastIndex = layerNameWithExt.find_last_of(".");
-        const std::string layerName = layerNameWithExt.substr(0, lastIndex);
+        const std::string stageLabel = MaxUsd::Ui::GetStageLabel(stage);
 
         explorer->setColumnState(1 /*VisColumn*/, IsColumnHidden(1));
         explorer->setColumnState(2 /*TypeColumn*/, IsColumnHidden(2));
@@ -345,7 +402,7 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
             }
         }
 
-        host->addExplorer(explorer, layerName.c_str(), true);
+        host->addExplorer(explorer, stageLabel.c_str(), true);
 
         explorer->treeView()->installEventFilter(ContextMenuEventFilter::Instance());
     }
@@ -392,29 +449,29 @@ void USDExplorer::CloseStage(USDStageObject* stageObject)
     }
 }
 
-void USDExplorer::SetShowInactivePrims(bool showInactive)
+void USDExplorer::SetFilterFlag(const std::string& flag, bool value)
 {
     const auto it = std::find_if(
-        childFilter.begin(), childFilter.end(), [](const Ufe::ChildFilterFlag& filter) {
-            return filter.name == filterNames;
+        childFilter.begin(), childFilter.end(), [&flag](const Ufe::ChildFilterFlag& filter) {
+            return filter.name == flag;
         });
     if (it == childFilter.end()) {
         DbgAssert(0 && _T("Usd Ufe inactive child filter is not initalized."));
         return;
     }
 
-    it->value = showInactive;
+    it->value = value;
 
     for (const auto& explorer : AllStageExplorers()) {
         explorer->setChildFilter(childFilter);
     }
 }
 
-bool USDExplorer::ShowInactivePrims() const
+bool USDExplorer::GetFilterFlag(const std::string& flag) const
 {
     const auto it = std::find_if(
-        childFilter.begin(), childFilter.end(), [](const Ufe::ChildFilterFlag& filter) {
-            return filter.name == filterNames;
+        childFilter.begin(), childFilter.end(), [&flag](const Ufe::ChildFilterFlag& filter) {
+            return filter.name == flag;
         });
     if (it == childFilter.end()) {
         DbgAssert(0 && _T("Usd Ufe inactive child filter is not initalized."));

@@ -17,17 +17,22 @@
 
 #include "DllDirInternal.h"
 
-/**
- * \brief Mock for 3ds Max's DllDir interface.
- */
+
+ /**
+  * \brief Mock for 3ds Max's DllDir interface.
+  */
 class MockDllDirInternal : public DllDirInternal
 {
 public:
-    /**
-     * The following methods are used by the MockDllDirInternal in order to
-     * control the behavior of the Interface as it is passed to tests.
-     */
-    MockDllDirInternal() { }
 
-    ~MockDllDirInternal() { }
+	/**
+	 * The following methods are used by the MockDllDirInternal in order to
+	 * control the behavior of the Interface as it is passed to tests.
+	 */
+	MockDllDirInternal() {
+	}
+
+	~MockDllDirInternal() {
+	}
+
 };

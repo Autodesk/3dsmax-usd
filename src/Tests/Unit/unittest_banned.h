@@ -17,8 +17,6 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4244 4305)
-#include <pxr/base/gf/matrix4d.h>
-#include <pxr/base/gf/quath.h>
 #include <pxr/base/gf/vec2f.h>
 #include <pxr/base/gf/vec2h.h>
 #include <pxr/base/gf/vec2i.h>
@@ -28,11 +26,13 @@
 #include <pxr/base/gf/vec4f.h>
 #include <pxr/base/gf/vec4h.h>
 #include <pxr/base/gf/vec4i.h>
+#include <pxr/base/gf/quath.h>
+#include <pxr/base/gf/matrix4d.h>
 #include <pxr/usd/pcp/mapFunction.h>
 #pragma warning(pop)
 
+#include <pxr/usd/usd/primData.h>
 #include <pxr/usd/sdf/pathTable.h>
 #include <pxr/usd/usd/prim.h>
-#include <pxr/usd/usd/primData.h>
 
 #include <usd_banned.h>

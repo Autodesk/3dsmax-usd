@@ -38,10 +38,11 @@ TEST(PrimvarsToNitrous, NormalsFaceVaryingInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are not using a shared layout, because normals are face varying.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(24, pointsBuffer.GetNumberOfVertices());
 
-    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(24, normalsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedNormals0
@@ -59,7 +60,7 @@ TEST(PrimvarsToNitrous, NormalsFaceVaryingInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(24, normalsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedNormals1
@@ -91,10 +92,11 @@ TEST(PrimvarsToNitrous, NormalsUniformInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are not using a shared layout, because normals are face varying.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(24, pointsBuffer.GetNumberOfVertices());
 
-    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(24, normalsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedNormals0
@@ -112,7 +114,7 @@ TEST(PrimvarsToNitrous, NormalsUniformInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(24, normalsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedNormals1
@@ -145,10 +147,11 @@ TEST(PrimvarsToNitrous, NormalsVertexInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Points can use shared layout, as normals can also be shared per vertex.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(6, pointsBuffer.GetNumberOfVertices());
 
-    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(6, normalsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 6> expectedNormals0 = { Point3(2.4646326e-8f, 0.f, 1.f),
@@ -172,7 +175,7 @@ TEST(PrimvarsToNitrous, NormalsVertexInterp)
             usdRenderItem1.GetDecoratedRenderItem());
     const auto iRenderGeometry1 = geometryRenderItem1.GetRenderGeometry();
 
-    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(6, normalsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 6> expectedNormals1 = { Point3(-2.4646326e-8f, 0.f, -1.f),
@@ -204,10 +207,11 @@ TEST(PrimvarsToNitrous, NormalsConstantInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Points can use shared layout, as normals can also be shared per vertex.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(9, pointsBuffer.GetNumberOfVertices());
 
-    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(9, normalsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 9> expectedNormals0;
@@ -220,7 +224,7 @@ TEST(PrimvarsToNitrous, NormalsConstantInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(9, normalsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 9> expectedNormals1;
@@ -245,10 +249,11 @@ TEST(PrimvarsToNitrous, UvsFaceVaryingInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are not using a shared layout, because uvs are face varying.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(24, pointsBuffer.GetNumberOfVertices());
 
-    auto uvBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(24, uvBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedUvs0
@@ -269,7 +274,7 @@ TEST(PrimvarsToNitrous, UvsFaceVaryingInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(24, uvsBuffer1.GetNumberOfVertices());
     std::array<Point3, 24> expectedUvs1
         = { Point3(0, 1, 0), Point3(0, 0, 0), Point3(1, 0, 0), Point3(1, 1, 0), Point3(1, 1, 0),
@@ -304,10 +309,11 @@ TEST(PrimvarsToNitrous, UvsUniformInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are not using a shared layout, because uvs are face varying.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(24, pointsBuffer.GetNumberOfVertices());
 
-    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(24, uvsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedUvs0
@@ -328,7 +334,7 @@ TEST(PrimvarsToNitrous, UvsUniformInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(24, uvsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 24> expectedUvs1
@@ -363,10 +369,11 @@ TEST(PrimvarsToNitrous, UvsVertexInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Points can use shared layout, as uvs can also be shared per vertex.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(6, pointsBuffer.GetNumberOfVertices());
 
-    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(6, uvsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 6> expectedUvs0
@@ -383,7 +390,7 @@ TEST(PrimvarsToNitrous, UvsVertexInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(6, uvsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 6> expectedUvs1
@@ -415,10 +422,11 @@ TEST(PrimvarsToNitrous, UvsConstantInterp)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Points can use shared layout, as uvs can also be shared per vertex.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(9, pointsBuffer.GetNumberOfVertices());
 
-    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer0 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(9, uvsBuffer0.GetNumberOfVertices());
 
     std::array<Point3, 9> expectedUvs0;
@@ -431,7 +439,7 @@ TEST(PrimvarsToNitrous, UvsConstantInterp)
     // Time code 1
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(9, uvsBuffer1.GetNumberOfVertices());
 
     std::array<Point3, 9> expectedUvs1;
@@ -457,7 +465,7 @@ TEST(PrimvarsToNitrous, UvsNonStandardPrimvarName)
     // First material has the uv varname as value.
     // token inputs:varname = "bar"
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
-    auto       uvBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto       uvBuffer1 = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     const auto uvData1
         = reinterpret_cast<Point3*>(uvBuffer1.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
     // Test any meaningful value, to make sure we selected the right primvar as UVs.
@@ -466,7 +474,7 @@ TEST(PrimvarsToNitrous, UvsNonStandardPrimvarName)
 
     // token inputs:varname.connect = </non_standard_uv/Materials/Material__26.inputs:frame:foo>
     const auto simpleRenderGeometry2 = GetRenderItemGeometry(renderItems.At(1));
-    auto       uvBuffer2 = simpleRenderGeometry2->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto       uvBuffer2 = simpleRenderGeometry2->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     const auto uvData2
         = reinterpret_cast<Point3*>(uvBuffer2.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
     // Test any meaningful value, to make sure we selected the right primvar as UVs.
@@ -488,7 +496,8 @@ TEST(PrimvarsToNitrous, ChangeVertexLayout)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are using a shared layout, nothing prevents it.
-    const auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    const auto pointsBuffer
+        = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     ASSERT_EQ(6, pointsBuffer.GetNumberOfVertices());
 
     // Now we are going to change the interpolation scheme of the displayColor primvar.
@@ -508,7 +517,7 @@ TEST(PrimvarsToNitrous, ChangeVertexLayout)
 
     // Check that points are no longer using a shared layout.
     const auto pointsBufferAfterChange
-        = simpleRenderGeometryAfterChange->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        = simpleRenderGeometryAfterChange->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     ASSERT_EQ(24, pointsBufferAfterChange.GetNumberOfVertices());
 }
 
@@ -524,10 +533,10 @@ TEST(PrimvarsToNitrous, UvsFallback)
     const auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check that points are using a shared layout, nothing prevents it.
-    auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     ASSERT_EQ(8, pointsBuffer.GetNumberOfVertices());
 
-    auto uvBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvBuffer = simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     ASSERT_EQ(8, uvBuffer.GetNumberOfVertices());
 
     const auto uvData = reinterpret_cast<Point3*>(uvBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));

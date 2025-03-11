@@ -16,6 +16,7 @@
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
 
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/UsdToolsUtils.h>
 
@@ -24,10 +25,7 @@
 #include <ufe/pathString.h>
 
 #include <boost/python/def.hpp>
-
-using namespace std;
-using namespace boost::python;
-using namespace boost;
+#include <pybind11/pybind11.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -57,19 +55,37 @@ std::string _getUsdPrimUfePath(UINT stageHandle, const std::string& primPath)
         MaxUsd::ufe::getUsdPrimUfePath(stageObject, pxr::SdfPath { primPath }));
 }
 
+UsdPrim _getUsdPrim(PyObject* ufePath)
+{
+    const Ufe::Path* cUfePath
+        = pybind11::cast<Ufe::Path*>(pybind11::reinterpret_borrow<pybind11::object>(ufePath));
+    if (!cUfePath) {
+        return {};
+    }
+    return MaxUsd::ufe::ufePathToPrim(*cUfePath);
+}
+
 void wrapUtilities()
 {
-    def("OpenInUsdView",
+    pyboost::def(
+        "OpenInUsdView",
         _openInUsdView,
-        boost::python::arg("usdFilePath"),
+        pyboost::arg("usdFilePath"),
         "Opens the usd view program given a valid path to a usd file.");
-    def("RunUsdChecker",
+    pyboost::def(
+        "RunUsdChecker",
         _runUsdChecker,
-        boost::python::args("usdFilePath", "outputPath"),
-        "Runs the usdchecker tool whih will validate a usd file at usdFilePath and output all "
-        "errorrs at outputPath");
-    def("GetUsdPrimUfePath",
+        pyboost::args("usdFilePath", "outputPath"),
+        "Runs the usdchecker tool which will validate a usd file at usdFilePath and output all "
+        "errors at outputPath");
+    pyboost::def(
+        "GetUsdPrimUfePath",
         _getUsdPrimUfePath,
-        boost::python::args("stageObjectHandle", "primPath"),
+        pyboost::args("stageObjectHandle", "primPath"),
         "Returns the UFE Path, associated with the given USD prim path, in the given stage.");
+    pyboost::def(
+        "GetUsdPrim",
+        _getUsdPrim,
+        pyboost::args("ufePath"),
+        "Returns the USD Prim, associated with the given UFE path.");
 }

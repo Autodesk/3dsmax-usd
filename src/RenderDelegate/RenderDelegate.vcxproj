@@ -38,12 +38,23 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GraphicsDriver.lib;GraphicsUtility.lib;core.lib;geom.lib;mesh.lib;maxutil.lib;paramblk2.lib;optimesh.lib;DataBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GraphicsDriver.lib;GraphicsUtility.lib;core.lib;geom.lib;mesh.lib;maxutil.lib;paramblk2.lib;optimesh.lib;DataBridge.lib;gfx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>$(LibDir)$(TargetName).lib</ImportLibrary>
     </Link>
+    <PostBuildEvent>
+      <Command>robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(ProjectDir)imaging\lightGizmos $(TargetDir)\..\lightGizmos *.usd *.usda
+exit /b 0</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DLLEntry.h" />
+    <ClInclude Include="HdMaxBasisCurvesRenderData.h" />
+    <ClInclude Include="HdMaxMeshRenderData.h" />
+    <ClInclude Include="Imaging\HdMaxBasisCurves.h" />
+    <ClInclude Include="GizmoMaterial.h" />
+    <ClInclude Include="HdLightGizmoSceneIndexFilter.h" />
+    <ClInclude Include="HdMaxLightGizmoMeshAccess.h" />
+    <ClInclude Include="ConsolidatedGizmoRenderItem.h" />
     <ClInclude Include="PrimvarInfo.h" />
     <ClInclude Include="DebugCodes.h" />
     <ClInclude Include="RenderDelegateAPI.h" />
@@ -60,7 +71,7 @@
     <ClInclude Include="HdMaxColorMaterial.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Sampler.h" />
-    <ClInclude Include="HdMaxRenderData.h" />
+    <ClInclude Include="HdMaxPrimRenderData.h" />
     <ClInclude Include="Imaging\HdMaxInstancer.h" />
     <ClInclude Include="Imaging\HdMaxMaterial.h" />
     <ClInclude Include="HdMaxDisplaySettings.h" />
@@ -73,8 +84,13 @@
   <ItemGroup>
     <ClCompile Include="DebugCodes.cpp" />
     <ClCompile Include="DllEntry.cpp" />
+    <ClCompile Include="HdMaxBasisCurvesRenderData.cpp" />
+    <ClCompile Include="GizmoMaterial.cpp" />
+    <ClCompile Include="HdLightGizmoSceneIndexFilter.cpp" />
     <ClCompile Include="HdMaxDisplayPreferences.cpp" />
     <ClCompile Include="HdMaxEngine.cpp" />
+    <ClCompile Include="HdMaxMeshRenderData.cpp" />
+    <ClCompile Include="Imaging\HdMaxBasisCurves.cpp" />
     <ClCompile Include="Imaging\HdMaxMesh.cpp" />
     <ClCompile Include="Imaging\HdMaxRenderDelegate.cpp" />
     <ClCompile Include="Imaging\HdMaxRenderPass.cpp" />
@@ -85,12 +101,14 @@
     <ClCompile Include="HdMaxDisplaySettings.cpp" />
     <ClCompile Include="Imaging\HdMaxExtComputation.cpp" />
     <ClCompile Include="HdMaxMaterialCollection.cpp" />
+    <ClCompile Include="HdMaxLightGizmoMeshAccess.cpp" />
+    <ClCompile Include="ConsolidatedGizmoRenderItem.cpp" />
     <ClCompile Include="MaxRenderGeometryFacade.cpp" />
     <ClCompile Include="HdMaxColorMaterial.cpp" />
     <ClCompile Include="Sampler.cpp" />
     <ClCompile Include="HdMaxInstanceGen.cpp" />
     <ClCompile Include="HdMaxConsolidator.cpp" />
-    <ClCompile Include="HdMaxRenderData.cpp" />
+    <ClCompile Include="HdMaxPrimRenderData.cpp" />
     <ClCompile Include="SelectionRenderItem.cpp" />
   </ItemGroup>
   <ItemGroup>

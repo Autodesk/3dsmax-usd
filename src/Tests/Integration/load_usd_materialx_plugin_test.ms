@@ -35,7 +35,12 @@ struct load_usd_materialx_plugin_test
         -- Make sure the materialX format plugin was loaded, and the standard materialX libs where found.
         -- Do this by looking for a translated shader prim. "ND_standard_surface_surfaceshader" is a shader from 
         -- the standard library.
-        prim = stage.GetPrimAtPath("/root/mtl/Material__43/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+        maxver = maxVersion()
+        if maxver[1] < 27900 then (
+            prim = stage.GetPrimAtPath("/root/mtl/Material__43/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+        ) else (
+            prim = stage.GetPrimAtPath("/root/mtl/Material__43/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
+        )
         assert_true (prim.IsValid())
     ),
 

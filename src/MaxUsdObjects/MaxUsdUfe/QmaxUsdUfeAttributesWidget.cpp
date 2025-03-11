@@ -18,11 +18,20 @@
 #include "MaxUsdEditCommand.h"
 #include "UfeUtils.h"
 
+#include <MaxUsdObjects/Objects/USDStageObject.h>
+
 #include <UFEUI/Widgets/qFilenameEdit.h>
 #include <UFEUI/genericCommand.h>
 #include <UFEUI/utils.h>
 
+#include <BoostPythonWrapper.h>
+#include <MaxUsd/Utilities/DiagnosticDelegate.h>
+#include <MaxUsd/Utilities/ListenerUtils.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
+#include <MaxUsd/Utilities/UiUtils.h>
 #include <MaxUsd/Widgets/ElidedLabel.h>
+
+#include <usdUfe/ufe/Utils.h>
 
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/sdf/schema.h>
@@ -41,12 +50,13 @@
 
 #include <QtWidgets/QtWidgets>
 #include <maxapi.h>
+#include <pybind11/pybind11.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace {
 
-inline std::vector<std::string> extractSchemaAttributeNames(const TfType& t)
+std::vector<std::string> extractSchemaAttributeNames(const TfType& t)
 {
     static std::map<TfType, std::vector<std::string>> cache;
     auto                                              it = cache.find(t);
@@ -58,42 +68,80 @@ inline std::vector<std::string> extractSchemaAttributeNames(const TfType& t)
     // to extract those using purely C++.
 
     std::vector<std::string> results;
+    bool                     resultsValid = false;
 
     PyGILState_STATE gstate = PyGILState_Ensure();
     {
         auto pw = t.GetPythonClass();
-        if (pw) {
-            auto      names = pw.attr("GetSchemaAttributeNames")(false);
-            const int len = boost::python::len(names);
+        if (!pw.Get().is_none()) {
+            pyboost::object names = pw.attr("GetSchemaAttributeNames")(false);
+            const int       len = pyboost::len(names);
             for (int i = 0; i < len; i++) {
-                auto name = names.attr("__getitem__")(i);
+                pyboost::object name = names[i];
                 if (name.is_none()) {
                     continue;
                 }
-                results.emplace_back(boost::python::extract<std::string>(name));
+                results.emplace_back(pyboost::extract<std::string>(name));
             }
+            resultsValid = true;
+        } else {
+            pybind11::print(
+                std::string(
+                    "Could not extract schema attribute names - no python class found for type '")
+                + t.GetTypeName() + std::string("'."));
         }
     }
     PyGILState_Release(gstate);
 
-    cache[t] = results;
+    if (resultsValid) {
+        cache[t] = results;
+    }
     return results;
 }
 
-inline std::string identifierOrTypeName(const TfType& type)
+// Return a section name from the input schema type name. This section name is a
+// pretty name used in the UI.
+inline QString rollupTitleFromTypeName(const std::string& typeName)
 {
-// FindSchemaInfo is not present in older versions
-#if PXR_MAJOR_VERSION >= 0 && PXR_MINOR_VERSION >= 23
-    auto info = UsdSchemaRegistry::FindSchemaInfo(type);
-    if (info && info->kind != UsdSchemaKind::Invalid) {
-        const auto& identifier = info->identifier.GetString();
-        if (!identifier.empty()) {
-            return identifier;
+    QString result = QString::fromStdString(typeName);
+
+    // List of special rules for adjusting the base schema names.
+    const std::vector<std::pair<QString, QString>> prefixesToAdjust {
+        { "UsdAbc", "" },
+        { "UsdGeomGprim", "GeometricPrim" },
+        { "UsdGeomImageable", "Display" },
+        { "UsdGeom", "" },
+        { "UsdHydra", "" },
+        { "UsdImagingGL", "" },
+        { "UsdLux", "" },
+        { "UsdMedia", "" },
+        { "UsdRender", "" },
+        { "UsdRi", "" },
+        { "UsdShade", "" },
+        { "UsdSkelAnimation", "SkelAnimation" },
+        { "UsdSkelBlendShape", "BlendShape" },
+        { "UsdSkelSkeleton", "Skeleton" },
+        { "UsdSkelRoot", "SkelRoot" },
+        { "UsdUI", "" },
+        { "UsdUtils", "" },
+        { "UsdVol", "" }
+    };
+
+    for (const auto& it : prefixesToAdjust) {
+        if (result.startsWith(it.first)) {
+            result.replace(0, it.first.length(), it.second);
+            break;
         }
     }
-#endif
 
-    return type.GetTypeName();
+    result = QString::fromStdString(MaxUsd::Ui::PrettifyName(result.toStdString()));
+
+    // if the schema name ends with "api" or "API", trim it.
+    if (result.endsWith("api") || result.endsWith("API")) {
+        result.chop(3);
+    }
+
+    return result;
 }
 
 template <typename T>
@@ -225,6 +273,11 @@ void applyChanges(
     const auto compositeCmd = Ufe::CompositeUndoableCommand::create({});
 
     {
+        // Building commands can raise issues - for example if we are not allowed to edit
+        // an attribute - forward any messages to the listener.
+        const auto del
+            = MaxUsd::Diagnostics::ScopedDelegate::Create<MaxUsd::Diagnostics::ListenerDelegate>();
+
         // RAII command wrapper working around some USD refresh issues...
         const auto wrap = AttrSetWrapper<A> { compositeCmd, attributes, attributeName };
 
@@ -449,7 +502,7 @@ public:
     QmaxUsdUfeAttributesWidgetPrivate* _p = nullptr;
 };
 
-class QmaxUsdUfeAttributesWidgetPrivate
+class QmaxUsdUfeAttributesWidgetPrivate : public TimeChangeCallback
 {
 public:
     QmaxUsdUfeAttributesWidgetPrivate(QmaxUsdUfeAttributesWidget* q)
@@ -457,6 +510,12 @@ public:
         , _observer(std::make_shared<QmaxUsdUfeAttributesWidgetObserver>(this))
     {
         Ufe::Scene::instance().addObserver(_observer);
+        GetCOREInterface()->RegisterTimeChangeCallback(this);
+
+        // register the widget for notifications on time range or anim changes
+        RegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
+        RegisterNotification(
+            NotifyStageAnimParameterChanged, this, NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED);
     }
 
     ~QmaxUsdUfeAttributesWidgetPrivate()
@@ -471,6 +530,24 @@ public:
         // making sure the timer is not executing any more after this object
         // being destroyed!
         *_callbacksQueued = false;
+        GetCOREInterface()->UnRegisterTimeChangeCallback(this);
+
+        // unregister widget from general notification system
+        UnRegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
+        UnRegisterNotification(
+            NotifyStageAnimParameterChanged, this, NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED);
+    }
+
+    void        TimeChanged(TimeValue /* t */) override { RefreshItems(); }
+    static void NotifyTimeRangeChanged(void* param, NotifyInfo* /*info*/)
+    {
+        const auto ufeAttributeWidget = static_cast<QmaxUsdUfeAttributesWidgetPrivate*>(param);
+        ufeAttributeWidget->RefreshItems();
+    }
+    static void NotifyStageAnimParameterChanged(void* param, NotifyInfo* /*info*/)
+    {
+        const auto ufeAttributeWidget = static_cast<QmaxUsdUfeAttributesWidgetPrivate*>(param);
+        ufeAttributeWidget->RefreshItems();
     }
 
     void observeAttributeValueChanged(
@@ -569,7 +646,12 @@ public:
 
                     // Revert to initial to undo from the correct value...
                     for (const auto& a : numericAttributes) {
-                        a->set(*ufeValueInit);
+                        try {
+                            a->set(*ufeValueInit);
+                        } catch (std::exception&) {
+                            // Ignore exceptions while in interactive mode, report errors when we
+                            // actually try to edit from the command.
+                        }
                     }
                     // Apply the new value from an undoable command.
                     applyChanges(itemPath, numericAttributes, attributeName, ufeValueCurr);
@@ -598,7 +680,12 @@ public:
                 // In interactive mode, simply set the values and refresh the viewport.
                 if (*isInteractive) {
                     for (const auto& a : numericAttributes) {
-                        a->set(ufeValue);
+                        try {
+                            a->set(ufeValue);
+                        } catch (std::exception&) {
+                            // Ignore exceptions while in interactive mode, report errors when we
+                            // actually try to edit from the command.
+                        }
                     }
                     GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
                 }
@@ -714,6 +801,8 @@ private:
 
     std::shared_ptr<bool> _callbacksQueued = std::make_shared<bool>(false);
     void                  queueCallbacks();
+
+    void RefreshItems();
 
     friend class QmaxUsdUfeAttributesWidgetObserver;
 };
@@ -836,6 +925,13 @@ void QmaxUsdUfeAttributesWidgetPrivate::queueCallbacks()
             }
         }
     });
+}
+
+void QmaxUsdUfeAttributesWidgetPrivate::RefreshItems()
+{
+    for (auto items : _attributeValueChangedCallbacks) {
+        items.second();
+    }
 }
 
 QWidget* QmaxUsdUfeAttributesWidgetPrivate::addControl(
@@ -1261,7 +1357,11 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::create(
     const TfType&          type,
     std::set<std::string>& handledAttributeNames)
 {
-    if (selection.empty() || !type.IsA<UsdSchemaBase>()) {
+    if (selection.empty()) {
+        return nullptr;
+    }
+
+    if (!type.IsA<UsdSchemaBase>()) {
         return nullptr;
     }
 
@@ -1273,7 +1373,10 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::create(
     auto widget = create(selection, attributeNames, handledAttributeNames);
 
     if (widget) {
-        widget->setObjectName(QString::fromStdString(identifierOrTypeName(type)));
+        widget->setObjectName(rollupTitleFromTypeName(
+            UsdSchemaRegistry::IsConcrete(type)
+                ? UsdSchemaRegistry::GetSchemaTypeName(type).GetString()
+                : type.GetTypeName()));
     }
     return std::move(widget);
 }
@@ -1475,8 +1578,18 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::createMe
                     return;
                 }
 
-                std::vector<TfToken> kindsBefore;
+                std::vector<pxr::UsdPrim> editablePrims;
+                std::vector<TfToken>      kindsBefore;
                 for (const auto& prim : prims) {
+
+                    std::string msg;
+                    if (!UsdUfe::isPrimMetadataEditAllowed(
+                            prim, pxr::SdfFieldKeys->Kind, {}, &msg)) {
+                        Listener::Write(MaxUsd::UsdStringToMaxString(msg).data(), true);
+                        continue;
+                    }
+                    editablePrims.push_back(prim);
+
                     auto    model = UsdModelAPI(prim);
                     TfToken kind;
 #if PXR_VERSION >= 2311
@@ -1494,32 +1607,36 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::createMe
                     }
                 }
 
-                const std::string commandName
-                    = QApplication::translate("USDStageObject", "Change Kind of USD prim")
-                          .toStdString();
+                if (!editablePrims.empty()) {
 
-                TfToken newKind(value.toStdString());
-                applyChanges(
-                    itemPath,
-                    [prims, newKind, kindsBefore](UfeUI::GenericCommand::Mode mode) {
-                        int i = 0;
-                        for (const auto& prim : prims) {
-                            if (prim) {
+                    const std::string commandName
+                        = QApplication::translate("USDStageObject", "Change Kind of USD prim")
+                              .toStdString();
+
+                    TfToken newKind(value.toStdString());
+                    applyChanges(
+                        itemPath,
+                        [editablePrims, newKind, kindsBefore](UfeUI::GenericCommand::Mode mode) {
+                            int i = 0;
+                            for (const auto& prim : editablePrims) {
+                                if (prim) {
 #if PXR_VERSION >= 2311
-                                prim.SetKind(
-                                    mode == UfeUI::GenericCommand::Mode::kRedo ? newKind
-                                                                               : kindsBefore[i]);
+                                    prim.SetKind(
+                                        mode == UfeUI::GenericCommand::Mode::kRedo
+                                            ? newKind
+                                            : kindsBefore[i]);
 #else
-                                prim.SetMetadata(
-                                    SdfFieldKeys->Kind,
-                                    mode == UfeUI::GenericCommand::Mode::kUndo ? kindsBefore[i]
-                                                                               : newKind);
+                                    prim.SetMetadata(
+                                        SdfFieldKeys->Kind,
+                                        mode == UfeUI::GenericCommand::Mode::kUndo ? kindsBefore[i]
+                                                                                   : newKind);
 #endif
+                                }
+                                ++i;
                             }
-                            ++i;
-                        }
-                    },
-                    commandName);
+                        },
+                        commandName);
+                }
 
                 // We need to query the kind value again, as "someone may have a
                 // stronger opinion.."
@@ -1551,6 +1668,11 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::createMe
             std::unique_ptr<bool> active;
             bool                  first = true;
             for (const auto& prim : prims) {
+
+                if (!prim.IsValid()) {
+                    continue;
+                }
+
                 bool primActive = prim.IsActive();
                 if (first) {
                     active = std::make_unique<bool>(primActive);
@@ -1578,30 +1700,43 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::createMe
                     return;
                 }
 
-                std::vector<bool> activeBefore;
+                std::vector<pxr::UsdPrim> editablePrims;
+                std::vector<bool>         activeBefore;
                 for (const auto& prim : prims) {
+
+                    std::string msg;
+                    if (!UsdUfe::isPrimMetadataEditAllowed(
+                            prim, pxr::SdfFieldKeys->Active, {}, &msg)) {
+                        Listener::Write(MaxUsd::UsdStringToMaxString(msg).data(), true);
+                        continue;
+                    }
+                    editablePrims.push_back(prim);
                     activeBefore.emplace_back(prim ? prim.IsActive() : false);
                 }
 
-                const std::string commandName
-                    = QApplication::translate(
-                          "USDStageObject", checked ? "Activate USD prim" : "Deactivate USD prim")
-                          .toStdString();
-                applyChanges(
-                    itemPath,
-                    [prims, checked, activeBefore](UfeUI::GenericCommand::Mode mode) {
-                        int i = 0;
-                        for (const auto& prim : prims) {
-                            if (prim) {
-                                prim.SetActive(
-                                    mode == UfeUI::GenericCommand::Mode::kRedo ? checked
-                                                                               : activeBefore[i]);
-                            }
-                            ++i;
-                        }
-                    },
-                    commandName);
+                if (!editablePrims.empty()) {
 
+                    const std::string commandName
+                        = QApplication::translate(
+                              "USDStageObject",
+                              checked ? "Activate USD prim" : "Deactivate USD prim")
+                              .toStdString();
+                    applyChanges(
+                        itemPath,
+                        [editablePrims, checked, activeBefore](UfeUI::GenericCommand::Mode mode) {
+                            int i = 0;
+                            for (const auto& prim : editablePrims) {
+                                if (prim) {
+                                    prim.SetActive(
+                                        mode == UfeUI::GenericCommand::Mode::kRedo
+                                            ? checked
+                                            : activeBefore[i]);
+                                }
+                                ++i;
+                            }
+                        },
+                        commandName);
+                }
                 // We need to query the active value again, as "someone may have a
                 // stronger opinion.."
                 updateUI();
@@ -1662,32 +1797,43 @@ std::unique_ptr<QmaxUsdUfeAttributesWidget> QmaxUsdUfeAttributesWidget::createMe
                     return;
                 }
 
-                std::vector<bool> instanceableBefore;
+                std::vector<pxr::UsdPrim> editablePrims;
+                std::vector<bool>         instanceableBefore;
                 for (const auto& prim : prims) {
+                    std::string msg;
+                    if (!UsdUfe::isPrimMetadataEditAllowed(
+                            prim, pxr::SdfFieldKeys->Instanceable, {}, &msg)) {
+                        Listener::Write(MaxUsd::UsdStringToMaxString(msg).data(), true);
+                        continue;
+                    }
+                    editablePrims.push_back(prim);
                     instanceableBefore.emplace_back(prim ? prim.IsInstanceable() : false);
                 }
 
-                const std::string commandName = QApplication::translate(
-                                                    "USDStageObject",
-                                                    checked ? "Mark USD prim as Instanceable"
-                                                            : "Unmark USD prim as Instanceable")
-                                                    .toStdString();
-                applyChanges(
-                    itemPath,
-                    [prims, checked, instanceableBefore](UfeUI::GenericCommand::Mode mode) {
-                        int i = 0;
-                        for (const auto& prim : prims) {
-                            if (prim) {
-                                prim.SetInstanceable(
-                                    mode == UfeUI::GenericCommand::Mode::kRedo
-                                        ? checked
-                                        : instanceableBefore[i]);
-                            }
-                            ++i;
-                        }
-                    },
-                    commandName);
+                if (!editablePrims.empty()) {
 
+                    const std::string commandName = QApplication::translate(
+                                                        "USDStageObject",
+                                                        checked ? "Mark USD prim as Instanceable"
+                                                                : "Unmark USD prim as Instanceable")
+                                                        .toStdString();
+                    applyChanges(
+                        itemPath,
+                        [editablePrims, checked, instanceableBefore](
+                            UfeUI::GenericCommand::Mode mode) {
+                            int i = 0;
+                            for (const auto& prim : editablePrims) {
+                                if (prim) {
+                                    prim.SetInstanceable(
+                                        mode == UfeUI::GenericCommand::Mode::kRedo
+                                            ? checked
+                                            : instanceableBefore[i]);
+                                }
+                                ++i;
+                            }
+                        },
+                        commandName);
+                }
                 // We need to query the active value again, as "someone may have a
                 // stronger opinion.."
                 updateUI();

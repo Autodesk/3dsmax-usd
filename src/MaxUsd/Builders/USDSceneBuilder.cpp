@@ -528,7 +528,7 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
             auto prim = pxr::SdfCreatePrimInLayer(stage->GetRootLayer(), primSpec.path);
             if (primSpec.type == pxr::MaxUsdPrimTypeTokens->Class) {
                 prim->SetSpecifier(pxr::SdfSpecifierClass);
-                prim->SetTypeName(primSpec.type);
+                // No type name for class prims.
             } else if (primSpec.type == pxr::MaxUsdPrimTypeTokens->Over) {
                 prim->SetSpecifier(pxr::SdfSpecifierOver);
                 // No type name for "over" prims.

@@ -16,6 +16,7 @@
 #pragma once
 
 #include "HdMaxConsolidator.h"
+#include "HdMaxLightGizmoMeshAccess.h"
 #include "Imaging/HdMaxRenderDelegate.h"
 #include "Imaging/HdMaxTaskController.h"
 #include "RenderDelegateAPI.h"
@@ -184,7 +185,7 @@ private:
      * fallback if required.
      */
     void UpdateMaterialIdsList(
-        const std::vector<HdMaxRenderData*>&     renderData,
+        const std::vector<HdMaxMeshRenderData*>& renderData,
         std::shared_ptr<HdMaxMaterialCollection> collection);
 
     /**
@@ -202,15 +203,15 @@ private:
      * we might want to update.
      * \param timeCode The current time.
      * \param config Configuration parameters for the consolidation.
-     * \param wireMaterial The wireframe material we should use for consolidated wireframe geometry.
+     * \param renderNode The 3dsMax render node being consolidated. Can carry some material information.
      * \return The result of the consolidation, or nullptr.
      */
     HdMaxConsolidator::OutputPtr Consolidate(
-        const std::vector<HdMaxRenderData*>&        renderData,
-        const pxr::UsdTimeCode&                     lastTimeCode,
-        const pxr::UsdTimeCode&                     timeCode,
-        const HdMaxConsolidator::Config&            config,
-        const MaxSDK::Graphics::BaseMaterialHandle& wireMaterial);
+        const std::vector<HdMaxMeshRenderData*>&  renderData,
+        const pxr::UsdTimeCode&                   lastTimeCode,
+        const pxr::UsdTimeCode&                   timeCode,
+        const HdMaxConsolidator::Config&          config,
+        const MaxSDK::Graphics::RenderNodeHandle& renderNode);
 
     /// Create a sceneDelegate out of a stage.
     std::unique_ptr<pxr::UsdImagingDelegate> CreateSceneDelegate(const pxr::UsdPrim& rootPrim);
@@ -244,4 +245,10 @@ private:
     bool                                               staticDelayStarted = false;
     std::chrono::time_point<std::chrono::system_clock> staticDelayStartTime;
     pxr::UsdTimeCode                                   lastVpRenderTime;
+
+    // Light gizmo is supported via a custom index filter.
+#if PXR_VERSION >= 2311
+    pxr::HdLightGizmoSceneIndexFilterRefPtr    lightGizmoFilter = nullptr;
+    std::shared_ptr<HdMaxLightGizmoMeshAccess> lightGizmoMeshAccess = nullptr;
+#endif
 };

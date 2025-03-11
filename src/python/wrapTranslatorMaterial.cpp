@@ -29,12 +29,12 @@ struct MaxUsdTranslatorMaterialWrapper
         const MaxSceneBuilderOptionsWrapper& buildOptions,
         const UsdGeomGprim&                  prim,
         INT_PTR                              nodeHandle,
-        boost::python::object&               context)
+        pyboost::object&                     context)
     {
         INode* node = dynamic_cast<INode*>(Animatable::GetAnimByHandle(nodeHandle));
         if (node) {
             MaxUsdReadJobContextWrapper& contextRef
-                = boost::python::extract<MaxUsdReadJobContextWrapper&>(context);
+                = pyboost::extract<MaxUsdReadJobContextWrapper&>(context);
             return MaxUsdTranslatorMaterial::AssignMaterial(buildOptions, prim, node, contextRef);
         }
         return false;
@@ -43,11 +43,11 @@ struct MaxUsdTranslatorMaterialWrapper
 
 void wrapTranslatorMaterial()
 {
-    boost::python::class_<MaxUsdTranslatorMaterialWrapper, boost::noncopyable>(
-        "TranslatorMaterial", boost::python::no_init)
+    pyboost::class_<MaxUsdTranslatorMaterialWrapper, noncopyable>(
+        "TranslatorMaterial", pyboost::no_init)
         .def(
             "AssignMaterial",
             &MaxUsdTranslatorMaterialWrapper::AssignMaterial,
-            boost::python::args("options", "prim", "node_handle", "context"))
+            pyboost::args("options", "prim", "node_handle", "context"))
         .staticmethod("AssignMaterial");
 }

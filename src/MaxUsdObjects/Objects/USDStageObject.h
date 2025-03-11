@@ -35,6 +35,8 @@ extern Class_ID USDSTAGEOBJECT_CLASS_ID;
 
 // No way to ensure custom notification codes are unique...but with any luck, it will be!
 #define NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED REFMSG_USER + 0x29415134
+#define NOTIFY_STAGE_LOAD_STATE_CHANGED            REFMSG_USER + 0x29415135
+#define NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED       REFMSG_USER + 0x29415136
 
 enum
 {
@@ -78,7 +80,8 @@ enum PBParameterIds
     KindSelection,
     GenerateCameras,
     GeneratePointInstancesDrawModes,
-    PointInstancesDrawMode
+    PointInstancesDrawMode,
+    LightGizmoScale
 };
 
 // These correspond to the different rollouts.
@@ -109,8 +112,8 @@ enum class DrawMode
 
 enum class SelectionMode
 {
-    Stage,
-    Prim
+    Stage = 0,
+    Prim = 1
 };
 
 /**
@@ -134,10 +137,18 @@ private:
     std::vector<Hit> hits;
 };
 
-static void NotifyNodeDeleted(void* param, NotifyInfo* info);
+static void NotifyNodePreDeleted(void* param, NotifyInfo* info);
 static void NotifyNodeCreated(void* param, NotifyInfo* info);
+static void NotifyNodeAdded(void* param, NotifyInfo* info);
 static void NotifyNodePreClone(void* param, NotifyInfo* info);
 static void NotifyNodePostClone(void* param, NotifyInfo* info);
+
+#if MAX_VERSION_MAJOR >= 28
+// forward declaration
+namespace MaxSDK {
+class IEditObjectContextProvider;
+} // namespace MaxSDK
+#endif
 
 class MaxUSDObjectsAPI USDStageObject
     : public GeomObject
@@ -148,10 +159,11 @@ class MaxUSDObjectsAPI USDStageObject
     friend class SelectionObserver;
 
 public:
-    friend void NotifyNodeDeleted(void* param, NotifyInfo* info);
+    friend void NotifyNodePreDeleted(void* param, NotifyInfo* info);
     friend void NotifyNodeCreated(void* param, NotifyInfo* info);
     friend void NotifyNodePreClone(void* param, NotifyInfo* info);
     friend void NotifyNodePostClone(void* param, NotifyInfo* info);
+    friend void NotifyFileSave(void* param, NotifyInfo* info);
 
     /**
      * \brief PBAccessor to evaluate some paramblock parameters at request time.
@@ -473,9 +485,9 @@ public:
 
     /**
      * \brief Returns the offset transform for the N'th render mesh.
-     * \param t The time at which to get the meshe's render offset transform,
+     * \param t The time at which to get the meshes render offset transform,
      * \param inode The 3dsMax node.
-     * \param view View informatin, not used currently.
+     * \param view View information, not used currently.
      * \param meshNumber The number of the mesh for which we are requesting the transform.
      * \param meshTM The mesh transform, returned by reference.
      * \param meshTMValid The validity interval for the transform.
@@ -524,8 +536,10 @@ public:
 
     /**
      * \brief Force reloads all of the stage's layers.
+     * \param quiet If false, and there are unsaved edits that would be discarded by the reload,
+     * the user is warned by a popup.
      */
-    void Reload() override;
+    void Reload(bool quiet) override;
 
     /**
      * \brief Clears the stage's session layer.
@@ -667,6 +681,11 @@ public:
     void CloseInUsdExplorer() override;
 
     /**
+     * \brief Opens the stage in the USD layer editor.
+     */
+    void OpenInUsdLayerEditor() override;
+
+    /**
      * \brief Returns the GUID associated with the USD Stage object.
      * \return The GUID.
      */
@@ -684,11 +703,6 @@ public:
      * \return The hydra engine.
      */
     HdMaxEngine* GetHydraEngine() const;
-
-    /** Adds or remove the attribute rollups for the current prim selection of
-     * the USD stage object.
-     */
-    void AdjustAttributeRollupsForSelection();
 
     /**
      * \brief Requests that the selection display in the viewport be updated on the next draw.
@@ -783,6 +797,40 @@ public:
      */
     void GenerateDrawModes() override;
 
+    /**
+     * Whether the stage is currently in create mode.
+     * @return True if in create mode.
+     */
+    bool IsInCreateMode();
+
+    /**
+     * Sets the currently locked layers identifiers on the object. These will be
+     * saved to the 3dsMax scene file, and restored on load.
+     * @param lockedLayers The locked layers.
+     */
+    void SetLockedLayersState(const std::vector<std::string>& lockedLayers);
+
+    /**
+     * Sets the currently muted layers identifiers on the object. These will be
+     * saved to the 3dsMax scene file, and restored on load.
+     *@param mutedLayers The muted layers.
+     */
+    void SetMutedLayersState(const std::vector<std::string>& mutedLayers);
+
+#if MAX_VERSION_MAJOR >= 28
+    BOOL GetEditObjContext(MSTR& context)
+    {
+        if (subObjectLevel == 0) {
+            return FALSE;
+        }
+        context = currentEditObjectContext;
+        return TRUE;
+    }
+#endif
+
+    // Helper function to check if we are in edit mode currently...
+    inline bool IsInEditParams() const { return ip != nullptr; }
+
 private:
     class NodeEventCallback : public INodeEventCallback
     {
@@ -799,6 +847,12 @@ private:
      * \param notice The stage objects changed notice - contains a reference to the changed stage.
      */
     void OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice);
+
+    /**
+     * On LayerMutingChanged event handler
+     * @param notice  The layer muting changed notice - contains a reference to the changed stage.
+     */
+    void OnLayerMutingChanged(pxr::UsdNotice::LayerMutingChanged const& notice);
 
     /**
      * \brief Gets whether a not the given display purpose should be displayed.
@@ -856,9 +910,18 @@ private:
         const Matrix3& axisTm,
         const Matrix3& transform) const;
 
-    /** Cleans up the prim attribute rollups for the current prim selection and
-     * remembers their individual open/close states. */
+    /** Cleans up the prim attribute rollups for the current prim selection. */
     void CleanupPrimAttributeWidgets();
+
+    /** Removes all rollups. */
+    void RemoveAllRollups();
+
+    /** Adds the non-prim attribute (normal) rollups. */
+    void AddNonPrimAttributeRollups();
+
+    /** Adds or remove the attribute rollups for the current prim selection of
+     * the USD stage object. */
+    void AdjustRollupsForSelection();
 
     /// Paramblock holding the Stage object's data.
     IParamBlock2* pb;
@@ -869,8 +932,9 @@ private:
     std::unique_ptr<HdMaxEngine> hydraEngine;
     /// Offscreen renderer used for the picking of USD primitives.
     std::unique_ptr<USDPickingRenderer> pickingRenderer;
-    /// Handle for the onStageChange notice so that we can revoke it upon destruction.
+    /// Handles for USD notices so that we can revoke them upon destruction.
     pxr::TfNotice::Key onStageChangeNotice;
+    pxr::TfNotice::Key onLayerMutingChangedNotice;
     /// Id of the stage in the stage cache.
     pxr::UsdStageCache::Id stageCacheId;
     /// A unique identifier for the USD Stage object. Used to map USD stages <-> 3dsMax objects.
@@ -949,6 +1013,8 @@ private:
     MaxUsd::ProgressReporter progressReporter;
     /// A reference to the session layer that was loaded from the max scene.
     pxr::SdfLayerRefPtr sessionLayerFromMaxScene;
+    /// The Edit target that was saved to 3dsMax scene.
+    std::string editTargetFromMaxScene;
     /// The payload rules applied by the USD Explorer
     std::string savedPayloadRules;
 
@@ -962,13 +1028,46 @@ private:
 
     /// The interface to interact with the command panel - when in edit mode...
     IObjParam* ip = nullptr;
+
     /// The rollups showing the attributes of the current selected prim(s).
     std::vector<QPointer<QWidget>> primAttributeWidgets;
 
-    static bool                    primAttributeRollupOpenStatesLoaded;
-    static std::map<QString, bool> primAttributeRollupStates;
-    static std::map<QString, bool> loadedPrimAttributeRollupStates;
-    static const QString           rollupCategory;
+    /// The current edit object context used by the IEditObjectContextProvider.
+    MSTR currentEditObjectContext = _T("0");
+
+#if MAX_VERSION_MAJOR >= 28
+    std::unique_ptr<MaxSDK::IEditObjectContextProvider> editObjectContextProvider;
+#else
+
+    struct RollupState
+    {
+        int  category;
+        bool open;
+    };
+
+    // context -> rollup title -> RollupState
+    static std::map<MSTR, std::map<QString, RollupState>> rollupStates;
+    static bool                                           rollupStatesChanged;
+    static bool                                           rollupStatesLoaded;
+
+    void               SetRollupState(const QString& rollupTitle, int category, bool open);
+    const RollupState* GetRollupState(const QString& rollupTitle) const;
+
+    static void LoadRollupStates();
+    static void SaveRollupStates();
+
+    void UpdateRollupStates();
+
+    bool InjectRollupState(
+        const MSTR& rollupTitle,
+        int         category,
+        bool        open,
+        int&        oldCategory,
+        bool&       oldOpen);
+
+    void RestoreRollupState(const MSTR& rollupTitle, int oldCategory, bool oldOpen);
+
+#endif
 
     /// Sub-object 3dsmax modes, used to select and transform prims.
     static SelectModBoxCMode*  selectMode;
@@ -988,4 +1087,10 @@ private:
 
     /// Flag to indicate that the selection display must be udpated upon the next draw.
     bool isSelectionDisplayDirty = false;
+
+    /// USD Layer states. The lock and mute states of USD layers are not saved in USD, the
+    /// USDStageObject must remember this information so that stages re-open in the same state
+    /// when the 3dsmax scenes are reloaded.
+    std::vector<std::string> lockedLayers;
+    std::vector<std::string> mutedLayers;
 };

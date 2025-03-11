@@ -24,6 +24,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 IDR_PRIM_SELECTION_SHADER SHADER "Imaging\\PrimSelection.fx"
+IDR_GIZMO_SELECTION_SHADER SHADER "Imaging\\GizmoSelect.fx"
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -53,6 +53,12 @@ public:
         node = GetCOREInterface()->CreateObjectNode(stageObject);
         stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
 
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
+
         HdMaxEngine             testEngine;
         MockRenderItemContainer renderItems;
 
@@ -349,6 +355,12 @@ public:
         node = GetCOREInterface()->CreateObjectNode(stageObject);
         stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
 
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
+
         HdMaxEngine             testEngine;
         MockRenderItemContainer renderItems;
 
@@ -565,6 +577,12 @@ public:
             GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, STAGE_CLASS_ID));
         node = GetCOREInterface()->CreateObjectNode(stageObject);
         stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
+
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
 
         HdMaxEngine             testEngine;
         MockRenderItemContainer renderItems;
@@ -866,6 +884,12 @@ public:
         node = GetCOREInterface()->CreateObjectNode(stageObject);
         stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
 
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
+
         HdMaxEngine             testEngine;
         MockRenderItemContainer renderItems;
 
@@ -1017,6 +1041,12 @@ public:
             GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, STAGE_CLASS_ID));
         node = GetCOREInterface()->CreateObjectNode(stageObject);
         stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
+
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
 
         HdMaxEngine             testEngine;
         MockRenderItemContainer renderItems;
@@ -1444,4 +1474,153 @@ TEST_F(SubObjectPointInstanceOpTest, PointInstanceWithProtoXform)
         expectedDelta.SetTranslate(translation);
         EXPECT_TRUE(delta.Equals(expectedDelta, MAX_FLOAT_EPSILON));
     }
+}
+
+class SubobjectTransformsEditRestrictions : public ::testing::Test
+{
+public:
+    void SetUp() override
+    {
+        // Keep track of current units so we can set them back properly. Just making sure we always
+        // run the the with the same units.
+        GetSystemUnitInfo(&unitType, &unitScale);
+        SetSystemUnitInfo(UNITS_INCHES, 1.0f);
+
+        auto       testDataPath = GetTestDataPath();
+        const auto filePath = testDataPath.append("transform_edit_restrictions.usda");
+        stageObject = static_cast<USDStageObject*>(
+            GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, STAGE_CLASS_ID));
+        node = GetCOREInterface()->CreateObjectNode(stageObject);
+        stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
+
+        // There can be some non-default time samples on the transforms, and we always edit the
+        // default timecode. Make sure those newly authored opinions "win" by targeting the session
+        // layer.
+        const auto stage = stageObject->GetUSDStage();
+        stage->SetEditTarget(stage->GetSessionLayer());
+
+        HdMaxEngine             testEngine;
+        MockRenderItemContainer renderItems;
+
+        pxr::HdChangeTracker dummyTracker;
+        auto&                displaySettings = testEngine.GetRenderDelegate()->GetDisplaySettings();
+        displaySettings.SetDisplayMode(HdMaxDisplaySettings::WireColor, dummyTracker);
+
+        // Switch to Prim sub-object mode.
+        GetCOREInterface()->SelectNode(node);
+        GetCOREInterface()->SetCommandPanelTaskMode(TASK_MODE_MODIFY);
+        GetCOREInterface()->SetSubObjectLevel(1);
+
+        // Insert a sublayer, and target it.
+        // That layer will be weaker than the root layer, and so edits should be prevented.
+        auto subLayer = pxr::SdfLayer::CreateAnonymous();
+        auto rootLayer = stage->GetRootLayer();
+        rootLayer->InsertSubLayerPath(subLayer->GetIdentifier());
+        stage->SetEditTarget(subLayer);
+    }
+    void TearDown() override
+    {
+        GetCOREInterface()->FileReset(TRUE);
+        SetSystemUnitInfo(unitType, unitScale);
+    }
+    int   unitType;
+    float unitScale;
+
+    INode*          node;
+    USDStageObject* stageObject;
+};
+
+TEST_F(SubobjectTransformsEditRestrictions, EditRestrictionXformable)
+{
+    const auto globalUfeSel = Ufe::GlobalSelection::get();
+
+    // Two cases are setup in the test file.
+    // 1) The transform op order only is set in the stronger layer.
+    // 2) the transform attribute only is set in the stronger layer.
+    // Both cases are expected to block edition, in a weaker layer.
+    pxr::SdfPathVector toTest
+        = { pxr::SdfPath { "/Box_OpOrderSet" }, pxr::SdfPath { "/Box_TransformSet" } };
+
+    for (const auto path : toTest) {
+
+        auto ufeItem
+            = Ufe::Hierarchy::createItem(MaxUsd::ufe::getUsdPrimUfePath(stageObject, path, 0));
+        Ufe::Selection newSelection;
+        newSelection.append(ufeItem);
+
+        globalUfeSel->replaceWith(newSelection);
+
+        const TimeValue time = 0;
+        stageObject->TransformStart(time);
+
+        const auto prim = stageObject->GetUSDStage()->GetPrimAtPath(path);
+        const auto primPreTransform
+            = USDStageObject::GetMaxScenePrimTransform(node, prim, time, false);
+
+        Matrix3 tmAxis = Matrix3::Identity;
+        tmAxis.SetTranslate(primPreTransform.GetTrans());
+
+        Point3 translation = { 0.f, 0.f, 10.f };
+        auto   parentTm = node->GetNodeTM(time);
+
+        stageObject->Move(time, parentTm, tmAxis, translation, FALSE);
+        stageObject->TransformFinish(time);
+
+        const auto primPostTransform
+            = USDStageObject::GetMaxScenePrimTransform(node, prim, time, false);
+
+        auto invTrans = primPreTransform;
+        invTrans.Invert();
+        const auto delta = invTrans * primPostTransform;
+
+        // Expect no change.
+        Matrix3 expectedDelta;
+        expectedDelta.IdentityMatrix();
+        EXPECT_TRUE(delta.Equals(expectedDelta, MAX_FLOAT_EPSILON));
+    }
+}
+
+TEST_F(SubobjectTransformsEditRestrictions, EditRestrictionsPointInstancer)
+{
+    const auto primPath = pxr::SdfPath("/Instancer");
+
+    const auto     globalUfeSel = Ufe::GlobalSelection::get();
+    Ufe::Selection newSelection;
+    auto           ufeItem
+        = Ufe::Hierarchy::createItem(MaxUsd::ufe::getUsdPrimUfePath(stageObject, primPath, 0));
+    newSelection.append(ufeItem);
+
+    globalUfeSel->replaceWith(newSelection);
+
+    SubObjAxisCallbackMock cb;
+    stageObject->GetSubObjectCenters(&cb, 0, node, nullptr);
+
+    const TimeValue time = 0;
+    stageObject->TransformStart(time);
+
+    const auto prim = stageObject->GetUSDStage()->GetPrimAtPath(primPath);
+
+    const auto indices = { 0 };
+    const auto transformsPre
+        = USDStageObject::GetMaxScenePointInstancesTransforms(node, prim, indices, 0);
+    Matrix3 tmAxis = Matrix3::Identity;
+    tmAxis.SetTranslate(cb.center);
+
+    Point3 translation = { 0.f, 0.f, 5.f };
+    auto   parentTm = node->GetNodeTM(time);
+
+    stageObject->Move(time, parentTm, tmAxis, translation, FALSE);
+    stageObject->TransformFinish(time);
+
+    const auto transformsPost
+        = USDStageObject::GetMaxScenePointInstancesTransforms(node, prim, indices, 0);
+
+    auto invTrans = transformsPre[0];
+    invTrans.Invert();
+    const auto delta = invTrans * transformsPost[0];
+
+    // Expect no change.
+    Matrix3 expectedDelta;
+    expectedDelta.IdentityMatrix();
+    EXPECT_TRUE(delta.Equals(expectedDelta, MAX_FLOAT_EPSILON));
 }

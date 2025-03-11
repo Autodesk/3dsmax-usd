@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SaveUSDOptionsDialog</class>
+ <widget class="QDialog" name="SaveUSDOptionsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>387</width>
+    <height>140</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Save USD Options</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>You have unsaved USD Edits. How would you like to proceed?</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QWidget" name="optionButtons" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QRadioButton" name="saveAllButton">
+          <property name="text">
+           <string>Save the 3ds Max scene file and USD files.</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="name" stdset="0">
+           <cstring>radioForward</cstring>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="saveMaxOnlyButton">
+          <property name="text">
+           <string>Save only the 3ds Max scene file (USD edits will not be saved).</string>
+          </property>
+          <property name="name" stdset="0">
+           <cstring>radioBackward</cstring>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="saveCancel">
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -34,12 +34,15 @@ struct binary_function
 // Bunch of headers bringing memcpy calls
 #include <atomic>
 #include <locale>
+#include <pxr/pxr.h>
+#if PXR_VERSION < 2411
 #include <boost/functional/hash.hpp>
 #include <boost/container/detail/copy_move_algo.hpp>
 
 // Some macro conflicts
 #include <boost/random.hpp>
 #include <boost/bimap.hpp>
+#endif
 
 #pragma warning(push)
 #pragma warning(disable : 4244 4305 4267 4003 4305 6011 6319 6386 26451 26439 26478 26487)

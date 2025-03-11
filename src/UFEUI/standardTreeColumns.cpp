@@ -45,7 +45,7 @@ NameColumn::NameColumn(const QString& rootItemAlias, int visualIndex)
 QVariant NameColumn::columnHeader(int role) const
 {
     if (role == Qt::DisplayRole) {
-        return QObject::tr("Prim Name");
+        return QApplication::translate("USD Explorer", "Prim Name");
     }
     return {};
 }
@@ -137,20 +137,22 @@ QStyledItemDelegate* NameColumn::createStyleDelegate(QObject* parent)
         &(explorer->selectionAncestors()), highlightColor, parent);
 }
 
+int NameColumn::resizeMode() const { return QHeaderView::ResizeToContents; }
+
 QVariant TypeColumn::columnHeader(int role) const
 {
     if (role == Qt::DisplayRole) {
-        return QObject::tr("Type");
+        return QApplication::translate("USD Explorer", "Type");
     }
     return {};
 }
 
 QVariant TypeColumn::data(const UfeUi::TreeItem* treeItem, int role) const
 {
-    if (role != Qt::DisplayRole) {
-        return QVariant {};
+    if (role == Qt::DisplayRole) {
+        return QString::fromStdString(treeItem->sceneItem()->nodeType());
     }
-    return QString::fromStdString(treeItem->sceneItem()->nodeType());
+    return {};
 }
 
 QIcon VisColumn::_iconVisible;
@@ -178,9 +180,12 @@ QVariant VisColumn::columnHeader(int role) const
         return _iconVisible;
     }
     if (role == Qt::ToolTipRole) {
-        return QObject::tr("Toggle the visibility property of a prim between invisible and "
-                           "inherit. Note: Ancestor "
-                           "visibility affects the resolved visibility of its descendants.");
+        return QApplication::translate(
+            "USD Explorer",
+            "Toggle the visibility property of a prim between invisible and "
+            "inherit. "
+            "Note: Ancestor visibility affects the resolved visibility of its "
+            "descendants.");
     }
     return {};
 }
@@ -415,3 +420,5 @@ QStyledItemDelegate* VisColumn::createStyleDelegate(QObject* parent)
 }
 
 bool VisColumn::isSelectable() const { return false; }
+
+int VisColumn::resizeMode() const { return QHeaderView::ResizeToContents; }

@@ -32,6 +32,7 @@ enum
     fnIdClearSessionLayer,
     fnIdOpenInUsdExplorer,
     fnIdCloseInUsdExplorer,
+    fnIdOpenInUsdLayerEditor,
     fnIdGenerateDrawModes
 };
 
@@ -54,10 +55,11 @@ public:
     // Function Map For Mixin Interface
     //*************************************************
     BEGIN_FUNCTION_MAP
-    VFN_0(fnIdReload, Reload);
+    VFN_1(fnIdReload, Reload, TYPE_BOOL);
     VFN_0(fnIdClearSessionLayer, ClearSessionLayer);
     VFN_0(fnIdOpenInUsdExplorer, OpenInUsdExplorer);
     VFN_0(fnIdCloseInUsdExplorer, CloseInUsdExplorer);
+    VFN_0(fnIdOpenInUsdLayerEditor, OpenInUsdLayerEditor);
     VFN_3(fnIdSetRootLayer, SetRootLayerMXS, TYPE_STRING, TYPE_STRING, TYPE_BOOL);
     FN_1(fnIdGetUsdPreviewSurfaceMaterials, TYPE_MTL, GetUsdPreviewSurfaceMaterials, TYPE_BOOL);
     VFN_0(fnIdSetPrimvarChannelMappingDefaults, SetPrimvarChannelMappingDefaults);
@@ -73,7 +75,7 @@ public:
     virtual pxr::UsdStageWeakPtr GetUSDStage() const = 0;
 
     /// Reload all layers of the stage held by this provider.
-    virtual void Reload() = 0;
+    virtual void Reload(bool quiet) = 0;
 
     /// Clear the session layer of the stage held by this provider.
     virtual void ClearSessionLayer() = 0;
@@ -83,6 +85,9 @@ public:
 
     /// Close the stage in the USD Explorer.
     virtual void CloseInUsdExplorer() = 0;
+
+    /// Open the stage in the USD Layer Editor.
+    virtual void OpenInUsdLayerEditor() = 0;
 
     /// Set the root layer and mask of the stage held by this provider.
     virtual void

@@ -90,7 +90,311 @@
             this partnership.</p>
 
         <h4 class="pt-4">Release notes</h4>
-        <h5 data-current-version="0.9.0">v0.9.0 <small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        <h5 data-current-version="0.10.0">v0.10.0<small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for displaying USD Curves in the viewport. Note that the display only supports linear interpolation at this time.
+            </li>
+            <li>
+                Added a menu in the USD Collection Widget to remove all prims from the Include/Exclude lists at once.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where Collection rollouts could modify the Command Panel layout.
+            </li>
+            <li>
+                Fixed error where prims in the USD Collection Widget could get deleted unexpectedly.
+            </li>
+            <li>
+                Fixed an issue where Collections for some Prims were not being populated in the Rollouts.
+            </li>
+            <li>
+                Fixed an issue where Light Linking Rollout wouldn't load in older versions of 3ds Max.
+            </li>
+            <li>
+                Fixed label in the Undo Stack of the Mute USD Layer action.
+            </li>
+            <li>
+                Fixed an issue where the Title for the modal window for Picking Prims for the Light Linking should reflect where it's being added from.
+            </li>
+            <li>
+                Fixed a problem where the USD Collection widget could sometimes become unresponsive when the rollout had been resized.
+            </li>
+            <li>
+                Fixed the USD Exporter not adding the extent property to USDBasisCurves when exporting a shape from 3ds Max.
+            </li>
+            <li>
+                Fixed error where locking a layer on a USD Stage would clear the current prim selection.
+            </li>
+            <li>
+                Fixed a crash in the USD Stage Object when switching between kinds and prim object/sub-object mode.
+            </li>
+            <li>
+                Fixed undo getting lost when a USD Layer is muted.
+            </li>
+            <li>
+                Fixed the bulk remove of sublayers in the USD Layer Editor not always respecting the entire selection.
+            </li>
+            <li>
+                Fixed USD Light gizmos displaying in the viewport even when the prim is hidden.
+            </li>
+            <li>
+                Fixed an issue where the Viewport Selection Rollout was missing from the Rollouts while in Prim Sub-object Mode.
+            </li>
+            <li>
+                Updated the USDStageObject to accept loading a USD stage that has no prims.
+            </li>
+            <li>
+                Fixed error when redoing an action after doing an undo after prim creation in the USD Stage.
+            </li>
+        </ul>
+
+        <h5>v0.9.8</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USDStageObject to preserve the current EditTarget when reloading a scene.
+            </li>
+            <li>
+                Added option in USD Stage Object to control the gizmo sized of light shapes.
+            </li>
+            <li>
+                Added prompt to Save or Discard unsaved edits in USD Layers when reloading a stage that has edits that are not yet saved.
+            </li>
+            <li>
+                Updated menus for creating a USD Stage from file to automatically select the USDStageObject upon creation.
+            </li>
+            <li>
+                Updated the USD Layer Editor to set layers to System Lock when the layer is a read-only file on disk.
+            </li>
+            <li>
+                Updated lights gizmos from a USD stage to appear yellow to match Max behaviors. Selected lights are still the color of the USD Stage Object selection color.
+            </li>
+            <li>
+                Added a new USD Prim Pick mode that can be initiated from the new UsdSharedComonents extension. To load the extension use maxExtension = Python.Import("UsdSharedComponents.maxExtension"); to call the pick mode, use maxExtension.PickPrim(stage) where stage is a python object storing the stage. This function acts similarly to the MAXScript PickObject() method but is for returning UFE paths that allow you to process the picked prims for custom purposes.
+            </li>
+            <li>
+                Update Max USD to default to the Root Layer as the Edit Target when creating a new stage object. Previously we targeted the session layer by default, but now that the Layer Editor is available we moved it to the Root Layer.
+            </li>
+            <li>
+                Added "Class Prims" entry into the USD Explorer Display menu to Show/Hide USD prims in the USD Explorer.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a crash in the USD Stage Object when switching between kinds and prim object/sub-object mode.
+            </li>
+            <li>
+                Fixed the display of prim hierarchy in the USD Explorer when adding a prim to a class prim.
+            </li>
+            <li>
+                Fixed defect where reordering layers in the USD Layer Editor could remove the layers entirely.
+            </li>
+            <li>
+                Fixed incorrect warning of unsaved edits in a stage when exporting a scene with a stage that generated session data for automatic pointInstance draw modes.
+            </li>
+            <li>
+                Properly expose the 3ds Max USD python method 'maxUsd.JobContextRegistry.GetJobContextInfo()'.
+            </li>
+            <li>
+                Fixed the USD Layer Editor to hide the Remove Layer menu for the root layer and session layer.
+            </li>
+            <li>
+                Fixed warning icon in the USD Layer Editor missing from layers that cannot be resolved.
+            </li>
+            <li>
+                Fixed USD Layer Editor DPI scaling issues.
+            </li>
+        </ul>
+
+        <h5>v0.9.7</h5>
+        What's New:
+        <ul>
+            <li>
+                Added option in USD Stage Object to control the gizmo size of light shapes.
+            </li>
+            <li>
+                Updated light gizmos from a USD stage to appear yellow to match 3dsMax behaviors. Selected lights are still the color of the USD Stage Object selection color.
+            </li>
+            <li>
+                Updated the Display rollout in a USD Stage Object to remain accessible when in Prim Sub-Object mode.
+            </li>
+            <li>
+                Updated OpenEXR to OpenEXR 3.3.1 in Max USD.
+            </li>
+            <li>
+                Updated the Display rollout in a USD Stage Object to remain accessible when in Prim Sub-Object mode.
+            </li>
+            <li>
+                Added an option to display class prims in the USD Explorer.
+            </li>
+            <li>
+                Added a confirmation dialog when reloading USD stages.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed error loading some USD Layers in the Layer Editor.
+            </li>
+            <li>
+                Fixed bug causing reconsolidation on light gizmo selection.
+            </li>
+        </ul>
+
+        <h5>v0.9.6</h5>
+        What's New:
+        <ul>
+            <li>
+                Exposed the USD Layer Editor commands to Python.
+            </li>
+            <li>
+                Added Edit Restrictions to Max USD to block edits when there is a stronger opinion for that property.
+            </li>
+            <li>
+                Added ability to load a sublayer to a layer in the USD Layer Editor.
+            </li>
+            <li>
+                Added a bulk save dialog for the USD Layer Editor.
+            </li>
+            <li>
+                Updated the MaterialX Exporter in Max USD to use nodegraphs.
+            </li>
+            <li>
+                Added support to export a materialX reference using OpenPBR materials in the MaterialX shader writer for USD.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                MaterialX Scripted material fails more gracefully when the import fails.
+            </li>
+        </ul>
+        <h5>v0.9.5</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD Layer Editor to correctly respect 3ds Max color themes.
+            </li>
+            <li>
+                Added ability to create a new stage from file from the USD Layer Editor.
+            </li>
+            <li>
+                Added options for saving dirty layers in a USD Stage when saving a Max scene. Note that in the current iteration, this will create a pop-up even during Autosave to determine what to do with dirty layers. We intend to address this in a coming update.
+            </li>
+            <li>
+                The bulk save function in the USD Layer Editor displays the number of layers needing saved.
+            </li>
+            <li>
+                Added a right-click menu to print a layer in the USD Layer Editor to the MAXScript Listener. If the layer is more than 400 lines or 50K characters, the function will ask to confirm the print before printing since very large datasets can take a long time to print.
+            </li>
+            <li>
+                The USD Layer Editor can now reload a selected layer.
+            </li>
+            <li>
+                The Mute and Lock states of a USD Layer is now preserved between Max sessions.
+            </li>
+            <li>
+                Users can now launch the USD Layer Editor from the USD Explorer as well as the Tools > USD > USD Layer Editor... menu.
+            </li>
+        </ul>
+        <h5>v0.9.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Added support for displaying USD Light shapes in the viewport. Note they do not cast lights into the viewport but can be selected and edited. The results will render in renderers with USD support.
+            </li>
+            <li>
+                Update some labels and tooltips around the Draw Mode functions in the USD Stage Object.
+            </li>
+            <li>
+                Updated the MaterialX Plugin to use MaterialX version 1.38.8 for 3ds Max 2025.
+            </li>        
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed some of the shipped tools such as USDView not working because of Powershell security policy settings. 
+            </li>
+            <li>
+                Fixed an issue where Selecting the USD Stage from a recently edited prim wouldn't always work.
+            </li>
+            <li>
+                Animated USD attributes now refresh when scrubbing the timeline.
+            </li>
+            <li>
+                Prevent situation where deactivating parent and child leave selection in state that can cause crash
+            </li>
+            <li>
+                Fixed incorrect progress reporting in the USD Importer.
+            </li>
+            <li>
+                Fixed an issue where Display Purpose may not sync correctly when changing the file reference in an existing USD Stage or when changing display purposes.
+            </li>
+        </ul>
+
+        <h5>v0.9.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the USD Exporter to better convert Max Shapes into USD instead of always exporting to linear interpolations.
+            </li>
+            <li>
+                Added USD Layer Editor to target layers for USD edits.
+            </li>
+            <li>
+                Updated the MaterialX Material to save the current material by name instead of index. This guarantees that sub-materials in a USD remain intact in Max even if the MaterialX document changes the ordering of materials.
+            </li>
+            <li>
+                Exposed more of the MaterialX Exporter options to MAXScript.
+            </li>
+            <li>
+                Updated the MaterialX plugin to support importing MaterialX documents using OpenPBR shaders.
+            </li>
+            <li>
+                Introducing the concept of a devkit archive delivered inside the 3dsMax USD plugin installation. The devkit includes all the 3ds Max USD SDK files (includes and libs), the samples and the minimal dependencies (includes and libs) required to compile the samples (or any third-party add-on plugin for the 3ds Max USD plugin). Additionally, the devkit contains the other dependencies required to compile the open-sourced 3ds Max USD plugin (still in preparation). The previous 3ds Max USD SDK archive is not produced anymore. The devkit is its replacement.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue where the Material Export toggle in the USD Exporter was incorrectly reporting as enabled, when in fact it was disabled.
+            </li>
+            <li>
+                Deactivating parent and child leave selection in state that can cause crash.
+            </li>
+        </ul>
+
+        <h5>v0.9.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Made some USD rollouts more human readable instead of always coming directly from USD Schemas.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed and issue where USD Stage roll-ups would not retain their user set state when switching to sub-object mode.
+            </li>
+            <li>
+                The MaterialX Exporter now writes out "sRGB" colorspace instead of "gamma22".
+            </li>
+        </ul>
+
+        <h5>v0.9.1</h5>
+        What's New:
+        <ul>
+            <li>
+                Compatibility release for 3ds Max Beta D2634-67.16 release.
+            </li>
+        </ul>
+
+        <h5>v0.9.0</h5>
         What's New:
         <ul>
             <li>

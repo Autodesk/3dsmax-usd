@@ -39,7 +39,7 @@ public:
     ExportChaserRegistryFactoryContextWrapper(
         const MaxUsdExportChaserRegistry::FactoryContext& ctx);
 
-    boost::python::dict GetPrimsToNodeHandles() const { return primsToNodeHandles; }
+    pyboost::dict GetPrimsToNodeHandles() const { return primsToNodeHandles; }
 
     USDSceneBuilderOptionsWrapper GetJobArgs() const
     {
@@ -49,7 +49,7 @@ public:
     const std::string GetFilename() const { return base_t::GetFilename().string(); }
 
 private:
-    boost::python::dict primsToNodeHandles;
+    pyboost::dict primsToNodeHandles;
 };
 
 ExportChaserRegistryFactoryContextWrapper::ExportChaserRegistryFactoryContextWrapper(
@@ -102,7 +102,7 @@ public:
         MaxUsdExportChaser*
         operator()(const MaxUsdExportChaserRegistry::FactoryContext& factoryContext)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return nullptr;
@@ -111,9 +111,9 @@ public:
             TfPyLock pyLock;
 
             try {
-                boost::python::object instance = pyClass(
+                pyboost::object instance = pyClass(
                     ExportChaserRegistryFactoryContextWrapper(factoryContext), (uintptr_t)chaser);
-                boost::python::incref(instance.ptr());
+                pyboost::incref(instance.ptr());
                 initialize_wrapper(instance.ptr(), chaser);
                 return chaser;
             } catch (...) {
@@ -127,7 +127,7 @@ public:
         // purpose. If we already have a registration for this purpose: update the class to
         // allow the previously issued factory function to use it.
         static MaxUsdExportChaserRegistry::FactoryFn
-        Register(boost::python::object cl, const std::string& exportChaserName)
+        Register(pyboost::object cl, const std::string& exportChaserName)
         {
             size_t classIndex = RegisterPythonObject(cl, GetKey(cl, exportChaserName));
             if (classIndex != MaxUsdPythonObjectRegistry::UPDATED) {
@@ -141,7 +141,7 @@ public:
 
         // Unregister a class for a given purpose. This will cause the associated factory
         // function to stop producing this Python class.
-        static void Unregister(boost::python::object cl, const std::string& exportChaserName)
+        static void Unregister(pyboost::object cl, const std::string& exportChaserName)
         {
             UnregisterPythonObject(cl, GetKey(cl, exportChaserName));
         }
@@ -155,17 +155,17 @@ public:
 
         // Generates a unique key based on the name of the class, along with the class
         // purpose:
-        static std::string GetKey(boost::python::object cl, const std::string& exportChaserName)
+        static std::string GetKey(pyboost::object cl, const std::string& exportChaserName)
         {
             return ClassName(cl) + "," + exportChaserName + "," + ",ExportChaser";
         }
     };
 
     static void Register(
-        boost::python::object cl,
-        const std::string&    exportChaserName,
-        const std::string&    niceName = {},
-        const std::string&    description = {})
+        pyboost::object    cl,
+        const std::string& exportChaserName,
+        const std::string& niceName = {},
+        const std::string& description = {})
     {
         MaxUsdExportChaserRegistry::FactoryFn fn = FactoryFnWrapper::Register(cl, exportChaserName);
         if (fn) {
@@ -179,45 +179,49 @@ public:
         }
     }
 
-    static void Unregister(boost::python::object cl, const std::string& exportChaserName)
+    static void Unregister(pyboost::object cl, const std::string& exportChaserName)
     {
         FactoryFnWrapper::Unregister(cl, exportChaserName);
     }
 };
 
+#if PXR_VERSION < 2411
 BOOST_PYTHON_FUNCTION_OVERLOADS(RegisterExport_overloads, ExportChaserWrapper::Register, 2, 4);
+#else
+PXR_BOOST_PYTHON_FUNCTION_OVERLOADS(RegisterExport_overloads, ExportChaserWrapper::Register, 2, 4);
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 void wrapExportChaserRegistryFactoryContext()
 {
-    boost::python::class_<ExportChaserRegistryFactoryContextWrapper>(
+    pyboost::class_<ExportChaserRegistryFactoryContextWrapper>(
         "MaxUsdExportChaserRegistryFactoryContext",
         "Holds data that can be accessed when constructing an ExportChaser object. This class "
         "allows the plugin\n"
         "code to only know about the context object during construction and only the data it needs "
         "to construct.",
-        boost::python::no_init)
+        pyboost::no_init)
         .def(
             "GetStage",
             &MaxUsdExportChaserRegistry::FactoryContext::GetStage,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the USD stage being written to")
         .def(
             "GetPrimsToNodeHandles",
             &ExportChaserRegistryFactoryContextWrapper::GetPrimsToNodeHandles,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns a dictionary that maps the source USD prim paths to the imported MAXScript "
             "NodeHandles.")
         .def(
             "GetJobArgs",
             &ExportChaserRegistryFactoryContextWrapper::GetJobArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the current global export args in effect.")
         .def(
             "GetFilename",
             &ExportChaserRegistryFactoryContextWrapper::GetFilename,
-            boost::python::return_value_policy<boost::python::return_by_value>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self")),
             "Get the file name and path where the stage is written to on disk.");
 }
 
@@ -226,7 +230,7 @@ void wrapExportChaser()
 {
     typedef MaxUsdExportChaser This;
 
-    boost::python::class_<ExportChaserWrapper, boost::noncopyable>(
+    pyboost::class_<ExportChaserWrapper, noncopyable>(
         "ExportChaser",
         "ExportChaser base class from which export chasers need to inherit from. An ExportChaser "
         "instance is \n"
@@ -234,7 +238,7 @@ void wrapExportChaser()
         "modify \n"
         "the structure of the USD file. Use this to make small changes or to add attributes, in a\n"
         "non-destructive way, to an exported stage.",
-        boost::python::no_init)
+        pyboost::no_init)
         .def(
             "__init__",
             make_constructor(&ExportChaserWrapper::New),
@@ -247,13 +251,13 @@ void wrapExportChaser()
             "PostExport",
             &This::PostExport,
             &ExportChaserWrapper::default_PostExport,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Method being called at the end of the standard export process.")
         .def(
             "Register",
             &ExportChaserWrapper::Register,
             RegisterExport_overloads(
-                boost::python::args(
+                pyboost::args(
                     "export_chaser_class", "export_chaser_name", "nice_name", "description"),
                 "Static method to register an ExportChaser into the ChaserRegistry."))
         .staticmethod("Register")

@@ -15,6 +15,7 @@
 //
 #pragma once
 
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/Builders/USDSceneBuilderOptions.h>
 
 class USDSceneBuilderOptionsWrapper : public MaxUsd::USDSceneBuilderOptions
@@ -130,21 +131,21 @@ public:
      * \brief Return the map of chasers and their respective arguments map
      * \return The map of chasers' arguments
      */
-    boost::python::dict GetAllChaserArgs() const;
+    pyboost::dict GetAllChaserArgs() const;
 
     /**
      * \brief Sets all of the chasers' arguments from a dictionnary.
      * {'chaser' : {'param' : 'val'}}
      * \param args The chasers' args.
      */
-    void SetAllChaserArgsFromDict(boost::python::dict args);
+    void SetAllChaserArgsFromDict(pyboost::dict args);
 
     /**
      * \brief Set all of the chasers' arguments from a list
      * {'chaser', 'param1', 'val', 'chaser2', 'param', 'val'}
      * \param args The chasers' args.
      */
-    void SetAllChaserArgsFromList(boost::python::list args);
+    void SetAllChaserArgsFromList(pyboost::list args);
 
     /**
      * \brief Sets all the material conversions that should be considered in the export.

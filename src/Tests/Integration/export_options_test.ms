@@ -243,7 +243,7 @@ struct export_options_test
         assert_equal "useRegistry" uiExportOptions.ShadingMode message:"ShadingMode was now properly initialized to defaults (\"useRegistry\")"
 
         uiExportOptions.ShadingMode = "none"
-        assert_false uiExportOptions.Materials message:"Materials property was not properly set to false when ShadingMode is set to 'none'."
+        assert_true uiExportOptions.Materials message:"Materials property was not to True when ShadingMode is set to 'none'."
         assert_equal "none" uiExportOptions.ShadingMode message:"ShadingMode was now properly set to 'none' when specified."
 
         uiExportOptions.Reset()
@@ -253,8 +253,11 @@ struct export_options_test
         uiExportOptions.ShadingMode = "none"
         uiExportOptions.Materials = true
         assert_true uiExportOptions.Materials message:"Materials property was not properly set to true."
-        assert_equal "useRegistry" uiExportOptions.ShadingMode message:"ShadingMode was now properly set back 'useRegistry' when materials need to be exported but no ShadingMode was set."
+        assert_equal "none" uiExportOptions.ShadingMode message:"ShadingMode was now left to 'none' when materials need to be exported but no ShadingMode was set."
 
+        uiExportOptions.AllMaterialTargets = #("UsdPreviewSurface")
+        assert_true uiExportOptions.Materials message:"Materials property was not properly set to true."
+        assert_equal "useRegistry" uiExportOptions.ShadingMode message:"ShadingMode was not set 'useRegistry' when materials need to be exported with a target material but ShadingMode was set to 'none'."
     ),
     
     function test_export_meshes_option = (

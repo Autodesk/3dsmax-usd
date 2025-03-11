@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Autodesk
+// Copyright 2024 Autodesk
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,30 +27,22 @@
 /**
  * \brief Nitrous data used to render a USD Prim in the viewport.
  */
-struct RenderDelegateAPI HdMaxRenderData
+struct RenderDelegateAPI HdMaxPrimRenderData
 {
     /**
      * \brief Constructor.
      * \param rPrimId The id of the USD render Prim tied to this render data.
      */
-    explicit HdMaxRenderData(const pxr::SdfPath& rPrimPath)
+    explicit HdMaxPrimRenderData(const pxr::SdfPath& rPrimPath)
         : rPrimPath(rPrimPath)
     {
     }
 
-    enum VertexBuffers
-    {
-        PointsBuffer = 0,
-        NormalsBuffer = 1,
-        SelectionBuffer = 2,
-        UvsBuffer = 3
-    };
-
-    HdMaxRenderData(const HdMaxRenderData& data) = default;
-    HdMaxRenderData(HdMaxRenderData&& data) noexcept = default;
-    HdMaxRenderData& operator=(const HdMaxRenderData& data) = default;
-    HdMaxRenderData& operator=(HdMaxRenderData&& data) noexcept = default;
-    ~HdMaxRenderData() = default;
+    HdMaxPrimRenderData(const HdMaxPrimRenderData& data) = default;
+    HdMaxPrimRenderData(HdMaxPrimRenderData&& data) noexcept = default;
+    HdMaxPrimRenderData& operator=(const HdMaxPrimRenderData& data) = default;
+    HdMaxPrimRenderData& operator=(HdMaxPrimRenderData&& data) noexcept = default;
+    virtual ~HdMaxPrimRenderData() = default;
 
     pxr::SdfPath rPrimPath;
     bool         visible = true;
@@ -104,21 +96,10 @@ struct RenderDelegateAPI HdMaxRenderData
         bool IsInstanced() const;
     };
 
-    // Note : If no UsdGeomSubsets are defined, this vector will contain a single "default" subset,
-    // containing the entirety of the mesh.
-    std::vector<SubsetRenderData> shadedSubsets;
-    // Render data for the wireframe render item. Treat the whole mesh as a single subset containing
-    // everything.
-    SubsetRenderData wireframe;
-
-    // Subset render data that is no longer in use and should be deleted at the next opportunity on
-    // the main thread. Indeed, it is not safe to destroy render items outside of the main thread.
-    std::vector<SubsetRenderData> toDelete;
-    // Nitrous material for the display color. Keep one for regular meshes and a separate one for
-    // instanced meshes, this is a workaround for an issue with the instancing API which can break
-    // the material if shared with non-instanced meshes.
-    MaxSDK::Graphics::StandardMaterialHandle displayColorNitrousHandle;
-    MaxSDK::Graphics::StandardMaterialHandle instanceDisplayColorNitrousHandle;
+    // Source data statistics :
+    size_t sourceNumPoints = 0;
+    // Geometry data used in the viewport, ready to be loaded in nitrous buffers.
+    pxr::VtVec3fArray points;
 
     // The offset transform for the render items (world space). Not used if instanced, see
     // instanceTransforms.
@@ -134,31 +115,18 @@ struct RenderDelegateAPI HdMaxRenderData
     // Use pointer to keep the class move-constructible.
     std::shared_ptr<HdMaxInstanceGen> instancer = std::make_shared<HdMaxInstanceGen>();
 
-    // Geometry data used in the viewport, ready to be loaded in nitrous buffers.
-    pxr::VtVec3fArray points;
-    pxr::VtVec3fArray normals;
-    pxr::VtVec3fArray colors;
-
-    std::vector<MaxUsd::MeshUtils::UvChannel> uvs;
-    // Map material to associated diffuseColor uv primvar
-    pxr::TfHashMap<pxr::SdfPath, std::string, pxr::SdfPath::Hash> materialDiffuseColorUvPrimvars;
-
     // True if the prim is selected, and should be highlighted in VP.
     bool selected = false;
 
-    // The source mesh's topology.
-    pxr::HdMeshTopology sourceTopology;
-
-    // Source data statistics :
-    size_t sourceNumPoints = 0;
-    size_t sourceNumFaces = 0;
+    // True if the render data is for a gizmo (which would be drawn in the gizmo vis group)
+    bool isGizmo = false;
 
     /**
      * \brief Loads the geometry data in the render item's geometry. Creating or updating the
      * index and vertex buffers as needed (only "dirty" things are loaded).
      * \param force If true, the geometry is loaded regardless of the dirty state.
      */
-    void UpdateRenderGeometry(bool fullReload);
+    virtual void UpdateRenderGeometry(bool fullReload) = 0;
 
     /**
      * \brief Dirty all shaded subsets with the given dirty flag. Method is for convenience,
@@ -166,46 +134,34 @@ struct RenderDelegateAPI HdMaxRenderData
      * the same bits.
      * \param dirtyFlag The dirty bits to set onto all shaded subsets.
      */
-    void SetAllSubsetRenderDataDirty(const pxr::HdDirtyBits& dirtyFlag);
+    virtual void SetAllSubsetRenderDataDirty(const pxr::HdDirtyBits& dirtyFlag) = 0;
 
     /**
      * \brief Resolves the final material that should be used in the viewport for this prim's subset.
-     * \param subsetGeometry The subset to resolve the material for.
+     * \param renderData The render data to resolve the material for.
+     * \param subsetRenderData The specific subsetRenderData of the renderData to resolve the material for.
      * \param displaySettings Display settings to use.
+     * \param renderNode The 3dsMax render node. Can carry some material information.
      * \param instanced Is this for instanced geometry (we cant share the same material between instanced and non instanced).
      * \return The resolved material.
      */
-    MaxSDK::Graphics::BaseMaterialHandle ResolveViewportMaterial(
-        const SubsetRenderData&     subsetGeometry,
-        const HdMaxDisplaySettings& displaySettings,
-        bool                        instanced) const;
-
-    /**
-     * \brief Returns the USD display color material handle for this prim render data.
-     * \param instanced Is this for instanced geometry (we cant share the same material between instanced and non instanced).
-     * \return The display color material handle.
-     */
-    MaxSDK::Graphics::BaseMaterialHandle GetDisplayColorNitrousHandle(bool instanced) const;
-
-    /**
-     * \brief Returns the required streams to render USD content in Nitrous.
-     * \param wire If true, return the streams required for the wireframe view, otherwise, the streams for the shaded
-     * view are returned
-     * \return The material required streams.
-     */
-    static MaxSDK::Graphics::MaterialRequiredStreams GetRequiredStreams(bool wire);
+    virtual MaxSDK::Graphics::BaseMaterialHandle ResolveViewportMaterial(
+        const HdMaxPrimRenderData&                renderData,
+        const SubsetRenderData&                   subsetRenderData,
+        const HdMaxDisplaySettings&               displaySettings,
+        const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+        bool                                      instanced) const
+        = 0;
 
     /**
      * \brief Returns true if the first shaded subset is instanced - if so, it is expected that all associated render
      * items will be instanced.
      * \return True if instanced.
      */
-    bool IsInstanced() const;
-};
+    virtual bool IsInstanced() const = 0;
 
-static_assert(
-    std::is_move_constructible<HdMaxRenderData>::value,
-    "HdMaxRenderData should be move constructible.");
-static_assert(
-    std::is_move_constructible<HdMaxRenderData::SubsetRenderData>::value,
-    "HdMaxRenderData should be move constructible.");
+    static void SetVertexBuffer(
+        std::shared_ptr<MaxRenderGeometryFacade> geometry,
+        int                                      index,
+        MaxSDK::Graphics::VertexBufferHandle     newBuffer);
+};

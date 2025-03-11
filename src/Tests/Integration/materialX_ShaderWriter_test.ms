@@ -44,9 +44,16 @@ struct materialX_shader_writer_test
         local mtlxMatPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001")
         assert_true (mtlxMatPrim.IsValid())
         assert_true (mtlxMatPrim.IsA(pyShade.Material))
-        local mtlxShaderPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
-        assert_true (mtlxShaderPrim.IsValid())
-        assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        maxver = maxVersion()
+        if maxver[1] < 27900 then (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        ) else (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        )
     ),
     
     --- Validate that the relative path added to the reference the MaterialX document is valid 

@@ -29,106 +29,121 @@
 #include <Qt/QMaxColorSwatch.h>
 
 #include <GetCOREInterface.h>
+#include <VariableGuard.h>
 #include <iparamb2.h>
 #include <maxapi.h>
 #include <notify.h>
 
 using namespace MaxSDK;
 
-static void NotifySubObjectLevelChanged(void* param, NotifyInfo* info)
+namespace {
+
+void setSubObjectLevelLater(QPointer<QObject> sentinel, USDStageObject* object, SelectionMode mode)
 {
-    if (!info->callParam) {
-        return;
-    }
-    const auto rollup = static_cast<UsdStageViewportSelectionRollup*>(param);
-    rollup->UpdateSelectionMode();
+    // Switching to sub-object level leads to the deletion and recreation of
+    // rollups, what can interfere with the deferred update calls from the
+    // automatic 3dsMax param mapping, so we have to defer the switching till we
+    // can be sure the deferred update has been finished.
+
+    qApp->processEvents();
+
+    // As the signal is delivered via the Qt event-system asynchronously due
+    // to the connection type of Qt::QueuedConnection, we need to pass in a
+    // QPointer to the sentinel (as a copy) to have a way to verify, that at
+    // the point in time where the lambda is executed, we do still exist.
+    QTimer::singleShot(0, [sentinel, object, mode] {
+        if (sentinel && object && object->IsInEditParams()) {
+            GetCOREInterface()->SetSubObjectLevel(static_cast<int>(mode));
+        }
+    });
 }
+
+} // namespace
 
 UsdStageViewportSelectionRollup::UsdStageViewportSelectionRollup(
     ReferenceMaker& owner,
     IParamBlock2&   paramBlock)
     : ui(new Ui::UsdStageViewportSelectionRollup)
+    , sentinel(new QObject())
 {
     SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
     ui->setupUi(this);
     modelObj = static_cast<USDStageObject*>(&owner);
 
-    connect(ui->stageRadioButton, &QRadioButton::toggled, [this](bool checked) {
-        if (checked) {
-            GetCOREInterface()->SetSubObjectLevel(static_cast<int>(SelectionMode::Stage));
-        }
-    });
-    connect(ui->primRadioButton, &QRadioButton::toggled, [this](bool checked) {
-        if (checked) {
-            GetCOREInterface()->SetSubObjectLevel(static_cast<int>(SelectionMode::Prim));
-        }
-    });
+    QPointer<QObject> qpSentinel(sentinel);
+    USDStageObject*   object = modelObj;
 
-    const auto selectionLevel = static_cast<SelectionMode>(modelObj->GetSubObjectLevel());
-    selectionLevel == SelectionMode::Stage ? ui->stageRadioButton->setChecked(true)
-                                           : ui->primRadioButton->setChecked(true);
-
-    RegisterNotification(NotifySubObjectLevelChanged, this, NOTIFY_MODPANEL_SUBOBJECTLEVEL_CHANGED);
+    UpdateSelectionMode();
+    connect(
+        ui->stageRadioButton,
+        &QRadioButton::clicked,
+        sentinel,
+        // As the signal is delivered via the Qt event-system asynchronously due
+        // to the connection type of Qt::QueuedConnection, we need to pass in a
+        // QPointer to the sentinel (as a copy) to have a way to verify, that at
+        // the point in time where the lambda is executed, we do still exist.
+        [qpSentinel, object](bool checked) {
+            if (checked && qpSentinel && object && object->IsInEditParams()
+                && GetCOREInterface()->GetSubObjectLevel()
+                    != static_cast<int>(SelectionMode::Stage)) {
+                setSubObjectLevelLater(qpSentinel, object, SelectionMode::Stage);
+            }
+        },
+        Qt::QueuedConnection);
+    connect(
+        ui->primRadioButton,
+        &QRadioButton::clicked,
+        sentinel,
+        // As the signal is delivered via the Qt event-system asynchronously due
+        // to the connection type of Qt::QueuedConnection, we need to pass in a
+        // QPointer to the sentinel (as a copy) to have a way to verify, that at
+        // the point in time where the lambda is executed, we do still exist.
+        [qpSentinel, object](bool checked) {
+            if (checked && qpSentinel && object && object->IsInEditParams()
+                && GetCOREInterface()->GetSubObjectLevel()
+                    != static_cast<int>(SelectionMode::Prim)) {
+                setSubObjectLevelLater(qpSentinel, object, SelectionMode::Prim);
+            }
+        },
+        Qt::QueuedConnection);
 
     // Kind selection UI setup.
-    const static auto                      noneToken = pxr::TfToken("none");
-    const static std::vector<pxr::TfToken> baseKindEntries = { noneToken,
-                                                               pxr::KindTokens->model,
-                                                               pxr::KindTokens->subcomponent,
-                                                               pxr::KindTokens->component,
-                                                               pxr::KindTokens->group,
-                                                               pxr::KindTokens->assembly };
+    const static std::vector<pxr::TfToken> baseKindEntries
+        = { pxr::TfToken("none"),       pxr::KindTokens->model, pxr::KindTokens->subcomponent,
+            pxr::KindTokens->component, pxr::KindTokens->group, pxr::KindTokens->assembly };
 
     // First add the basic kinds.
-    int kindIdx = 0;
     for (const auto& baseKind : baseKindEntries) {
-        ui->kindSelection->addItem(baseKind.GetString().c_str(), kindIdx);
-        kindIdx++;
+        ui->KindSelection->addItem(baseKind.GetString().c_str());
     }
 
     // Custom kinds.
     for (const auto& kind : pxr::KindRegistry::GetAllKinds()) {
         if (std::find(baseKindEntries.begin(), baseKindEntries.end(), kind)
-            != baseKindEntries.end()) {
-            continue;
+            == baseKindEntries.end()) {
+            ui->KindSelection->addItem(kind.GetString().c_str());
         }
-        ui->kindSelection->addItem(kind.GetString().c_str(), kindIdx);
-        kindIdx++;
     }
 
+#if MAX_VERSION_MAJOR >= 26
+    // Usability short hand, when the user selects a kind selection mode,
+    // auto-switch to prim sub-object level.
+    // For technical reasons, this is only available in 3ds Max 2024 and later.
     connect(
-        ui->kindSelection,
-        static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-        [this](int index) {
-            // Update the param block.
-            const auto& kindStr = ui->kindSelection->itemText(index).toStdString();
-            const WStr  kindParam = kindStr == noneToken.GetString()
-                 ? WStr {}
-                 : MaxUsd::UsdStringToMaxString(kindStr);
-
-            const MCHAR* currentKindParam = nullptr;
-            Interval     valid = FOREVER;
-            this->paramBlock->GetValue(
-                KindSelection, GetCOREInterface()->GetTime(), currentKindParam, valid);
-
-            // If we changed the index programmatically in reaction to the parameter changing, we
-            // dont need to do anything more.
-            if (kindParam == currentKindParam) {
-                return;
+        ui->KindSelection,
+        qOverload<int>(&QComboBox::currentIndexChanged),
+        sentinel,
+        // As the signal is delivered via the Qt event-system asynchronously due
+        // to the connection type of Qt::QueuedConnection, we need to pass in a
+        // QPointer to the sentinel (as a copy) to have a way to verify, that at
+        // the point in time where the lambda is executed, we do still exist.
+        [qpSentinel, object, this](int index) {
+            if (qpSentinel && !isUpdatingUI && index != -1 && object && object->IsInEditParams()) {
+                setSubObjectLevelLater(qpSentinel, object, SelectionMode::Prim);
             }
-
-            // Usability short hand, if the user selects a kind selection mode, auto-switch to prim
-            // subobject level.
-            GetCOREInterface()->SetSubObjectLevel(static_cast<int>(SelectionMode::Prim));
-            // Update the PB with the new kind!
-            if (!theHold.Holding()) {
-                theHold.Begin();
-                this->paramBlock->SetValueByName(L"KindSelection", kindParam, 0);
-                theHold.Accept(_T("Kind Selection Parameter Change"));
-            } else {
-                this->paramBlock->SetValueByName(L"KindSelection", kindParam, 0);
-            }
-        });
+        },
+        Qt::QueuedConnection);
+#endif // MAX_VERSION_MAJOR >= 26
 
     ui->selectionHighlightCheckbox->setChecked(
         HdMaxDisplayPreferences::GetInstance().GetSelectionHighlightEnabled());
@@ -136,8 +151,9 @@ UsdStageViewportSelectionRollup::UsdStageViewportSelectionRollup(
 
     connect(ui->selectionHighlightCheckbox, &QCheckBox::toggled, [this](bool checked) {
         HdMaxDisplayPreferences::GetInstance().SetSelectionHighlightEnabled(checked);
-        // Notify and complete redraw so that all usd stage objects get redrawn. We need to notify,
-        // as internally we need to now use different render items / update selection buffers.
+        // Notify and complete redraw so that all usd stage objects get redrawn.
+        // We need to notify, as internally we need to now use different render
+        // items / update selection buffers.
         BroadcastNotification(NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED);
         GetCOREInterface()->ForceCompleteRedraw();
     });
@@ -152,8 +168,20 @@ UsdStageViewportSelectionRollup::UsdStageViewportSelectionRollup(
 
 UsdStageViewportSelectionRollup::~UsdStageViewportSelectionRollup()
 {
-    UnRegisterNotification(
-        NotifySubObjectLevelChanged, this, NOTIFY_MODPANEL_SUBOBJECTLEVEL_CHANGED);
+    // This will also disconnect all signal-slot-connections, but as the signals
+    // is delivered by an event via the Qt event system due to the queued
+    // connection, we still need to pass in a copy of a QPointer to the sentinel
+    // each time, to ensure that at the point in time where the lambda is
+    // actually executed, we do still exist.
+    //
+    // The reason why a simple QPointer(this) won't work is the fact that the
+    // "destroyed" signal (what nulls out the QPointer) gets emitted from the
+    // destructor of the base QWidget (not from the destructor of our actual
+    // derived class) what happens AFTER right after this de-constructor, but in
+    // between those points in time, we are not allowed to access any members of
+    // this class anymore (as we technically are just a plain QWidget).
+    delete sentinel;
+    sentinel = nullptr;
 }
 
 void UsdStageViewportSelectionRollup::SetParamBlock(
@@ -164,51 +192,31 @@ void UsdStageViewportSelectionRollup::SetParamBlock(
     modelObj = static_cast<USDStageObject*>(owner);
 }
 
-void UsdStageViewportSelectionRollup::UpdateUI(const TimeValue t)
+// PreConnectUI and PostConnectUI are only available in 3ds Max 2024 and later.
+#if MAX_VERSION_MAJOR >= 26
+
+void UsdStageViewportSelectionRollup::PreConnectUI(const MapID /*paramMapID*/)
 {
-    UpdateParameterUI(GetCOREInterface()->GetTime(), KindSelection, t);
+    isUpdatingUI = true;
 }
 
-void UsdStageViewportSelectionRollup::UpdateParameterUI(
-    const TimeValue t,
-    const ParamID   paramId,
-    const int /*tabIndex*/)
+void UsdStageViewportSelectionRollup::PostConnectUI(const MapID /*paramMapID*/)
 {
-    if (KindSelection == paramId) {
-        // Get the new kind to select.
-        const MCHAR* kindSelectionPb = nullptr;
-        Interval     valid = FOREVER;
-        paramBlock->GetValue(KindSelection, GetCOREInterface()->GetTime(), kindSelectionPb, valid);
-
-        // Find its index in the combobox.
-        const auto kindStr = MaxUsd::MaxStringToUsdString(kindSelectionPb);
-
-        auto findNewIndex = [this, kindStr] {
-            if (kindStr.empty()) {
-                return 0;
-            }
-
-            for (int i = 0; i < ui->kindSelection->count(); ++i) {
-                if (ui->kindSelection->itemText(i).toStdString() == kindStr) {
-                    return i;
-                }
-            }
-            DbgAssert(0 && "Invalid kind set for selection.");
-            return 0;
-        };
-
-        const int newIdx = findNewIndex();
-
-        // Only update the index if it actually changed, to avoid QT signal noise.
-        if (newIdx != ui->kindSelection->currentIndex()) {
-            ui->kindSelection->setCurrentIndex(newIdx);
+    QPointer<QObject> qpSentinel(sentinel);
+    QTimer::singleShot(0, [qpSentinel, this] {
+        if (qpSentinel) {
+            qApp->processEvents();
+            isUpdatingUI = false;
         }
-    }
+    });
 }
 
-void UsdStageViewportSelectionRollup::UpdateSelectionMode() const
+#endif // MAX_VERSION_MAJOR >= 26
+
+void UsdStageViewportSelectionRollup::UpdateSelectionMode()
 {
-    const auto level = GetCOREInterface()->GetSubObjectLevel();
+    MaxSDK::VariableGuard<bool> guard(isUpdatingUI, true);
+    const auto                  level = GetCOREInterface()->GetSubObjectLevel();
     switch (level) {
     // Stage
     case 0:
@@ -220,6 +228,6 @@ void UsdStageViewportSelectionRollup::UpdateSelectionMode() const
         ui->stageRadioButton->setChecked(false);
         ui->primRadioButton->setChecked(true);
         break;
-    default: DbgAssert(0 && "Unsupported sub-object level");
+    default: DbgAssert(false && "Unsupported sub-object level");
     }
 }

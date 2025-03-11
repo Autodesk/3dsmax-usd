@@ -17,37 +17,30 @@
 
 #include <object.h>
 
+
 /**
  * \brief Mock object for 3ds Max's Object interface.
  */
 class MockObject : public Object
 {
 public:
-    /**
-     * The following members inherited from the Object interface can be used in
-     * tests to modify the state and behavior of the Mock.
-     */
+	/**
+	 * The following members inherited from the Object interface can be used in
+	 * tests to modify the state and behavior of the Mock.
+	 */
 
-    ObjectState Eval(TimeValue /*t*/) { return ObjectState(this); }
-    SClass_ID   SuperClassID() { return GEOMOBJECT_CLASS_ID; }
+	ObjectState Eval(TimeValue /*t*/) { return ObjectState(this); }
+	SClass_ID SuperClassID() { return GEOMOBJECT_CLASS_ID; }
 
 public:
-    /**
-     * The following members inherited from the INode interface are not implemented.
-     * Their return values should not be considered, and can cause undefined
-     * side-effects.
-     */
+	/**
+	 * The following members inherited from the INode interface are not implemented.
+	 * Their return values should not be considered, and can cause undefined
+	 * side-effects.
+	 */
 
-    int                  IsRenderable() { return 0; }
-    void                 InitNodeName(MSTR& /*s*/) { }
-    CreateMouseCallBack* GetCreateMouseCallBack() { return nullptr; }
-    RefResult            NotifyRefChanged(
-                   const Interval& /*changeInt*/,
-                   RefTargetHandle /*hTarget*/,
-                   PartID& /*partID*/,
-                   RefMessage /*message*/,
-                   BOOL /*propagate*/)
-    {
-        return REF_FAIL;
-    }
+	int IsRenderable() { return 0; }
+	void InitNodeName(MSTR& /*s*/) { }
+	CreateMouseCallBack* GetCreateMouseCallBack() { return nullptr; }
+	RefResult NotifyRefChanged(const Interval& /*changeInt*/, RefTargetHandle /*hTarget*/, PartID& /*partID*/, RefMessage /*message*/, BOOL /*propagate*/) { return REF_FAIL; }
 };

@@ -108,7 +108,7 @@ struct usd_prs_controllers_test
         prs_test_file = (testDataDir + @"prs_controller_data.usda")
         
         local stageObject = USDStageObject()
-        stageObject.Reload()
+        stageObject.Reload quiet:True
         stageObject.SetRootLayer prs_test_file
         
         local posControl = USDPositionController()        
@@ -156,7 +156,7 @@ struct usd_prs_controllers_test
         prs_test_file = (testDataDir + @"prs_controller_data.usda")
         
         local stageObject = USDStageObject()
-        stageObject.Reload()
+        stageObject.Reload quiet:True
         stageObject.SetRootLayer prs_test_file
         
         local rotControl = USDRotationController()        
@@ -179,7 +179,7 @@ struct usd_prs_controllers_test
         prs_test_file = (testDataDir + @"prs_controller_data.usda")
         
         local stageObject = USDStageObject()
-        stageObject.Reload()
+        stageObject.Reload quiet:True
         stageObject.SetRootLayer prs_test_file
         
         local posControl = USDPositionController()        

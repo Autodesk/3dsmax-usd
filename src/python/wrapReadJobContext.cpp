@@ -15,6 +15,8 @@
 //
 #include "wrapReadJobContext.h"
 
+#include <BoostPythonWrapper.h>
+
 #include <boost/python/class.hpp>
 #include <boost/python/def.hpp>
 
@@ -65,18 +67,16 @@ ReferenceTarget* MaxUsdReadJobContextWrapper::GetReferenceTarget(INT_PTR handle)
 
 void wrapReadJobContext()
 {
-    using namespace boost::python;
-
-    class_<MaxUsdReadJobContextWrapper>("PrimReaderContext", no_init)
+    pyboost::class_<MaxUsdReadJobContextWrapper>("PrimReaderContext", pyboost::no_init)
         .def(
             "GetNodeHandle",
             &MaxUsdReadJobContextWrapper::GetNodeHandle,
-            (boost::python::args("context", "prim")),
+            (pyboost::args("context", "prim")),
             "Get the MAXScript AnimHandle on the node created for the given Prim.")
         .def(
             "RegisterCreatedNode",
             &MaxUsdReadJobContextWrapper::RegisterNodeHandle,
-            (boost::python::args("self", "path", "anim_handle")),
+            (pyboost::args("self", "path", "anim_handle")),
             "Record 3ds Max node animHandle created for the prim path")
         .def("GetPruneChildren", &MaxUsdReadJobContext::GetPruneChildren)
         .def("SetPruneChildren", &MaxUsdReadJobContext::SetPruneChildren)

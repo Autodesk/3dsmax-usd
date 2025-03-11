@@ -48,16 +48,16 @@ public:
     void CloseStage(USDStageObject* stageObject);
 
     /**
-     * \brief Sets whether to show inactive prims in the treeview.
-     * \param showInactive True to show inactive prims.
+     * \brief Sets a filter flag on the treeview.
+     * \param value The value of the filter flag.
      */
-    void SetShowInactivePrims(bool showInactive);
+    void SetFilterFlag(const std::string& flag, bool value);
 
     /**
-     * \brief Gets whether inactive prims are shown in the treeview.
-     * \return True if inactive prims are shown.
+     * \brief Gets the value of a filter flag.
+     * \return The flag value.
      */
-    bool ShowInactivePrims() const;
+    bool GetFilterFlag(const std::string& flag) const;
 
     /**
      * \brief If enabled, the explorer will make sure that the current selection is visible
@@ -86,11 +86,14 @@ public:
 
     int GetManualColumnWidth(int visualIdx) const;
 
-private:
-    USDExplorer();
-
     static std::vector<UfeUi::Explorer*> AllStageExplorers();
     static UfeUi::Explorer*              ActiveStageExplorer();
+
+    static const std::string inactiveFilterName;
+    static const std::string classFilterName;
+
+private:
+    USDExplorer();
 
     static std::unique_ptr<USDExplorer> instance;
 

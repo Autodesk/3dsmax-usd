@@ -45,6 +45,49 @@
 
 namespace UfeUi {
 
+class ExplorerPickMode : public Explorer::PickMode
+{
+public:
+    ExplorerPickMode(Explorer* explorer)
+        : _explorer { explorer }
+    {
+    }
+
+    ~ExplorerPickMode() { exit(); }
+
+    void exit() override
+    {
+        for (auto& callback : _callbacks) {
+            if (auto cb = callback.lock()) {
+                cb->exited(false);
+                cb.reset();
+            }
+        }
+        _callbacks.clear();
+        if (_explorer) {
+            _explorer->exitPickMode();
+        }
+        _explorer = nullptr;
+    }
+
+    void addCallback(std::weak_ptr<Callback> callback) override { _callbacks.push_back(callback); }
+    void removeCallback(std::weak_ptr<Callback> callback) override
+    {
+        _callbacks.erase(
+            std::remove_if(
+                _callbacks.begin(),
+                _callbacks.end(),
+                [&callback](const auto& c) { return c.expired() || c.lock() == callback.lock(); }),
+            _callbacks.end());
+    }
+
+private:
+    QPointer<Explorer>                   _explorer;
+    std::vector<std::weak_ptr<Callback>> _callbacks;
+
+    friend class Explorer;
+};
+
 Explorer::Explorer(
     const Ufe::SceneItem::Ptr&   rootItem,
     const TreeColumns&           columns,
@@ -130,9 +173,13 @@ Explorer::Explorer(
         header->setStyle(new Icon::CenteredIconHeaderStyle(header->style()));
 
         header->setMinimumSectionSize(static_cast<int>(32 * Utils::dpiScale()));
-        header->setSectionResizeMode(0, QHeaderView::ResizeMode::ResizeToContents);
-        header->setSectionResizeMode(1, QHeaderView::ResizeMode::ResizeToContents);
-        header->setSectionResizeMode(2, QHeaderView::ResizeMode::Interactive);
+        for (const auto& c : columns) {
+            auto resizeMode = static_cast<QHeaderView::ResizeMode>(c->resizeMode());
+            int  logicalIndex = header->logicalIndex(c->visualIndex());
+            if (logicalIndex != -1) {
+                header->setSectionResizeMode(logicalIndex, resizeMode);
+            }
+        }
         header->setStretchLastSection(true);
 
         // Arbitrary width for the name column.
@@ -496,6 +543,34 @@ TreeModel* Explorer::treeModel() const { return _treeModel.get(); }
 
 QTreeView* Explorer::treeView() const { return _ui->treeView; }
 
+std::shared_ptr<UfeUi::Explorer::PickMode> Explorer::enterPickMode()
+{
+    if (!_pickMode.expired()) {
+        // there can only be one pick mode at a time
+        return nullptr;
+    }
+
+    auto pickmode = std::make_shared<ExplorerPickMode>(this);
+    _pickModeSelection.clear();
+    _pickMode = pickmode;
+    // The tree selection is in sync with the global UFE selection, while in
+    // pickmode, we start with an empty selection and do not touch the global
+    // UFE selection nor update when the global UFE selection changes.
+    _ui->treeView->clearSelection();
+    return pickmode;
+}
+
+void Explorer::exitPickMode()
+{
+    if (auto pm = _pickMode.lock()) {
+        _pickMode.reset();
+        _pickModeSelection.clear();
+        pm->exit();
+        // this will bring the tree selection back to the global UFE selection
+        updateTreeSelection();
+    }
+}
+
 QString Explorer::searchFilter() const { return _ui->filterLineEdit->text(); }
 
 const TypeFilter& Explorer::typeFilter() { return _typeFilter; }
@@ -591,8 +666,10 @@ void Explorer::onTreeViewSelectionChanged(
     const QItemSelection& selectedItems,
     const QItemSelection& deselectedItems)
 {
-    const auto&    globalSelection = *Ufe::GlobalSelection::get();
-    Ufe::Selection newSelection { globalSelection };
+    const Ufe::Selection& currentSelection
+        = _pickMode.expired() ? *Ufe::GlobalSelection::get() : _pickModeSelection;
+
+    Ufe::Selection newSelection = currentSelection;
 
     auto processItems = [this, &newSelection](const QItemSelection& items, bool select) {
         for (const auto& index : _proxyModel->mapSelectionToSource(items).indexes()) {
@@ -620,15 +697,16 @@ void Explorer::onTreeViewSelectionChanged(
     processItems(deselectedItems, false);
     processItems(selectedItems, true);
 
-    // If the new selection is equivalent the current selection, it means the selection
-    // was changed from outside of the explorer, only need to update the selection
-    // ancestor highlighting.
-    if (Utils::selectionsAreEquivalent(newSelection, globalSelection)) {
+    // If the new selection is equivalent the current selection, it means the
+    // selection was changed from outside of the explorer, only need to update
+    // the selection ancestor highlighting.
+    if (Utils::selectionsAreEquivalent(newSelection, currentSelection)) {
         updateSelectionAncestors();
         return;
     }
 
-    // Selection was changed from explorer, remove any item that are not displayed in the explorer.
+    // Selection was changed from explorer, remove any item that are not
+    // displayed in the explorer.
     std::vector<Ufe::SceneItemPtr> toRemove;
     for (const auto& si : newSelection) {
         if (!isRelevantToExplorer(si->path())) {
@@ -644,6 +722,39 @@ void Explorer::onTreeViewSelectionChanged(
 
     _parentHighlightExtend.clear();
     updateSelectionAncestors();
+
+    if (!_pickMode.expired()) {
+        // If we are in pick mode, we don't update the global ufe selection.
+
+        for (const auto& s : newSelection) {
+            if (_pickModeSelection.contains(s->path())) {
+                continue;
+            }
+            if (auto pm = std::dynamic_pointer_cast<ExplorerPickMode>(_pickMode.lock())) {
+                for (auto& callback : pm->_callbacks) {
+                    if (auto cb = callback.lock()) {
+                        cb->selected(s->path());
+                    }
+                }
+            }
+        }
+        for (const auto& s : _pickModeSelection) {
+            if (newSelection.contains(s->path())) {
+                continue;
+            }
+            if (auto pm = std::dynamic_pointer_cast<ExplorerPickMode>(_pickMode.lock())) {
+                for (auto& callback : pm->_callbacks) {
+                    if (auto cb = callback.lock()) {
+                        cb->deSelected(s->path());
+                    }
+                }
+            }
+        }
+
+        _pickModeSelection = newSelection;
+
+        return;
+    }
 
     Ufe::UndoableCommandMgr::instance().executeCmd(
         std::make_shared<ReplaceSelectionCommand>(newSelection));
@@ -724,13 +835,17 @@ void Explorer::buildContextMenu(
                 connect(action, &QAction::triggered, [this, contextOps, fullItemPath]() {
                     // Wrap the context op command in an "edit command". Edit commands can add
                     // pre/post execution behaviors, for execute/undo/redo
-                    const auto cmd = contextOps->doOpCmd(fullItemPath);
-                    if (cmd) {
-                        const auto editCmd = UfeUi::EditCommand::create(
-                            contextOps->sceneItem()->path(), cmd, "USD Stage Edit");
-                        // Execute via the UndoableCommandManager - this way, execution can be
-                        // extended by the DCC via a derived UndoableCommandMgr.
-                        Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
+                    try {
+                        const auto cmd = contextOps->doOpCmd(fullItemPath);
+                        if (cmd) {
+                            const auto editCmd = UfeUi::EditCommand::create(
+                                contextOps->sceneItem()->path(), cmd, "USD Stage Edit");
+                            // Execute via the UndoableCommandManager - this way, execution can be
+                            // extended by the DCC via a derived UndoableCommandMgr.
+                            Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
+                        }
+                    } catch (std::exception&) {
+                        // UsdExpiredPrimAccessError exception thrown (from pxr/usd/usd/errors.h)
                     }
 
                     // Hack / Workaround :
@@ -764,6 +879,11 @@ void Explorer::buildContextMenu(
 
 void Explorer::onCustomContextMenuRequested(const QPoint& pos)
 {
+    // when in pick mode, don't do any context menu.
+    if (!_pickMode.expired()) {
+        return;
+    }
+
     // Figure out the treeModel index.
     const auto proxyIndex = _ui->treeView->indexAt(pos);
     if (!proxyIndex.isValid()) {
@@ -856,8 +976,12 @@ void Explorer::Observer::operator()(const Ufe::Notification& notification)
             updateExplorerItem(sceneItem->path());
         } else {
             auto parentItem = getTreeItem(oa->changedPath().pop());
+            // If we can't find a parent item - nothing to do. The child
+            // will be added if and when the parent is added. There are cases where
+            // the parent is missing for a reason (for example with USD prototype prims)
+            // and we do not want to add their children.
             if (!parentItem) {
-                parentItem = model->root();
+                return;
             }
             sceneItem = Ufe::Hierarchy::createItem(addedPath);
             model->layoutAboutToBeChanged();

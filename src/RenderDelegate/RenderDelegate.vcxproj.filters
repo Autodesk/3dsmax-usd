@@ -30,7 +30,7 @@
     <ClCompile Include="HdMaxInstanceGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HdMaxRenderData.cpp">
+    <ClCompile Include="HdMaxPrimRenderData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Imaging\HdMaxExtComputation.cpp">
@@ -84,6 +84,27 @@
     <ClCompile Include="DllEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Imaging\HdMaxBasisCurves.cpp">
+      <Filter>Source Files\Imaging</Filter>
+    </ClCompile>
+    <ClCompile Include="HdMaxBasisCurvesRenderData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HdLightGizmoSceneIndexFilter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HdMaxLightGizmoMeshAccess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsolidatedGizmoRenderItem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GizmoMaterial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HdMaxMeshRenderData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HdMaxDisplaySettings.h">
@@ -101,7 +122,7 @@
     <ClInclude Include="HdMaxInstanceGen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HdMaxRenderData.h">
+    <ClInclude Include="HdMaxPrimRenderData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="renderdelegate_banned.h">
@@ -162,6 +183,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DLLEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Imaging\HdMaxBasisCurves.h">
+      <Filter>Header Files\Imaging</Filter>
+    </ClInclude>
+    <ClInclude Include="HdMaxBasisCurvesRenderData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HdLightGizmoSceneIndexFilter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HdMaxLightGizmoMeshAccess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsolidatedGizmoRenderItem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GizmoMaterial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HdMaxMeshRenderData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

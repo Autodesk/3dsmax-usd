@@ -1,0 +1,10 @@
+#usda 1.0
+(
+    subLayers = [
+        @sublayer1.usda@,
+        @sublayer2.usda@,
+        @sublayer3.usda@
+    ]
+)
+
+

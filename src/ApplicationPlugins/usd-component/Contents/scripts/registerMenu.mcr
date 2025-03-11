@@ -10,13 +10,22 @@ macroScript CreateUSDStage category:"USD" buttonText:~USD_STAGE_MENU_ITEM~ toolt
 	(
 		stageObject = USDStageObject()
 		stageObject.SetRootLayer result[1] stageMask:result[2] payloadsLoaded:result[3]
-		if (result[4]) do (
+		if (result[4]) then (
 			stageObject.OpenInUsdExplorer()
 		)
+		else (
+			stageObject.CloseInUsdExplorer()
+		)
+		select stageObject
 	)
 )
 
 macroScript OpenUsdExplorer category:"USD" buttonText:~USD_EXPLORER_MENU_ITEM~ tooltip:~USD_EXPLORER_MENU_ITEM~
 (
 	USDStageObject.OpenUsdExplorer()
+)
+
+macroScript OpenUsdLayerEditor category:"USD" buttonText:~USD_LAYER_EDITOR_MENU_ITEM~ tooltip:~USD_LAYER_EDITOR_MENU_ITEM~
+(
+	USDStageObject.OpenUsdLayerEditor()
 )

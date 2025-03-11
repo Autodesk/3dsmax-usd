@@ -49,6 +49,12 @@
     <Filter Include="Source Files\MaxUsdUfe">
       <UniqueIdentifier>{1cc662d3-495c-47e5-9ab1-6164de23189d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\LayerEditor">
+      <UniqueIdentifier>{e5dbcb94-249a-4e28-83a1-ffb99ce171e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\LayerEditor">
+      <UniqueIdentifier>{a40f589f-ecdc-4325-b9ab-ae11d6f087bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DllEntry.cpp">
@@ -174,8 +180,29 @@
     <ClCompile Include="Objects\USDSnaps.cpp">
       <Filter>Source Files\Objects</Filter>
     </ClCompile>
-    <ClCompile Include="SubobjectManips.cpp">
+    <ClCompile Include="Objects\SubobjectManips.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxSessionState.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxLayerEditor.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\SaveUSDOptionsDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\USDLayerManager.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="QmaxUsdPythonWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxLayerEditorItemDelegate.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="LayerEditor\MaxLayerEditorWindow.cpp">
+      <Filter>Source Files\LayerEditor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -281,11 +308,17 @@
     <ClInclude Include="Objects\USDSnaps.h">
       <Filter>Header Files\Objects</Filter>
     </ClInclude>
-    <ClInclude Include="SubobjectManips.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MaxUsdUfe\MaxUfeUndoableCommandMgr.h">
       <Filter>Header Files\MaxUsdUfe</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\SubobjectManips.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LayerEditor\MaxLayerEditor.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="LayerEditor\USDLayerManager.h">
+      <Filter>Header Files\LayerEditor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -327,6 +360,21 @@
     <QtMoc Include="MaxUsdUfe\QmaxUsdUfeAttributesWidget.h">
       <Filter>Header Files\MaxUsdUfe</Filter>
     </QtMoc>
+    <QtMoc Include="LayerEditor\MaxSessionState.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerEditor\MaxLayerEditorWindow.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </QtMoc>
+    <QtMoc Include="QmaxUsdPythonWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\SaveUSDOptionsDialog.h">
+      <Filter>Header Files\Views</Filter>
+    </QtMoc>
+    <QtMoc Include="LayerEditor\MaxLayerEditorItemDelegate.h">
+      <Filter>Header Files\LayerEditor</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="Views\UsdStageNodePrimSelectionDialog.ui">
@@ -354,6 +402,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Views\UsdControllerWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\SaveUSDOptionsDialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

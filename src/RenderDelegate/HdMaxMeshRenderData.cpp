@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Autodesk
+// Copyright 2024 Autodesk
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,66 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "HdMaxRenderData.h"
+#include "HdMaxMeshRenderData.h"
 
+#include "GizmoMaterial.h"
 #include "HdMaxDisplaySettings.h"
 
 #include <MaxUsd/Utilities/VtUtils.h>
 
-// Helper, sets a buffer in the geometry at the given index.
-void _SetVertexBuffer(
-    std::shared_ptr<MaxRenderGeometryFacade> geometry,
-    int                                      index,
-    MaxSDK::Graphics::VertexBufferHandle     newBuffer)
-{
-    if (geometry->GetVertexBufferCount() == index) {
-        geometry->AddVertexBuffer(newBuffer);
-        return;
-    }
-    if (geometry->GetVertexBufferCount() < index) {
-        return;
-    }
+#include <Graphics/HLSLMaterialHandle.h>
 
-    std::vector<MaxSDK::Graphics::VertexBufferHandle> buffers;
-    const auto bufferCount = geometry->GetVertexBufferCount();
-    for (int i = 0; i < bufferCount; i++) {
-        if (i == index) {
-            buffers.push_back(newBuffer);
-            continue;
-        }
-        buffers.push_back(geometry->GetVertexBuffer(i));
-    }
-
-    for (int i = int(bufferCount) - 1; i >= 0; --i) {
-        geometry->RemoveVertexBuffer(i);
-    }
-
-    for (int i = 0; i < bufferCount; i++) {
-        geometry->AddVertexBuffer(buffers[i]);
-    }
-}
-
-MaxSDK::Graphics::RenderItemHandleDecorator&
-HdMaxRenderData::SubsetRenderData::GetRenderItemDecorator(bool selected)
-{
-    if (selected) {
-        return selectionRenderItem;
-    }
-    return renderItem;
-}
-
-bool HdMaxRenderData::SubsetRenderData::IsInstanced() const { return !renderItem.IsValid(); }
-
-bool HdMaxRenderData::IsInstanced() const
-{
-    if (shadedSubsets.empty()) {
-        return false;
-    }
-
-    return shadedSubsets[0].IsInstanced();
-}
-
-void HdMaxRenderData::UpdateRenderGeometry(bool fullReload)
+void HdMaxMeshRenderData::UpdateRenderGeometry(bool fullReload)
 {
     if (shadedSubsets.empty()) {
         return;
@@ -187,11 +137,11 @@ void HdMaxRenderData::UpdateRenderGeometry(bool fullReload)
         if (vertexBuffer.IsValid()) {
             for (const auto& subsetItem : subsetsToUpdate) {
                 const auto geometry = subsetItem.geometry;
-                _SetVertexBuffer(geometry, bufferIndex, vertexBuffer);
+                SetVertexBuffer(geometry, bufferIndex, vertexBuffer);
             }
             // Wireframe doesnt need UVs.
             if (bufferIndex != UvsBuffer) {
-                _SetVertexBuffer(wireframe.geometry, bufferIndex, vertexBuffer);
+                SetVertexBuffer(wireframe.geometry, bufferIndex, vertexBuffer);
             }
         }
     };
@@ -259,14 +209,7 @@ void HdMaxRenderData::UpdateRenderGeometry(bool fullReload)
     }
 }
 
-void HdMaxRenderData::SetAllSubsetRenderDataDirty(const pxr::HdDirtyBits& dirtyFlag)
-{
-    for (auto& subset : shadedSubsets) {
-        HdMaxChangeTracker::SetDirty(subset.dirtyBits, dirtyFlag);
-    }
-}
-
-MaxSDK::Graphics::MaterialRequiredStreams HdMaxRenderData::GetRequiredStreams(bool wire)
+MaxSDK::Graphics::MaterialRequiredStreams HdMaxMeshRenderData::GetRequiredStreams(bool wire)
 {
     MaxSDK::Graphics::MaterialRequiredStreams multiStreamRequirements;
     {
@@ -304,17 +247,40 @@ MaxSDK::Graphics::MaterialRequiredStreams HdMaxRenderData::GetRequiredStreams(bo
     return multiStreamRequirements;
 }
 
+bool HdMaxMeshRenderData::IsInstanced() const
+{
+    if (shadedSubsets.empty()) {
+        return false;
+    }
+
+    return shadedSubsets[0].IsInstanced();
+}
+
+void HdMaxMeshRenderData::SetAllSubsetRenderDataDirty(const pxr::HdDirtyBits& dirtyFlag)
+{
+    for (auto& subset : shadedSubsets) {
+        HdMaxChangeTracker::SetDirty(subset.dirtyBits, dirtyFlag);
+    }
+}
+
 MaxSDK::Graphics::BaseMaterialHandle
-HdMaxRenderData::GetDisplayColorNitrousHandle(bool instanced) const
+HdMaxMeshRenderData::GetDisplayColorNitrousHandle(bool instanced) const
 {
     return instanced ? instanceDisplayColorNitrousHandle : displayColorNitrousHandle;
 }
 
-MaxSDK::Graphics::BaseMaterialHandle HdMaxRenderData::ResolveViewportMaterial(
-    const SubsetRenderData&     subsetGeometry,
-    const HdMaxDisplaySettings& displaySettings,
-    bool                        instanced) const
+MaxSDK::Graphics::BaseMaterialHandle HdMaxMeshRenderData::ResolveViewportMaterial(
+    const HdMaxPrimRenderData&                renderData,
+    const SubsetRenderData&                   subsetRenderData,
+    const HdMaxDisplaySettings&               displaySettings,
+    const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+    bool                                      instanced) const
 {
+    if (renderData.isGizmo) {
+        return GizmoMaterial::Get(
+            renderData.selected ? GizmoMaterial::Selected : GizmoMaterial::Normal);
+    }
+
     // Figure out the material we need to use in the viewport.
     switch (displaySettings.GetDisplayMode()) {
     case HdMaxDisplaySettings::USDDisplayColor: {
@@ -322,7 +288,7 @@ MaxSDK::Graphics::BaseMaterialHandle HdMaxRenderData::ResolveViewportMaterial(
         return GetDisplayColorNitrousHandle(instanced);
     }
     case HdMaxDisplaySettings::USDPreviewSurface: {
-        auto                                 materialData = subsetGeometry.materialData;
+        auto                                 materialData = subsetRenderData.materialData;
         MaxSDK::Graphics::BaseMaterialHandle nitrousMaterial;
         if (materialData) {
             nitrousMaterial = materialData->GetNitrousMaterial(instanced);

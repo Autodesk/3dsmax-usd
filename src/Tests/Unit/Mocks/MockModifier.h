@@ -15,8 +15,8 @@
 //
 #pragma once
 
-#include <maxtypes.h>
 #include <object.h>
+#include <maxtypes.h>
 
 /**
  * \brief Mock for 3ds Max's Modifier interface.
@@ -24,27 +24,16 @@
 class MockModifier : public Modifier
 {
 public:
-    /**
-     * The following members inherited from the Modifier interface are not implemented.
-     * Their return values should not be considered, and can cause undefined
-     * side-effects.
-     */
-    ChannelMask ChannelsUsed() override { return 0; }
-    ChannelMask ChannelsChanged() override { return 0; }
-    Class_ID    InputType() override { return Class_ID(0, 0); }
-    void
-    ModifyObject(TimeValue /*t*/, ModContext& /*mc*/, ObjectState* /*os*/, INode* /*node*/) override
-    {
-        return;
-    }
-    CreateMouseCallBack* GetCreateMouseCallBack() override { return nullptr; }
-    RefResult            NotifyRefChanged(
-                   const Interval& /*changeInt*/,
-                   RefTargetHandle /*hTarget*/,
-                   PartID& /*partID*/,
-                   RefMessage /*message*/,
-                   BOOL /*propagate*/) override
-    {
-        return REF_SUCCEED;
-    }
+
+	/**
+	 * The following members inherited from the Modifier interface are not implemented.
+	 * Their return values should not be considered, and can cause undefined
+	 * side-effects.
+	*/
+	ChannelMask ChannelsUsed() override { return 0; }
+	ChannelMask ChannelsChanged() override { return 0; }
+	Class_ID InputType() override { return Class_ID(0, 0); }
+	void ModifyObject(TimeValue /*t*/, ModContext& /*mc*/, ObjectState* /*os*/, INode* /*node*/) override { return; }
+	CreateMouseCallBack* GetCreateMouseCallBack() override { return nullptr; }
+	RefResult NotifyRefChanged(const Interval& /*changeInt*/, RefTargetHandle /*hTarget*/, PartID& /*partID*/, RefMessage /*message*/, BOOL /*propagate*/) override { return REF_SUCCEED; }
 };

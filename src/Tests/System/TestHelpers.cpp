@@ -130,3 +130,40 @@ bool Point3ArraysAreAlmostEqual(Point3* array1, int size1, Point3* array2, int s
     }
     return true;
 }
+
+int GetVertexCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated)
+{
+    const auto pointsBuffer = GetRenderItemGeometry(renderItem, decorated)
+                                  ->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    return static_cast<int>(pointsBuffer.GetNumberOfVertices());
+}
+
+int GetTriCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated)
+{
+    const auto indices = GetRenderItemGeometry(renderItem, decorated)->GetIndexBuffer();
+    return static_cast<int>(indices.GetNumberOfIndices() / 3);
+}
+
+Box3 GetBoundingBox(
+    const MaxSDK::Graphics::RenderItemHandle& renderItem,
+    bool                                      decorated,
+    Matrix3*                                  tm)
+{
+    auto points = GetRenderItemGeometry(renderItem, decorated)
+                      ->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    auto rawPoints = reinterpret_cast<Point3*>(points.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    Box3 bbox;
+    bbox.IncludePoints(rawPoints, static_cast<int>(points.GetNumberOfVertices()), tm);
+    points.Unlock();
+    return bbox;
+}
+
+// Custom box compare, math has changed across some usd versions (21.11 -> 22.11) and we cant be
+// too precise in the comparison(epsilon 0.001).
+bool BoundingBoxesAreEquivalent(const Box3& box1, const Box3& box2)
+{
+    const float epsilon = 0.001f;
+    return abs(box1.pmax.x - box2.pmax.x) < epsilon && abs(box1.pmax.y - box2.pmax.y) < epsilon
+        && abs(box1.pmax.z - box2.pmax.z) < epsilon && abs(box1.pmin.x - box2.pmin.x) < epsilon
+        && abs(box1.pmin.y - box2.pmin.y) < epsilon && abs(box1.pmin.z - box2.pmin.z) < epsilon;
+};
