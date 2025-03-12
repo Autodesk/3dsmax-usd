@@ -73,7 +73,7 @@ The OpenUSD component has dependencies that are being reused to build the 3ds Ma
 
 | Dependency       | 3ds Max 2022 | 3ds Max 2024 | 3ds Max 2024 | 3ds Max 2025 |
 |:----------------:|:------------:|:------------:|:------------:|:------------:|
-| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.3.1     |
+| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.2.13     |
 | boost            | 1.70.0       | 1.70.0       | 1.76.0       | 1.81.0       |
 | TBB              | tbb2018 (update 6)| tbb2018 (update 6)| tbb2019 (update 6)| tbb2020.3       |
 | HDF5             | 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1) |
