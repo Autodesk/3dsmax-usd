@@ -25,28 +25,26 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 void wrapExportTime()
 {
-    using namespace boost::python;
-
-    boost::python::class_<MaxUsd::ExportTime> c(
+    pyboost::class_<MaxUsd::ExportTime> c(
         "ExportTime",
         "An export frame time config.",
-        init<double, const pxr::UsdTimeCode&, bool>());
+        pyboost::init<double, const pxr::UsdTimeCode&, bool>());
     c.def(
          "GetMaxTime",
          &MaxUsd::ExportTime::GetMaxFrame,
-         return_value_policy<return_by_value>(),
-         (boost::python::arg("self")),
+         pyboost::return_value_policy<pyboost::return_by_value>(),
+         (pyboost::arg("self")),
          "The 3dsMax time for the frame being exported.")
         .def(
             "GetUsdTime",
             &MaxUsd::ExportTime::GetUsdTime,
-            return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self")),
             "The target USD TimeCode for the frame being exported.")
         .def(
             "IsFirstFrame",
             &MaxUsd::ExportTime::IsFirstFrame,
-            return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self")),
             "Whether this frame is the first one being exported for the object.");
 }

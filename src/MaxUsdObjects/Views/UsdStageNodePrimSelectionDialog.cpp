@@ -145,7 +145,7 @@ void UsdStageNodePrimSelectionDialog::SetupUiFromRootLayerFilename(const QFileIn
     // text box above it:
     treeHeader->resizeSection(0, ui->filterLineEdit->size().width() / 3);
 
-    // Configure the "Path" column to be the one that stretches to accomodate sufficient space for
+    // Configure the "Path" column to be the one that stretches to accommodate sufficient space for
     // content:
     treeHeader->setStretchLastSection(false);
     treeHeader->setSectionResizeMode(

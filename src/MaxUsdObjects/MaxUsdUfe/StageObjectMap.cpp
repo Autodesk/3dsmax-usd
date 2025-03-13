@@ -50,3 +50,12 @@ USDStageObject* StageObjectMap::Get(const pxr::UsdStageWeakPtr& stage)
     }
     return it->second;
 }
+
+std::vector<USDStageObject*> StageObjectMap::GetAllStageObjects() const
+{
+    std::vector<USDStageObject*> stageObjects;
+    for (auto& entry : stageToObject) {
+        stageObjects.push_back(entry.second);
+    }
+    return stageObjects;
+}

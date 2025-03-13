@@ -44,6 +44,12 @@ MaxUsdUndoVisibleCommand::Ptr MaxUsdUndoVisibleCommand::create(const UsdPrim& pr
 
 void MaxUsdUndoVisibleCommand::execute()
 {
+    std::string msg;
+    if (!UsdUfe::isAttributeEditAllowed(pxr::UsdGeomImageable(_prim).GetVisibilityAttr(), &msg)) {
+        // Note: we don't throw an exception because this would break bulk actions.
+        TF_RUNTIME_ERROR(msg);
+        return;
+    }
     UsdGeomImageable     primImageable(_prim);
     UsdUfe::UsdUndoBlock undoBlock(&_undoableItem);
     const auto&          visAttr = pxr::UsdGeomImageable(_prim).GetVisibilityAttr();

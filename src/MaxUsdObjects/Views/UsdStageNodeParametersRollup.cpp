@@ -198,7 +198,7 @@ void UsdStageNodeParametersRollup::on_StageMaskButton_clicked() { SelectLayerAnd
 
 void UsdStageNodeParametersRollup::on_RootLayerPathButton_clicked() { SelectLayerAndPrim(true); }
 
-void UsdStageNodeParametersRollup::on_ReloadLayersButton_clicked() { modelObj->Reload(); }
+void UsdStageNodeParametersRollup::on_ReloadLayersButton_clicked() { modelObj->Reload(false); }
 
 void UsdStageNodeParametersRollup::on_ClearSessionLayerButton_clicked()
 {
@@ -287,19 +287,30 @@ void UsdStageNodeParametersRollup::SelectLayerAndPrim(bool forceFileSelection)
         // the UI, we may or may not want to reopen the new stage in the explorer.
         modelObj->CloseInUsdExplorer();
 
+        // SetRootLayer() may indirecly trigger a selection change, that will
+        // cause the UI to be deleted and recreated (using a different context).
+        // To avoid a crash, we need to keep an eye on our own existence.
+        QPointer<QWidget> stillAlive = this;
+        USDStageObject*   thisModelObj = modelObj;
+
         modelObj->SetRootLayer(
             TSTR(rootLayerPath.toStdString().c_str()).data(),
             TSTR(selectedPrim.toStdString().c_str()).data(),
             options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads].UncheckedGet<bool>());
 
-        // Trigger a UI refresh.
-        UpdateUI(0);
+        if (stillAlive) {
+            // Trigger a UI refresh.
+            UpdateUI(0);
+        }
 
         // Remember user choice, per session.
         options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer]
             = primSelectionDialog->GetOpenInUsdExplorer();
         if (options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer].UncheckedGet<bool>()) {
-            modelObj->OpenInUsdExplorer();
+
+            // this->modelObj may not be around any more as this rollup may have
+            // been freed already, so use the copy of the pointer on the stack.
+            thisModelObj->OpenInUsdExplorer();
         }
         MaxUsd::OptionUtils::SaveUiOptions(optionsCategoryKey, options);
     }

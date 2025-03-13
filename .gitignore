@@ -28,4 +28,5 @@ src/**/GeneratedFiles/
 docs/html/
 SDK/
 src/Tests/Integration/SystemTestGup/
+*.TMP
 devkit/

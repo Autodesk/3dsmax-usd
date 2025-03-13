@@ -24,6 +24,7 @@ from pxr import Sdf, Usd, UsdUtils, UsdGeom
 import maxUsd
 import ufe
 import usdUfe
+import UsdLayerEditor
 
 import usd_test_helpers
 
@@ -67,15 +68,25 @@ class TestStageGeneral(unittest.TestCase):
     def test_reload_all_layers(self):
         maxUsdObj = mxs.USDStageObject()
         maxUsdObj.SetRootLayer(self.test_usd_file_path, stageMask='/')
-        initial_units_per_meter = maxUsdObj.SourceMetersPerUnit
-
-        stage = Usd.Stage.Open(self.test_usd_file_path)
+        
+        # Make sure we start in a clean state - layer in registry matches disk.
+        layer = Sdf.Layer.FindOrOpen(self.test_usd_file_path)
+        layer.Reload()
+        
+        init_units_per_meter = maxUsdObj.SourceMetersPerUnit
+        
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+        
+        # Dirty the root layer (session layer is not affected by the reload)
+        stage.SetEditTarget(stage.GetRootLayer())                
         new_units_per_meter = 0.4
         UsdGeom.SetStageMetersPerUnit(stage, new_units_per_meter)
-        stage.GetRootLayer().Save()
-
-        maxUsdObj.Reload()
+        
         self.assertAlmostEqual(new_units_per_meter, maxUsdObj.SourceMetersPerUnit, places=6)
+
+        maxUsdObj.Reload(quiet=True)
+        self.assertAlmostEqual(init_units_per_meter, maxUsdObj.SourceMetersPerUnit, places=6)
 
     def test_deactivation_crash_fix(self):
         # Test crash fix, see https://jira.autodesk.com/browse/MAXX-71391
@@ -97,7 +108,7 @@ class TestStageGeneral(unittest.TestCase):
         testDataDir = os.path.dirname(__file__)
         sampleFile = (testDataDir + "\\data\\instance_vis_crash.usda")
         stageObject.SetRootLayer(sampleFile, stageMask='/')
-        stageObject.Reload()
+        stageObject.Reload(quiet=True)
         stageCache = UsdUtils.StageCache.Get()
         stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
         # Use of make invisible on a instanced prim, if the parent was already hidden 
@@ -312,15 +323,15 @@ class TestStageGeneral(unittest.TestCase):
         self.assertEqual(stats[0], 30) #numFaces
         self.assertEqual(stats[1], 51) #numVerts
         
-    def test_default_edit_target_to_session_layer(self):
-        # Making sure that upon initialization, the edit target is initialized to the session layer.
+    def test_default_edit_target_to_root_layer(self):
+        # Making sure that upon initialization, the edit target is initialized to the root layer.
         stageObject = mxs.USDStageObject()
         testDataDir = os.path.dirname(__file__)
         sampleFile = (testDataDir + "\\data\\box_sample.usda")
         stageObject.SetRootLayer(sampleFile, stageMask='/')
         stageCache = UsdUtils.StageCache.Get()
         stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
-        self.assertEqual(stage.GetEditTarget(), stage.GetSessionLayer())        
+        self.assertEqual(stage.GetEditTarget(), stage.GetRootLayer())
 
     def test_stage_without_loading_payloads(self):
         # remove the setup object that was created before executing the rest of this test
@@ -338,6 +349,173 @@ class TestStageGeneral(unittest.TestCase):
         loadRules = stage.GetLoadRules().GetRules()
         self.assertEqual(len(loadRules), 1)
         self.assertEqual(len([item for item in loadRules if item[0] == Sdf.Path("/") and item[1] == Usd.StageLoadRules.NoneRule]), 1)
+
+    def test_save_layer_lock_state(self):
+        stageName = "stage"
+        maxUsdObj = mxs.USDStageObject(name=stageName)
+        
+        testDataDir = os.path.dirname(__file__)
+        sampleFile = (testDataDir + "\\data\\sublayers\\root.usda")
+        
+        maxUsdObj.SetRootLayer(sampleFile, stageMask='/')
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+        
+        rootLayer = stage.GetRootLayer()
+        subLayer1 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        subLayer2 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[1])
+        subLayer3 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[2])
+        
+        cmd = UsdLayerEditor.LockLayerCommand(stage, subLayer1,  UsdLayerEditor.LayerLock_Locked, False, False)
+        cmd.execute();
+        cmd = UsdLayerEditor.LockLayerCommand(stage, subLayer3,  UsdLayerEditor.LayerLock_Locked, False, False)
+        cmd.execute();
+        
+        self.assertFalse(subLayer1.permissionToEdit)
+        self.assertTrue(subLayer2.permissionToEdit) 
+        self.assertFalse(subLayer3.permissionToEdit)
+        
+        # Save the scene, the locks will save with the stage object
+        maxSceneSavePath = self.output_prefix + "layer_lock_save.max"
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+    
+        # Clear the locks - and do not save.
+        cmd = UsdLayerEditor.LockLayerCommand(stage, rootLayer,  UsdLayerEditor.LayerLock_Unlocked, True, False)
+        cmd.execute()
+        
+        self.assertTrue(subLayer1.permissionToEdit)
+        self.assertTrue(subLayer2.permissionToEdit)  
+        self.assertTrue(subLayer3.permissionToEdit)
+        
+        # Load the scene from disk, make sure the locks are applied.
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        
+        rootLayer = stage.GetRootLayer()
+        subLayer1 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        subLayer2 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[1])
+        subLayer3 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[2])
+        
+        self.assertFalse(subLayer1.permissionToEdit)
+        self.assertTrue(subLayer2.permissionToEdit)
+        self.assertFalse(subLayer3.permissionToEdit)
+                
+    def test_save_layer_mute_state(self):
+        stageName = "stage"
+        maxUsdObj = mxs.USDStageObject(name=stageName)
+        
+        testDataDir = os.path.dirname(__file__)
+        sampleFile = (testDataDir + "\\data\\sublayers\\root.usda")
+        
+        maxUsdObj.SetRootLayer(sampleFile, stageMask='/')
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+        
+        rootLayer = stage.GetRootLayer()
+        rootLayer.Reload() # Force a reload as other tests use this layer.
+        subLayer1 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        subLayer2 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[1])
+        subLayer3 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[2])
+        
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, subLayer1,  True)
+        cmd.execute();
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, subLayer3,  True)
+        cmd.execute();
+        
+        # USD can let go muted layers. Make sure we have valid objects.
+        subLayer1 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        subLayer3 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[2])
+        
+        self.assertTrue(stage.IsLayerMuted(subLayer1.identifier))
+        self.assertFalse(stage.IsLayerMuted(subLayer2.identifier)) 
+        self.assertTrue(stage.IsLayerMuted(subLayer3.identifier))
+        
+        # Save the scene, the locks will save with the stage object
+        maxSceneSavePath = self.output_prefix + "layer_mute_save.max"
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+    
+        # Clear the mutes - and do not save that.
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, subLayer1,  False)
+        cmd.execute();
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, subLayer3,  False)
+        cmd.execute();
+        
+        self.assertFalse(stage.IsLayerMuted(subLayer1.identifier))
+        self.assertFalse(stage.IsLayerMuted(subLayer2.identifier)) 
+        self.assertFalse(stage.IsLayerMuted(subLayer3.identifier))
+            
+        # Load the scene from disk, make sure the mutes are applied
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        
+        rootLayer = stage.GetRootLayer()
+        subLayer1 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        subLayer2 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[1])
+        subLayer3 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[2])
+        
+        self.assertTrue(stage.IsLayerMuted(subLayer1.identifier))
+        self.assertFalse(stage.IsLayerMuted(subLayer2.identifier)) 
+        self.assertTrue(stage.IsLayerMuted(subLayer3.identifier))
+
+    def test_save_and_restore_edit_target(self):
+        
+        stageName = "foo"
+        stageObject = mxs.USDStageObject(name=stageName)
+        testDataDir = os.path.dirname(__file__)
+        sampleFile = (testDataDir + "\\data\\sublayers\\root.usda")
+        stageObject.SetRootLayer(sampleFile, stageMask='/')
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+        self.assertEqual(stage.GetEditTarget(), rootLayer)
+        
+        # Change edit target to a sublayer and save.
+        sub0 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        stage.SetEditTarget(sub0)
+        maxSceneSavePath = self.output_prefix + "save_sublayer_target.max"
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        
+        # Load and check the edit target was properly restored.
+        mxs.loadMaxFile(maxSceneSavePath, quiet=True)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+        sub0 = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        self.assertEqual(stage.GetEditTarget(), sub0) 
+        
+        # Change edit target to the session layer and save.
+        stage.SetEditTarget(stage.GetSessionLayer())
+        maxSceneSavePath = self.output_prefix + "save_session_target.max"
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+        
+        # Load and check the edit target was properly restored.
+        mxs.loadMaxFile(maxSceneSavePath, quiet=True)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        self.assertEqual(stage.GetEditTarget(), stage.GetSessionLayer()) 
+        
+        # Test changing the root layer - the target layer should go to the default, the root.
+        loadedStageObject.SetRootLayer((testDataDir + "\\data\\box_sample.usda"), stageMask='/')
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        self.assertEqual(stage.GetEditTarget(), stage.GetRootLayer()) 
+   
+        # Create an anon sublayer, and save. This edit target will be lost on save.
+        anon = Sdf.Layer.CreateAnonymous();
+        rootLayer = stage.GetRootLayer()
+        rootLayer.subLayerPaths.append(anon.identifier)
+        stage.SetEditTarget(anon)
+        maxSceneSavePath = self.output_prefix + "save_anon_target.max"
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+        
+        # Reload, we should get back to the root layer.
+        mxs.loadMaxFile(maxSceneSavePath, quiet=True)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        self.assertEqual(stage.GetEditTarget(), stage.GetRootLayer())
 
 def run_tests():
     return unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(unittest.TestLoader().loadTestsFromTestCase(TestStageGeneral))

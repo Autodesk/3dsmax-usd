@@ -41,6 +41,9 @@ public:
     const MaxSDK::Graphics::StandardMaterialHandle& GetWireColorMaterial(bool instanced) const;
     void SetWireColor(Color wireColor, pxr::HdChangeTracker& changeTracker);
 
+    double GetLightGizmoScale() const;
+    void   SetLightGizmoScale(double scale);
+
     bool operator==(const HdMaxDisplaySettings& displaySettings) const;
 
 private:
@@ -52,4 +55,5 @@ private:
     MaxSDK::Graphics::StandardMaterialHandle wireColorHandle;
     MaxSDK::Graphics::StandardMaterialHandle wireColorInstancedHandle;
     Color                                    wireColor;
+    double                                   lightGizmoScale = 1.0;
 };

@@ -31,7 +31,6 @@ struct load_materialx_plugin_test
         local materialXDllLoaded = false
         for i=1 to pluginManager.pluginDllCount do
         (
-            
             if (pluginManager.isPluginDllLoaded i) and (pluginManager.pluginDllName i) == "materialxio.dlu" do
             (
                 materialXDllLoaded = true

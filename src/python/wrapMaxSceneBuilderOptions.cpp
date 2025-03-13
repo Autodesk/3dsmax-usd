@@ -43,14 +43,14 @@ MaxSceneBuilderOptionsWrapper::MaxSceneBuilderOptionsWrapper(const std::string& 
     SetOptions(MaxSceneBuilderOptions(MaxUsd::OptionUtils::DeserializeOptionsFromJson(jsonBytes)));
 }
 
-void MaxSceneBuilderOptionsWrapper::SetStageMaskPathsList(const boost::python::list& paths)
+void MaxSceneBuilderOptionsWrapper::SetStageMaskPathsList(const pyboost::list& paths)
 {
     std::vector<SdfPath> pathArray;
     try {
         for (int i = 0; i < len(paths); ++i) {
-            pathArray.push_back(SdfPath(boost::python::extract<std::string>(paths[i])));
+            pathArray.push_back(SdfPath(pyboost::extract<std::string>(paths[i])));
         }
-    } catch (const boost::python::error_already_set&) {
+    } catch (const pyboost::error_already_set&) {
         // rethrow error to Python
         throw;
     }
@@ -158,11 +158,11 @@ void MaxSceneBuilderOptionsWrapper::ClearMappedPrimvars()
     SetPrimvarMappingOptions(primvarMapping);
 }
 
-boost::python::dict MaxSceneBuilderOptionsWrapper::GetAllChaserArgs() const
+pyboost::dict MaxSceneBuilderOptionsWrapper::GetAllChaserArgs() const
 {
-    boost::python::dict allChaserArgs;
+    pyboost::dict allChaserArgs;
     for (auto&& perChaser : MaxUsd::MaxSceneBuilderOptions::GetAllChaserArgs()) {
-        auto perChaserDict = boost::python::dict();
+        auto perChaserDict = pyboost::dict();
         for (auto&& perItem : perChaser.second) {
             perChaserDict[perItem.first] = perItem.second;
         }
@@ -171,22 +171,22 @@ boost::python::dict MaxSceneBuilderOptionsWrapper::GetAllChaserArgs() const
     return allChaserArgs;
 }
 
-void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(boost::python::dict args)
+void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(pyboost::dict args)
 {
     std::map<std::string, ChaserArgs> allArgs;
     try {
         auto items = args.items();
-        for (boost::python::ssize_t i = 0; i < boost::python::len(items); ++i) {
-            std::string chaserKey = boost::python::extract<std::string>(items[i][0]);
+        for (pyboost::ssize_t i = 0; i < pyboost::len(items); ++i) {
+            std::string chaserKey = pyboost::extract<std::string>(items[i][0]);
 
             ChaserArgs chaserArgs;
 
-            auto paramDict = boost::python::dict { items[i][1] };
+            auto paramDict = pyboost::dict { items[i][1] };
 
             auto params = paramDict.items();
-            for (boost::python::ssize_t i = 0; i < boost::python::len(params); ++i) {
-                std::string name = boost::python::extract<std::string>(params[i][0]);
-                std::string value = boost::python::extract<std::string>(params[i][1]);
+            for (pyboost::ssize_t i = 0; i < pyboost::len(params); ++i) {
+                std::string name = pyboost::extract<std::string>(params[i][0]);
+                std::string value = pyboost::extract<std::string>(params[i][1]);
                 chaserArgs.insert({ name, value });
             }
             allArgs.insert({ chaserKey, chaserArgs });
@@ -199,12 +199,12 @@ void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(boost::python::dict
     MaxSceneBuilderOptions::SetAllChaserArgs(allArgs);
 }
 
-void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(boost::python::list args)
+void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(pyboost::list args)
 {
     static const std::string badArgMsg(
         "Badly formed list. Expecting 3 elements per argument entry (<chaser>, <key>, <value>).");
 
-    if (boost::python::len(args) % 3) {
+    if (pyboost::len(args) % 3) {
         throw std::invalid_argument(badArgMsg);
     }
 
@@ -212,9 +212,9 @@ void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(boost::python::list
     try {
 
         for (int i = 0; i < len(args); i = i + 3) {
-            const std::string chaser = boost::python::extract<std::string>(args[i]);
-            const std::string param = boost::python::extract<std::string>(args[i + 1]);
-            const std::string value = boost::python::extract<std::string>(args[i + 2]);
+            const std::string chaser = pyboost::extract<std::string>(args[i]);
+            const std::string param = pyboost::extract<std::string>(args[i + 1]);
+            const std::string value = pyboost::extract<std::string>(args[i + 2]);
             ChaserArgs&       chaserArgs = allArgs[chaser];
             chaserArgs[param] = value;
         }
@@ -224,7 +224,7 @@ void MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(boost::python::list
     MaxSceneBuilderOptions::SetAllChaserArgs(allArgs);
 }
 
-void MaxSceneBuilderOptionsWrapper::SetShadingModes(boost::python::list args)
+void MaxSceneBuilderOptionsWrapper::SetShadingModes(pyboost::list args)
 {
     static const std::string badArgMsg("Badly formed list. Expecting a vector of dictionaries, "
                                        "each dictionary containing two entries, "
@@ -233,10 +233,10 @@ void MaxSceneBuilderOptionsWrapper::SetShadingModes(boost::python::list args)
     ShadingModes shadingModes;
     try {
         for (int i = 0; i < len(args); ++i) {
-            boost::python::dict dict = boost::python::extract<boost::python::dict>(args[i]);
-            std::string         materialConversion
-                = boost::python::extract<std::string>(dict["materialConversion"]);
-            std::string  mode = boost::python::extract<std::string>(dict["mode"]);
+            pyboost::dict dict = pyboost::extract<pyboost::dict>(args[i]);
+            std::string   materialConversion
+                = pyboost::extract<std::string>(dict["materialConversion"]);
+            std::string  mode = pyboost::extract<std::string>(dict["mode"]);
             VtDictionary shadingMode({ { "materialConversion", VtValue(materialConversion) },
                                        { "mode", VtValue(mode) } });
             shadingModes.push_back(shadingMode);
@@ -262,241 +262,237 @@ TF_REGISTRY_FUNCTION(TfEnum)
 
 void wrapMaxSceneBuilderOptions()
 {
-    using namespace boost::python;
-
     TfPyWrapEnum<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>("ImportTimeMode");
     // defined in wrapUSDSceneBuilderOptions
     // TfPyWrapEnum<MaxUsd::Log::Level>("LogLevel");
 
-    boost::python::class_<MaxSceneBuilderOptionsWrapper> c(
+    pyboost::class_<MaxSceneBuilderOptionsWrapper> c(
         "MaxSceneBuilderOptions",
         "The class MaxSceneBuilderOptions which exposes the import arguments from the current "
         "import context.");
-    c.def(init<const MaxSceneBuilderOptionsWrapper&>())
-        .def(init<const std::string&>())
+    c.def(pyboost::init<const MaxSceneBuilderOptionsWrapper&>())
+        .def(pyboost::init<const std::string&>())
         .def(
             "GetTranslateMaterials",
             &MaxUsd::MaxSceneBuilderOptions::GetTranslateMaterials,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Checks if the materials are imported back into 3ds Max")
         .def(
             "SetStageInitialLoadSet",
             &MaxUsd::MaxSceneBuilderOptions::SetStageInitialLoadSet,
-            boost::python::args("self", "load_state"),
+            pyboost::args("self", "load_state"),
             "Sets the USD stage's initial load set to use for the import of content into 3ds Max")
         .def(
             "GetStageInitialLoadSet",
             &MaxUsd::MaxSceneBuilderOptions::GetStageInitialLoadSet,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Gets the USD Stage initial load set to use for the import of content into 3ds Max")
         .def(
             "SetStartTimeCode",
             &MaxUsd::MaxSceneBuilderOptions::SetStartTimeCode,
-            boost::python::args("self", "time_code"),
+            pyboost::args("self", "time_code"),
             "Set the Start Time Code of the time range the import of content into 3ds Max")
         .def(
             "GetStartTimeCode",
             &MaxUsd::MaxSceneBuilderOptions::GetStartTimeCode,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Return the Start Time Code value of the time range to use for the import of content "
             "into 3ds Max")
         .def(
             "SetEndTimeCode",
             &MaxUsd::MaxSceneBuilderOptions::SetEndTimeCode,
-            boost::python::args("self", "time_code"),
+            pyboost::args("self", "time_code"),
             "Set the End Time Code of the time range the import of content into 3ds Max")
         .def(
             "GetEndTimeCode",
             &MaxUsd::MaxSceneBuilderOptions::GetEndTimeCode,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Return the End Time Code value of the time range to use for the import of content "
             "into 3ds Max")
         .def(
             "GetTimeMode",
             &MaxUsd::MaxSceneBuilderOptions::GetTimeMode,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Return the ImportTimeMode value to use for the import of content into 3ds Max")
         .def(
             "SetTimeMode",
             &MaxUsd::MaxSceneBuilderOptions::SetTimeMode,
-            boost::python::args("self", "time_mode"),
+            pyboost::args("self", "time_mode"),
             "Set ImportTimeMode value to use for the import of content into 3ds Max")
         .def(
             "SetShadingModes",
             &MaxSceneBuilderOptionsWrapper::SetShadingModes,
-            boost::python::args("self", "preferred_material"),
+            pyboost::args("self", "preferred_material"),
             "Sets the shading modes to use at import (see `ShadingMode` definition)")
         .def(
             "GetShadingModes",
             &MaxUsd::MaxSceneBuilderOptions::GetShadingModes,
-            return_value_policy<TfPySequenceToList>(),
-            boost::python::arg("self"),
+            pyboost::return_value_policy<TfPySequenceToList>(),
+            pyboost::arg("self"),
             "Gets the shading modes to use at import.")
         .def(
             "SetPreferredMaterial",
             &MaxUsd::MaxSceneBuilderOptions::SetPreferredMaterial,
-            boost::python::args("self", "preferred_material"),
+            pyboost::args("self", "preferred_material"),
             "Sets the user preferred material to convert to at import.")
         .def(
             "GetPreferredMaterial",
             &MaxUsd::MaxSceneBuilderOptions::GetPreferredMaterial,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Gets the user preferred material to convert to at import.")
         .def(
             "SetStageMaskPaths",
             &MaxSceneBuilderOptionsWrapper::SetStageMaskPathsList,
-            boost::python::args("self", "paths"),
+            pyboost::args("self", "paths"),
             "Sets the stage mask's paths. Only USD prims at or below these paths will be imported.")
         .def(
             "GetStageMaskPaths",
             &MaxUsd::MaxSceneBuilderOptions::GetStageMaskPaths,
-            return_value_policy<TfPySequenceToList>(),
-            boost::python::arg("self"),
+            pyboost::return_value_policy<pxr::TfPySequenceToList>(),
+            pyboost::arg("self"),
             "Returns the currently configured stage mask paths. Only USD prims at or below these "
             "paths will be imported.")
         .def(
             "SetMetaData",
             &MaxUsd::MaxSceneBuilderOptions::SetMetaData,
-            boost::python::args("self", "filters"),
+            pyboost::args("self", "filters"),
             "Sets the list of MaxUsd::MetaData::MetaDataType that will be included during import")
         .def(
             "GetMetaData",
             &MaxUsd::MaxSceneBuilderOptions::GetMetaData,
-            return_value_policy<TfPySequenceToSet>(),
-            boost::python::arg("self"),
+            pyboost::return_value_policy<pxr::TfPySequenceToSet>(),
+            pyboost::arg("self"),
             "Returns the list of MaxUsd::MetaData::MetaDataType that will be included during "
             "import.")
         .def(
             "GetLogPath",
             &MaxSceneBuilderOptionsWrapper::GetLogPath,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Gets the path to the log file.")
         .def(
             "SetLogPath",
             &MaxSceneBuilderOptionsWrapper::SetLogPath,
-            boost::python::args("self", "logPath"),
+            pyboost::args("self", "logPath"),
             "Sets the path to the log file.")
         .def(
             "GetLogLevel",
             &MaxSceneBuilderOptionsWrapper::GetLogLevel,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Gets the log level (maxUsd.Log.Level).")
         .def(
             "SetLogLevel",
             &MaxSceneBuilderOptionsWrapper::SetLogLevel,
-            boost::python::args("self", "logLevel"),
+            pyboost::args("self", "logLevel"),
             "Sets the log level (maxUsd.Log.Level).")
 
         // PrimvarMappingOptions helpers
         .def(
             "SetPrimvarChannelMappingDefaults",
             &MaxSceneBuilderOptionsWrapper::SetPrimvarChannelMappingDefaults,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Sets defaults primvar to channels mappings")
         .def(
             "GetImportUnmappedPrimvars",
             &MaxSceneBuilderOptionsWrapper::GetImportUnmappedPrimvars,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Gets the channel name from a primvar.")
         .def(
             "SetImportUnmappedPrimvars",
             &MaxSceneBuilderOptionsWrapper::SetImportUnmappedPrimvars,
-            (boost::python::arg("self"), boost::python::arg("import_unmapped_primvars")),
+            (pyboost::arg("self"), pyboost::arg("import_unmapped_primvars")),
             "Sets whether or not to import primvars that are not explicitly mapped. If true, try "
             "to find the most appropriate channels for each unmapped primvar, based on their "
             "types.")
         .def(
             "SetPrimvarChannel",
             &MaxSceneBuilderOptionsWrapper::SetPrimvarChannel,
-            (boost::python::arg("self"),
-             boost::python::arg("primvar"),
-             boost::python::arg("channel")),
+            (pyboost::arg("self"), pyboost::arg("primvar"), pyboost::arg("channel")),
             "Sets the channel of a primvar")
         .def(
             "GetPrimvarChannel",
             &MaxSceneBuilderOptionsWrapper::GetPrimvarChannel,
-            (boost::python::arg("self"), boost::python::arg("primvar")),
+            (pyboost::arg("self"), pyboost::arg("primvar")),
             "Gets the channel name from a primvar.")
         .def(
             "GetMappedPrimvars",
             &MaxSceneBuilderOptionsWrapper::GetMappedPrimvars,
-            boost::python::return_value_policy<TfPySequenceToList>(),
-            boost::python::arg("self"),
+            pyboost::return_value_policy<TfPySequenceToList>(),
+            pyboost::arg("self"),
             "Returns the list of all currently mapped primvars.")
         .def(
             "IsMappedPrimvar",
             &MaxSceneBuilderOptionsWrapper::IsMappedPrimvar,
-            (boost::python::arg("self"), boost::python::arg("primvar")),
+            (pyboost::arg("self"), pyboost::arg("primvar")),
             "Checks if a primvar is currently mapped to a channel.")
         .def(
             "ClearMappedPrimvars",
             &MaxSceneBuilderOptionsWrapper::ClearMappedPrimvars,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Clears all primvar mappings.")
 
         .def(
             "GetChaserNames",
             &MaxUsd::MaxSceneBuilderOptions::GetChaserNames,
-            return_value_policy<TfPySequenceToSet>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pxr::TfPySequenceToSet>(),
+            (pyboost::arg("self")),
             "Gets the list of import chasers to be called at USD import.")
         .def(
             "SetChaserNames",
             &MaxUsd::MaxSceneBuilderOptions::SetChaserNames,
-            return_value_policy<TfPySequenceToSet>(),
-            (boost::python::args("self", "chaserNames")),
+            pyboost::return_value_policy<pxr::TfPySequenceToSet>(),
+            (pyboost::args("self", "chaserNames")),
             "Sets the list of import chasers to be called at USD import.")
         .def(
             "GetAllChaserArgs",
             &MaxSceneBuilderOptionsWrapper::GetAllChaserArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the dictionary of import chasers with their specified arguments.")
         .def(
             "SetAllChaserArgs",
             &MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict,
-            (boost::python::args("self", "allChaserArgs")),
+            (pyboost::args("self", "allChaserArgs")),
             "Sets the dictionary of import chasers with their specified arguments, from a "
             "dictionary.")
         .def(
             "SetAllChaserArgs",
             &MaxSceneBuilderOptionsWrapper::SetAllChaserArgsFromList,
-            (boost::python::args("self", "allChaserArgs")),
+            (pyboost::args("self", "allChaserArgs")),
             "Sets the dictionary of import chasers with their specified arguments, from a list.")
         .def(
             "GetContextNames",
             &MaxUsd::MaxSceneBuilderOptions::GetContextNames,
-            return_value_policy<TfPySequenceToSet>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pxr::TfPySequenceToSet>(),
+            (pyboost::arg("self")),
             "Gets the list of imports context being used at USD import.")
         .def(
             "SetContextNames",
             &MaxUsd::MaxSceneBuilderOptions::SetContextNames,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets the list of import contexts being used at USD import.")
         .def(
             "GetUseProgressBar",
             &MaxUsd::MaxSceneBuilderOptions::GetUseProgressBar,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if the 3ds Max progress bar should be used during export.")
         .def(
             "SetUseProgressBar",
             &MaxUsd::MaxSceneBuilderOptions::SetUseProgressBar,
-            (boost::python::args("self", "useProgressBar")),
+            (pyboost::args("self", "useProgressBar")),
             "Sets if the 3ds Max progress bar should be used during export.")
         .def(
             "SetDefaults",
             &MaxUsd::MaxSceneBuilderOptions::SetDefaults,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets default options.")
         .def(
             "GetJobContextOptions",
             &MaxUsd::MaxSceneBuilderOptions::GetJobContextOptions,
-            return_value_policy<TfPyMapToDictionary>(),
-            (boost::python::arg("self"), boost::python::arg("jobContext")),
+            pyboost::return_value_policy<pxr::TfPyMapToDictionary>(),
+            (pyboost::arg("self"), pyboost::arg("jobContext")),
             "Gets the job context options for the given job context.")
         .def(
             "Serialize",
             &MaxSceneBuilderOptionsWrapper::Serialize,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Serialize the options to JSON format");
 }

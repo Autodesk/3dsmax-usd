@@ -6,6 +6,7 @@
 #define IDS_RENDERDELEGATE_BUILD_STD_VP_MATERIALS_PROGRESS_TITLE 2
 
 #define IDR_PRIM_SELECTION_SHADER 3
+#define IDR_GIZMO_SELECTION_SHADER 4
 
 // Next default values for new objects
 //

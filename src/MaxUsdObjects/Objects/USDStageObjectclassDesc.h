@@ -19,6 +19,8 @@
 
 #include <iparamb2.h>
 
+class IParamMap2;
+
 class USDStageObjectclassDesc : public ClassDesc2
 {
 public:
@@ -42,6 +44,9 @@ public:
 
     SClass_ID    SuperClassID() override;
     const MCHAR* Category() override;
+
+    bool RemoveParamMap(IParamMap2* pParamMap);
+    void AddParamMap(IParamMap2* pParamMap);
 };
 
 ClassDesc2* GetUSDStageObjectClassDesc();

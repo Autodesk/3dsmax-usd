@@ -37,10 +37,10 @@ namespace MAXUSD_NS_DEF {
 
 MaxSceneBuilder::MaxSceneBuilder() = default;
 
-bool MaxSceneBuilder::ExcludedPrimNode(UsdPrimRange::iterator& primIt)
+bool MaxSceneBuilder::ExcludedPrimNode(const UsdPrim& prim)
 {
-    return primIt->IsA<pxr::UsdGeomSubset>() || primIt->IsA<pxr::UsdShadeMaterial>()
-        || primIt->IsA<pxr::UsdShadeShader>() || primIt->IsA<pxr::UsdShadeNodeGraph>();
+    return prim.IsA<pxr::UsdGeomSubset>() || prim.IsA<pxr::UsdShadeMaterial>()
+        || prim.IsA<pxr::UsdShadeShader>() || prim.IsA<pxr::UsdShadeNodeGraph>();
 }
 
 void MaxSceneBuilder::DoImportPrimIt(
@@ -193,7 +193,7 @@ void MaxSceneBuilder::ImportPrototype(
     PrimReaderMap      primReaderMap;
     const UsdPrimRange range = UsdPrimRange::PreAndPostVisit(prototype);
     for (auto primIt = range.begin(); primIt != range.end(); ++primIt) {
-        if (ExcludedPrimNode(primIt)) {
+        if (ExcludedPrimNode(*primIt)) {
             continue;
         }
         const UsdPrim& prim = *primIt;
@@ -270,10 +270,14 @@ int MaxSceneBuilder::Build(
     pxr::UsdPrimRange newPrimRange = pxr::UsdPrimRange::PreAndPostVisit(prim, predicates);
 
     // Prepare 3ds Max to expose information to the User about the progress of the import:
-    int            currentPrimIndex = 0;
-    MaxProgressBar progressBar(
-        GetString(IDS_IMPORT_PROGRESS_MESSAGE),
-        std::distance(newPrimRange.cbegin(), newPrimRange.cend()));
+    int currentPrimIndex = 0;
+
+    auto primVisitSize
+        = std::count_if(newPrimRange.begin(), newPrimRange.end(), [this](const pxr::UsdPrim& prim) {
+              return !prim.IsPseudoRoot() && !ExcludedPrimNode(prim);
+          });
+
+    MaxProgressBar progressBar(GetString(IDS_IMPORT_PROGRESS_MESSAGE), primVisitSize);
     progressBar.SetEnabled(buildOptions.GetUseProgressBar());
     progressBar.Start();
 
@@ -318,7 +322,7 @@ int MaxSceneBuilder::Build(
             coreInterface->SetCancel(false);
         }
 
-        if (primIt->IsPseudoRoot() || ExcludedPrimNode(primIt)) {
+        if (primIt->IsPseudoRoot() || ExcludedPrimNode(*primIt)) {
             continue;
         }
 

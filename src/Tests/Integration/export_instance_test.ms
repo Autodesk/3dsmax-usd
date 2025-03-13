@@ -13,10 +13,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
-/* ********************************************************************************************************
-    @param Desc             : Set offline due to Python issue in 2022 - MAXX-62109, avoid pipeline noise
-    @param Status           : Offline
-******************************************************************************************************** */
 
 FileIn "helpers/usd_test_utils.mxs"
 
@@ -745,6 +741,27 @@ struct export_instance_test
         assert_true (instanceBoxPrim.IsInstance())message:"instanceBoxPrim prim should be an instance."
     ),
     
+    -- Test that the class prim instances inherity from is properly setup.
+    function test_instancing_inherit_class_prim = (
+        teapot1 = Teapot name:"teapot1"
+        teapot2 = create_clone teapot1 #instance "teapot2"
+        
+        exportPath = output_prefix + "test_instancing_inherit_class_prim.usda"
+        exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        
+        -- Test that the class prim we inherit from to support instancing 
+        -- has the right specificier, and no explicitely defined type.
+        stage = pyUsd.Stage.Open(exportPath)
+        classPrim = stage.GetPrimAtPath("/_class_teapot1")
+        assert_true (classPrim.IsValid())
+        assert_true (classPrim.IsAbstract())
+        assert_equal pySdf.SpecifierClass (classPrim.GetSpecifier())
+        assert_equal "" (classPrim.GetTypeName()) 
+    ),
+    
     function teardown = (
     ),
 
@@ -763,7 +780,8 @@ struct export_instance_test
         test_export_instance_not_reuse_parent_prim_when_parent_is_not_a_point,
         test_export_instance_reuse_parent_prim_should_have_correct_transforms,
         test_export_instance_not_reuse_parent_on_metadata_conflict,
-        test_export_single_max_instance_does_not_create_usd_instance
+        test_export_single_max_instance_does_not_create_usd_instance,
+        test_instancing_inherit_class_prim
         )
 )
 

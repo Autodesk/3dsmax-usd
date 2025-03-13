@@ -16,6 +16,10 @@
 #include "MockCoreInterface.h"
 
 // implemented in 3dswin\src\app\prefdlg.cpp
-void MAXScriptPrefs::SaveMAXScriptPreferences() { }
+void MAXScriptPrefs::SaveMAXScriptPreferences()
+{
+}
 
-void MAXScriptPrefs::LoadMAXScriptPreferences() { }
+void MAXScriptPrefs::LoadMAXScriptPreferences()
+{
+}

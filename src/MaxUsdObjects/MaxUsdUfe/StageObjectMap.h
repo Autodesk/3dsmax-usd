@@ -50,6 +50,12 @@ public:
     USDStageObject* Get(const pxr::UsdStageWeakPtr& stage);
 
     /**
+     * Returns all USDStageObjects currently held.
+     * @return All stage objects.
+     */
+    std::vector<USDStageObject*> GetAllStageObjects() const;
+
+    /**
      * \brief Get the global instance of the map.
      * \return The instance.
      */

@@ -15,6 +15,7 @@
 //
 #include "wrapUSDSceneBuilderOptions.h"
 
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/MaterialConversion/MaterialConverter.h>
 
 #include <pxr/base/tf/pyContainerConversions.h>
@@ -37,12 +38,12 @@ public:
         bool                           isUSDZ,
         SdfPath                        path,
         USDSceneBuilderOptionsWrapper& options,
-        const boost::python::list      bindings)
+        const pyboost::list            bindings)
     {
         std::list<pxr::SdfPath> mtlBindings;
         try {
-            for (int i = 0; i < boost::python::len(bindings); ++i) {
-                const std::string pathStr = boost::python::extract<std::string>(bindings[i]);
+            for (int i = 0; i < pyboost::len(bindings); ++i) {
+                const std::string pathStr = pyboost::extract<std::string>(bindings[i]);
                 if (!SdfPath::IsValidPathString(pathStr)) {
                     auto msg = pathStr + std::string(" is not a valid prim path.");
                     throw std::invalid_argument { msg };
@@ -67,19 +68,18 @@ public:
 
 void wrapMaterialConverter()
 {
-    boost::python::class_<MaterialConverterWrapper, boost::noncopyable> c(
-        "MaterialConverter", boost::python::no_init);
-    boost::python::scope s(c);
+    pyboost::class_<MaterialConverterWrapper, noncopyable> c("MaterialConverter", pyboost::no_init);
+    pyboost::scope                                         s(c);
     c.def(
          "ConvertToUSDMaterial",
          &MaterialConverterWrapper::ConvertToUSDMaterial,
-         (boost::python::arg("anim_mtl_handle"),
-          boost::python::arg("stage"),
-          boost::python::arg("filename"),
-          boost::python::arg("isUSDZ"),
-          boost::python::arg("primPath"),
-          boost::python::arg("options"),
-          boost::python::arg("bindings") = boost::python::list {}),
+         (pyboost::arg("anim_mtl_handle"),
+          pyboost::arg("stage"),
+          pyboost::arg("filename"),
+          pyboost::arg("isUSDZ"),
+          pyboost::arg("primPath"),
+          pyboost::arg("options"),
+          pyboost::arg("bindings") = pyboost::list {}),
          "Converts a 3dsMax material to a UsdShadeMaterial prim (note that MultiMtls are not "
          "currently supported).")
         .staticmethod("ConvertToUSDMaterial");

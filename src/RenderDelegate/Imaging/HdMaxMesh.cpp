@@ -25,6 +25,7 @@
 #include <RenderDelegate/MaxRenderGeometryFacade.h>
 #include <RenderDelegate/SelectionRenderItem.h>
 
+#include <MaxUsd/Utilities/HydraUtils.h>
 #include <MaxUsd/Utilities/MaterialUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
 #include <Maxusd/Utilities/TranslationUtils.h>
@@ -51,18 +52,11 @@
 #include <pxr/imaging/hd/extCompCpuComputation.h>
 #include <pxr/imaging/hd/extCompPrimvarBufferSource.h>
 #endif
+#include "RenderDelegate/HdMaxMeshRenderData.h"
+
 #include <pxr/imaging/hd/extComputation.h>
 
 #include <mutex>
-
-// Hydra rendering is heavily multi-threaded. The Sync() method below is called from many threads -
-// some calls related to the 3dsMax SDK, and the Graphics APIs must be protected with mutexes. Note
-// that the Sync() function is reentrant, i.e. in some scenarios we can reenter this function on the
-// same thread before exiting the first invocation - therefore we must use recursive mutexes, which
-// allow this.
-namespace {
-std::recursive_mutex maxSdkMutex;
-} // namespace
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -582,12 +576,12 @@ void HdMaxMesh::_LoadDisplayColor(const pxr::SdfPath& id, HdSceneDelegate* deleg
     }
 }
 
-HdMaxRenderData::SubsetRenderData
+HdMaxMeshRenderData::SubsetRenderData
 HdMaxMesh::_InitializeSubsetRenderData(const SdfPath& materialId, bool instanced, bool wireframe)
 {
-    std::lock_guard<std::recursive_mutex> maxLock(maxSdkMutex);
+    std::lock_guard<std::recursive_mutex> maxLock(MaxUsd::GetMaxSdkMutex());
 
-    HdMaxRenderData::SubsetRenderData renderData;
+    HdMaxMeshRenderData::SubsetRenderData renderData;
     renderData.materiaId = materialId;
     if (!instanced) {
         // Initialize 2 render items, one for regular display, and one for when we need to display
@@ -628,7 +622,7 @@ HdMaxMesh::_InitializeSubsetRenderData(const SdfPath& materialId, bool instanced
     renderData.geometry->SetPrimitiveType(
         wireframe ? MaxSDK::Graphics::PrimitiveLineList : MaxSDK::Graphics::PrimitiveTriangleList);
 
-    const auto requiredStreams = HdMaxRenderData::GetRequiredStreams(wireframe);
+    const auto requiredStreams = HdMaxMeshRenderData::GetRequiredStreams(wireframe);
 
     // TODO : Specifying tangents/binormals and all 4 UV channels is required to get good results
     // when the viewport is set to "high quality".
@@ -638,10 +632,10 @@ HdMaxMesh::_InitializeSubsetRenderData(const SdfPath& materialId, bool instanced
 }
 
 void HdMaxMesh::_UpdatePerMaterialRenderData(
-    HdSceneDelegate* delegate,
-    const SdfPath&   materialId,
-    HdMaxRenderData& renderData,
-    bool             instanced)
+    HdSceneDelegate*     delegate,
+    const SdfPath&       materialId,
+    HdMaxMeshRenderData& renderData,
+    bool                 instanced)
 {
     const HdGeomSubsets& geomSubsets = sourceTopology.GetGeomSubsets();
 
@@ -663,7 +657,7 @@ void HdMaxMesh::_UpdatePerMaterialRenderData(
     // Val -> A pair..
     //         Key : The render data.
     //         Val : True if we still need this render data, false otherwise.
-    std::map<pxr::SdfPath, std::pair<HdMaxRenderData::SubsetRenderData, bool>> updatedSubsets;
+    std::map<pxr::SdfPath, std::pair<HdMaxMeshRenderData::SubsetRenderData, bool>> updatedSubsets;
 
     // Populate with the previous per-material data, initially we don't know if we will still need
     // these...
@@ -834,7 +828,10 @@ HdMaxMesh::_GetMaterialUvPrimvars(HdSceneDelegate* delegate, const SdfPath& mate
     return { diffuseColorUv, uvPrimvars };
 }
 
-HdMaxRenderData& HdMaxMesh::_GetRenderData() { return renderDelegate->GetRenderData(GetId()); }
+HdMaxMeshRenderData& HdMaxMesh::_GetRenderData()
+{
+    return renderDelegate->GetMeshRenderData(GetId());
+}
 
 bool HdMaxMesh::PrimvarIsRequired(const TfToken& primvar) const
 {
@@ -855,6 +852,13 @@ void HdMaxMesh::Sync(
     auto& renderData = _GetRenderData();
     if (!renderData.renderTagActive) {
         return;
+    }
+
+    // Look for our "isGizmo" custom primvar. We set this up, for example, in the
+    // HdLightGizmoSceneIndexFilter.
+    auto isGizmoVal = GetPrimvar(delegate, pxr::TfToken("isGizmo"));
+    if (!isGizmoVal.IsEmpty()) {
+        renderData.isGizmo = isGizmoVal.Get<bool>();
     }
 
     // Update the topology.
@@ -1236,7 +1240,7 @@ void HdMaxMesh::Sync(
             renderData.SetAllSubsetRenderDataDirty(HdMaxChangeTracker::DirtyMaterial);
         }
 
-        std::lock_guard<std::recursive_mutex> maxLock(maxSdkMutex);
+        std::lock_guard<std::recursive_mutex> maxLock(MaxUsd::GetMaxSdkMutex());
 
         auto color = GfVec3f(0.8f, 0.8f, 0.8f);
         if (!renderData.colors.empty()) {
@@ -1298,7 +1302,7 @@ void HdMaxMesh::Sync(
 
     // Handles material and color changes on non-instanced geometry.
     if ((materialIdDirty || displayColorDirty) && !instancer) {
-        std::lock_guard<std::recursive_mutex> maxLock(maxSdkMutex);
+        std::lock_guard<std::recursive_mutex> maxLock(MaxUsd::GetMaxSdkMutex());
         for (auto& subsetItem : renderData.shadedSubsets) {
             // Setup the 3dsMax Material and its the viewport representation.
             // The Max material is what ends up being used for rendering, so it is always the
@@ -1361,7 +1365,7 @@ void HdMaxMesh::Sync(
         // Compute the total bounding box given all instances.
         renderData.boundingBox = MaxUsd::ComputeTotalExtent(extent, transforms);
 
-        std::lock_guard<std::recursive_mutex> maxLock(maxSdkMutex);
+        std::lock_guard<std::recursive_mutex> maxLock(MaxUsd::GetMaxSdkMutex());
 
         auto materialCollection = renderDelegate->GetMaterialCollection();
         for (auto& subsetItem : renderData.shadedSubsets) {

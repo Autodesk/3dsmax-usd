@@ -14,7 +14,6 @@
 // limitations under the License.
 //
 #include "TestGUP.h"
-
 #include <Max.h>
 
 #define TESTGUP_CLASS_ID Class_ID(0x17f35bb1, 0x3e874149)
@@ -24,36 +23,78 @@ extern TCHAR* GetString(int id);
 class TestGUPClassDesc : public ClassDesc2
 {
 public:
-    int          IsPublic() override { return TRUE; }
-    void*        Create(BOOL /*loading = FALSE*/) override { return new TestGUP(); }
-    const TCHAR* ClassName() override { return L"USDSystemTests"; }
+	int IsPublic() override
+	{
+		return TRUE;
+	}
+	void* Create(BOOL /*loading = FALSE*/) override
+	{
+		return new TestGUP();
+	}
+	const TCHAR* ClassName() override
+	{
+		return L"USDSystemTests";
+	}
+	
+	SClass_ID SuperClassID() override
+	{
+		return GUP_CLASS_ID;
+	}
+	Class_ID ClassID() override
+	{
+		return TESTGUP_CLASS_ID;
+	}
 
-    SClass_ID SuperClassID() override { return GUP_CLASS_ID; }
-    Class_ID  ClassID() override { return TESTGUP_CLASS_ID; }
+	const TCHAR* Category() override
+	{
+		return _T("");
+	}
 
-    const TCHAR* Category() override { return _T(""); }
+	const TCHAR* InternalName() override
+	{
+		return _T("USDSystemTests");
+	}
 
-    const TCHAR* InternalName() override { return _T("USDSystemTests"); }
+	HINSTANCE HInstance() override
+	{
+		return hInstance;
+	}
 
-    HINSTANCE HInstance() override { return hInstance; }
+	int NumActionTables() override
+	{
+		return 0;
+	}
 
-    int NumActionTables() override { return 0; }
-
-    const MCHAR* NonLocalizedClassName() override { return L"TestGUP"; }
+	const MCHAR* NonLocalizedClassName() override
+	{
+		return L"TestGUP";
+	}
 };
 
 ClassDesc2* GetTestGUPDesc()
 {
-    static TestGUPClassDesc desc;
-    return &desc;
+	static TestGUPClassDesc desc;
+	return &desc;
 }
 
-TestGUP::TestGUP() { }
+TestGUP::TestGUP()
+{
+}
 
-void TestGUP::NotifyProc(void* /*param*/, NotifyInfo* info) { }
+void TestGUP::NotifyProc(void* /*param*/, NotifyInfo* info)
+{
+}
 
-DWORD TestGUP::Start() { return GUPRESULT_KEEP; }
+DWORD TestGUP::Start()
+{
+	return GUPRESULT_KEEP;
+}
 
-void TestGUP::Stop() { }
+void TestGUP::Stop()
+{
+}
 
-void TestGUP::DeleteThis() { delete this; }
+void TestGUP::DeleteThis()
+{
+	delete this;
+}

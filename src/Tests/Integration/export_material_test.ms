@@ -1094,9 +1094,16 @@ struct export_material_test
         local mtlxMatPrim = stage.GetPrimAtPath("/mtl/mtlx1")
         assert_true (mtlxMatPrim.IsValid())
         assert_true (mtlxMatPrim.IsA(pyShade.Material))
-        local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
-        assert_true (mtlxShaderPrim.IsValid())
-        assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        maxver = maxVersion()
+        if maxver[1] < 27900 then (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        ) else (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        )
         -- MaxUsdPreviewSurface -> MaterialX UsdShade -> not handled.
         local usdpsMatPrim = stage.GetPrimAtPath("/mtl/usdps1")
         assert_false (usdpsMatPrim.IsValid())
@@ -1117,9 +1124,16 @@ struct export_material_test
         local mtlxContextPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX")
         assert_true (mtlxContextPrim.IsValid())
         assert_true (mtlxContextPrim.IsA(pyShade.NodeGraph))
-        local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
-        assert_true (mtlxShaderPrim.IsValid())
-        assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        maxver = maxVersion()
+        if maxver[1] < 27900 then (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        ) else (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        )
         -- UsdPreviewSurface UsdShade node graph...
         local uspsContextPrim = stage.GetPrimAtPath("/mtl/mtlx1/UsdPreviewSurface")
         assert_true (uspsContextPrim.IsValid())
@@ -1178,9 +1192,16 @@ struct export_material_test
         local mtlxContextPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX")
         assert_true (mtlxContextPrim.IsValid())
         assert_true (mtlxContextPrim.IsA(pyShade.NodeGraph))
-        local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
-        assert_true (mtlxShaderPrim.IsValid())
-        assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        maxver = maxVersion()
+        if maxver[1] < 27900 then (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        ) else (
+            local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
+            assert_true (mtlxShaderPrim.IsValid())
+            assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
+        )
         -- UsdPreviewSurface UsdShade node graph...
         -- The last resort fallback is disabled we should have nothing there.
         local uspsContextPrim = stage.GetPrimAtPath("/mtl/mtlx1/UsdPreviewSurface")
@@ -1234,11 +1255,11 @@ struct export_material_test
         local mtl4 = MaxUsdPreviewSurface()
         mtl4.name = "matTeapot004"
         mtl4.diffuseColor_map = Bitmaptexture fileName:baseColorBitmapPath4
-		
+        
         local mtl5 = MaxUsdPreviewSurface()
         mtl5.name = "matTeapot005"
         mtl5.diffuseColor_map = Bitmaptexture fileName:baseColorBitmapPath5
-		
+        
         teapot001.material = mtl1
         teapot002.material = mtl2
         teapot003.material = mtl3
@@ -1259,7 +1280,7 @@ struct export_material_test
         
         mtl4.UsdMaterialAttributeHolder.pathMethod = 2
         mtl4.UsdMaterialAttributeHolder.primPath = "Test"
-		
+        
         mtl5.UsdMaterialAttributeHolder.filePath = output_prefix + "custAttrMaterialééé.usda"
 
         local exportOptions = USDExporter.CreateOptions()
@@ -1294,7 +1315,7 @@ struct export_material_test
         local texturePrim = getTexturePrim (connectedSourceTuple[1])
         local inputFile = (texturePrim.GetInput("file")).Get() as string
         assert_equal ("@" + (pathToForwardSlash baseColorBitmapPath4)+ "@") inputFile
-			
+            
         local shaderPrim = pyShade.Shader.Get stage "/root/Materials/matTeapot005/matTeapot005"
         local connectedSourceTuple = ((shaderPrim.GetInput("diffuseColor")).GetConnectedSource())
         local texturePrim = getTexturePrim (connectedSourceTuple[1])
@@ -1463,9 +1484,9 @@ struct export_material_test
         local inputFile = (texturePrim.GetInput("file")).Get() as string
         assert_equal ("@" + (pathToForwardSlash baseColorBitmapPath3)+ "@") inputFile
     ),
-	
-	-- Test the full path of the material scope to see if the root and mtl paths are respected
-	function test_export_material_scope_path = (
+    
+    -- Test the full path of the material scope to see if the root and mtl paths are respected
+    function test_export_material_scope_path = (
             local tp = teapot name:"tp"
             local mtl = MaxUsdPreviewSurface()
             local baseColorBitmapPath1 = @"C:\folderX\basecolor.png"
@@ -1484,11 +1505,11 @@ struct export_material_test
             
             local mtlPrim = stage.GetPrimAtPath("/root/materials")
             assert_true (pyUsd.Prim.IsValid(mtlPrim))
-	    assert_true (mtlPrim.IsA(pyUsdGeom.Scope))
-	),
-	
-	-- Test that we do not create the mtl scope if there's no materials to export
-	function test_export_material_no_scope = (
+        assert_true (mtlPrim.IsA(pyUsdGeom.Scope))
+    ),
+    
+    -- Test that we do not create the mtl scope if there's no materials to export
+    function test_export_material_no_scope = (
             local exportOptions = USDExporter.CreateOptions()
             exportOptions.FileFormat = #ascii
             
@@ -1498,15 +1519,15 @@ struct export_material_test
             
             local mtlScopePrim = stage.GetPrimAtPath("/root/mtl")
             assert_false (pyUsd.Prim.IsValid(mtlScopePrim))
-	),
-	
+    ),
+    
     
     function teardown = (
         pyUsdMaterialWriter._material_export_options["relative_texture_paths"] = true
     ),
 
     Tests = #(
-	test_export_previewsurface_material_values,
+        test_export_previewsurface_material_values,
         test_export_single_material_bindings,
         test_export_single_material_bindings_with_exported_object_transform,
         test_export_hierarchy_material_bindings,

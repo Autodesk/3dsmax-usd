@@ -14,9 +14,10 @@
 // limitations under the License.
 //
 #pragma once
+#include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
-#include <MaxUsd.h>
+#include <Path.h>
 
 class QByteArray;
 class pxr::VtDictionary;

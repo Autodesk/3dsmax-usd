@@ -43,6 +43,8 @@ public:
 
     QStyledItemDelegate* createStyleDelegate(QObject* parent) override;
 
+    int resizeMode() const override;
+
 private:
     // An alias for the root item in the hierarchy.
     QString _rootAlias;
@@ -84,6 +86,8 @@ public:
     QStyledItemDelegate* createStyleDelegate(QObject* parent) override;
 
     bool isSelectable() const override;
+
+    int resizeMode() const override;
 
 private:
     static QIcon _iconHidden;

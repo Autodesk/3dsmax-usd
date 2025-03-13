@@ -50,17 +50,33 @@ struct usdpreviewsurface_material_test
         local vp_interface = getInterface vps "ViewportViewSettingImpl"
         local vp_prop_names = getPropNames vp_interface
         
-        local vps_before = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
-        local idisplay_before = to_dict idisplayGamma (getPropNames idisplayGamma)
-        
-        local box001 = Box pos:[0,0,0] name:"box001"
-        box001.material = MaxUsdPreviewSurface()
-        
-        local vps_after = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
-        local idisplay_after = to_dict idisplayGamma (getPropNames idisplayGamma)
+        maxver = maxversion()
+        if maxver[1] >= 27000 then (
+            local vps_before = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
+            local color_pipeline_mgr_before = to_dict ColorPipelineMgr (getPropNames ColorPipelineMgr)
+            
+            local box001 = Box pos:[0,0,0] name:"box001"
+            box001.material = MaxUsdPreviewSurface()
+            
+            local vps_after = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
+            local color_pipeline_mgr_after = to_dict ColorPipelineMgr (getPropNames ColorPipelineMgr)
 
-        assert_dict_equal vps_before vps_after message:"ViewportSetting parameter changed"
-        assert_dict_equal idisplay_before idisplay_after message:"idisplayGamma parameter changed"
+            assert_dict_equal vps_before vps_after message:"ViewportSetting parameter changed"
+            assert_dict_equal color_pipeline_mgr_before color_pipeline_mgr_after message:"ColorPipelineMgr parameter changed"
+        )
+        else (
+            local vps_before = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
+            local idisplay_before = to_dict idisplayGamma (getPropNames idisplayGamma)
+
+            local box001 = Box pos:[0,0,0] name:"box001"
+            box001.material = MaxUsdPreviewSurface()
+
+            local vps_after = to_dict (NitrousGraphicsManager.GetActiveViewportSetting()) vp_prop_names
+            local idisplay_after = to_dict idisplayGamma (getPropNames idisplayGamma)
+
+            assert_dict_equal vps_before vps_after message:"ViewportSetting parameter changed"
+            assert_dict_equal idisplay_before idisplay_after message:"idisplayGamma parameter changed"
+        )
     ),
 
     function teardown = (

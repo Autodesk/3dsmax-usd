@@ -15,7 +15,9 @@
 //
 #include "HdMaxInstanceGen.h"
 
+#include "GizmoMaterial.h"
 #include "HdMaxDisplayPreferences.h"
+#include "HdMaxMaterialCollection.h"
 #include "MaxRenderGeometryFacade.h"
 #include "SelectionRenderItem.h"
 #include "resource.h"
@@ -114,7 +116,6 @@ void HdMaxInstanceGen::RequestSelectionDisplayUpdate(bool recreate)
     auto flag = [this](const DirtyState& state) {
         shadedSelectionState = std::max(state, shadedSelectionState);
         wireSelectionState = std::max(state, wireSelectionState);
-        ;
     };
 
     // Need to recreate when, for example, selection changes. A change in the number of instances
@@ -141,8 +142,10 @@ void HdMaxInstanceGen::GenerateInstances(
     const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
     MaxSDK::Graphics::UpdateNodeContext&          nodeContext,
     bool                                          wireframe,
+    MaxSDK::Graphics::RenderItemVisibilityGroup   visibilityGroup,
     int                                           subset,
-    ViewExp*                                      viewExp)
+    ViewExp*                                      viewExp,
+    bool                                          isBasisCurves)
 {
     if (!geom || !geom->GetInstanceRenderGeometry()) {
         return;
@@ -167,21 +170,33 @@ void HdMaxInstanceGen::GenerateInstances(
     auto& data = wireframe ? wireData : shadedData;
     auto& selectionData = wireframe ? wireSelectionData : shadedSelectionData;
 
+    // If the material is not explicitly specified and the instances are for gizmos
+    // use the gizmo material. Similar to how max will assume the basic wireframe material
+    // for wireframe render items.
+    MaxSDK::Graphics::BaseMaterialHandle* mtlToUse = nullptr;
+    MaxSDK::Graphics::BaseMaterialHandle  gizmoMtl;
+    if (material) {
+        mtlToUse = material;
+    } else if (visibilityGroup == MaxSDK::Graphics::RenderItemVisible_Gizmo) {
+        gizmoMtl = GizmoMaterial::Get(GizmoMaterial::Instanced);
+        mtlToUse = &gizmoMtl;
+    }
+
     // The given material can be null (in wireframe mode, this will let the system decide, and set
     // the correct wireframe material)
-    data.numViewportMaterials = material ? 1 : 0;
-    data.pViewportMaterials = material;
+    data.numViewportMaterials = mtlToUse ? 1 : 0;
+    data.pViewportMaterials = mtlToUse;
 
     selectionData.numViewportMaterials = 1;
     const auto selectionMaterial
-        = wireframe ? &instanceSelectWireMaterial : &instanceSelectMaterial;
+        = wireframe || isBasisCurves ? &instanceSelectWireMaterial : &instanceSelectMaterial;
     const auto& selColor = HdMaxDisplayPreferences::GetInstance().GetSelectionColor();
     selectionMaterial->SetFloat4Parameter(
         L"LineColor", Point4(selColor.r, selColor.g, selColor.b, selColor.a));
 
     // Configure the ZBias. This is so that our selection wireframe displays on top of the geometry.
     if (viewExp) {
-        auto bias = SelectionRenderItem::GetSelectionZBias(viewExp, wireframe);
+        auto bias = SelectionRenderItem::GetSelectionZBias(viewExp, wireframe || isBasisCurves);
         selectionMaterial->SetFloatParameter(L"ZBias", bias);
     }
 
@@ -189,12 +204,16 @@ void HdMaxInstanceGen::GenerateInstances(
 
     MaxSDK::Graphics::RenderItemHandleArray* cachedItems;
     MaxSDK::Graphics::RenderItemHandleArray* cachedSelectionItems;
+    bool*                                    cacheNodeSelectionStatus;
+
     if (wireframe) {
         cachedItems = &cachedWire;
         cachedSelectionItems = &cachedSelectionWire;
+        cacheNodeSelectionStatus = &wireCacheNodeSelectionStatus;
     } else {
         cachedItems = &cachedShaded[subset];
         cachedSelectionItems = &cachedSelectionShaded[subset];
+        cacheNodeSelectionStatus = &shadedCacheNodeSelectionStatus;
     }
 
     auto createOrUpdate = [this](
@@ -219,23 +238,38 @@ void HdMaxInstanceGen::GenerateInstances(
     };
 
     // The instance geometry render items :
-
     const auto instanceGeom = geom->GetInstanceRenderGeometry();
     createOrUpdate(state, instanceGeom, data, cachedItems);
+
+    // If the selection state changed, we want to drop the cached render items that we have.
+    const auto currentNodeSelectionStatus = nodeContext.GetRenderNode().GetSelected();
+    if (*cacheNodeSelectionStatus != currentNodeSelectionStatus) {
+        cachedItems->ClearAllRenderItems();
+        *cacheNodeSelectionStatus = currentNodeSelectionStatus;
+    }
+
+    auto adjustVisGroup = [&visibilityGroup](const MaxSDK::Graphics::RenderItemHandleArray* items) {
+        for (int i = 0; i < items->GetNumberOfRenderItems(); ++i) {
+            items->GetRenderItem(i).SetVisibilityGroup(visibilityGroup);
+        }
+    };
 
     // If we still have cached render items at this point, it means nothing has changed, and we can
     // use the render items we already have.
     if (cachedItems->GetNumberOfRenderItems() == 0) {
-        instanceGeom->GenerateInstances(wireframe, updateDisplayContext, nodeContext, *cachedItems);
+        instanceGeom->GenerateInstances(
+            isBasisCurves || wireframe, updateDisplayContext, nodeContext, *cachedItems);
+        adjustVisGroup(cachedItems);
     }
+
     targetRenderItemContainer.AddRenderItems(*cachedItems);
 
     // Update and generate any required selection display instance render items.
     if (selectionData.numInstances) {
         // Even if the selection itself didnt change, we may need to update the selection render
         // items, for example if the geometry has changed.
-        const auto effectiveSelectionState
-            = std::max(state, wireframe ? wireSelectionState : shadedSelectionState);
+        const auto effectiveSelectionState = std::max(
+            state, wireframe || isBasisCurves ? wireSelectionState : shadedSelectionState);
         if (effectiveSelectionState == DirtyState::NeedRecreate) {
             geom->RebuildInstanceGeom(true);
         }
@@ -244,7 +278,11 @@ void HdMaxInstanceGen::GenerateInstances(
             effectiveSelectionState, instanceSelectGeom, selectionData, cachedSelectionItems);
         if (cachedSelectionItems->GetNumberOfRenderItems() == 0) {
             instanceSelectGeom->GenerateInstances(
-                wireframe, updateDisplayContext, nodeContext, *cachedSelectionItems);
+                wireframe || isBasisCurves,
+                updateDisplayContext,
+                nodeContext,
+                *cachedSelectionItems);
+            adjustVisGroup(cachedSelectionItems);
         }
         targetRenderItemContainer.AddRenderItems(*cachedSelectionItems);
     }

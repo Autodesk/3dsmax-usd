@@ -24,9 +24,21 @@
 #include <pxr/imaging/hd/material.h>
 
 #include <Graphics/BaseMaterialHandle.h>
-#include <Graphics/StandardMaterialHandle.h>
 
-#include <MaxUsd.h>
+#if PXR_VERSION < 2411
+#define HASH_COMBINE(seed, value)         \
+    {                                     \
+        boost::hash_combine(seed, value); \
+    }
+#else
+// same implementation found in boost::hash_combine
+#define HASH_COMBINE(seed, value)                                       \
+    {                                                                   \
+        std::hash<int> hasher;                                          \
+        seed ^= hasher(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2); \
+    }
+#endif
+
 
 class RenderDelegateAPI HdMaxMaterialCollection
 {
@@ -38,8 +50,8 @@ public:
         size_t operator()(const BitmapKey& key) const
         {
             std::size_t hash = std::hash<std::string> {}(std::get<0>(key));
-            boost::hash_combine(hash, std::get<1>(key));
-            boost::hash_combine(hash, std::get<2>(key));
+            HASH_COMBINE(hash, std::get<1>(key));
+            HASH_COMBINE(hash, std::get<2>(key));
             return hash;
         }
     };

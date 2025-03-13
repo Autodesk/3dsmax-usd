@@ -17,7 +17,6 @@
 
 #include <RenderDelegate/HdMaxColorMaterial.h>
 #include <RenderDelegate/HdMaxEngine.h>
-#include <RenderDelegate/HdMaxRenderData.h>
 
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
@@ -50,7 +49,7 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
         { pxr::HdReprTokens->smoothHull, pxr::HdReprTokens->wire });
 
     auto& renderDelegate = testEngine.GetRenderDelegate();
-    auto  renderData = renderDelegate->GetRenderDataIdMap();
+    auto  renderData = renderDelegate->GetMeshRenderDataIdMap();
 
     ASSERT_EQ(1, renderData.size());
     auto it = renderData.find(pxr::SdfPath("/cube"));
@@ -70,7 +69,7 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
     auto shadedGeometry = GetRenderItemGeometry(shadedRenderItem, true);
     ASSERT_EQ(
         shadedGeometry,
-        renderDelegate->GetRenderData(it->second)
+        renderDelegate->GetMeshRenderData(it->second)
             .shadedSubsets[0]
             .geometry->GetSimpleRenderGeometry());
 
@@ -80,7 +79,7 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
     ASSERT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
 
     // Check that points are OK.
-    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(8, pointsBuffer.GetNumberOfVertices());
     std::array<Point3, 8> expectedPoints
         = { Point3(1, 1, 1),    Point3(-1, 1, 1),  Point3(-1, -1, 1), Point3(1, -1, 1),
@@ -91,7 +90,7 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
     EXPECT_TRUE(std::equal(expectedPoints.begin(), expectedPoints.end(), pointsData));
 
     // Check that computed smooth normals are OK.
-    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(8, normalsBuffer.GetNumberOfVertices());
     std::array<Point3, 8> expectedNormals = { Point3(0.577350259, 0.577350259, 0.577350259),
                                               Point3(-0.577350259, 0.577350259, 0.577350259),
@@ -123,7 +122,8 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
     const auto wireframeGeometry = GetRenderItemGeometry(wireframeRenderItem, true);
     ASSERT_EQ(
         wireframeGeometry,
-        renderDelegate->GetRenderData(it->second).wireframe.geometry->GetSimpleRenderGeometry());
+        renderDelegate->GetMeshRenderData(it->second)
+            .wireframe.geometry->GetSimpleRenderGeometry());
 
     ASSERT_NE(nullptr, wireframeGeometry);
     ASSERT_EQ(MaxSDK::Graphics::PrimitiveLineList, wireframeGeometry->GetPrimitiveType());
@@ -131,8 +131,9 @@ TEST(USDRenderDelegateGeneralTest, SimpleCube)
     ASSERT_TRUE(wireframeGeometry->GetIndexBuffer().IsValid());
 
     // The wireframe item should be using the same vertex buffers as the shaded geometry.
-    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer));
-    EXPECT_EQ(normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer));
+    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer));
+    EXPECT_EQ(
+        normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer));
 
     // Check that indices for the wire edges are OK.
     auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
@@ -193,7 +194,7 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
     TestRender(stage, testEngine, renderItems, 0);
 
     auto& renderDelegate = testEngine.GetRenderDelegate();
-    auto  renderData = renderDelegate->GetRenderDataIdMap();
+    auto  renderData = renderDelegate->GetMeshRenderDataIdMap();
 
     ASSERT_EQ(1, renderData.size());
     auto it0 = renderData.find(pxr::SdfPath("/quad"));
@@ -205,12 +206,12 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
 
     ASSERT_EQ(
         simpleRenderGeometry0,
-        renderDelegate->GetRenderData(it0->second)
+        renderDelegate->GetMeshRenderData(it0->second)
             .shadedSubsets[0]
             .geometry->GetSimpleRenderGeometry());
 
     // Check that points are ok at timecode 0.
-    auto pointsBuffer = simpleRenderGeometry0->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = simpleRenderGeometry0->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(4, pointsBuffer.GetNumberOfVertices());
     std::array<Point3, 4> expectedPoints = { MaxUsd::ToMax(points0[0]),
                                              MaxUsd::ToMax(points0[1]),
@@ -222,7 +223,7 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
     pointsBuffer.Unlock();
 
     // Check that computed normals are ok at timecode 0.
-    auto normalsBuffer = simpleRenderGeometry0->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer = simpleRenderGeometry0->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(4, normalsBuffer.GetNumberOfVertices());
     std::array<Point3, 4> expectedNormals
         = { Point3(-1, 0, 0), Point3(-1, 0, 0), Point3(-1, 0, 0), Point3(-1, 0, 0) };
@@ -245,7 +246,7 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
     renderItems.ClearAllRenderItems();
     TestRender(stage, testEngine, renderItems, 1);
 
-    auto renderData1 = renderDelegate->GetRenderDataIdMap();
+    auto renderData1 = renderDelegate->GetMeshRenderDataIdMap();
 
     ASSERT_EQ(1, renderData.size());
     auto it1 = renderData.find(pxr::SdfPath("/quad"));
@@ -253,20 +254,20 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
 
     // Should have updated the same graphic object.
     ASSERT_EQ(
-        renderDelegate->GetRenderData(it0->second).shadedSubsets[0].renderItem,
-        renderDelegate->GetRenderData(it1->second).shadedSubsets[0].renderItem);
+        renderDelegate->GetMeshRenderData(it0->second).shadedSubsets[0].renderItem,
+        renderDelegate->GetMeshRenderData(it1->second).shadedSubsets[0].renderItem);
 
     // Make sure that the render item was correctly added to the container.
     auto& usdRenderItem1 = renderItems.At(0);
     auto  simpleRenderGeometry1 = GetRenderItemGeometry(usdRenderItem1, true);
     ASSERT_EQ(
         simpleRenderGeometry1,
-        renderDelegate->GetRenderData(it1->second)
+        renderDelegate->GetMeshRenderData(it1->second)
             .shadedSubsets[0]
             .geometry->GetSimpleRenderGeometry());
 
     // Check that points are ok at timecode 1.
-    pointsBuffer = simpleRenderGeometry1->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    pointsBuffer = simpleRenderGeometry1->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(4, pointsBuffer.GetNumberOfVertices());
     expectedPoints = { MaxUsd::ToMax(points1[0]),
                        MaxUsd::ToMax(points1[1]),
@@ -277,7 +278,7 @@ TEST(USDRenderDelegateGeneralTest, AnimatedGeometry)
     pointsBuffer.Unlock();
 
     // Check that computed normals are ok at timecode 1.
-    normalsBuffer = simpleRenderGeometry1->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    normalsBuffer = simpleRenderGeometry1->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(4, normalsBuffer.GetNumberOfVertices());
     expectedNormals = { Point3(0, 0, 1), Point3(0, 0, 1), Point3(0, 0, 1), Point3(0, 0, 1) };
     normalsdata = reinterpret_cast<Point3*>(normalsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
@@ -508,7 +509,7 @@ TEST(USDRenderDelegateGeneralTest, RenderRootChange)
     MockRenderItemDecoratorContainer renderItems;
     TestRender(stage, testEngine, renderItems, 0);
 
-    auto renderData1 = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData1 = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
     ASSERT_EQ(1, renderData1.size());
     auto it1 = renderData1.find(pxr::SdfPath("/cube"));
     ASSERT_TRUE(it1 != renderData1.end());
@@ -520,7 +521,7 @@ TEST(USDRenderDelegateGeneralTest, RenderRootChange)
     // Now render the sphere, part of a different stage.
     renderItems.ClearAllRenderItems();
     TestRender(newStage, testEngine, renderItems, 0);
-    auto renderData2 = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData2 = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
     ASSERT_EQ(1, renderData2.size());
     auto it2 = renderData2.find(pxr::SdfPath("/sphere"));

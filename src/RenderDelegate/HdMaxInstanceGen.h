@@ -91,11 +91,17 @@ public:
      * \param targetRenderItemContainer The container to which to add the generated render items.
      * \param updateDisplayContext The update display context.
      * \param nodeContext The node context.
-     * \param wireframe Whether we are generating wireframe instance render items, or shaded ones.
+     * \param wireframe Whether we are generating wireframe instance render items or not. This is the flag
+     * we hand over to the 3dsMax instancing API.
+     * \param visibilityGroup The visibility group to use. From the wireframe flag above, the instancing API
+     * will assign a visibility group, but we sometimes need to use a different group. For example
+     * when drawing gizmos, or curves. In the case of gizmo's we will also infer the material from
+     * this.
      * \param subset The subset we are generating the instances for - a mesh can have multiple, associated
      * to instanced render items (1 material maximum per render item). The instance generator will
      * keep a cache of instance render items internally.
      * \param viewExp View information used to configure Zbiases for selection.
+     * \param isBasisCurves True if the geometry being instanced is a basis curve.
      */
     void GenerateInstances(
         MaxRenderGeometryFacade*                      instanceGeometry,
@@ -104,8 +110,10 @@ public:
         const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
         MaxSDK::Graphics::UpdateNodeContext&          nodeContext,
         bool                                          wireframe,
+        MaxSDK::Graphics::RenderItemVisibilityGroup   visibilityGroup,
         int                                           subset,
-        ViewExp*                                      viewExp);
+        ViewExp*                                      viewExp,
+        bool                                          isBasisCurves);
 
     /**
      * \brief Mark an instance as selected so that the render items for selection display are generated.
@@ -172,4 +180,8 @@ private:
     // Also cache the instance render items used for selection display.
     std::vector<MaxSDK::Graphics::RenderItemHandleArray> cachedSelectionShaded;
     MaxSDK::Graphics::RenderItemHandleArray              cachedSelectionWire;
+    // For the cached render items, keep track of the matching selection state of the node.
+    // When the selection state change the cached will need to be dropped.
+    bool shadedCacheNodeSelectionStatus = false;
+    bool wireCacheNodeSelectionStatus = false;
 };

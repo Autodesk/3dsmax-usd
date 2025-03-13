@@ -57,6 +57,9 @@
     <ClCompile Include="MaxUsdObjects.Camera.test.cpp">
       <Filter>source\Tests</Filter>
     </ClCompile>
+    <ClCompile Include="RenderDelegate.LightGizmos.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

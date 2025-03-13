@@ -24,12 +24,27 @@
 
 #include <maxscript/mxsplugin/mxsCustomAttributes.h>
 
-#include <boost/tokenizer.hpp>
 #include <custattrib.h>
 #include <icustattribcontainer.h>
 #include <object.h>
 #include <string.h>
+
 using namespace std::string_literals;
+
+// simple tokenizer implementation
+std::vector<std::string> split(std::string str, char delimiter)
+{
+
+    std::vector<std::string> res;
+    size_t                   first;
+    size_t                   last = 0;
+
+    while ((first = str.find_first_not_of(delimiter, last)) != std::string::npos) {
+        last = str.find(delimiter, first);
+        res.push_back(str.substr(first, last - first));
+    }
+    return res;
+}
 
 // Data types supported by the UserDataExportChaserSample
 enum class PropertyType : int
@@ -109,17 +124,16 @@ UserDataExportChaserSample::UserDataExportChaserSample(
         = { { PropertyType::USER_PROP, { "myUserProperty" } }, { PropertyType::CUSTOM_DATA, {} } };
 
     // Parsing the specific export chaser arguments
-    boost::char_separator<char> sep(",");
     for (std::pair<std::string, std::string> item : args) {
         if (item.first == "user") {
             dataToExport[PropertyType::USER_PROP].clear();
-            boost::tokenizer<boost::char_separator<char>> tokens(item.second, sep);
+            auto tokens = split(item.second, ',');
             for (auto name : tokens) {
                 dataToExport[PropertyType::USER_PROP].insert(name);
             }
         } else if (item.first == "custom") {
             dataToExport[PropertyType::CUSTOM_DATA].clear();
-            boost::tokenizer<boost::char_separator<char>> tokens(item.second, sep);
+            auto tokens = split(item.second, ',');
             for (auto name : tokens) {
                 dataToExport[PropertyType::CUSTOM_DATA].insert(name);
             }

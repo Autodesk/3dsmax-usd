@@ -21,14 +21,11 @@
 
 #include <boost/python.hpp>
 
-using namespace std;
-using namespace boost::python;
-using namespace boost;
-
 PXR_NAMESPACE_USING_DIRECTIVE
 
 // Registers or updates a Python class for the provided key.
-size_t MaxUsdPythonObjectRegistry::RegisterPythonObject(object cl, const std::string& key)
+std::size_t
+MaxUsdPythonObjectRegistry::RegisterPythonObject(pyboost::object cl, const std::string& key)
 {
     TClassIndex::const_iterator target = _sIndex.find(key);
     if (target == _sIndex.cend()) {
@@ -45,17 +42,17 @@ size_t MaxUsdPythonObjectRegistry::RegisterPythonObject(object cl, const std::st
     }
 }
 
-void MaxUsdPythonObjectRegistry::UnregisterPythonObject(object cl, const std::string& key)
+void MaxUsdPythonObjectRegistry::UnregisterPythonObject(pyboost::object cl, const std::string& key)
 {
     TClassIndex::const_iterator target = _sIndex.find(key);
     if (target != _sIndex.cend()) {
         // Clear the Python class:
-        _sClassVec[target->second] = object();
+        _sClassVec[target->second] = pyboost::object();
         _sIndex.erase(key);
     }
 }
 
-bool MaxUsdPythonObjectRegistry::IsPythonClass(object cl)
+bool MaxUsdPythonObjectRegistry::IsPythonClass(pyboost::object cl)
 {
     auto classAttr = cl.attr("__class__");
     if (!classAttr) {
@@ -65,11 +62,11 @@ bool MaxUsdPythonObjectRegistry::IsPythonClass(object cl)
     if (!nameAttr) {
         return false;
     }
-    std::string name = extract<std::string>(nameAttr);
+    std::string name = pyboost::extract<std::string>(nameAttr);
     return name == "class";
 }
 
-std::string MaxUsdPythonObjectRegistry::ClassName(object cl)
+std::string MaxUsdPythonObjectRegistry::ClassName(pyboost::object cl)
 {
     // Is it a Python class:
     if (!IsPythonClass(cl)) {
@@ -82,7 +79,7 @@ std::string MaxUsdPythonObjectRegistry::ClassName(object cl)
         TfPyThrowRuntimeError("Unexpected Python error: No __name__ attribute");
     }
 
-    return std::string(boost::python::extract<std::string>(nameAttr));
+    return std::string(pyboost::extract<std::string>(nameAttr));
 }
 
 MaxUsdPythonObjectRegistry::TClassVec   MaxUsdPythonObjectRegistry::_sClassVec;
@@ -91,7 +88,7 @@ MaxUsdPythonObjectRegistry::TClassIndex MaxUsdPythonObjectRegistry::_sIndex;
 void MaxUsdPythonObjectRegistry::HookInterpreterExit()
 {
     if (_sClassVec.empty()) {
-        if (import("atexit").attr("register")(&OnInterpreterExit).is_none()) {
+        if (pyboost::import("atexit").attr("register")(&OnInterpreterExit).is_none()) {
             TF_CODING_ERROR("Couldn't register unloader to atexit");
         }
     }
@@ -101,6 +98,6 @@ void MaxUsdPythonObjectRegistry::OnInterpreterExit()
 {
     // Release all Python classes:
     for (size_t i = 0; i < _sClassVec.size(); ++i) {
-        _sClassVec[i] = object();
+        _sClassVec[i] = pyboost::object();
     }
 }

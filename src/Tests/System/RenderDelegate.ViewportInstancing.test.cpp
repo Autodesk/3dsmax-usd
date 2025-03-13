@@ -17,6 +17,7 @@
 
 #include <RenderDelegate/HdMaxEngine.h>
 
+#include <MaxUsd/Utilities/MaxSupportUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
 
 TEST(ViewportInstancing, SceneGraphInstances)
@@ -40,12 +41,18 @@ TEST(ViewportInstancing, SceneGraphInstances)
         MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Shaded,
         renderItems.GetRenderItem(1).GetVisibilityGroup());
 
-    auto renderData = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
     // Box001 and Box003 share the same prototype.
-    auto it1 = renderData.find(pxr::SdfPath("/scene_graph_instances/Box001.proto_Box001_id0"));
+#ifdef IS_MAX_BETA
+    const auto box1Path = pxr::SdfPath("/scene_graph_instances/Box001/proto_Box001_id0");
+#else
+    const auto box1Path = pxr::SdfPath("/scene_graph_instances/Box001.proto_Box001_id0");
+#endif
+
+    auto it1 = renderData.find(box1Path);
     ASSERT_TRUE(it1 != renderData.end());
-    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetRenderData(it1->second);
+    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it1->second);
     auto  transforms1 = prototype1RenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms1.size());
     const auto expectedTransformBox001 = MaxUsd::ToMaxMatrix3(
@@ -58,9 +65,16 @@ TEST(ViewportInstancing, SceneGraphInstances)
     EXPECT_TRUE(expectedTransformBox003.Equals(transforms1[1]));
 
     // Box002 and Box004 share the same prototype.
-    auto it2 = renderData.find(pxr::SdfPath("/scene_graph_instances/Box002.proto_Box001_id0"));
+
+#ifdef IS_MAX_BETA
+    const auto box2Path = pxr::SdfPath("/scene_graph_instances/Box002/proto_Box001_id0");
+#else
+    const auto box2Path = pxr::SdfPath("/scene_graph_instances/Box002.proto_Box001_id0");
+#endif
+
+    auto it2 = renderData.find(box2Path);
     ASSERT_TRUE(it2 != renderData.end());
-    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetRenderData(it2->second);
+    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it2->second);
     auto  transforms2 = prototype2RenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms2.size());
     const auto expectedTransformBox002 = MaxUsd::ToMaxMatrix3(
@@ -88,12 +102,19 @@ TEST(ViewportInstancing, SceneGraphInstancesWithSubsets)
     // expect 6 render items, one for each face, which contains 2 instances.
     ASSERT_EQ(6, renderItems.GetNumberOfRenderItems());
 
-    auto renderData = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
-    auto it1 = renderData.find(
-        pxr::SdfPath("/instances_with_material_bound_subsets/Box001.proto_Box001_id0"));
+#ifdef IS_MAX_BETA
+    const auto box1Path
+        = pxr::SdfPath("/instances_with_material_bound_subsets/Box001/proto_Box001_id0");
+#else
+    const auto box1Path
+        = pxr::SdfPath("/instances_with_material_bound_subsets/Box001.proto_Box001_id0");
+#endif
+
+    auto it1 = renderData.find(pxr::SdfPath(box1Path));
     ASSERT_TRUE(it1 != renderData.end());
-    auto& prototypeRenderData = testEngine.GetRenderDelegate()->GetRenderData(it1->second);
+    auto& prototypeRenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it1->second);
     auto  transforms = prototypeRenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms.size());
     EXPECT_EQ(6, prototypeRenderData.shadedSubsets.size());
@@ -123,25 +144,39 @@ TEST(ViewportInstancing, PointInstances)
     // File contains a box instanced 3 times via a point instancer, using 2 prototypes (expect
     // two render items)
     ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
-    auto renderData = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
     pxr::VtArray<pxr::GfMatrix4d> expectedTransforms;
     auto instancer = pxr::UsdGeomPointInstancer(stage->GetPrimAtPath(pxr::SdfPath("/Instancer")));
     instancer.ComputeInstanceTransformsAtTime(&expectedTransforms, 0, 0);
 
     // First prototype, 1 instance.
-    auto it1 = renderData.find(pxr::SdfPath("/Instancer.proto0_cube_id0"));
+
+#ifdef IS_MAX_BETA
+    const auto cube0Path = pxr::SdfPath("/Instancer/proto0_cube_id0");
+#else
+    const auto cube0Path = pxr::SdfPath("/Instancer.proto0_cube_id0");
+#endif
+
+    auto it1 = renderData.find(cube0Path);
     ASSERT_TRUE(it1 != renderData.end());
-    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetRenderData(it1->second);
+    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it1->second);
     auto  transforms1 = prototype1RenderData.instancer->GetTransforms();
     EXPECT_EQ(1, transforms1.size());
     EXPECT_EQ(1, prototype1RenderData.shadedSubsets.size());
     EXPECT_TRUE(MaxUsd::ToMaxMatrix3(expectedTransforms[0]).Equals(transforms1[0]));
 
     // Second prototype, 2 instances.
-    auto it2 = renderData.find(pxr::SdfPath("/Instancer.proto1_cube_id0"));
+
+#ifdef IS_MAX_BETA
+    const auto cube1Path = pxr::SdfPath("/Instancer/proto1_cube_id0");
+#else
+    const auto cube1Path = pxr::SdfPath("/Instancer.proto1_cube_id0");
+#endif
+
+    auto it2 = renderData.find(pxr::SdfPath(cube1Path));
     ASSERT_TRUE(it2 != renderData.end());
-    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetRenderData(it2->second);
+    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it2->second);
     auto  transforms2 = prototype2RenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms2.size());
     EXPECT_EQ(1, prototype2RenderData.shadedSubsets.size());
@@ -184,12 +219,18 @@ TEST(ViewportInstancing, InstancesAnimatedTransform)
     TestRender(stage, testEngine, renderItems, 0);
     // File contains a box, instanced twice.
     ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
-    auto renderData = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
     // Box001 and Box002 share the same prototype.
-    auto it1
-        = renderData.find(pxr::SdfPath("/scene_graph_instances_animated/Box001.proto_Box001_id0"));
+
+#ifdef IS_MAX_BETA
+    const auto box1Path = pxr::SdfPath("/scene_graph_instances_animated/Box001/proto_Box001_id0");
+#else
+    const auto box1Path = pxr::SdfPath("/scene_graph_instances_animated/Box001.proto_Box001_id0");
+#endif
+
+    auto it1 = renderData.find(box1Path);
     ASSERT_TRUE(it1 != renderData.end());
-    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetRenderData(it1->second);
+    auto& prototype1RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it1->second);
     auto  transforms1 = prototype1RenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms1.size());
     auto expectedTransformBox001 = MaxUsd::ToMaxMatrix3(
@@ -208,11 +249,11 @@ TEST(ViewportInstancing, InstancesAnimatedTransform)
     // Frame 1 :
     // File contains a box, instanced twice.
     ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
-    renderData = testEngine.GetRenderDelegate()->GetRenderDataIdMap();
+    renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
     // Box001 and Box002 share the same prototype.
-    it1 = renderData.find(pxr::SdfPath("/scene_graph_instances_animated/Box001.proto_Box001_id0"));
+    it1 = renderData.find(box1Path);
     ASSERT_TRUE(it1 != renderData.end());
-    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetRenderData(it1->second);
+    auto& prototype2RenderData = testEngine.GetRenderDelegate()->GetMeshRenderData(it1->second);
     auto  transforms2 = prototype2RenderData.instancer->GetTransforms();
     EXPECT_EQ(2, transforms2.size());
     expectedTransformBox001 = MaxUsd::ToMaxMatrix3(

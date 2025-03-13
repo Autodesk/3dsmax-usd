@@ -20,6 +20,8 @@
 
 #include <Qt/QMaxParamBlockWidget.h>
 
+#include <QMetaObject>
+
 namespace Ui {
 class UsdStageViewportSelectionRollup;
 }
@@ -35,10 +37,20 @@ public:
     ~UsdStageViewportSelectionRollup() override;
 
     void SetParamBlock(ReferenceMaker* owner, IParamBlock2* const paramBlock) override;
-    void UpdateUI(const TimeValue t) override;
-    void UpdateParameterUI(const TimeValue t, const ParamID paramId, const int tabIndex) override;
 
-    void UpdateSelectionMode() const;
+#if MAX_VERSION_MAJOR >= 26
+    // PreConnectUI and PostConnectUI are only available in 3ds Max 2024 and
+    // later.
+    void PreConnectUI(const MapID paramMapID) override;
+    void PostConnectUI(const MapID paramMapID) override;
+#else
+    // UpdateUI and UpdateParameterUI provide default implementations in 3ds Max
+    // 2024 and later only.
+    void UpdateUI(const TimeValue) override {};
+    void UpdateParameterUI(const TimeValue, const ParamID, const int) override {};
+#endif // MAX_VERSION_MAJOR >= 26
+
+    void UpdateSelectionMode();
 
 private:
     /// Model ParamBlock pointer
@@ -48,5 +60,7 @@ private:
         std::make_unique<Ui::UsdStageViewportSelectionRollup>()
     };
     // USDStageObject model pointer
-    USDStageObject* modelObj;
+    USDStageObject* modelObj = nullptr;
+    bool            isUpdatingUI = false;
+    QObject*        sentinel = nullptr; // this is used to manage the lifetime of signals
 };

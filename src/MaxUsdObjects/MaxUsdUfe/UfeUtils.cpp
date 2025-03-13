@@ -40,7 +40,6 @@
 #include <ufe/pathString.h>
 #include <ufe/runTimeMgr.h>
 
-#include <MaxUsd.h>
 #include <max.h>
 
 namespace MAXUSD_NS_DEF {
@@ -60,6 +59,7 @@ void initialize()
     functions.timeAccessorFn = MaxUsd::ufe::getTime;
     functions.saveStageLoadRulesFn = MaxUsd::ufe::saveStageLoadRules;
     functions.isRootChildFn = MaxUsd::ufe::isRootChild;
+
     // Initialize the global UFE selection.
     Ufe::GlobalSelection::initializeInstance(std::make_shared<Ufe::ObservableSelection>());
 
@@ -174,6 +174,17 @@ Ufe::Path getUsdStageObjectPath(const USDStageObject* object)
     return Ufe::Path({ stageObjectSegment });
 }
 
+USDStageObject* getUsdStageObjectFromPath(const Ufe::Path& path)
+{
+    const auto segments = path.getSegments();
+    if (segments.size() < 1) {
+        return nullptr;
+    }
+
+    auto objectPath = Ufe::Path { { segments[0] } };
+    return StageObjectMap::GetInstance()->Get(objectPath);
+}
+
 Ufe::Path getUsdPrimUfePath(USDStageObject* object, const pxr::SdfPath& primPath, int instanceIdx)
 {
     const auto stage = object->GetUSDStage();
@@ -206,13 +217,17 @@ bool isPointInstance(const Ufe::SceneItemPtr& item)
 
 pxr::UsdTimeCode getTime(const Ufe::Path& path)
 {
-    const auto frame = GetCOREInterface()->GetTime() / double(GetTicksPerFrame());
-    // If this path can resolve to a prim in a stage, consider the stage FPS/max FPS.
-    const auto prim = ufePathToPrim(path);
-    if (prim.IsValid()) {
-        MaxUsd::GetUsdTimeCodeFromMaxFrame(prim.GetStage(), frame);
+    // If this path can resolve to stage object, consider the stage FPS/max FPS.
+    // Find the Stage Object from the path, the object path is the first segment.
+    const auto& segments = path.getSegments();
+    const auto  stagePath = Ufe::Path({ segments[0] });
+    const auto  usdStageObject = StageObjectMap::GetInstance()->Get(stagePath);
+    if (usdStageObject) {
+        const auto currentTimeValue = GetCOREInterface()->GetTime();
+        return usdStageObject->ResolveRenderTimeCode(currentTimeValue);
     }
     // Best effort.
+    const auto frame = GetCOREInterface()->GetTime() / double(GetTicksPerFrame());
     return pxr::UsdTimeCode { frame };
 }
 

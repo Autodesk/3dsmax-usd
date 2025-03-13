@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <BoostPythonWrapper.h>
+
 #include <pxr/base/tf/pyModule.h>
 #include <pxr/pxr.h>
 
@@ -24,7 +26,7 @@ TF_WRAP_MODULE
 {
     // This will enable user-defined docstrings and python signatures,
     // while disabling the C++ signatures
-    boost::python::docstring_options local_docstring_options(true, true, false);
+    pyboost::docstring_options local_docstring_options(true, true, false);
 
     TF_WRAP(MaxSceneBuilderOptions);
     TF_WRAP(UsdSceneBuilderOptions);
@@ -46,4 +48,5 @@ TF_WRAP_MODULE
     TF_WRAP(Utilities);
     TF_WRAP(ExportTime);
     TF_WRAP(Interval);
+    TF_WRAP(PickItems);
 }

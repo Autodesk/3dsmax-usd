@@ -85,7 +85,7 @@ std::unique_ptr<QTreeModel> TreeModelFactory::CreateFromSearch(
                 = primsToIncludeInTree.find(prim.GetPath()) != primsToIncludeInTree.end();
             if (primAlreadyIncluded) {
                 // If the USD Prim is already part of the set of search results to be displayed, it
-                // is unnecessary to walk up the ancestory chain in an attempt to process further
+                // is unnecessary to walk up the ancestry chain in an attempt to process further
                 // Prims, as it means they have already been added to the list up to the Root Node.
                 break;
             }
@@ -94,11 +94,16 @@ std::unique_ptr<QTreeModel> TreeModelFactory::CreateFromSearch(
             prim = prim.GetParent();
         }
     }
+    // nothing to include in the tree
+    // minimally have the stage's pseudo root in the list
+    if (searchFilter.empty() && primsToIncludeInTree.empty()) {
+        primsToIncludeInTree.insert(stage->GetPseudoRoot().GetPath());
+    }
 
     // Optimization: Count the number of USD Prims expected to be inserted in the QTreeModel, so
     // that the search process can stop early if all USD Prims have already been found. While
     // additional "narrowing" techniques can be used in the future to further enhance the
-    // performance, this may provide sufficent performance in most cases to remain as-is for early
+    // performance, this may provide sufficient performance in most cases to remain as-is for early
     // User feedback.
     size_t                      insertionsRemaining = primsToIncludeInTree.size();
     std::unique_ptr<QTreeModel> treeModel = TreeModelFactory::CreateEmptyTreeModel(parent);

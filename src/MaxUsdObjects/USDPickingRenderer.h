@@ -15,6 +15,9 @@
 //
 #pragma once
 
+#include <RenderDelegate/HdLightGizmoSceneIndexFilter.h>
+#include <RenderDelegate/HdMaxLightGizmoMeshAccess.h>
+
 #include <pxr/imaging/hdx/pickTask.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
@@ -65,6 +68,8 @@ public:
      * \param displayRender Whether or not the render purpose should be considered.
      * \param pickTarget What is being picked (prims, points, edges, etc..)
      * \param time Time used to perform hit testing operation.
+     * \param excludedPaths The paths of prims that should be excluded from hit testing.
+     * \param lightGizmoScale Scaling to be applied on the light gizmos.
      * \return Hit information. Whether or not a prim was picked, and a what distance.
      */
     std::vector<HitInfo> Pick(
@@ -78,7 +83,8 @@ public:
         bool                                   displayRender,
         const pxr::TfToken&                    pickTarget,
         const pxr::UsdTimeCode&                time,
-        const pxr::SdfPathVector&              excludedPaths);
+        const pxr::SdfPathVector&              excludedPaths,
+        const pxr::GfMatrix4d&                 lightGizmoScale);
 
     /**
      * \brief Invalidates the internal renderer used for picking.
@@ -93,6 +99,21 @@ private:
     class MaxUsdImagingGLEngine : public pxr::UsdImagingGLEngine
     {
     public:
+        // This overload is exactly the same as pxr::UsdImagingGLEngine::TestIntersection except it
+        // exposes the resolve mode.
+        bool TestIntersection(
+            const pxr::GfMatrix4d&               viewMatrix,
+            const pxr::GfMatrix4d&               projectionMatrix,
+            const pxr::UsdPrim&                  root,
+            const pxr::UsdImagingGLRenderParams& params,
+            pxr::GfVec3d*                        outHitPoint,
+            pxr::GfVec3d*                        outHitNormal,
+            pxr::SdfPath*                        outHitPrimPath,
+            pxr::SdfPath*                        outHitInstancerPath,
+            int*                                 outHitInstanceIndex,
+            pxr::HdInstancerContext*             outInstancerContext,
+            const pxr::TfToken&                  resolveMode);
+
         bool TestAreaIntersection(
             const pxr::GfMatrix4d&               viewMatrix,
             const pxr::GfMatrix4d&               projectionMatrix,
@@ -102,6 +123,8 @@ private:
             pxr::HdxPickHitVector&               outHits);
 
         void SetExcludePaths(const pxr::SdfPathVector& excludePaths);
+
+        pxr::UsdImagingDelegate* GetSceneDelegate() const { return _GetSceneDelegate(); }
 
     protected:
         // Need a dedicated render collection for point snapping to use the point representation.
@@ -133,4 +156,10 @@ private:
     std::unique_ptr<MaxUsdImagingGLEngine> usdImagingRenderer;
     /// Flag for invalidating the renderer.
     bool invalidateRenderer = true;
+
+    // Light gizmos are supported via a custom index filter.
+#if PXR_VERSION >= 2311
+    pxr::HdLightGizmoSceneIndexFilterRefPtr    lightGizmoFilter = nullptr;
+    std::shared_ptr<HdMaxLightGizmoMeshAccess> lightGizmoMeshAccess = nullptr;
+#endif
 };

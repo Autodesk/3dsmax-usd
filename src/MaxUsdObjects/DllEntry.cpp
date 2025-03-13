@@ -16,6 +16,7 @@
 #include "DLLEntry.h"
 
 #include "ClassDescs.h"
+#include "LayerEditor/MaxLayerEditor.h"
 #include "MaxUsdUfe/UfeUtils.h"
 #include "resource.h"
 
@@ -74,6 +75,7 @@ __declspec(dllexport) ULONG LibVersion() { return VERSION_3DSMAX; }
 __declspec(dllexport) int LibInitialize(void)
 {
     MaxUsd::ufe::initialize();
+    MaxLayerEditor::Initialize();
     return TRUE;
 }
 

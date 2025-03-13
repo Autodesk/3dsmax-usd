@@ -18,6 +18,9 @@
 
 #include "USDPickingRenderer.h"
 
+#include <RenderDelegate/HdLightGizmoSceneIndexFilter.h>
+#include <RenderDelegate/HdMaxLightGizmoMeshAccess.h>
+
 #include <MaxUsd/MaxUSDAPI.h>
 #include <MaxUsd/Utilities/ScopeGuard.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
@@ -38,6 +41,9 @@
 #else
 #include <QtGui/QOpenGLDebugLogger>
 #endif
+
+#include "MaxUsd/Utilities/HydraUtils.h"
+
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLFunctions>
 
@@ -85,11 +91,9 @@ USDPickingRenderer::USDPickingRenderer(const pxr::UsdStageWeakPtr stage)
                 std::cout << "OpenGL logger initialized" << std::endl;
                 logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
                 logger->enableMessages();
-                // Disable NVidia perforamce spam "APISource", 131185,
-                // 		"Buffer detailed info: Buffer object 1 (bound to
-                // GL_ARRAY_BUFFER_ARB, usage hint is " 		"GL_STATIC_DRAW) will use VIDEO memory as
-                // the source for buffer object operations.", 		"NotificationSeverity", "OtherType"
-
+                // Disable NVidia performance spam APISource 131185 :
+                // Buffer object 1 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will
+                // use VIDEO memory as the source for buffer object operations.
                 logger->disableMessages(QVector<GLuint> { 131185 });
             } else {
                 std::cout << "!!!OpenGL logger not initialized!!!" << std::endl;
@@ -170,7 +174,8 @@ std::vector<USDPickingRenderer::HitInfo> USDPickingRenderer::Pick(
     bool                                   displayRender,
     const pxr::TfToken&                    pickTarget,
     const pxr::UsdTimeCode&                time,
-    const pxr::SdfPathVector&              excludedPaths)
+    const pxr::SdfPathVector&              excludedPaths,
+    const pxr::GfMatrix4d&                 lightGizmoScale)
 {
     if (!meetsMinimumRequirements) {
         return {};
@@ -182,7 +187,39 @@ std::vector<USDPickingRenderer::HitInfo> USDPickingRenderer::Pick(
     if (invalidateRenderer) {
         usdImagingRenderer.reset(new MaxUsdImagingGLEngine());
         invalidateRenderer = false;
+
+        // In > 0.23.11, inject a scene index filter to display (and pick) light gizmos.
+        // The required scene index apis are not present in older USD versions.
+#if PXR_VERSION >= 2311
+        auto sceneDelegate = usdImagingRenderer->GetSceneDelegate();
+        auto terminalSceneIndex = pxr::TfDynamic_cast<pxr::HdFilteringSceneIndexBaseRefPtr>(
+            sceneDelegate->GetRenderIndex().GetTerminalSceneIndex());
+
+        if (terminalSceneIndex) {
+            if (auto mergingSceneIndex
+                = MaxUsd::FindTopLevelMergingSceneIndex(terminalSceneIndex)) {
+                // Swap the USD scene index for the light gizmo filter, with the USD scene index as
+                // input.
+                auto base = mergingSceneIndex->GetInputScenes()[0];
+                mergingSceneIndex->RemoveInputScene(base);
+                lightGizmoMeshAccess = std::make_shared<HdMaxLightGizmoMeshAccess>();
+                lightGizmoFilter
+                    = pxr::HdLightGizmoSceneIndexFilter::New(base, lightGizmoMeshAccess);
+                mergingSceneIndex->AddInputScene(lightGizmoFilter, pxr::SdfPath { "/" });
+            }
+        }
+#endif
     }
+
+    // Update gizmo scaling.
+#if PXR_VERSION >= 2311
+    if (lightGizmoFilter && lightGizmoMeshAccess) {
+        lightGizmoMeshAccess->SetScalingMatrix(
+            lightGizmoScale,
+            usdImagingRenderer->GetSceneDelegate()->GetRenderIndex().GetChangeTracker(),
+            lightGizmoFilter->GetHandledLights());
+    }
+#endif
 
     // Setup render parameters for picking. Disable most things, as not required.
     pxr::UsdImagingGLRenderParams params;
@@ -314,7 +351,8 @@ std::vector<USDPickingRenderer::HitInfo> USDPickingRenderer::Pick(
                 &primPath,
                 &instancerPath,
                 &instanceIndex,
-                &instancerContext)) {
+                &instancerContext,
+                pxr::HdxPickTokens->resolveNearestToCamera)) {
             if (!instancerContext.empty()) {
                 instanceIndex = instancerContext.front().second;
             }
@@ -346,6 +384,96 @@ void USDPickingRenderer::InvalidateRenderer()
 {
     // Store that we need to invalidate render on next frame
     invalidateRenderer = true;
+}
+
+bool USDPickingRenderer::MaxUsdImagingGLEngine::TestIntersection(
+    const pxr::GfMatrix4d&               viewMatrix,
+    const pxr::GfMatrix4d&               projectionMatrix,
+    const pxr::UsdPrim&                  root,
+    const pxr::UsdImagingGLRenderParams& params,
+    pxr::GfVec3d*                        outHitPoint,
+    pxr::GfVec3d*                        outHitNormal,
+    pxr::SdfPath*                        outHitPrimPath,
+    pxr::SdfPath*                        outHitInstancerPath,
+    int*                                 outHitInstanceIndex,
+    pxr::HdInstancerContext*             outInstancerContext,
+    const pxr::TfToken&                  resolveMode)
+{
+    // The code bellow is as-is from UsdImagingGLEngine::TestIntersection() with the exception that
+    // it exposes the resolve mode as an argument.
+
+    if (ARCH_UNLIKELY(!_renderDelegate)) {
+        return false;
+    }
+
+    PrepareBatch(root, params);
+
+    // XXX(UsdImagingPaths): This is incorrect...  "Root" points to a USD
+    // subtree, but the subtree in the hydra namespace might be very different
+    // (e.g. for native instancing).  We need a translation step.
+    const pxr::SdfPathVector paths
+        = { root.GetPath().ReplacePrefix(pxr::SdfPath::AbsoluteRootPath(), _sceneDelegateId) };
+    _UpdateHydraCollection(&_intersectCollection, paths, params);
+
+    _PrepareRender(params);
+
+    pxr::HdxPickHitVector         allHits;
+    pxr::HdxPickTaskContextParams pickParams;
+    pickParams.resolveMode = resolveMode;
+    pickParams.viewMatrix = viewMatrix;
+    pickParams.projectionMatrix = projectionMatrix;
+    pickParams.clipPlanes = params.clipPlanes;
+    pickParams.collection = _intersectCollection;
+    pickParams.outHits = &allHits;
+    const pxr::VtValue vtPickParams(pickParams);
+
+    _GetHdEngine()->SetTaskContextData(pxr::HdxPickTokens->pickParams, vtPickParams);
+    _Execute(params, _taskController->GetPickingTasks());
+
+    // Since we are in nearest-hit mode, we expect allHits to have
+    // a single point in it.
+    if (allHits.size() != 1) {
+        return false;
+    }
+
+    pxr::HdxPickHit& hit = allHits[0];
+
+    if (outHitPoint) {
+        *outHitPoint = hit.worldSpaceHitPoint;
+    }
+
+    if (outHitNormal) {
+        *outHitNormal = hit.worldSpaceHitNormal;
+    }
+
+    if (auto sceneDelegate = GetSceneDelegate()) {
+        hit.objectId
+            = sceneDelegate->GetScenePrimPath(hit.objectId, hit.instanceIndex, outInstancerContext);
+        hit.instancerId = sceneDelegate->ConvertIndexPathToCachePath(hit.instancerId)
+                              .GetAbsoluteRootOrPrimPath();
+    }
+#if PXR_VERSION >= 2311
+    else {
+        const pxr::HdxPrimOriginInfo info
+            = pxr::HdxPrimOriginInfo::FromPickHit(_renderIndex.get(), hit);
+        const pxr::SdfPath usdPath = info.GetFullPath();
+        if (!usdPath.IsEmpty()) {
+            hit.objectId = usdPath;
+        }
+    }
+#endif
+
+    if (outHitPrimPath) {
+        *outHitPrimPath = hit.objectId;
+    }
+    if (outHitInstancerPath) {
+        *outHitInstancerPath = hit.instancerId;
+    }
+    if (outHitInstanceIndex) {
+        *outHitInstanceIndex = hit.instanceIndex;
+    }
+
+    return true;
 }
 
 bool USDPickingRenderer::MaxUsdImagingGLEngine::TestAreaIntersection(

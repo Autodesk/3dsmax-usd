@@ -5,8 +5,8 @@
     AutodeskProduct="3ds Max"
     Name="USD for 3ds Max"
     Description="Autodesk USD for 3ds Max"
-    AppVersion="0.9.0"
-    FriendlyVersion="0.9.0"
+    AppVersion="0.10.0"
+    FriendlyVersion="0.10.0"
     HelpFile="./Contents/Help/en-US/index.html"
     SupportedLocales="Enu"
     AppNameSpace="appstore.exchange.autodesk.com"
@@ -52,5 +52,9 @@
         <ComponentEntry ModuleName="./Contents/MaterialX_plugin/Contents/scripts/MtlxMaterial.ms" />
         <ComponentEntry ModuleName="./Contents/scripts/materialx/register-materialx-target.ms" />
         <ComponentEntry ModuleName="./Contents/scripts/materialx/registerPlugin.ms" />
+    </Components>
+    <Components Description="post-start-up scripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2024" SeriesMax="2026" />
+        <ComponentEntry ModuleName="./Contents/MaterialX_plugin/Contents/scripts/MtlxMaterial2.ms" />
     </Components>
 </ApplicationPackage>

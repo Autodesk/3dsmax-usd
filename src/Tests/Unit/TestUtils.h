@@ -15,9 +15,9 @@
 //
 #pragma once
 
-#include <MaxUsd/MeshConversion/MeshConverter.h>
-
 #include <pxr/usd/usdGeom/mesh.h>
+
+#include <MaxUsd/MeshConversion/MeshConverter.h>
 
 #include <gtest/gtest.h>
 
@@ -27,20 +27,26 @@ namespace TestUtils {
 class DiagnosticsDelegate : public pxr::TfDiagnosticMgr::Delegate
 {
 public:
-    void IssueError(const pxr::TfError& err) override { FAIL() << err.GetCommentary(); }
-    void IssueFatalError(const pxr::TfCallContext& context, const std::string& msg) override
-    {
-        FAIL() << msg;
-    }
+	void IssueError(const pxr::TfError& err) override
+	{
+		FAIL() << err.GetCommentary();
+	}
+	void IssueFatalError(const pxr::TfCallContext& context, const std::string& msg) override
+	{
+		FAIL() << msg;
+	}
 
-    void IssueStatus(const pxr::TfStatus& status) override { };
-    void IssueWarning(const pxr::TfWarning& warning) override { FAIL() << warning.GetCommentary(); }
+	void IssueStatus(const pxr::TfStatus& status) override {};
+	void IssueWarning(const pxr::TfWarning& warning) override
+	{
+		FAIL() << warning.GetCommentary();
+	}
 };
 
-void CompareUsdAndMaxMeshes(const MNMesh& maxMesh, const pxr::UsdGeomMesh& usdMesh);
-void CompareVertices(const MNMesh& maxMesh, const pxr::UsdGeomMesh& usdMesh);
-void CompareFaceVertexCount(const MNMesh& maxMesh, const pxr::UsdGeomMesh& usdMesh);
-void CompareFaceVertices(const MNMesh& maxMesh, const pxr::UsdGeomMesh& usdMesh);
+void CompareUsdAndMaxMeshes(const MNMesh& maxMesh, const pxr::UsdGeomMesh &usdMesh);
+void CompareVertices(const MNMesh& maxMesh, const pxr::UsdGeomMesh &usdMesh);
+void CompareFaceVertexCount(const MNMesh& maxMesh, const pxr::UsdGeomMesh &usdMesh);
+void CompareFaceVertices(const MNMesh& maxMesh, const pxr::UsdGeomMesh &usdMesh);
 void CompareMaxMeshNormals(MNMesh& maxMesh1, MNMesh& maxMesh2);
 void CompareUSDMatrices(const pxr::GfMatrix4d& matrix1, const pxr::GfMatrix4d& matrix2);
 
@@ -55,11 +61,8 @@ std::string GetOutputDirectory();
 class MeshConverterTester : public MaxUsd::MeshConverter
 {
 public:
-    MeshConverterTester()
-        : MeshConverter()
-    {
-    }
-    using MaxUsd::MeshConverter::ResolveChannelPrimvars;
+	MeshConverterTester() : MeshConverter() {}
+	using MaxUsd::MeshConverter::ResolveChannelPrimvars;
 };
 
-} // namespace TestUtils
+}

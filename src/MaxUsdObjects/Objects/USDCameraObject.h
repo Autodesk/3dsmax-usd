@@ -94,6 +94,8 @@ public:
         MaxSDK::Graphics::UpdateNodeContext&          nodeContext,
         MaxSDK::Graphics::IRenderItemContainer&       targetRenderItemContainer) override;
 
+    int UsesWireColor() override { return TRUE; }
+
     // GenCamera / IPhysicalCamera overrides.
     RefResult  EvalCameraState(TimeValue time, Interval& valid, CameraState* cs) override;
     void       SetOrtho(BOOL b) override;

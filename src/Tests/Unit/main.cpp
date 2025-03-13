@@ -13,27 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "Mocks/MockCoreInterface.h"
-
 #include <gtest/gtest.h>
 
-#if defined(MAX_2022) || defined(MAX_2023) || defined(MAX_2024) || defined(MAX_2025)
+#include "Mocks/MockCoreInterface.h"
+
 extern void SetCOREInterface(Interface17* ip);
-#elif defined(IS_MAX_BETA)
-extern void SetCOREInterface(Interface18* ip);
-#endif
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
 
-    // Use a simple diagnostics delegate to fail tests if USD issues any errors or warnings.
-    TestUtils::DiagnosticsDelegate del;
-    pxr::TfDiagnosticMgr::GetInstance().AddDelegate(&del);
+	// Use a simple diagnostics delegate to fail tests if USD issues any errors or warnings.
+	TestUtils::DiagnosticsDelegate del;
+	pxr::TfDiagnosticMgr::GetInstance().AddDelegate(&del);
+	
+	SetCOREInterface(new MockCoreInterface());
+	::testing::InitGoogleTest(&argc, argv);
+	const auto returnCode =  RUN_ALL_TESTS();
 
-    SetCOREInterface(new MockCoreInterface());
-    ::testing::InitGoogleTest(&argc, argv);
-    const auto returnCode = RUN_ALL_TESTS();
-
-    pxr::TfDiagnosticMgr::GetInstance().RemoveDelegate(&del);
-    return returnCode;
+	pxr::TfDiagnosticMgr::GetInstance().RemoveDelegate(&del);
+	return returnCode;
 }

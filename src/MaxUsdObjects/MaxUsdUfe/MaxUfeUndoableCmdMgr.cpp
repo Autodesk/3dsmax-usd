@@ -16,6 +16,7 @@
 #include "MaxUfeUndoableCommandMgr.h"
 
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
+#include <MaxUsd/Utilities/ListenerUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 
 #include <hold.h>
@@ -32,8 +33,24 @@ public:
     {
     }
 
-    void Restore(int isUndo) override { ufeCmd->undo(); }
-    void Redo() override { ufeCmd->redo(); }
+    void Restore(int isUndo) override
+    {
+        try {
+            ufeCmd->undo();
+        } catch (const std::exception& e) {
+            MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(e.what()).data(), true);
+        }
+    }
+
+    void Redo() override
+    {
+        try {
+            ufeCmd->redo();
+        } catch (const std::exception& e) {
+            MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(e.what()).data(), true);
+        }
+    }
+
     int  Size() override { return sizeof(Ufe::UndoableCommand::Ptr); }
     TSTR Description() override { return TSTR(_T("UFE Undoable command.")); }
 
@@ -46,23 +63,34 @@ MaxUfeUndoableCommandMgr::~MaxUfeUndoableCommandMgr() { }
 
 void MaxUfeUndoableCommandMgr::executeCmd(const Ufe::UndoableCommand::Ptr& cmd) const
 {
-    auto execute = [this, &cmd]() {
-        const auto del
-            = MaxUsd::Diagnostics::ScopedDelegate::Create<MaxUsd::Diagnostics::ListenerDelegate>();
-        UndoableCommandMgr::executeCmd(cmd);
+
+    auto runCmd = [this, &cmd]() {
+        // Run the command before we populate the undo stack - if the command fails (throws)
+        // we do not want a ghost command on the stack.
+        try {
+            const auto del = MaxUsd::Diagnostics::ScopedDelegate::Create<
+                MaxUsd::Diagnostics::ListenerDelegate>();
+            UndoableCommandMgr::executeCmd(cmd);
+            theHold.Put(new UfeRestoreObj(cmd));
+            return true;
+        } catch (const std::exception& ex) {
+            MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(ex.what()).data(), true);
+            return false;
+        }
     };
 
     // Insert the UFE command in the 3dsMax undo stack.
     if (!theHold.Holding()) {
         theHold.Begin();
-        theHold.Put(new UfeRestoreObj(cmd));
-        execute();
-        theHold.Accept(TSTR::FromUTF8(cmd->commandString().c_str()));
+        if (runCmd()) {
+            theHold.Accept(TSTR::FromUTF8(cmd->commandString().c_str()));
+        } else {
+            theHold.Cancel();
+        }
     } else {
         if (!theHold.IsSuspended()) {
-            theHold.Put(new UfeRestoreObj(cmd));
+            runCmd();
         }
-        execute();
     }
 }
 

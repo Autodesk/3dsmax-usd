@@ -14,10 +14,11 @@
 // limitations under the License.
 //
 #pragma once
+#include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
-#include <MaxUsd.h>
 #include <QtCore/QObject>
+#include <string>
 
 #ifdef IS_MAX2023_OR_GREATER
 #include <Qt/QmaxHelpers.h>
@@ -58,6 +59,21 @@ MaxUSDAPI void IterateOverChildrenRecursively(
  * \param disableMaxAccelerators True to disable max accelerator.
  */
 MaxUSDAPI void DisableMaxAcceleratorsOnFocus(QWidget* widget, bool disableMaxAccelerators);
+
+/** Returns a prettified name from camelCase or snake_case source.
+ * Puts a space in the name when preceded by a capital letter.
+ * Exceptions: Number followed by capital Multiple capital letters together.
+ * Replaces underscore by space and capitalize next letter.
+ * Always capitalize first letter */
+MaxUSDAPI std::string PrettifyName(const std::string& name);
+
+/**
+ * Returns a label suitable for UI for the given stage. The stage's root layer
+ * file name minus the extension.
+ * @param stage The stage to get the label for.
+ * @return The stage's label.
+ */
+MaxUSDAPI std::string GetStageLabel(const pxr::UsdStageWeakPtr& stage);
 
 } // namespace Ui
 } // namespace MAXUSD_NS_DEF

@@ -94,7 +94,7 @@ struct export_usd_stage_as_reference_test
         while (not eof fs and not foundRelativeRef) do(
             fileLine = readline fs
             if (fileLine != "" ) do (
-                foundRelativeRef  = ((findString fileLine ("prepend references = @./"+ (filenameFromPath layerPath) + "@</sphere>")) != undefined)
+                foundRelativeRef  = ((findString fileLine ("prepend references = @./"+ (filenameFromPath layerPath))) != undefined)
             )            
         )
         close fs
@@ -417,13 +417,122 @@ struct export_usd_stage_as_reference_test
         assert_true (box2Prim.IsValid())
         assert_true (box2Prim.IsInstance())
     ),
-        
+    
+    -- Test that is a USD Stage object uses a layer with default prim, do not explicitly refer to the default prim.
+    function export_stage_with_default_prim = (
+        -- Create a USD stage and define a sphere.
+        local stage = pyUsd.Stage.CreateInMemory()
+        local sphere = pyUsdGeom.Sphere.Define stage "/sphere"
+
+        -- Set the sphere as the default prim for the stage.
+        stage.SetDefaultPrim(sphere.GetPrim())
+
+        -- Set the stage's units and up axis.
+        pyUsdGeom.SetStageMetersPerUnit stage 0.0254
+        pyUsdGeom.SetStageUpAxis stage "Z"
+
+        -- Export the stage to a USD file.
+        local layerName = "with_default_prim"
+        local layerPath = output_prefix + layerName + ".usda"
+        stage.Export layerPath
+
+        -- Create a USD Stage Object from the exported layer.
+        stage = UsdStageObject name:"UsdStageObject"
+        stage.SetRootLayer layerPath
+
+        -- Export the new stage with a reference to the default prim.
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/foo"
+        exportOptions.UsdStagesAsReferences = true
+
+        local exportPath = output_prefix + "export_stage_with_default_prim.usd"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+
+        -- Validate that the reference was created as expected.
+        local exporterLayerStage = pyUsd.Stage.Open exportPath
+        local sphereRef = exporterLayerStage.GetPrimAtPath (exportOptions.RootPrimPath + "/" + stage.name + "/" + (sphere.GetPrim()).GetName())
+        assert_true (sphereRef.IsValid())
+        assert_true (sphereRef.IsA(pyUsdGeom.Sphere))
+
+        -- Ensure that no explicit prim path is being referenced since we have a default prim.
+        fs = openFile exportPath
+        local foundRefWithoutExplicitPrimPath = false
+        while (not eof fs and not foundRefWithoutExplicitPrimPath) do (
+            fileLine = readline fs
+            if (fileLine != "") do (
+                -- Check for the reference without the explicit prim path.
+                foundRefWithoutExplicitPrimPath = ((findString fileLine ("prepend references = @./" + (filenameFromPath layerPath) + "@")) != undefined)
+            )
+        )
+        close fs
+        assert_true foundRefWithoutExplicitPrimPath message:"Expected reference without explicit prim path not found"
+    ),
+
+    -- Test that a USD Stage object uses a layer with a stage mask, ensuring the stage mask prim is referenced.
+    function export_stage_with_stage_mask = (
+        -- Create a simple layer with multiple prims.
+        local stage = pyUsd.Stage.CreateInMemory()
+        local sphere = pyUsdGeom.Sphere.Define stage "/sphere"
+        local sphere2 = pyUsdGeom.Sphere.Define stage "/sphere2"
+        stage.SetDefaultPrim(sphere2.GetPrim())
+
+        -- Set stage properties (units, up axis).
+        pyUsdGeom.SetStageMetersPerUnit stage 0.0254
+        pyUsdGeom.SetStageUpAxis stage "Z"
+
+        -- Export the stage to a USD file.
+        local layerName = "with_stage_mask"
+        local layerPath = output_prefix + layerName + ".usda"
+        stage.Export layerPath
+
+        -- Set up the stage mask for '/sphere'.
+        local maskStr = "/sphere"
+
+        -- Create a USD Stage Object and apply the stage mask when setting the root layer.
+        stage = UsdStageObject name:"UsdStageObject"
+        stage.SetRootLayer layerPath stageMask:maskStr
+
+        -- Export the scene with the stage mask applied.
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/foo"
+        exportOptions.UsdStagesAsReferences = true
+
+        local exportPath = output_prefix + "export_stage_with_stage_mask.usd"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+
+        -- Validate that only the masked prim '/sphere' is referenced.
+        local exporterLayerStage = pyUsd.Stage.Open exportPath
+        local sphereRef = exporterLayerStage.GetPrimAtPath (exportOptions.RootPrimPath + "/" + stage.name + "/" + (sphere.GetPrim()).GetName())
+        assert_true (sphereRef.IsValid())
+        assert_true (sphereRef.IsA(pyUsdGeom.Sphere))
+
+        local sphere2Ref = exporterLayerStage.GetPrimAtPath (exportOptions.RootPrimPath + "/" + stage.name + "/" + (sphere2.GetPrim()).GetName())
+        assert_false(sphere2Ref.IsValid())
+
+        -- Check the file for the correct reference with the explicit prim path using the stage mask.
+        fs = openFile exportPath
+        local foundRelativeRefWithMask = false
+        while (not eof fs and not foundRelativeRefWithMask) do (
+            fileLine = readline fs
+            if (fileLine != "" ) do (
+                -- Check for the reference with the explicit prim path for the stage mask.
+                foundRelativeRefWithMask = ((findString fileLine ("prepend references = @./" + (filenameFromPath layerPath) + "@</sphere>")) != undefined)
+            )
+        )
+        close fs
+        -- Validate that the stage mask was applied in the exported USD file.
+        assert_true foundRelativeRefWithMask message:"Reference with stage mask and prim path was not correctly setup."
+    ),
+
     function teardown = (
         units.SystemType = initialUnits
         units.SystemScale = initialScale
     ),
 
-    Tests = #(export_stage_as_reference_test,
+    Tests = #(
+        export_stage_as_reference_test,
         export_null_stage_as_ref,
         export_stage_no_target_prim,
         export_stage_object_offset,
@@ -431,7 +540,9 @@ struct export_usd_stage_as_reference_test
         export_stage_with_object_offset_and_different_units_and_axis,
         export_stage_with_multi_roots,
         export_stage_with_no_default_prim,
-        export_stage_with_instanced_data
+        export_stage_with_instanced_data,
+        export_stage_with_default_prim,
+        export_stage_with_stage_mask
     )
 )
 

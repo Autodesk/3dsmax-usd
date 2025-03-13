@@ -17,10 +17,10 @@
 
 #include <MaxUsdObjects/MaxUsdObjectsAPI.h>
 
+#include <MaxUsd.h>
+
 #include <ufe/path.h>
 #include <ufe/sceneItem.h>
-
-#include <MaxUsd.h>
 
 class USDStageObject;
 
@@ -44,6 +44,9 @@ MaxUSDObjectsAPI pxr::UsdPrim ufePathToPrim(const Ufe::Path& path);
 
 //! Get the UFE path from a USD stage object.
 MaxUSDObjectsAPI Ufe::Path getUsdStageObjectPath(const USDStageObject* object);
+
+//! Get the USD Stage object hosting the item at a path.
+MaxUSDObjectsAPI USDStageObject* getUsdStageObjectFromPath(const Ufe::Path& path);
 
 //! Get the UFE path associated with a USD prim or point instance in a given USDStageObject.
 MaxUSDObjectsAPI Ufe::Path

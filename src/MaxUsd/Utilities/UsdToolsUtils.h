@@ -51,14 +51,14 @@ MaxUSDAPI bool RunUsdChecker(const std::wstring& usdInputFile, const std::wstrin
  * \param path wide string containing the path to be checked.
  * \return true if string is a valid path, false otherwise.
  */
-bool IsValidWindowsPath(const std::wstring& path);
+MaxUSDAPI bool IsValidWindowsPath(const std::wstring& path);
 
 /**
  * \brief Get the plugin directory of the current running instance
  * \param outDir wide string containing the directory path.
  * \return true if successfully got the path, false otherwise.
  */
-bool GetPluginDirectory(std::wstring& outDir);
+MaxUSDAPI bool GetPluginDirectory(std::wstring& outDir);
 
 /**
  * \brief Run the given command as a new process.

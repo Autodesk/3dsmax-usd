@@ -119,10 +119,10 @@ protected:
 
     /**
      * \brief Small helper to exclude some prim types from being handled by PrimReaders
-     * \param primIt PrimRange iterator on the UsdPrim to import
+     * \param prim The UsdPrim to import
      * \return True if the prim type is to be excluded, false otherwise
      */
-    bool ExcludedPrimNode(pxr::UsdPrimRange::iterator& primIt);
+    bool ExcludedPrimNode(const pxr::UsdPrim& prim);
 
     /// Reference to the Core Interface to use to interface with 3ds Max:
     Interface17* coreInterface { GetCOREInterface17() };

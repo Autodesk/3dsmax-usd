@@ -35,6 +35,8 @@
 #include <trig.h>
 #endif
 
+#include "HdMaxDisplayPreferences.h"
+
 #include <pxr/base/tf/diagnostic.h>
 #include <pxr/imaging/hd/material.h>
 #include <pxr/imaging/hd/mesh.h>

@@ -112,6 +112,12 @@ public:
      */
     UFEUIAPI int visualIndex() const { return this->_visualIdx; }
 
+    /** Returns the QHeaderView::ResizeMode for this particular column.
+     * The default implementation returns QHeaderView::ResizeMode::Interactive.
+     * \return The resize mode.
+     * \see QHeaderView::ResizeMode */
+    virtual UFEUIAPI int resizeMode() const { return this->_resizeMode; }
+
     UFEUIAPI void addExplorer(Explorer* explorer);
     UFEUIAPI void removeExplorer(Explorer* explorer);
 
@@ -120,6 +126,7 @@ protected:
 
 private:
     int _visualIdx = 0;
+    int _resizeMode = 0;
 };
 
 typedef std::vector<std::shared_ptr<TreeColumn>> TreeColumns;

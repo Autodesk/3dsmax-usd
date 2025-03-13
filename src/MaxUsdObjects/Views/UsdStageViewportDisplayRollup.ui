@@ -197,6 +197,31 @@
      </layout>
     </widget>
    </item>
+      <item>
+          <widget class="QGroupBox" name="LightGizmos">
+              <property name="title">
+                  <string>Light Gizmos</string>
+              </property>
+              <property name="flat">
+                  <bool>true</bool>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_1">
+                  <item row="0" column="0" alignment="Qt::AlignRight">
+                      <widget class="QLabel" name="LightGizmoScaleLabel">
+                          <property name="layoutDirection">
+                              <enum>Qt::LeftToRight</enum>
+                          </property>
+                          <property name="text">
+                              <string>Scale</string>
+                          </property>
+                      </widget>
+                  </item>
+                  <item row="0" column="1">
+                      <widget class="MaxSDK::QmaxDoubleSpinBox" name="LightGizmoScale"/>
+                  </item>
+              </layout>
+          </widget>
+      </item>
   </layout>
  </widget>
  <customwidgets>

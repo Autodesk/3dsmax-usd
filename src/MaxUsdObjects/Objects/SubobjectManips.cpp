@@ -21,8 +21,12 @@
 #include <UFEUI/genericCommand.h>
 
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
+#include <MaxUsd/Utilities/ListenerUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
+
+#include <usdUfe/ufe/UsdSceneItem.h>
+#include <usdUfe/ufe/Utils.h>
 
 XformableManip::XformableManip(
     const pxr::UsdGeomXformable& xformable,
@@ -38,6 +42,13 @@ XformableManip::XformableManip(
     if (!xformOps.empty() && xformOps.back().GetOpType() == pxr::UsdGeomXformOp::TypeTransform) {
         transformOp = xformOps.back();
     } else {
+
+        std::string msg;
+        if (!UsdUfe::isAttributeEditAllowed(xformable.GetXformOpOrderAttr(), &msg)) {
+            MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(msg).data(), true);
+            return;
+        }
+
         // Make sure the xform op full name is unique, add a suffix if need be.
         pxr::TfToken suffix = {};
         auto         nextCandidateName
@@ -73,6 +84,13 @@ XformableManip::XformableManip(
     pxr::GfMatrix4d currentEditOpMatrix;
     if (!transformOp.Get(&currentEditOpMatrix, timeCode)) {
         currentEditOpMatrix.SetIdentity();
+    }
+
+    std::string msg;
+    if (!UsdUfe::isAttributeEditAllowed(transformOp.GetAttr(), &msg)) {
+
+        MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(msg).data(), true);
+        return;
     }
 
     xformOp = transformOp;
@@ -126,13 +144,29 @@ Ufe::UndoableCommand::Ptr XformableManip::BuildTransformCmd() const
     // so we aren't actually dirtying anything.
     pxr::GfMatrix4d newTransform;
     xformOp.Get(&newTransform, timeCode);
-    auto callback = [xformOp = xformOp, initialMatrix = initOpMatrix, newTransform](
-                        UfeUI::GenericCommand::Mode mode) {
-        if (mode == UfeUI::GenericCommand::Mode::kUndo) {
-            xformOp.Set(initialMatrix);
 
+    // Capture the stage and the xform op's attribute path instead of the xformOp directly,
+    // as it may be invalidated through going back and forth in the undo stack. For example :
+    // - Create Sphere
+    // - Move Sphere
+    // - Undo twice
+    // - Redo twice
+    // Now the transform effectively is done on a different prim & xformOp, as it was recreated
+    // in the stage. The reference to the stage should remain valid, as when undoing the creation
+    // of the stage itself, we keep a strong reference to it, so that on redo, we reuse the exact
+    // same stage.
+    const auto xformAttr = xformOp.GetAttr();
+    const auto xformOpPath = xformAttr.GetPath();
+    auto       stage = xformAttr.GetPrim().GetStage();
+
+    auto callback = [stage, xformOpPath, initialMatrix = initOpMatrix, newTransform](
+                        UfeUI::GenericCommand::Mode mode) {
+        const auto attr = stage->GetAttributeAtPath(xformOpPath);
+        const auto op = pxr::UsdGeomXformOp(attr);
+        if (mode == UfeUI::GenericCommand::Mode::kUndo) {
+            op.Set(initialMatrix);
         } else if (mode == UfeUI::GenericCommand::Mode::kRedo) {
-            xformOp.Set(newTransform);
+            op.Set(newTransform);
         }
     };
 
@@ -150,6 +184,33 @@ PointInstanceManip::PointInstanceManip(
     const std::vector<int>&    indices,
     const pxr::UsdTimeCode&    timeCode)
 {
+    auto pos = instancer.CreatePositionsAttr();
+    auto scl = instancer.CreateScalesAttr();
+    auto ori = instancer.CreateOrientationsAttr();
+
+    {
+        std::string errPos, errOri, errScl;
+        const auto  posAllowed = UsdUfe::isAttributeEditAllowed(pos, &errPos);
+        const auto  oriAllowed = UsdUfe::isAttributeEditAllowed(scl, &errOri);
+        const auto  sclAllowed = UsdUfe::isAttributeEditAllowed(ori, &errScl);
+        if (!posAllowed || !oriAllowed || !sclAllowed) {
+            if (!errPos.empty()) {
+                MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(errPos).data(), true);
+            }
+            if (!errOri.empty()) {
+                MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(errOri).data(), true);
+            }
+            if (!errScl.empty()) {
+                MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(errScl).data(), true);
+            }
+            return;
+        }
+    }
+
+    posAttr = pos;
+    sclAttr = scl;
+    oriAttr = ori;
+
     // No pivot for point instances.
     this->instancer = instancer;
     this->timeCode = timeCode;
@@ -176,35 +237,30 @@ PointInstanceManip::PointInstanceManip(
     }
 
     // Ensure that the prs attributes are created and well formed.
-
-    auto positionsAttr = instancer.CreatePositionsAttr();
-
     pxr::VtVec3fArray positions;
-    positionsAttr.Get(&positions, timeCode);
+    posAttr.Get(&positions, timeCode);
     initPositions = positions;
     if (positions.size() < instanceCount) {
         positions.resize(instanceCount);
-        positionsAttr.Set(positions);
+        posAttr.Set(positions);
     }
 
-    auto              scalesAttr = instancer.CreateScalesAttr();
     pxr::VtVec3fArray scales;
-    scalesAttr.Get(&scales, timeCode);
+    sclAttr.Get(&scales, timeCode);
     initScales = scales;
     if (scales.size() < instanceCount) {
         scales.resize(instanceCount);
         std::fill(scales.begin(), scales.end(), pxr::GfVec3f { 1.f, 1.f, 1.f });
-        scalesAttr.Set(scales);
+        sclAttr.Set(scales);
     }
 
-    auto              orientationsAttr = instancer.CreateOrientationsAttr();
     pxr::VtQuathArray orientations;
-    orientationsAttr.Get(&orientations, timeCode);
+    oriAttr.Get(&orientations, timeCode);
     initOrientations = orientations;
     if (orientations.size() < instanceCount) {
         orientations.resize(instanceCount);
         std::fill(orientations.begin(), orientations.end(), pxr::GfQuath::GetIdentity());
-        orientationsAttr.Set(orientations);
+        oriAttr.Set(orientations);
     }
 }
 
@@ -214,10 +270,6 @@ void PointInstanceManip::TransformInteractive(
     const Matrix3&         tmAxis,
     const Matrix3&         transform) const
 {
-    auto posAttr = instancer.GetPositionsAttr();
-    auto oriAttr = instancer.GetOrientationsAttr();
-    auto sclAttr = instancer.GetScalesAttr();
-
     // All attrs are expected at this point, unless we can't author on the prim at all.
     if (!posAttr.IsValid() || !oriAttr.IsValid() || !sclAttr.IsValid()) {
         return;
@@ -275,10 +327,6 @@ void PointInstanceManip::TransformInteractive(
 
 Ufe::UndoableCommand::Ptr PointInstanceManip::BuildTransformCmd() const
 {
-    auto posAttr = instancer.GetPositionsAttr();
-    auto oriAttr = instancer.GetOrientationsAttr();
-    auto sclAttr = instancer.GetScalesAttr();
-
     // All attrs are expected at this point, unless we can't author on the prim at all.
     if (!posAttr.IsValid() || !oriAttr.IsValid() || !sclAttr.IsValid()) {
         return nullptr;
@@ -291,15 +339,28 @@ Ufe::UndoableCommand::Ptr PointInstanceManip::BuildTransformCmd() const
     pxr::VtVec3fArray newScl;
     sclAttr.Get(&newScl);
 
-    auto callback = [posAttr,
+    // Capture the stage and the attribute paths instead of the attributes directly,
+    // as they may be invalidated through going back and forth in the undo stack.
+    // See XformableManip::BuildTransformCmd() for more details.
+    auto       stage = posAttr.GetPrim().GetStage();
+    const auto posAttrPath = posAttr.GetPath();
+    const auto oriAttrPath = oriAttr.GetPath();
+    const auto sclAttrPath = sclAttr.GetPath();
+
+    auto callback = [stage,
+                     posAttrPath,
                      iniPos = initPositions,
                      newPos,
-                     oriAttr,
+                     oriAttrPath,
                      iniOri = initOrientations,
                      newOri,
-                     sclAttr,
+                     sclAttrPath,
                      iniScl = initScales,
                      newScl](UfeUI::GenericCommand::Mode mode) {
+        const auto posAttr = stage->GetAttributeAtPath(posAttrPath);
+        const auto oriAttr = stage->GetAttributeAtPath(oriAttrPath);
+        const auto sclAttr = stage->GetAttributeAtPath(sclAttrPath);
+
         if (mode == UfeUI::GenericCommand::Mode::kUndo) {
             posAttr.Set(iniPos);
             oriAttr.Set(iniOri);

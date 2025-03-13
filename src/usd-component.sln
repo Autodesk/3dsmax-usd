@@ -58,6 +58,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MaxUsd_Translators", "trans
 		{D02163F8-70EE-4676-B3EA-7C89E71B44D4} = {D02163F8-70EE-4676-B3EA-7C89E71B44D4}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "USDSharedComponentsMaxExtension", "USDSharedComponentsMaxExtension\USDSharedComponentsMaxExtension.vcxproj", "{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{046CF5D0-8DBF-46FB-8D73-11F1861F81F1} = {046CF5D0-8DBF-46FB-8D73-11F1861F81F1}
+		{0E1A6B42-080B-475C-8F53-613C47A99C81} = {0E1A6B42-080B-475C-8F53-613C47A99C81}
+		{D02163F8-70EE-4676-B3EA-7C89E71B44D4} = {D02163F8-70EE-4676-B3EA-7C89E71B44D4}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Hybrid|x64 = Hybrid|x64
@@ -142,6 +149,14 @@ Global
 		{3F78B1EF-5A80-42C4-814B-22FD43912DD7}.Release|x64.ActiveCfg = Release|x64
 		{3F78B1EF-5A80-42C4-814B-22FD43912DD7}.Release|x64.Build.0 = Release|x64
 		{3F78B1EF-5A80-42C4-814B-22FD43912DD7}.Release|x86.ActiveCfg = Release|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Hybrid|x64.Build.0 = Hybrid|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Hybrid|x86.ActiveCfg = Hybrid|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Hybrid|x86.Build.0 = Hybrid|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Release|x64.ActiveCfg = Release|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Release|x64.Build.0 = Release|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Release|x86.ActiveCfg = Release|x64
+		{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,7 +166,7 @@ Global
 		{457D8A56-BCD5-41B6-AC35-3EA86CB6FBAE} = {0DB47D99-AF9A-4C44-9C4C-38D202D36FE6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		Qt5Version = 5.12.5
 		SolutionGuid = {AA4F4C2E-D51B-4137-B558-E0C72FF7E1F5}
+		Qt5Version = 5.12.5
 	EndGlobalSection
 EndGlobal

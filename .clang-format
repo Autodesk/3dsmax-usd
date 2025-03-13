@@ -67,11 +67,11 @@ IncludeCategories:
     Priority:        4
 
   # 5. MaxUsd Headers
-  - Regex:           '^<(MaxUsd)/'
+  - Regex:           '^<(MaxUsd/)|(MaxUsd.h)|(BoostPythonWrapper.h)'
     Priority:        5
 
   # 6. UsdUfe library headers
-  - Regex:           '^<usdUfe/'
+  - Regex:           '^<(usdUfe|UsdLayerEditor)/'
     Priority:        6
 
   # 7. Pixar + USD headers
