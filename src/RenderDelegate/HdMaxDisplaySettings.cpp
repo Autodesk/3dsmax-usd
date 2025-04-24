@@ -54,10 +54,15 @@ void HdMaxDisplaySettings::SetWireColor(Color wireColor, pxr::HdChangeTracker& c
     wireColorInstancedHandle = HdMaxColorMaterial::Get(wireColor, true);
 }
 
+double HdMaxDisplaySettings::GetLightGizmoScale() const { return lightGizmoScale; }
+
+void HdMaxDisplaySettings::SetLightGizmoScale(double scale) { lightGizmoScale = scale; }
+
 bool HdMaxDisplaySettings::operator==(const HdMaxDisplaySettings& settings) const
 {
     return this->displayMode == settings.displayMode
         && this->wireColorHandle == settings.wireColorHandle
         && this->wireColorInstancedHandle == settings.wireColorInstancedHandle
-        && this->wireColor == settings.wireColor;
+        && this->wireColor == settings.wireColor
+        && this->lightGizmoScale == settings.lightGizmoScale;
 }

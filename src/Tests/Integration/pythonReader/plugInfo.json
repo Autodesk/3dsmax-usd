@@ -1,9 +1,9 @@
 {
-   "Plugins": [
+   "Plugins":[
       {
-         "Info": {
-            "MaxUsd": {
-               "PrimReader": {
+         "Info":{
+            "MaxUsd":{
+               "PrimReader" : {
                   "providesTranslator": [
                      # normally we would use "UsdGeomCone" since the reader only
                      # handles that specific type and does cover all types from the ancestor
@@ -13,8 +13,8 @@
                }
             }
          },
-         "Name": "primReaderFromJson",
-         "Type": "python"
+         "Name":"primReaderFromJson",
+         "Type":"python"
       }
    ]
 }

@@ -18,6 +18,7 @@
 #include "USDStageObject.h"
 
 #include <MaxUsdObjects/DLLEntry.h>
+#include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
 #include <MaxUsdObjects/USDExplorer.h>
 #include <MaxUsdObjects/Views/UsdStageNodeAnimationRollup.h>
 #include <MaxUsdObjects/Views/UsdStageNodeParametersRollup.h>
@@ -28,8 +29,8 @@
 #include <MaxUsdObjects/Views/UsdStageViewportSelectionRollup.h>
 #include <MaxUsdObjects/resource.h>
 
-#include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 
 #include <Qt/QmaxMainWindow.h>
 #include <maxscript/foundation/arrays.h>
@@ -68,33 +69,35 @@ MaxSDK::QMaxParamBlockWidget* USDStageObjectclassDesc::CreateQtWidget(
     int&            rollupFlags,
     int&            rollupCategory)
 {
+    rollupFlags = 0;
+    rollupCategory = ROLLUP_CAT_STANDARD;
+
     switch (paramMapID) {
     case UsdStageGeneral: {
         const auto stageSetupUi = new UsdStageNodeParametersRollup(owner, paramBlock);
-        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLL_OUT_PARAMETERS_TITLE);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_PARAMETERS_TITLE);
         return stageSetupUi;
     }
     case UsdStageViewportDisplay: {
         const auto viewportDisplayUi = new UsdStageViewportDisplayRollup(owner, paramBlock);
         rollupTitle
-            = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_DISPLAY_TITLE);
+            = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_DISPLAY_TITLE);
         return viewportDisplayUi;
     }
     case UsdStageViewportPerformance: {
         const auto viewportDisplayUi = new UsdStageViewportPerformanceRollup(owner, paramBlock);
-        rollupTitle = MaxSDK::GetResourceStringAsMSTR(
-            IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_PERFORMANCE_TITLE);
+        rollupTitle
+            = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_PERFORMANCE_TITLE);
         return viewportDisplayUi;
     }
     case UsdStageAnimation: {
         const auto viewportDisplayUi = new UsdStageNodeAnimationRollup(owner, paramBlock);
-        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLL_OUT_ANIMATION_TITLE);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_ANIMATION_TITLE);
         return viewportDisplayUi;
     }
     case UsdStageRenderSettings: {
         const auto renderSettingsUi = new UsdStageRenderSettingsRollup(owner, paramBlock);
-        rollupTitle
-            = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLL_OUT_RENDER_SETUP_TITLE);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_RENDER_SETUP_TITLE);
         return renderSettingsUi;
     }
     case UsdStageSelection: {
@@ -106,7 +109,7 @@ MaxSDK::QMaxParamBlockWidget* USDStageObjectclassDesc::CreateQtWidget(
 
         const auto viewportSelectionUI = new UsdStageViewportSelectionRollup(owner, paramBlock);
         rollupTitle = MaxSDK::GetResourceStringAsMSTR(
-            IDS_USDSTAGEOBJECT_ROLL_OUT_VIEWPORT_SELECTION_SETUP_TITLE);
+            IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_SELECTION_SETUP_TITLE);
         return viewportSelectionUI;
     }
     default: return nullptr;
@@ -117,6 +120,25 @@ ClassDesc2* GetUSDStageObjectClassDesc()
 {
     static USDStageObjectclassDesc classDesc;
     return &classDesc;
+}
+
+bool USDStageObjectclassDesc::RemoveParamMap(IParamMap2* pParamMap)
+{
+    auto& maps = GetParamMaps();
+    int   mapCount = maps.Count();
+    for (int i = 0; i < mapCount; ++i) {
+        if (maps[i] == pParamMap) {
+            maps.Delete(i, 1);
+            return true;
+        }
+    }
+    return false;
+}
+
+void USDStageObjectclassDesc::AddParamMap(IParamMap2* pParamMap)
+{
+    auto& maps = GetParamMaps();
+    maps.Append(1, &pParamMap);
 }
 
 // Function Publishing
@@ -173,7 +195,7 @@ protected:
             }
         }
 
-        pxr::VtDictionary options;
+        pxr::VtDictionary        options;
         static const std::string optionsCategoryKey = "PrimSelectionDialogPreferences";
         if (useUserSettings) {
             MaxUsd::OptionUtils::LoadUiOptions(optionsCategoryKey, options);
@@ -183,8 +205,7 @@ protected:
             if (!options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer].IsHolding<bool>()) {
                 options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer] = true;
             }
-        }
-        else {
+        } else {
             if (showLoadPayloadsOption) {
                 options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads] = true;
             }
@@ -237,11 +258,17 @@ protected:
 
     void CloseUsdExplorer() { USDExplorer::Instance()->Close(); }
 
+    void OpenUsdLayerEditor() { MaxLayerEditor::Instance()->Open(); }
+
+    void CloseUsdLayerEditor() { MaxLayerEditor::Instance()->Close(); }
+
     enum
     {
         fnIdSelectRootLayerAndPrim,
         fnIdOpenUsdExplorer,
         fnIdCloseUsdExplorer,
+        fnIdOpenUsdLayerEditor,
+        fnIdCloseUsdLayerEditor,
     };
 
     enum
@@ -249,13 +276,15 @@ protected:
         eidFilteringType
     };
 
-// clang-format off
+    // clang-format off
     BEGIN_FUNCTION_MAP
         FN_6(fnIdSelectRootLayerAndPrim, TYPE_VALUE, SelectRootLayerAndPrim, TYPE_STRING, TYPE_ENUM, TYPE_STRING_TAB, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL);
         VFN_0(fnIdOpenUsdExplorer, OpenUsdExplorer);
         VFN_0(fnIdCloseUsdExplorer, CloseUsdExplorer);
+        VFN_0(fnIdOpenUsdLayerEditor, OpenUsdLayerEditor);
+        VFN_0(fnIdCloseUsdLayerEditor, CloseUsdLayerEditor);
     END_FUNCTION_MAP
-// clang-format on
+    // clang-format on
 };
 
 #define USDSTAGEOBJECT_FP_INTERFACE Interface_ID(0x130335d6, 0xe7a7529)
@@ -274,7 +303,8 @@ static UsdStageObjectStaticInterface usdStageObjectStaticInterface(
         _T("useUserSettings"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
         UsdStageObjectStaticInterface::fnIdOpenUsdExplorer, _T("OpenUsdExplorer"), IDS_OPENUSDEXPLORER, TYPE_VALUE, FP_NO_REDRAW, 0,
         UsdStageObjectStaticInterface::fnIdCloseUsdExplorer, _T("CloseUsdExplorer"), IDS_CLOSEUSDEXPLORER, TYPE_VALUE, FP_NO_REDRAW, 0,
-
+        UsdStageObjectStaticInterface::fnIdOpenUsdLayerEditor, _T("OpenUsdLayerEditor"), IDS_OPENUSDLAYEREDITOR, TYPE_VALUE, FP_NO_REDRAW, 0,
+        UsdStageObjectStaticInterface::fnIdCloseUsdLayerEditor, _T("CloseUsdLayerEditor"), IDS_CLOSEUSDLAYEREDITOR, TYPE_VALUE, FP_NO_REDRAW, 0,
         enums,
         UsdStageObjectStaticInterface::eidFilteringType, 3,
         _T("none"), MaxUsd::TreeModelFactory::TypeFilteringMode::NoFilter,

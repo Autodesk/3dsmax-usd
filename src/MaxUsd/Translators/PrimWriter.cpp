@@ -49,13 +49,4 @@ const UsdStageRefPtr& MaxUsdPrimWriter::GetUsdStage() const { return writeJobCtx
 
 const std::string& MaxUsdPrimWriter::GetFilename() const { return writeJobCtx.GetFilename(); }
 
-boost::python::dict MaxUsdPrimWriter::GetNodesToPrims() const
-{
-    boost::python::dict allNodesPrims;
-    for (const auto& perNode : writeJobCtx.GetNodesToPrimsMap()) {
-        allNodesPrims[perNode.first->GetHandle()] = perNode.second;
-    }
-    return allNodesPrims;
-}
-
 PXR_NAMESPACE_CLOSE_SCOPE

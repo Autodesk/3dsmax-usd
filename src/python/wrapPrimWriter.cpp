@@ -83,6 +83,15 @@ public:
         return this->template CallVirtual<>("PostExport", &This::default_PostExport)(targetPrim);
     }
 
+    pyboost::dict GetNodesToPrims() const
+    {
+        pyboost::dict allNodesPrims;
+        for (const auto& perNode : GetJobContext().GetNodesToPrimsMap()) {
+            allNodesPrims[perNode.first->GetHandle()] = perNode.second;
+        }
+        return allNodesPrims;
+    }
+
     TfToken default_GetPrimType() { return MaxUsdPrimWriter::GetPrimType(); }
     TfToken GetPrimType() override
     {
@@ -169,11 +178,11 @@ public:
         // python wrappers based on the latest class registered.
         MaxUsdPrimWriterSharedPtr operator()(const MaxUsdWriteJobContext& jobCtx, INode* node)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
-            auto                  sptr = std::make_shared<This>(jobCtx, node);
-            TfPyLock              pyLock;
-            boost::python::object instance = pyClass((uintptr_t)&sptr);
-            boost::python::incref(instance.ptr());
+            pyboost::object pyClass = GetPythonObject(_classIndex);
+            auto            sptr = std::make_shared<This>(jobCtx, node);
+            TfPyLock        pyLock;
+            pyboost::object instance = pyClass((uintptr_t)&sptr);
+            pyboost::incref(instance.ptr());
             initialize_wrapper(instance.ptr(), sptr.get());
             return sptr;
         }
@@ -181,7 +190,7 @@ public:
         // We can have multiple function objects, this one adapts the CanExport function:
         ContextSupport operator()(INode* node, const MaxUsd::USDSceneBuilderOptions& exportArgs)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return ContextSupport::Unsupported;
@@ -194,14 +203,14 @@ public:
                 MaxUsd::Log::Error(
                     "Registered python PrimWriter \"{}\" has no suitable CanExport(node, "
                     "exportArgs) method.",
-                    boost::python::extract<std::string>(pyClass.attr("__name__"))());
+                    pyboost::extract<std::string>(pyClass.attr("__name__"))());
                 return ContextSupport::Unsupported;
             }
 
-            boost::python::object CanExport = pyClass.attr("CanExport");
-            PyObject*             callable = CanExport.ptr();
+            pyboost::object CanExport = pyClass.attr("CanExport");
+            PyObject*       callable = CanExport.ptr();
             try {
-                auto res = boost::python::call<int>(
+                auto res = pyboost::call<int>(
                     callable, node->GetHandle(), USDSceneBuilderOptionsWrapper(exportArgs));
                 return ContextSupport(res);
             } catch (...) {
@@ -215,7 +224,7 @@ public:
         // purpose. If we already have a registration for this purpose: update the class to
         // allow the previously issued factory function to use it.
         static FactoryFnWrapper
-        Register(boost::python::object cl, const std::string& usdPrimWriterId, bool& updated)
+        Register(pyboost::object cl, const std::string& usdPrimWriterId, bool& updated)
         {
             size_t classIndex = RegisterPythonObject(cl, GetKey(cl, usdPrimWriterId));
             updated = classIndex == MaxUsdPythonObjectRegistry::UPDATED;
@@ -225,7 +234,7 @@ public:
 
         // Unregister a class for a given purpose. This will cause the associated factory
         // function to stop producing this Python class.
-        static void Unregister(boost::python::object cl, const std::string& usdPrimWriterId)
+        static void Unregister(pyboost::object cl, const std::string& usdPrimWriterId)
         {
             UnregisterPythonObject(cl, GetKey(cl, usdPrimWriterId));
         }
@@ -239,13 +248,13 @@ public:
 
         // Generates a unique key based on the name of the class, along with the class
         // purpose:
-        static std::string GetKey(boost::python::object cl, const std::string& usdPrimWriterId)
+        static std::string GetKey(pyboost::object cl, const std::string& usdPrimWriterId)
         {
             return ClassName(cl) + "," + usdPrimWriterId + "," + ",PrimWriter";
         }
     };
 
-    static void Register(boost::python::object cl, const TfToken& usdPrimWriterId)
+    static void Register(pyboost::object cl, const TfToken& usdPrimWriterId)
     {
         bool             updated = false;
         FactoryFnWrapper fn = FactoryFnWrapper::Register(cl, usdPrimWriterId, updated);
@@ -254,7 +263,7 @@ public:
         }
     }
 
-    static void Unregister(boost::python::object cl, const TfToken& usdPrimWriterId)
+    static void Unregister(pyboost::object cl, const TfToken& usdPrimWriterId)
     {
         FactoryFnWrapper::Unregister(cl, usdPrimWriterId);
         MaxUsdPrimWriterRegistry::Unregister(usdPrimWriterId);
@@ -307,7 +316,7 @@ TF_REGISTRY_FUNCTION(TfEnum)
 
 void wrapPrimWriter()
 {
-    boost::python::class_<PrimWriterWrapper, boost::noncopyable> c(
+    pyboost::class_<PrimWriterWrapper, noncopyable> c(
         "PrimWriter",
         "PrimWriter base class from which object/prim writers need to inherit from.\n"
         "The PrimWriter is only responsible for providing translation of the 3ds Max Object "
@@ -319,36 +328,36 @@ void wrapPrimWriter()
         "code, on the UsdGeomXformable prim built by the PrimWriter, *after* it is run. If the USD "
         "prim is *not* a UsdGeomXformable, a warning is raised, but it doesn't prevent the export "
         "from continuing.",
-        boost::python::no_init);
+        pyboost::no_init);
 
-    boost::python::scope s(c);
+    pyboost::scope s(c);
 
     TfPyWrapEnum<MaxUsdPrimWriter::ContextSupport>();
     TfPyWrapEnum<MaxUsd::XformSplitRequirement>();
     TfPyWrapEnum<MaxUsd::MaterialAssignRequirement>();
     TfPyWrapEnum<MaxUsd::InstancingRequirement>();
 
-    c.def("__init__", boost::python::make_constructor(&PrimWriterWrapper::New))
+    c.def("__init__", pyboost::make_constructor(&PrimWriterWrapper::New))
         .def(
             "Write",
             &PrimWriterWrapper::default_Write,
-            (boost::python::args("self", "target_prim", "apply_offset_transform")),
+            (pyboost::args("self", "target_prim", "apply_offset_transform")),
             "Method for writing the prim's attribute for the given context. This is where the "
             "translation from the 3ds Max object to the USD prim happens.")
         .def(
             "PostExport",
             &PrimWriterWrapper::default_PostExport,
-            (boost::python::args("self", "target_prim")),
+            (pyboost::args("self", "target_prim")),
             "Method called after all other prims have been written to the stage.")
         .def(
             "GetNodeHandle",
             &PrimWriterWrapper::GetNodeHandle,
-            (boost::python::args("self")),
+            (pyboost::args("self")),
             "The handle of the node that will be exported by this prim writer.")
         .def(
             "GetPrimType",
             &PrimWriterWrapper::default_GetPrimType,
-            (boost::python::args("self")),
+            (pyboost::args("self")),
             "The prim type you are writing to. For performance reasons, all prims get created "
             "ahead of time in a single `SdfChangeBlock`. This means the prim writers are not "
             "responsible for creating the prims. The type specified here is mostly a hint for that "
@@ -360,7 +369,7 @@ void wrapPrimWriter()
         .def(
             "GetPrimName",
             &PrimWriterWrapper::default_GetPrimName,
-            (boost::python::args("self", "suggested_name")),
+            (pyboost::args("self", "suggested_name")),
             "Returns the name that should be used for the prim. The base implementation should be "
             "sufficient in most cases, unless prim writers want to customize the prim's name. If "
             "so, it is their responsibility to ensure that the given name is unique amongst "
@@ -369,7 +378,7 @@ void wrapPrimWriter()
         .def(
             "GetObjectPrimSuffix",
             &PrimWriterWrapper::default_GetObjectPrimSuffix,
-            (boost::python::args("self")),
+            (pyboost::args("self")),
             "In a few scenarios, you need two prims to properly represent an INode. One for its "
             "transform, and one for the object it references (for example, in the case of a "
             "non-identity object offset transform, it must not inherit the transform, so you "
@@ -379,7 +388,7 @@ void wrapPrimWriter()
         .def(
             "GetValidityInterval",
             &PrimWriterWrapper::default_GetValidityInterval,
-            (boost::python::args("self", "frame")),
+            (pyboost::args("self", "frame")),
             "Returns the validity interval of the exported prim at the given 3dsMax frame. In "
             "other words, until when what we export remains valid. This will guide the exporter in "
             "figuring out what frames need to be exported for this object. The default "
@@ -389,49 +398,49 @@ void wrapPrimWriter()
         .def(
             "HandlesObjectOffsetTransform",
             &PrimWriterWrapper::default_HandlesObjectOffsetTransform,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Choose whether to handle the object offset transform in the Write() manually or not.")
         .def(
             "RequiresXformPrim",
             &PrimWriterWrapper::default_RequiresXformPrim,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns the requirement to split the object from its transform in the scene.")
         .def(
             "RequiresMaterialAssignment",
             &PrimWriterWrapper::default_RequiresMaterialAssignment,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns the material assignment requirement for the object.")
         .def(
             "RequiresInstancing",
             &PrimWriterWrapper::default_RequiresInstancing,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns whether default instancing of the objects handled by the writer should be "
             "used.")
         .def(
             "GetExportArgs",
             &::unprotect_GetExportArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the current global export args in effect.")
         .def(
             "GetFilename",
             &::unprotect_GetFilename,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the filename and path of where the stage is written on disk.")
         .def(
             "GetNodesToPrims",
-            &MaxUsdPrimWriter::GetNodesToPrims,
-            (boost::python::arg("self")),
+            &PrimWriterWrapper::GetNodesToPrims,
+            (pyboost::arg("self")),
             "Get a dictionary the nodes being exported and their respective prims.")
         .def(
             "GetUsdStage",
             &MaxUsdPrimWriter::GetUsdStage,
-            boost::python::return_value_policy<boost::python::return_by_value>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self")),
             "Get the USD stage being written to.")
         .def(
             "Register",
             &PrimWriterWrapper::Register,
-            (boost::python::args("derived_primwriter_class", "primwriter_given_name")),
+            (pyboost::args("derived_primwriter_class", "primwriter_given_name")),
             "Static method to register a PrimWriter into the PrimWriterRegistry.")
         .staticmethod("Register")
         .def("Unregister", &PrimWriterWrapper::Unregister)

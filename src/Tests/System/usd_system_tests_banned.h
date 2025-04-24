@@ -15,6 +15,6 @@
 //
 #pragma once
 
-#include "usd_banned.h"
-
 #include <gtest/gtest.h>
+
+#include "usd_banned.h"

@@ -24,6 +24,7 @@
 #include <ufe/contextOps.h>
 #include <ufe/object3dNotification.h>
 #include <ufe/observer.h>
+#include <ufe/selection.h>
 #include <ufe/subject.h>
 
 #include <QtCore/qsortfilterproxymodel.h>
@@ -54,12 +55,47 @@ public:
         QColor selectedHover;
     };
 
+    /** The PickMode can be used to change the selection handling of an explorer
+     * instance to not affect the global UFE selection but instead being used
+     * inside some other function to allow the user to pick one or more items.
+     *
+     * This mode can be entered by calling enterPickMode() from the explorer and
+     * be exited by either calling exitPickMode() on the explorer, exit() on the
+     * PickMode, or whenever the std::unique_ptr<PickMode> returned by the
+     * enterPickMode() function gets deleted. */
+    class PickMode
+    {
+    public:
+        /** Destructor.
+         * \note The actual implementation does call Exit(). */
+        virtual ~PickMode() = default;
+
+        /** This function will exit the PickMode. As it is being called
+         * automatically when the PickMode gets deleted, normally it shouldn't
+         * be necessary to call it directly. */
+        virtual void exit() = 0;
+
+        class Callback
+        {
+        public:
+            virtual ~Callback() = default;
+            virtual void selected(const Ufe::Path&) = 0;
+            virtual void deSelected(const Ufe::Path&) = 0;
+            virtual void exited(bool userCancelled) = 0;
+        };
+        virtual void addCallback(std::weak_ptr<Callback> callback) = 0;
+        virtual void removeCallback(std::weak_ptr<Callback> callback) = 0;
+
+    protected:
+        PickMode() = default;
+    };
+
     /**
      * \brief Constructor.
      * \param rootItem Root UFE item to build the tree from.
      * \param columns Column definitions.
      * \param typeFilter Type filtering configuration - used to filter out items by type.
-     * \param childFilter Ufe Hierarchy child filter, filters item when traversing the
+     * \param childFilter UFE Hierarchy child filter, filters item when traversing the
      * hierarchy. Used by the runtime hierarchy implementation.
      * \param autoExpandToSelection Whether the explorer should auto-expand when the selection changes.
      * \param styleSheet QT style sheet for the treeview. Can be empty.
@@ -106,6 +142,9 @@ public:
     TreeModel* treeModel() const;
 
     QTreeView* treeView() const;
+
+    std::shared_ptr<PickMode> enterPickMode();
+    void                      exitPickMode();
 
     /**
      * \brief The current search filter.
@@ -343,6 +382,9 @@ private:
     /// unnecessary work from the expand and collapse signals.
     bool _inSelectionExpansion = false;
     bool _ignoreUfeNotifications = false;
+
+    std::weak_ptr<PickMode> _pickMode;
+    Ufe::Selection          _pickModeSelection;
 };
 
 } // namespace UfeUi

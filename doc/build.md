@@ -1,9 +1,3 @@
-
-
-
-
-
-
 # Building
 
 ## Getting and Building the Code
@@ -73,32 +67,40 @@ The OpenUSD library can also be rebuilt to fit with your needs. See OpenUSD's of
 
 |               |      ![](images/logo-horizontal-color.svg)          | USD version used in 3ds Max | USD source for MaxUsd |
 |:------------: |:---------------:                  |:------------------------:|:-------------------------:|
-|  CommitID/Tags | Officially supported:<br> [v21.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v21.11), [v22.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v22.11), [v23.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.11)| 3ds Max 2022 = v21.11<br>3ds Max 2023 = v21.11<br>3ds Max 2024 = v22.11<br>3ds Max 2025 = v23.11<br>Codename Devi = v24.05 | [v21.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v21.11-MaxUsd-Public)<br>[v22.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v22.11-MaxUsd-Public)<br>[v23.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v23.11-MaxUsd-Public) |
+|  CommitID/Tags | Officially supported:<br> [v21.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v21.11), [v22.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v22.11), [v23.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.11), [v24.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v24.11)| 3ds Max 2022 = v21.11<br>3ds Max 2023 = v21.11<br>3ds Max 2024 = v22.11<br>3ds Max 2025 = v23.11<br>3ds Max 2026 = v24.11 | [v21.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v21.11-MaxUsd-Public)<br>[v22.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v22.11-MaxUsd-Public)<br>[v23.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v23.11-MaxUsd-Public)<br>[v24.11-MayaUsd-Public](https://github.com/autodesk-forks/USD/tree/v24.11-MayaUsd-Public) |
 
 The OpenUSD component has dependencies that are being reused to build the 3ds Max USD component (boost and TBB are dependencies to the 3ds Max USD) . Their source files are automatically fetched and built by the build script of OpenUSD. The table below reports on the various dependencies being used by the compiled version of OpenUSD found in the 3ds Max USD plugin.
 
-| Dependency       | 3ds Max 2022 | 3ds Max 2024 | 3ds Max 2024 | 3ds Max 2025 |
-|:----------------:|:------------:|:------------:|:------------:|:------------:|
-| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.2.13     |
-| boost            | 1.70.0       | 1.70.0       | 1.76.0       | 1.81.0       |
-| TBB              | tbb2018 (update 6)| tbb2018 (update 6)| tbb2019 (update 6)| tbb2020.3       |
-| HDF5             | 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1) |
-| OpenEXR          | 2.3.0| 2.3.0| 2.5.2| 3.1.11       |
-| Alembic          | 1.7.10| 1.7.10| 1.7.10| 1.8.5       |
-| MaterialX        | 1.38.0| 1.38.0| 1.38.4| 1.38.8       |
-| OpenSubDiv       | 3.4.3| 3.4.3| 3.5.0| 3.5.1     |
+| Dependency       | 3ds Max 2022 | 3ds Max 2024 | 3ds Max 2024 | 3ds Max 2025 | 3ds Max 2026 |
+|:----------------:|:------------:|:------------:|:------------:|:------------:|:------------:|
+| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.3.1     | 1.3.1     |
+| boost            | 1.70.0       | 1.70.0       | 1.76.0       | 1.81.0       | ----       |
+| TBB              | tbb2018 (update 6)| tbb2018 (update 6)| tbb2019 (update 6)| tbb2020.3       | tbb2020.3       |
+| HDF5             | 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1) | 1.10.0 (patch 1) |
+| OpenEXR          | 2.3.0| 2.3.0| 2.5.2| 3.3.1       | 3.3.1       |
+| Alembic          | 1.7.10| 1.7.10| 1.7.10| 1.8.5       | 1.8.5       |
+| MaterialX        | 1.38.0| 1.38.0| 1.38.4| 1.38.8       | 1.38.10       |
+| OpenSubDiv       | 3.4.3| 3.4.3| 3.5.0| 3.5.1     | 3.6.0     |
 
 > :warning: Make sure that you don't have an older USD locations in your ```PATH``` and ```PYTHONPATH``` environment settings. ```PATH``` and ```PYTHONPATH``` are automatically adjusted inside the project to point to the correct USD location. See ```cmake/usd.cmake```.
 
-#### 3. Universal Front End (UFE)
+#### 3. Internal shared libraries
 
+To build the 3ds Max USD component, you will need to use those headers and libraries included in the `devkit`.
+
+##### Universal Front End (UFE)
 The Universal Front End (UFE) is a DCC-agnostic component that allows the 3ds Max USD component to browse and edit data in multiple data models. This allows 3ds Max to edit pipeline data such as USD, using UDSUFE.  UFE is developed as a separate binary component, and therefore versioned separately from 3ds Max.
 
-The UFE component v5.3.0 is being used.
+The UFE component v5.6.0 is being used.
 The UFE component was originally developed by the Autodesk Maya team.
 Reference documentation - https://help.autodesk.com/view/MAYADEV/2025/ENU/?guid=MAYA_API_REF_ufe_ref_index_html
 
-To build the 3ds Max USD component, you will need to use the UFE/USDUFE headers and libraries included in the `devkit`.
+##### USD Layer Editor
+The USD Layer Editor is a component used to manage and edit USD Layers.
+
+##### USD Shared Components
+The USD Shared Components is a set of shared component used to manage and edit USD properties.
+
 
 #### 4. Python Modules
 
@@ -120,10 +122,17 @@ Once the 3ds Max USD plugin is installed, you will find the `MaterialX for 3ds M
 
 #### 6. Other Dependencies
 
-| Dependency       | 3ds Max 2022 | 3ds Max 2023 | 3ds Max 2024 | 3ds Max 2025 | Link                                          |
-|:----------------:|:------------:|:------------:|:------------:|:------------:|:---------------------------------------------:|
-| spdlog           | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | https://github.com/gabime/spdlog              |
-| gtest            | 1.8.1        | 1.8.1        | 1.11.0       | 1.11.0       | https://github.com/google/googletest/releases |
+> :warning: Make sure to use the specified versions of the dependencies. Otherwise, you might face execution issues or crashes.
+
+| Dependency       | 3ds Max 2022 | 3ds Max 2023 | 3ds Max 2024 | 3ds Max 2025 | 3ds Max 2026 | Link                                          |
+|:----------------:|:------------:|:------------:|:------------:|:------------:|:------------:|:---------------------------------------------:|
+| pybind11         | 2.10.2       | 2.10.2       | 2.10.2       | 2.10.2       | 2.10.2       | https://github.com/pybind/pybind11            |
+| spdlog           | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | https://github.com/gabime/spdlog              |
+| gtest            | 1.8.1        | 1.8.1        | 1.11.0       | 1.11.0       | 1.11.0       | https://github.com/google/googletest/releases |
+
+##### pybind11
+
+The project is only using the headers from this dependency. You can clone the git repository and locate the include folder (the include path is at the root of the repository).
 
 ##### spdlog
 
@@ -172,9 +181,10 @@ Before starting to build the plugin, the component's dependencies location must 
 The build script can be used by following these usage rules:
 
 	usage: build-solution.py [-h] [-b BUILD] [-v VERSION] [-w] [-r] [-d] [-p] [--maxsdk MAXSDK] [--qtinstall QTINSTALL]
-                         [--materialx MATERIALX] [--googletest GOOGLETEST] [--pyopengl PYOPENGL]
-                         [--maxusddevkit MAXUSDDEVKIT] [--spdlog SPDLOG] [--python PYTHON] [--pyside PYSIDE]
-                         [--shiboken SHIBOKEN] [--ufeinc UFEINC] [--ufelib UFELIB] [--usdufe USDUFE]
+                         [--pybind11inc PYBIND11INC] [--materialx MATERIALX] [--googletest GOOGLETEST]
+                         [--pyopengl PYOPENGL] [--maxusddevkit MAXUSDDEVKIT] [--spdlog SPDLOG] [--python PYTHON]
+                         [--pyside PYSIDE] [--shiboken SHIBOKEN] [--ufeinc UFEINC] [--ufelib UFELIB] [--usdufe USDUFE]
+                         [--usdlayereditor USDLAYEREDITOR] [--usdsharedcomponent USDSHAREDCOMPONENT]
                          [--openusd OPENUSD] [--tbb TBB] [--boostinc BOOSTINC] [--boostlib BOOSTLIB]
                          [{release,hybrid}] {2022,2023,2024,2025,2026}
 
@@ -196,6 +206,8 @@ The build script can be used by following these usage rules:
       --maxsdk MAXSDK       The path location for the 'MaxSDK' folder.
       --qtinstall QTINSTALL
                             The Qt reference version from QtVsTools (aka 'Qt Installation').
+      --pybind11inc PYBIND11INC
+                            The path location for the 'pybind11' include folder.
       --materialx MATERIALX
                             The path location for the 3ds Max MaterialX material plugin folder.
       --googletest GOOGLETEST
@@ -217,6 +229,12 @@ The build script can be used by following these usage rules:
                             if the 'maxusddevkit' option is provided.
       --usdufe USDUFE       The path location for the 'UsdUfe' folder. If not provided, using the path from the 'devkit'
                             if the 'maxusddevkit' option is provided.
+      --usdlayerEditor USDLAYEREDITOR
+                            The path location for the 'UsdLayerEditor' folder. If not provided, using the path from the 'devkit'
+                            the 'maxusddevkit' option is provided.
+      --usdsharedcomponent USDSHAREDCOMPONENT
+                            The path location for the 'usdSharedComponents' folder. If not provided, using the path from
+                            the 'devkit' if the 'maxusddevkit' option is provided.
       --openusd OPENUSD     The path location for the 'OpenUSD' folder. If not provided, using the path from the 'devkit'
                             if the 'maxusddevkit' option is provided.
       --tbb TBB             The path location for the 'TBB' folder. If not provided, using the path from the 'OpenUSD' if
@@ -235,6 +253,7 @@ For example, if you have:
  - execute the Python script `copy_missing_DLLs_found_in_the_official_installation.py` found in the `c:\dev\3dsmax-usd-devkit-2025\Pixar_USD` folder to recreate a completed OpenUSD prebuilt library
  - installed the 3ds Max 2025 SDK, by default, to `C:\Program Files\Autodesk\3ds Max 2025 SDK`)
  - Qt v6.5.3 is installed in `C:\Qt\6.5.3\msvc2019_64`
+ - pybind11 is cloned in `C:\dev\pybind11`
  - PyOpenGL is installed in `C:\Users\myusername\AppData\Roaming\Python\Python311\site-packages`
  - GoogleTest is installed in `c:\dev\googletest-distribution`
 
@@ -245,6 +264,7 @@ You will have a command-line similar to the one below. Using the `devkit` reduce
 	--maxusddevkit c:\dev\3dsmax-usd-devkit-2025 \
 	--googletest c:\dev\googletest-distribution \
 	--qtinstall c:\Qt\6.5.3\msvc2019_64 \
+	--pybind11inc c:\dev\pybind11\include \
 	--maxsdk "c:\Program Files\Autodesk\3ds Max 2025 SDK\maxsdk" \
 	--materialx "c:\ProgramData\Autodesk\ApplicationPlugins\USD for 3ds Max 2025\Contents\MaterialX_plugin" \
 	--pyopengl C:\Users\myusername\AppData\Roaming\Python\Python311\site-packages -p release 2025

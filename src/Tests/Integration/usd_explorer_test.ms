@@ -31,14 +31,14 @@ struct usd_explorer_test
         resetmaxfile #noprompt
     ),
 
-	function findUsdExplorer = (
-		local dialogs = UIAccessor.GetPopupDialogs()
-		for d in dialogs do (
-			if (UIAccessor.GetWindowText d) == "USD Explorer" then return true
-		)
-		return false
-	),
-	
+    function findUsdExplorer = (
+        local dialogs = UIAccessor.GetPopupDialogs()
+        for d in dialogs do (
+            if (UIAccessor.GetWindowText d) == "USD Explorer" then return true
+        )
+        return false
+    ),
+    
     function test_explorer_stage_open_close = (
         
         local stageObject = USDStageObject()
@@ -46,35 +46,35 @@ struct usd_explorer_test
         local testDataDir = getFilenamePath (getThisScriptFilename())
         local sample = (testDataDir + @"data\box_sample.usda")
         stageObject.SetRootLayer sample
-			
-		-- Open via the object function.
-		stageObject.OpenInUsdExplorer()
-		assert_true (findUsdExplorer())
-		
-		-- Close the tab for the explorer. We only test that the explorer itself is still opened.
-		stageObject.CloseInUsdExplorer()
-		assert_true (findUsdExplorer())
-			
-		-- Actually close the explorer.
-		USDStageObject.CloseUsdExplorer()
-		assert_false (findUsdExplorer())
-		
-		-- Open the explorer via static funciton.
-		USDStageObject.OpenUsdExplorer()
-		assert_true (findUsdExplorer())
-		
-		-- Close it again (from state where it has no stage active)
-		USDStageObject.CloseUsdExplorer()
-		assert_false (findUsdExplorer())
+            
+        -- Open via the object function.
+        stageObject.OpenInUsdExplorer()
+        assert_true (findUsdExplorer())
+        
+        -- Close the tab for the explorer. We only test that the explorer itself is still opened.
+        stageObject.CloseInUsdExplorer()
+        assert_true (findUsdExplorer())
+            
+        -- Actually close the explorer.
+        USDStageObject.CloseUsdExplorer()
+        assert_false (findUsdExplorer())
+        
+        -- Open the explorer via static funciton.
+        USDStageObject.OpenUsdExplorer()
+        assert_true (findUsdExplorer())
+        
+        -- Close it again (from state where it has no stage active)
+        USDStageObject.CloseUsdExplorer()
+        assert_false (findUsdExplorer())
 
-		-- Close stage that isnt in explorer - no-op.
-		stageObject.CloseInUsdExplorer()
-		assert_false (findUsdExplorer())
-	),
-	
+        -- Close stage that isnt in explorer - no-op.
+        stageObject.CloseInUsdExplorer()
+        assert_false (findUsdExplorer())
+    ),
+    
     function teardown =
     (
-    ),	
+    ),    
 
     Tests = #(
         test_explorer_stage_open_close

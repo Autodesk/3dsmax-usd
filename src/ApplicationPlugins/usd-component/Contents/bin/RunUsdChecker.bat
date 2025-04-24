@@ -13,4 +13,4 @@
 :: See the License for the specific language governing permissions and
 :: limitations under the License.
 ::
-CALL "%~dp0RunUsdTool" "%~dp0UsdChecker" %*
+@powershell -executionpolicy RemoteSigned -file "%~dp0RunUsdTool.ps1" UsdChecker %*

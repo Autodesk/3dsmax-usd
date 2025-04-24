@@ -38,7 +38,7 @@ void TestSelectionBufferState(
     bool                                      decorated = true)
 {
     const auto geom = GetRenderItemGeometry(renderItem, decorated, selected);
-    auto       selBuffer = geom->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+    auto       selBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
     const auto selData
         = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
@@ -237,7 +237,7 @@ TEST(SelectionBuffer, ConsolidatedMeshSelection)
     const auto renderItem = renderItems.GetRenderItem(0);
 
     const auto geom = GetRenderItemGeometry(renderItem, false, true);
-    auto       selBuffer = geom->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+    auto       selBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
     const auto selData
         = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
@@ -339,7 +339,7 @@ TEST(SelectionBuffer, ConsolidatedInstancedGeometry)
     const auto renderItem = renderItems.GetRenderItem(0);
 
     const auto geom = GetRenderItemGeometry(renderItem, false, true);
-    auto       selBuffer = geom->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+    auto       selBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
     const auto selData
         = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
@@ -759,12 +759,13 @@ TEST(SelectionBuffer, InstancesIndexChange)
         consolidationConfig);
 
     auto geom = GetRenderItemGeometry(renderItems.GetRenderItem(0), false, true);
-    auto selBuffer = geom->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+    auto selBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
     auto selData = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
     // First 24 verts are those of the first box, selected
-    EXPECT_TRUE(std::all_of(
-        selData, selData + 24, [](const Point3& p) { return p.Equals(Point3 { 1.f, 1.f, 1.f }); }));
+    EXPECT_TRUE(std::all_of(selData, selData + 24, [](const Point3& p) {
+        return p.Equals(Point3 { 1.f, 1.f, 1.f });
+    }));
     // The next 24 verts are those of the second box, unselected
     EXPECT_TRUE(std::all_of(
         selData + 24, selData + 48, [](const Point3& p) { return p.Equals(Point3 {}); }));
@@ -811,7 +812,7 @@ TEST(SelectionBuffer, InstancesIndexChange)
     ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
 
     geom = GetRenderItemGeometry(renderItems.GetRenderItem(0), false, true);
-    selBuffer = geom->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+    selBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
     selData = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
     ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());

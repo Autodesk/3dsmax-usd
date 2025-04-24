@@ -167,6 +167,10 @@ class testContext(unittest.TestCase):
         
         # all contexts for the test are registered
         self.assertTrue('FirstExportContext' in maxUsd.JobContextRegistry.ListJobContexts())
+        self.assertEqual('FirstExportContext', maxUsd.JobContextRegistry.GetJobContextInfo('FirstExportContext')['jobContext'])
+        self.assertEqual('First export context test', maxUsd.JobContextRegistry.GetJobContextInfo('FirstExportContext')['niceName'])
+        self.assertEqual("First export context test setting up the 'firstExport' chaser", maxUsd.JobContextRegistry.GetJobContextInfo('FirstExportContext')['exportDescription'])
+        self.assertEqual('', maxUsd.JobContextRegistry.GetJobContextInfo('FirstExportContext')['importDescription'])
         self.assertTrue('SecondExportContext' in maxUsd.JobContextRegistry.ListJobContexts())
         self.assertTrue('FirstImportContext' in maxUsd.JobContextRegistry.ListJobContexts())
         self.assertTrue('SecondImportContext' in maxUsd.JobContextRegistry.ListJobContexts())

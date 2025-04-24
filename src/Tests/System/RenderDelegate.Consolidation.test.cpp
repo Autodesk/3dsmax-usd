@@ -58,13 +58,13 @@ TEST(Consolidation, Consolidate1Box)
         renderItems.GetRenderItem(1).GetVisibilityGroup());
 
     auto& renderDelegate = testEngine.GetRenderDelegate();
-    auto  renderData = renderDelegate->GetRenderDataIdMap();
+    auto  renderData = renderDelegate->GetMeshRenderDataIdMap();
 
     auto it = renderData.find(pxr::SdfPath("/consolidation_1_box/Box001"));
 
     // There is just one prim, so consolidation should not happen. Here we test that the render item
     // returned by the render call is indeed the one from the USD prim's own render data.
-    auto& item = renderDelegate->GetRenderData(it->second);
+    auto& item = renderDelegate->GetMeshRenderData(it->second);
     EXPECT_EQ(item.shadedSubsets[0].renderItem, renderItems.GetRenderItem(0));
     EXPECT_EQ(item.wireframe.renderItem, renderItems.GetRenderItem(1));
 }
@@ -113,7 +113,7 @@ TEST(Consolidation, Consolidate2Boxes)
     EXPECT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
 
     // Check that points are OK.
-    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(48, pointsBuffer.GetNumberOfVertices());
 
     std::array<Point3, 48> expectedPoints
@@ -152,7 +152,7 @@ TEST(Consolidation, Consolidate2Boxes)
         static_cast<int>(pointsBuffer.GetNumberOfVertices())));
 
     // Check that the normals are OK.
-    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(48, normalsBuffer.GetNumberOfVertices());
 
     const auto normalsData
@@ -190,7 +190,7 @@ TEST(Consolidation, Consolidate2Boxes)
         static_cast<int>(normalsBuffer.GetNumberOfVertices())));
 
     // Check that the UVs are OK.
-    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(48, uvsBuffer.GetNumberOfVertices());
 
     std::array<Point3, 48> expectedUvs
@@ -255,8 +255,9 @@ TEST(Consolidation, Consolidate2Boxes)
     ASSERT_TRUE(wireframeGeometry->GetIndexBuffer().IsValid());
 
     // The wireframe item should be using the same vertex buffers as the shaded geometry.
-    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer));
-    EXPECT_EQ(normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer));
+    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer));
+    EXPECT_EQ(
+        normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer));
 
     // Check that indices for the wire edges are OK.
     auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
@@ -320,7 +321,7 @@ TEST(Consolidation, ConsolidateInstances)
     EXPECT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
 
     // Check that points are OK.
-    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(48, pointsBuffer.GetNumberOfVertices());
 
     const auto pointsData
@@ -359,7 +360,7 @@ TEST(Consolidation, ConsolidateInstances)
         static_cast<int>(pointsBuffer.GetNumberOfVertices())));
 
     // Check that the normals are OK.
-    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(48, normalsBuffer.GetNumberOfVertices());
 
     std::array<Point3, 48> expectedNormals
@@ -398,7 +399,7 @@ TEST(Consolidation, ConsolidateInstances)
         static_cast<int>(normalsBuffer.GetNumberOfVertices())));
 
     // Check that the UVs are OK.
-    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(48, uvsBuffer.GetNumberOfVertices());
     std::array<Point3, 48> expectedUvs
         = { Point3(0.000000, 0.000000, 0.000000), Point3(0.000000, 0.500000, 0.000000),
@@ -463,8 +464,9 @@ TEST(Consolidation, ConsolidateInstances)
     ASSERT_TRUE(wireframeGeometry->GetIndexBuffer().IsValid());
 
     // The wireframe item should be using the same vertex buffers as the shaded geometry.
-    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer));
-    EXPECT_EQ(normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer));
+    EXPECT_EQ(pointsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer));
+    EXPECT_EQ(
+        normalsBuffer, wireframeGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer));
 
     // Check that indices for the wire edges are OK.
     auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
@@ -534,19 +536,19 @@ TEST(Consolidation, ConsolidateInstancesSplit)
             = renderItems.GetRenderItem(i * 2); // shaded render items are at 0 and 2.
         auto shadedGeometry = GetRenderItemGeometry(shadedRenderItem, false);
 
-        auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
         EXPECT_EQ(24, pointsBuffer.GetNumberOfVertices());
 
         // Check that the normals are OK.
-        auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+        auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
         EXPECT_EQ(24, normalsBuffer.GetNumberOfVertices());
 
         // Check that the selection buffer is OK.
-        auto selBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::SelectionBuffer);
+        auto selBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::SelectionBuffer);
         EXPECT_EQ(24, selBuffer.GetNumberOfVertices());
 
         // Check that the UVs are OK.
-        auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+        auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
         EXPECT_EQ(24, uvsBuffer.GetNumberOfVertices());
 
         // Check that indices are OK.
@@ -565,34 +567,6 @@ TEST(Consolidation, ConsolidateInstancesSplit)
         auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
         EXPECT_EQ(48, edgeIndexBuffer.GetNumberOfIndices());
     }
-}
-
-// A few helpers to help validate the data we generate.
-static int GetVertexCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated)
-{
-    const auto pointsBuffer = GetRenderItemGeometry(renderItem, decorated)
-                                  ->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
-    return static_cast<int>(pointsBuffer.GetNumberOfVertices());
-}
-
-static int GetTriCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated)
-{
-    const auto indices = GetRenderItemGeometry(renderItem, decorated)->GetIndexBuffer();
-    return static_cast<int>(indices.GetNumberOfIndices() / 3);
-}
-
-static Box3 GetBoundingBox(
-    const MaxSDK::Graphics::RenderItemHandle& renderItem,
-    bool                                      decorated,
-    Matrix3*                                  tm = nullptr)
-{
-    auto points = GetRenderItemGeometry(renderItem, decorated)
-                      ->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
-    auto rawPoints = reinterpret_cast<Point3*>(points.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
-    Box3 bbox;
-    bbox.IncludePoints(rawPoints, static_cast<int>(points.GetNumberOfVertices()), tm);
-    points.Unlock();
-    return bbox;
 }
 
 // Test the consolidation of when multiple materials/objects are present.
@@ -663,7 +637,7 @@ TEST(Consolidation, Consolidate10Objects4Materials)
 
     auto shadedGeometry = GetRenderItemGeometry(shadedRenderItem, false);
 
-    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_EQ(240, pointsBuffer.GetNumberOfVertices());
 }
 
@@ -1099,7 +1073,7 @@ TEST(Consolidation, DynamicStrategy)
     auto geom1 = GetRenderItemGeometry(renderItems.GetRenderItem(0), false);
 
     {
-        auto pointsBuffer = geom1->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        auto pointsBuffer = geom1->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
         auto pointsData
             = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedPoints
@@ -1132,7 +1106,7 @@ TEST(Consolidation, DynamicStrategy)
     }
 
     {
-        auto normalsBuffer = geom1->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+        auto normalsBuffer = geom1->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
         auto normalsData
             = reinterpret_cast<Point3*>(normalsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedNormals = { Point3(0.00000000, 0.00000000, 1.00000000),
@@ -1185,7 +1159,7 @@ TEST(Consolidation, DynamicStrategy)
     }
 
     {
-        auto uvBuffer = geom1->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+        auto uvBuffer = geom1->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
         auto uvData = reinterpret_cast<Point3*>(uvBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedUvs
             = { Point3(0.000000, 0.500000, 0.000000), Point3(0.000000, 1.000000, 0.000000),
@@ -1232,7 +1206,7 @@ TEST(Consolidation, DynamicStrategy)
     auto geom2 = GetRenderItemGeometry(renderItems.GetRenderItem(0), false);
 
     {
-        auto pointsBuffer = geom2->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        auto pointsBuffer = geom2->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
         auto pointsData
             = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedPoints
@@ -1265,7 +1239,7 @@ TEST(Consolidation, DynamicStrategy)
     }
 
     {
-        auto normalsBuffer = geom2->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        auto normalsBuffer = geom2->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
         auto normalsData
             = reinterpret_cast<Point3*>(normalsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedNormals
@@ -1298,7 +1272,7 @@ TEST(Consolidation, DynamicStrategy)
     }
 
     {
-        auto uvBuffer = geom2->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+        auto uvBuffer = geom2->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
         auto uvData = reinterpret_cast<Point3*>(uvBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
         std::array<Point3, 40> expectedUvs
             = { Point3(0.000000, 0.500000, 0.000000), Point3(0.000000, 1.000000, 0.000000),
@@ -1571,22 +1545,10 @@ TEST(Consolidation, BreakingModificationsInstancer)
             GetTriCount(
                 renderItems.GetRenderItem(0), false)); // 2 cones, same color, consolidated...
 
-        // Custom box compare, math has changed across some usd versions (21.11 -> 22.11) and we
-        // cant be too precise in the comparison(epsilon 0.001).
-        auto boxesAreEquivalent = [](const Box3& box1, const Box3& box2) {
-            const float epsilon = 0.001f;
-            return abs(box1.pmax.x - box2.pmax.x) < epsilon
-                && abs(box1.pmax.y - box2.pmax.y) < epsilon
-                && abs(box1.pmax.z - box2.pmax.z) < epsilon
-                && abs(box1.pmin.x - box2.pmin.x) < epsilon
-                && abs(box1.pmin.y - box2.pmin.y) < epsilon
-                && abs(box1.pmin.z - box2.pmin.z) < epsilon;
-        };
-
         auto expectedBbox0 = Box3 { { -1.f, 1.549f, -1.f }, { 3.5f, 3.45099998f, 3.5f } };
 
-        EXPECT_TRUE(
-            boxesAreEquivalent(expectedBbox0, GetBoundingBox(renderItems.GetRenderItem(0), false)));
+        EXPECT_TRUE(BoundingBoxesAreEquivalent(
+            expectedBbox0, GetBoundingBox(renderItems.GetRenderItem(0), false)));
         // Cube only instanced once, so not consolidated.
         // There is no exposed way to access the instancing data, but we can still know this is a
         // instance render item and not a render item from consolidation by looking at the geometry,
@@ -1609,8 +1571,8 @@ TEST(Consolidation, BreakingModificationsInstancer)
             GetTriCount(
                 renderItems.GetRenderItem(0), false)); // 2 cones, same color, consolidated...
         auto expectedBbox1 = Box3 { { -1.f, 1.54900002f, 0.f }, { 3.5f, 3.45099998f, 11.5f } };
-        EXPECT_TRUE(
-            boxesAreEquivalent(expectedBbox1, GetBoundingBox(renderItems.GetRenderItem(0), false)));
+        EXPECT_TRUE(BoundingBoxesAreEquivalent(
+            expectedBbox1, GetBoundingBox(renderItems.GetRenderItem(0), false)));
         EXPECT_EQ(nullptr, GetRenderItemGeometry(renderItems.GetRenderItem(1), false));
         renderItems.ClearAllRenderItems();
 
@@ -1635,8 +1597,8 @@ TEST(Consolidation, BreakingModificationsInstancer)
         actualSizeAndBbox.insert({ GetTriCount(renderItems.GetRenderItem(1), false),
                                    GetBoundingBox(renderItems.GetRenderItem(1), false) });
 
-        EXPECT_TRUE(boxesAreEquivalent(actualSizeAndBbox[0], expectedSizeAndBbox[0]));
-        EXPECT_TRUE(boxesAreEquivalent(actualSizeAndBbox[1], expectedSizeAndBbox[1]));
+        EXPECT_TRUE(BoundingBoxesAreEquivalent(actualSizeAndBbox[0], expectedSizeAndBbox[0]));
+        EXPECT_TRUE(BoundingBoxesAreEquivalent(actualSizeAndBbox[1], expectedSizeAndBbox[1]));
         renderItems.ClearAllRenderItems();
     }
 }
@@ -1713,7 +1675,7 @@ TEST(Consolidation, Consolidate2BoxesWithBadPrimvarIndices)
     EXPECT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
 
     // Check normals, normals from the first box fall back to 0 on invalid data.
-    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer);
+    auto normalsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer);
     EXPECT_EQ(48, normalsBuffer.GetNumberOfVertices());
 
     const auto normalsData
@@ -1752,7 +1714,7 @@ TEST(Consolidation, Consolidate2BoxesWithBadPrimvarIndices)
 
     // Check uvs, uvs from the second box falls back to planar mapping (from points) on invalid
     // data.
-    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer);
+    auto uvsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer);
     EXPECT_EQ(48, uvsBuffer.GetNumberOfVertices());
 
     std::array<Point3, 48> expectedUvs = {
@@ -1885,14 +1847,14 @@ TEST(Consolidation, PartialSubsetsConsolidationSecondSubsetDirty)
     // Consolidated portion of the boxes...
     const auto consolidatedGeom = GetRenderItemGeometry(renderItems.GetRenderItem(0), false);
     const auto consolidatedPointsBuffer
-        = consolidatedGeom->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        = consolidatedGeom->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
     EXPECT_TRUE(consolidatedPointsBuffer.IsValid());
 
     // Make sure the vertex buffers where loaded, even if the first subset of the mesh was
     // consolidated.
     for (int i = 1; i < renderItems.GetNumberOfRenderItems(); ++i) {
         const auto geom = GetRenderItemGeometry(renderItems.GetRenderItem(i), true);
-        const auto vertexBuffer = geom->GetVertexBuffer(HdMaxRenderData::PointsBuffer);
+        const auto vertexBuffer = geom->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
         EXPECT_TRUE(vertexBuffer.IsValid());
     }
 }

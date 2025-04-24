@@ -15,6 +15,8 @@
 //
 #pragma once
 
+#include <BoostPythonWrapper.h>
+
 #include <pxr/pxr.h>
 
 #include <boost/python/class.hpp>
@@ -33,24 +35,24 @@ protected:
     static const size_t UPDATED = 0xFFFFFFFF;
 
     // Registers or updates a Python class for the provided key.
-    static size_t RegisterPythonObject(boost::python::object cl, const std::string& key);
+    static size_t RegisterPythonObject(pyboost::object cl, const std::string& key);
 
     // Unregister a Python class for a given key. This will cause the associated factory function to
     // stop producing this Python class.
-    static void UnregisterPythonObject(boost::python::object cl, const std::string& key);
+    static void UnregisterPythonObject(pyboost::object cl, const std::string& key);
 
-    static boost::python::object GetPythonObject(size_t index) { return _sClassVec[index]; }
+    static pyboost::object GetPythonObject(size_t index) { return _sClassVec[index]; }
 
-    static bool IsPythonClass(boost::python::object cl);
+    static bool IsPythonClass(pyboost::object cl);
 
-    static std::string ClassName(boost::python::object cl);
+    static std::string ClassName(pyboost::object cl);
 
 private:
     // Static table of all registered Python classes, with associated index:
-    typedef std::vector<boost::python::object> TClassVec;
-    static TClassVec                           _sClassVec;
-    typedef std::map<std::string, size_t>      TClassIndex;
-    static TClassIndex                         _sIndex;
+    typedef std::vector<pyboost::object>  TClassVec;
+    static TClassVec                      _sClassVec;
+    typedef std::map<std::string, size_t> TClassIndex;
+    static TClassIndex                    _sIndex;
 
     static void HookInterpreterExit();
 

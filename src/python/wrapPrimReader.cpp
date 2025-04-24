@@ -113,7 +113,7 @@ public:
     // helper method to call MaxUsdTranslatorXformable::Read from Python
     // \param correction Any correction to apply on the UsdPrim transform to properly position the
     // 3ds Max node (identity by default)
-    void ReadXformable(boost::python::list correction = boost::python::list())
+    void ReadXformable(pyboost::list correction = pyboost::list())
     {
         auto refTarget
             = base_t::GetJobContext().GetMaxRefTargetHandle(base_t::GetUsdPrim().GetPath(), false);
@@ -123,14 +123,13 @@ public:
             if (!correction.is_none() && len(correction) == 4) {
                 Point3 v[4];
                 for (int i = 0; i < 4; ++i) {
-                    const boost::python::list& row
-                        = boost::python::extract<boost::python::list>(correction[i]);
+                    const pyboost::list& row = pyboost::extract<pyboost::list>(correction[i]);
                     if (len(row) != 3) {
                         MaxUsd::Log::Warn("Malformed correction matrix. Defaulting to Identity.");
                         break;
                     }
                     for (int j = 0; j < 3; ++j) {
-                        v[i][j] = boost::python::extract<float>(row[j]);
+                        v[i][j] = pyboost::extract<float>(row[j]);
                     }
                 }
                 correctionMatrix.Set(v[0], v[1], v[2], v[3]);
@@ -155,15 +154,15 @@ public:
         // python wrappers based on the latest class registered.
         MaxUsdPrimReaderSharedPtr operator()(const UsdPrim& prim, MaxUsdReadJobContext& jobCtx)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return nullptr;
             }
-            auto                  sptr = std::make_shared<This>(prim, jobCtx);
-            TfPyLock              pyLock;
-            boost::python::object instance = pyClass((uintptr_t)&sptr);
-            boost::python::incref(instance.ptr());
+            auto            sptr = std::make_shared<This>(prim, jobCtx);
+            TfPyLock        pyLock;
+            pyboost::object instance = pyClass((uintptr_t)&sptr);
+            pyboost::incref(instance.ptr());
             initialize_wrapper(instance.ptr(), sptr.get());
             return sptr;
         }
@@ -172,7 +171,7 @@ public:
         MaxUsdPrimReader::ContextSupport
         operator()(const MaxUsd::MaxSceneBuilderOptions& args, const UsdPrim& importPrim)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return MaxUsdPrimReader::ContextSupport::Unsupported;
@@ -181,10 +180,10 @@ public:
             if (PyObject_HasAttrString(pyClass.ptr(), "CanImport"))
 
             {
-                boost::python::object CanImport = pyClass.attr("CanImport");
-                PyObject*             callable = CanImport.ptr();
+                pyboost::object CanImport = pyClass.attr("CanImport");
+                PyObject*       callable = CanImport.ptr();
                 try {
-                    auto res = boost::python::call<int>(
+                    auto res = pyboost::call<int>(
                         callable, MaxSceneBuilderOptionsWrapper(args), importPrim);
                     return MaxUsdPrimReader::ContextSupport(res);
                 } catch (...) {
@@ -199,7 +198,7 @@ public:
         // purpose. If we already have a registration for this purpose: update the class to
         // allow the previously issued factory function to use it.
         static FactoryFnWrapper
-        Register(boost::python::object cl, const std::string& typeName, bool& updated)
+        Register(pyboost::object cl, const std::string& typeName, bool& updated)
         {
             size_t classIndex = RegisterPythonObject(cl, GetKey(cl, typeName));
             updated = classIndex == MaxUsdPythonObjectRegistry::UPDATED;
@@ -209,7 +208,7 @@ public:
 
         // Unregister a class for a given purpose. This will cause the associated factory
         // function to stop producing this Python class.
-        static void Unregister(boost::python::object cl, const std::string& typeName)
+        static void Unregister(pyboost::object cl, const std::string& typeName)
         {
             UnregisterPythonObject(cl, GetKey(cl, typeName));
         }
@@ -223,13 +222,13 @@ public:
 
         // Generates a unique key based on the name of the class, along with the class
         // purpose:
-        static std::string GetKey(boost::python::object cl, const std::string& typeName)
+        static std::string GetKey(pyboost::object cl, const std::string& typeName)
         {
             return ClassName(cl) + "," + typeName + "," + ",PrimReader";
         }
     };
 
-    static void Register(boost::python::object cl, const std::string& typeName)
+    static void Register(pyboost::object cl, const std::string& typeName)
     {
         bool             updated = false;
         FactoryFnWrapper fn = FactoryFnWrapper::Register(cl, typeName, updated);
@@ -239,7 +238,7 @@ public:
         }
     }
 
-    static void Unregister(boost::python::object cl, const std::string& typeName)
+    static void Unregister(pyboost::object cl, const std::string& typeName)
     {
         FactoryFnWrapper::Unregister(cl, typeName);
     }
@@ -306,15 +305,15 @@ public:
         // python wrappers based on the latest class registered.
         MaxUsdPrimReaderSharedPtr operator()(const UsdPrim& prim, MaxUsdReadJobContext& jobCtx)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return nullptr;
             }
-            auto                  sptr = std::make_shared<This>(prim, jobCtx);
-            TfPyLock              pyLock;
-            boost::python::object instance = pyClass((uintptr_t)&sptr);
-            boost::python::incref(instance.ptr());
+            auto            sptr = std::make_shared<This>(prim, jobCtx);
+            TfPyLock        pyLock;
+            pyboost::object instance = pyClass((uintptr_t)&sptr);
+            pyboost::incref(instance.ptr());
             initialize_wrapper(instance.ptr(), sptr.get());
             return sptr;
         }
@@ -322,7 +321,7 @@ public:
         // We can have multiple function objects, this one adapts the CanImport function:
         MaxUsdShaderReader::ContextSupport operator()(const MaxUsd::MaxSceneBuilderOptions& args)
         {
-            boost::python::object pyClass = GetPythonObject(_classIndex);
+            pyboost::object pyClass = GetPythonObject(_classIndex);
             if (!pyClass) {
                 // Prototype was unregistered
                 return MaxUsdShaderReader::ContextSupport::Unsupported;
@@ -331,11 +330,10 @@ public:
             if (PyObject_HasAttrString(pyClass.ptr(), "CanImport"))
 
             {
-                boost::python::object CanImport = pyClass.attr("CanImport");
-                PyObject*             callable = CanImport.ptr();
+                pyboost::object CanImport = pyClass.attr("CanImport");
+                PyObject*       callable = CanImport.ptr();
                 try {
-                    auto res
-                        = boost::python::call<int>(callable, MaxSceneBuilderOptionsWrapper(args));
+                    auto res = pyboost::call<int>(callable, MaxSceneBuilderOptionsWrapper(args));
                     return MaxUsdShaderReader::ContextSupport(res);
                 } catch (...) {
                     MaxUsd::Log::Error("Unable to call the CanImport(importArgs) method of the "
@@ -349,7 +347,7 @@ public:
         // purpose. If we already have a registration for this purpose: update the class to
         // allow the previously issued factory function to use it.
         static FactoryFnWrapper
-        Register(boost::python::object cl, const std::string& usdShaderId, bool& updated)
+        Register(pyboost::object cl, const std::string& usdShaderId, bool& updated)
         {
             size_t classIndex = RegisterPythonObject(cl, GetKey(cl, usdShaderId));
             updated = classIndex == MaxUsdPythonObjectRegistry::UPDATED;
@@ -359,7 +357,7 @@ public:
 
         // Unregister a class for a given purpose. This will cause the associated factory
         // function to stop producing this Python class.
-        static void Unregister(boost::python::object cl, const std::string& usdShaderId)
+        static void Unregister(pyboost::object cl, const std::string& usdShaderId)
         {
             UnregisterPythonObject(cl, GetKey(cl, usdShaderId));
         }
@@ -373,13 +371,13 @@ public:
 
         // Generates a unique key based on the name of the class, along with the class
         // purpose:
-        static std::string GetKey(boost::python::object cl, const std::string& usdShaderId)
+        static std::string GetKey(pyboost::object cl, const std::string& usdShaderId)
         {
             return ClassName(cl) + "," + usdShaderId + "," + ",ShaderReader";
         }
     };
 
-    static void Register(boost::python::object cl, const TfToken& usdShaderId)
+    static void Register(pyboost::object cl, const TfToken& usdShaderId)
     {
         bool             updated = false;
         FactoryFnWrapper fn = FactoryFnWrapper::Register(cl, usdShaderId, updated);
@@ -388,7 +386,7 @@ public:
         }
     }
 
-    static void Unregister(boost::python::object cl, const TfToken& usdShaderId)
+    static void Unregister(pyboost::object cl, const TfToken& usdShaderId)
     {
         FactoryFnWrapper::Unregister(cl, usdShaderId);
     }
@@ -405,18 +403,26 @@ TF_REGISTRY_FUNCTION(TfEnum)
     TF_ADD_ENUM_NAME(MaxUsdPrimReader::ContextSupport::Unsupported, "Unsupported");
 }
 
+#if PXR_VERSION < 2411
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(
     readXformable_overload,
     PrimReaderWrapper::ReadXformable,
     0,
     1)
+#else
+PXR_BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(
+    readXformable_overload,
+    PrimReaderWrapper::ReadXformable,
+    0,
+    1)
+#endif
 
 void wrapPrimReader()
 {
-    using namespace boost::python;
+    using namespace pyboost;
     typedef MaxUsdPrimReader This;
 
-    class_<PrimReaderWrapper<>, boost::noncopyable> c("PrimReader", no_init);
+    class_<PrimReaderWrapper<>, noncopyable> c("PrimReader", no_init);
 
     scope s(c);
     TfPyWrapEnum<MaxUsdPrimReader::ContextSupport>();
@@ -425,50 +431,50 @@ void wrapPrimReader()
         .def(
             "Read",
             pure_virtual(&MaxUsdPrimReader::Read),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Method called to import a USD prim.")
         .def(
             "HasPostReadSubtree",
             &This::HasPostReadSubtree,
             &PrimReaderWrapper<>::default_HasPostReadSubtree,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Specifies whether this prim reader specifies a PostReadSubtree step.")
         .def(
             "PostReadSubtree",
             &This::PostReadSubtree,
             &PrimReaderWrapper<>::default_PostReadSubtree,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "An additional import step that runs after all descendants of this prim have been "
             "processed.")
         .def(
             "InstanceCreated",
             &PrimReaderWrapper<>::InstanceCreatedWrapped,
             &PrimReaderWrapper<>::default_InstanceCreated,
-            (boost::python::args("self", "prim", "anim_handle")),
+            (pyboost::args("self", "prim", "anim_handle")),
             "Method called when a 3ds Max instance is created (cloned) from a Node which "
             "originally was created using this reader instance.")
         .def(
             "GetUsdPrim",
             &PrimReaderWrapper<>::GetUsdPrim,
             return_internal_reference<>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the UsdPrim on which the reader is acting.")
         .def(
             "GetArgs",
             &PrimReaderWrapper<>::GetImportArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the current import arguments in effect.")
         .def(
             "GetJobContext",
             &PrimReaderWrapper<>::GetJobContext,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the read job context in effect.")
 
         .def(
             "ReadXformable",
             &PrimReaderWrapper<>::ReadXformable,
             readXformable_overload(
-                (boost::python::arg("correction_matrix") = boost::python::object()),
+                (pyboost::arg("correction_matrix") = pyboost::object()),
                 "Reads xform attributes from xformable and converts them into 3ds Max transform "
                 "values. The `correction_matrix` is a correction ([[U],[V],[N],[T]] see Matrix3) "
                 "to apply on the UsdPrim transform to properly position the 3ds Max node when "
@@ -476,7 +482,7 @@ void wrapPrimReader()
         .def(
             "Register",
             &PrimReaderWrapper<>::Register,
-            (boost::python::args("prim_reader_class", "usd_prim_id")),
+            (pyboost::args("prim_reader_class", "usd_prim_id")),
             "Static method to register an PrimReader into the PrimReaderRegistry.")
         .staticmethod("Register")
         .def("Unregister", &PrimReaderWrapper<>::Unregister)
@@ -486,49 +492,48 @@ void wrapPrimReader()
 //----------------------------------------------------------------------------------------------------------------------
 void wrapShaderReader()
 {
-    using namespace boost::python;
     typedef MaxUsdShaderReader This;
 
-    class_<ShaderReaderWrapper, bases<PrimReaderWrapper<>>, boost::noncopyable> c(
+    pyboost::class_<ShaderReaderWrapper, pyboost::bases<PrimReaderWrapper<>>, noncopyable> c(
         "ShaderReader",
         "Base class for USD prim readers that import USD shader prims as 3ds Max materials.\n"
         "A ShaderReader instance is created for each material needing translation.",
-        no_init);
+        pyboost::no_init);
 
-    scope s(c);
+    pyboost::scope s(c);
 
     c.def("__init__", make_constructor(&ShaderReaderWrapper::New))
         .def(
             "Read",
-            pure_virtual(&MaxUsdPrimReader::Read),
-            (boost::python::arg("self")),
+            pyboost::pure_virtual(&MaxUsdPrimReader::Read),
+            (pyboost::arg("self")),
             "Method called to properly import the material.")
         .def(
             "GetCreatedMaterial",
             &ShaderReaderWrapper::GetCreatedMaterialAnimHandle,
             &ShaderReaderWrapper::default_GetCreatedMaterial,
-            (boost::python::args("context", "prim")),
+            (pyboost::args("context", "prim")),
             "Get the MAXScript AnimHandle on the material created for the given Prim.")
         .def(
             "RegisterCreatedMaterial",
             &ShaderReaderWrapper::RegisterCreatedMaterial,
-            (boost::python::args("self", "path", "anim_handle")),
+            (pyboost::args("self", "path", "anim_handle")),
             "Record 3ds Max animHandle as being created for the prim path")
         .def(
             "GetUsdPrim",
             &ShaderReaderWrapper::GetUsdPrim,
-            return_internal_reference<>(),
-            (boost::python::arg("self")),
+            pyboost::return_internal_reference<>(),
+            (pyboost::arg("self")),
             "Get the UsdPrim on which the reader is acting.")
         .def(
             "GetArgs",
             &ShaderReaderWrapper::GetImportArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Get the current import arguments in effect.")
         .def(
             "Register",
             &ShaderReaderWrapper::Register,
-            (boost::python::args("shader_reader_class", "usd_shader_id")),
+            (pyboost::args("shader_reader_class", "usd_shader_id")),
             "Static method to register an ShaderReader into the ShaderReaderRegistry.")
         .staticmethod("Register")
         .def("Unregister", &ShaderReaderWrapper::Unregister)

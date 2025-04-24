@@ -65,7 +65,11 @@ class mtlXShaderWriter(maxUsd.ShaderWriter):
 				refHolderSurfOut = refHolderPrim.CreateOutput("mtlx:surface", Sdf.ValueTypeNames.Token)
 			else:
 				refHolderSurfOut = refHolderPrim.CreateSurfaceOutput("mtlx")
-			refHolderSurfOut.ConnectToSource(surfOutput)
+
+			if surfOutput:
+				refHolderSurfOut.ConnectToSource(surfOutput)
+			else:
+				print('The connection to the Surface Output could not be created, the MaterialX material prim %s, might not be supported by this version of USD' % matXPath)
 
 			# Here we want to handle the case of exporting to multiple targets.
 			# Since this ShaderWriter doesn't really respect the API (no call to SetUsdPrim()),

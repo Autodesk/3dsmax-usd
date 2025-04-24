@@ -55,13 +55,11 @@ public:
 
 void wrapMeshConverter()
 {
-    boost::python::class_<MeshConverterWrapper, boost::noncopyable> c(
-        "MeshConverter", boost::python::no_init);
-    boost::python::scope s(c);
+    pyboost::class_<MeshConverterWrapper, noncopyable> c("MeshConverter", pyboost::no_init);
+    pyboost::scope                                     s(c);
     c.def(
          "ConvertToUSDMesh",
          &MeshConverterWrapper::ConvertToUSDMesh,
-         boost::python::args(
-             "node_handle", "stage", "path", "options", "applyOffsetTransform", "time"))
+         pyboost::args("node_handle", "stage", "path", "options", "applyOffsetTransform", "time"))
         .staticmethod("ConvertToUSDMesh");
 }

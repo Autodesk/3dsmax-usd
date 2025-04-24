@@ -165,11 +165,11 @@ USDSceneBuilderOptionsWrapper::GetValidPrimvarConfig(int channel) const
     return GetMeshConversionOptions().GetChannelPrimvarConfig(channel);
 }
 
-boost::python::dict USDSceneBuilderOptionsWrapper::GetAllChaserArgs() const
+pyboost::dict USDSceneBuilderOptionsWrapper::GetAllChaserArgs() const
 {
-    boost::python::dict allChaserArgs;
+    pyboost::dict allChaserArgs;
     for (auto&& perChaser : USDSceneBuilderOptions::GetAllChaserArgs()) {
-        auto perChaserDict = boost::python::dict();
+        auto perChaserDict = pyboost::dict();
         for (auto&& perItem : perChaser.second) {
             perChaserDict[perItem.first] = perItem.second;
         }
@@ -178,22 +178,22 @@ boost::python::dict USDSceneBuilderOptionsWrapper::GetAllChaserArgs() const
     return allChaserArgs;
 }
 
-void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(boost::python::dict args)
+void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(pyboost::dict args)
 {
     std::map<std::string, ChaserArgs> allArgs;
     try {
         auto items = args.items();
-        for (boost::python::ssize_t i = 0; i < boost::python::len(items); ++i) {
-            std::string chaserKey = boost::python::extract<std::string>(items[i][0]);
+        for (pyboost::ssize_t i = 0; i < pyboost::len(items); ++i) {
+            std::string chaserKey = pyboost::extract<std::string>(items[i][0]);
 
             ChaserArgs chaserArgs;
 
-            auto paramDict = boost::python::dict { items[i][1] };
+            auto paramDict = pyboost::dict { items[i][1] };
 
             auto params = paramDict.items();
-            for (boost::python::ssize_t i = 0; i < boost::python::len(params); ++i) {
-                std::string name = boost::python::extract<std::string>(params[i][0]);
-                std::string value = boost::python::extract<std::string>(params[i][1]);
+            for (pyboost::ssize_t i = 0; i < pyboost::len(params); ++i) {
+                std::string name = pyboost::extract<std::string>(params[i][0]);
+                std::string value = pyboost::extract<std::string>(params[i][1]);
                 chaserArgs.insert({ name, value });
             }
             allArgs.insert({ chaserKey, chaserArgs });
@@ -206,12 +206,12 @@ void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict(boost::python::dict
     USDSceneBuilderOptions::SetAllChaserArgs(allArgs);
 }
 
-void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(boost::python::list args)
+void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(pyboost::list args)
 {
     static const std::string badArgMsg(
         "Badly formed list. Expecting 3 elements per argument entry (<chaser>, <key>, <value>).");
 
-    if (boost::python::len(args) % 3) {
+    if (pyboost::len(args) % 3) {
         throw std::invalid_argument(badArgMsg);
     }
 
@@ -219,9 +219,9 @@ void USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromList(boost::python::list
     try {
 
         for (int i = 0; i < len(args); i = i + 3) {
-            const std::string chaser = boost::python::extract<std::string>(args[i]);
-            const std::string param = boost::python::extract<std::string>(args[i + 1]);
-            const std::string value = boost::python::extract<std::string>(args[i + 2]);
+            const std::string chaser = pyboost::extract<std::string>(args[i]);
+            const std::string param = pyboost::extract<std::string>(args[i + 1]);
+            const std::string value = pyboost::extract<std::string>(args[i + 2]);
             ChaserArgs&       chaserArgs = allArgs[chaser];
             chaserArgs[param] = value;
         }
@@ -301,7 +301,7 @@ TF_REGISTRY_FUNCTION(TfEnum)
 
 void wrapUsdSceneBuilderOptions()
 {
-    using namespace boost::python;
+    using namespace pyboost;
 
     TfPyWrapEnum<MaxUsd::MappedAttributeBuilder::Type>("PrimvarType");
     TfPyWrapEnum<MaxUsd::MaxMeshConversionOptions::NormalsMode>("NormalsMode");
@@ -315,7 +315,7 @@ void wrapUsdSceneBuilderOptions()
 #endif
     TfPyWrapEnum<MaxUsd::Log::Level>("LogLevel");
 
-    boost::python::class_<USDSceneBuilderOptionsWrapper> c(
+    class_<USDSceneBuilderOptionsWrapper> c(
         "USDSceneBuilderOptions",
         "The class USDSceneBuilderOptions which exposes the export arguments from the current "
         "export context.");
@@ -324,440 +324,440 @@ void wrapUsdSceneBuilderOptions()
         .def(
             "GetContentSource",
             &MaxUsd::USDSceneBuilderOptions::GetContentSource,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the 3ds Max content source from which to build the USD scene.")
         .def(
             "SetContentSource",
             &MaxUsd::USDSceneBuilderOptions::SetContentSource,
-            (boost::python::args("self", "contentSource")),
+            (pyboost::args("self", "contentSource")),
             "Sets the 3ds Max content source from which to build the USD scene.")
         .def(
             "GetAllMaterialConversions",
             &MaxUsd::USDSceneBuilderOptions::GetAllMaterialConversions,
             return_value_policy<pxr::TfPySequenceToSet>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the set of targeted materials for material conversion.")
         .def(
             "SetAllMaterialConversions",
             &USDSceneBuilderOptionsWrapper::SetAllMaterialConversions,
             return_value_policy<pxr::TfPySequenceToSet>(),
-            (boost::python::args("self", "materialConversions")),
+            (pyboost::args("self", "materialConversions")),
             "Sets the set of targeted materials for material conversion.")
         .def(
             "GetShadingMode",
             &MaxUsd::USDSceneBuilderOptions::GetShadingMode,
             return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the shading schema (mode) to use for material export.")
         .def(
             "SetShadingMode",
             &MaxUsd::USDSceneBuilderOptions::SetShadingMode,
             return_value_policy<return_by_value>(),
-            (boost::python::args("self", "shadingMode")),
+            (pyboost::args("self", "shadingMode")),
             "Sets the shading schema (mode) to use for material export.")
         .def(
             "GetConvertMaterialsTo",
             &MaxUsd::USDSceneBuilderOptions::GetConvertMaterialsTo,
             return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns a token identifier of the USD material type targeted to convert the 3ds Max "
             "materials (to which USD material are we exporting to).")
         .def(
             "GetTranslateMeshes",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateMeshes,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if 3ds Max meshes should be translated into USD meshes.")
         .def(
             "SetTranslateMeshes",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateMeshes,
-            (boost::python::args("self", "translateMeshes")),
+            (pyboost::args("self", "translateMeshes")),
             "Sets whether 3ds Max meshes should be translated into USD meshes.")
         .def(
             "GetTranslateShapes",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateShapes,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if 3ds Max shapes should be translated into USD meshes.")
         .def(
             "SetTranslateShapes",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateShapes,
-            (boost::python::args("self", "translateShapes")),
+            (pyboost::args("self", "translateShapes")),
             "Sets whether 3ds Max shapes should be translated into USD meshes.")
         .def(
             "GetTranslateLights",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateLights,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if 3ds Max lights should be translated into USD lights.")
         .def(
             "SetTranslateLights",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateLights,
-            (boost::python::args("self", "translateLights")),
+            (pyboost::args("self", "translateLights")),
             "Sets whether 3ds Max lights should be translated into USD lights.")
         .def(
             "GetTranslateCameras",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateCameras,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if 3ds Max cameras should be translated into USD cameras.")
         .def(
             "SetTranslateCameras",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateCameras,
-            (boost::python::args("self", "translateCameras")),
+            (pyboost::args("self", "translateCameras")),
             "Sets whether 3ds Max cameras should be translated into USD cameras.")
         .def(
             "GetTranslateMaterials",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateMaterials,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if materials should be translated.")
         .def(
             "SetTranslateMaterials",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateMaterials,
-            (boost::python::args("self", "translateMaterials")),
+            (pyboost::args("self", "translateMaterials")),
             "Sets whether materials should be translated.")
         .def(
             "GetTranslateSkin",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateSkin,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if skin and skeletons should be translated.")
         .def(
             "SetTranslateSkin",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateSkin,
-            (boost::python::args("self", "translateSkin")),
+            (pyboost::args("self", "translateSkin")),
             "Sets whether skin and skeletons should be translated.")
         .def(
             "GetTranslateMorpher",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateMorpher,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if morpher modifiers should be translated.")
         .def(
             "SetTranslateMorpher",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateMorpher,
-            (boost::python::args("self", "translateMorpher")),
+            (pyboost::args("self", "translateMorpher")),
             "Sets whether morpher modifiers should be translated.")
         .def(
             "GetChannelPrimvarType",
             &USDSceneBuilderOptionsWrapper::GetChannelPrimvarType,
-            (boost::python::args("self", "channel")),
+            (pyboost::args("self", "channel")),
             "Gets the primvar type associated with a given max channel on export "
             "(maxUsd.MappedAttributeBuilder.Type).")
         .def(
             "SetChannelPrimvarType",
             &USDSceneBuilderOptionsWrapper::SetChannelPrimvarType,
-            (boost::python::args("self", "channel", "type")),
+            (pyboost::args("self", "channel", "type")),
             "Sets the primvar type associated with a given max channel on export "
             "(maxUsd.MappedAttributeBuilder.Type).")
         .def(
             "GetChannelPrimvarName",
             &USDSceneBuilderOptionsWrapper::GetChannelPrimvarName,
-            boost::python::return_value_policy<boost::python::return_by_value>(),
-            (boost::python::arg("self"), boost::python::arg("channel")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self"), pyboost::arg("channel")),
             "Gets the primvar name of a given channel.")
         .def(
             "SetChannelPrimvarName",
             &USDSceneBuilderOptionsWrapper::SetChannelPrimvarName,
-            boost::python::return_value_policy<boost::python::return_by_value>(),
-            (boost::python::arg("self"), boost::python::args("channel", "name")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self"), pyboost::args("channel", "name")),
             "Sets the primvar name associated with a given map channel.")
         .def(
             "GetChannelPrimvarAutoExpandType",
             &USDSceneBuilderOptionsWrapper::GetChannelPrimvarAutoExpandType,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets whether to auto-expand the primvar type based on the data.")
         .def(
             "SetChannelPrimvarAutoExpandType",
             &USDSceneBuilderOptionsWrapper::SetChannelPrimvarAutoExpandType,
-            (boost::python::args("self", "autoExpandType")),
+            (pyboost::args("self", "autoExpandType")),
             "Sets whether to auto-expand the primvar type based on the data.")
         .def(
             "GetUsdStagesAsReferences",
             &MaxUsd::USDSceneBuilderOptions::GetUsdStagesAsReferences,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Checks if USD Stage Objects should be exported as USD References.")
         .def(
             "SetUsdStagesAsReferences",
             &MaxUsd::USDSceneBuilderOptions::SetUsdStagesAsReferences,
-            (boost::python::args("self", "UsdStagesAsReferences")),
+            (pyboost::args("self", "UsdStagesAsReferences")),
             "Sets whether USD Stage Objects should be exported as USD References.")
         .def(
             "GetTranslateHidden",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateHidden,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if hidden objects should be translated.")
         .def(
             "SetTranslateHidden",
             &MaxUsd::USDSceneBuilderOptions::SetTranslateHidden,
-            (boost::python::args("self", "translateHidden")),
+            (pyboost::args("self", "translateHidden")),
             "Sets whether hidden objects should be translated.")
         .def(
             "GetUseUSDVisibility",
             &MaxUsd::USDSceneBuilderOptions::GetUseUSDVisibility,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if we should attempt to match the Hidden state in Max with the USD visibility "
             "attribute.")
         .def(
             "SetUseUSDVisibility",
             &MaxUsd::USDSceneBuilderOptions::SetUseUSDVisibility,
-            (boost::python::args("self", "useUSDVisibility")),
+            (pyboost::args("self", "useUSDVisibility")),
             "Sets whether we should attempt to match the Hidden state in Max with the USD "
             "visibility attribute.")
         .def(
             "GetAllowNestedGprims",
             &MaxUsd::USDSceneBuilderOptions::GetAllowNestedGprims,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if the exporter is allowed to nest Gprims. While technically illegal, nesting "
             "Gprims may still work in many cases while improving scene performance by limiting the "
             "number of Prims.")
         .def(
             "SetAllowNestedGprims",
             &MaxUsd::USDSceneBuilderOptions::SetAllowNestedGprims,
-            (boost::python::args("self", "allowNestedGprims")),
+            (pyboost::args("self", "allowNestedGprims")),
             "Sets if the exporter is allowed to nest Gprims. While technically illegal, nesting "
             "Gprims may still work in many cases while improving scene performance by limiting the "
             "number of Prims.")
         .def(
             "GetFileFormat",
             &MaxUsd::USDSceneBuilderOptions::GetFileFormat,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns the format of the file to export (maxUsd.FileFormat).")
         .def(
             "SetFileFormat",
             &MaxUsd::USDSceneBuilderOptions::SetFileFormat,
-            (boost::python::args("self", "fileFormat")),
+            (pyboost::args("self", "fileFormat")),
             "Sets the format of the file to export (maxUsd.FileFormat).")
         .def(
             "GetNormalsMode",
             &USDSceneBuilderOptionsWrapper::GetNormalsMode,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns how normals should be exported (maxUsd.NormalsMode).")
         .def(
             "SetNormalsMode",
             &USDSceneBuilderOptionsWrapper::SetNormalsMode,
-            (boost::python::args("self", "normalsMode")),
+            (pyboost::args("self", "normalsMode")),
             "Sets normals should be exported (maxUsd.NormalsMode).")
         .def(
             "GetMeshFormat",
             &MaxUsd::USDSceneBuilderOptions::GetMeshFormat,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns how meshes should be exported (maxUsd.MeshFormat).")
         .def(
             "SetMeshFormat",
             &MaxUsd::USDSceneBuilderOptions::SetMeshFormat,
-            (boost::python::args("self", "meshFormat")),
+            (pyboost::args("self", "meshFormat")),
             "Sets how meshes should be exported (maxUsd.MeshFormat).")
         .def(
             "GetTimeMode",
             &MaxUsd::USDSceneBuilderOptions::GetTimeMode,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the time mode to be used for export (maxUsd.TimeMode).")
         .def(
             "SetTimeMode",
             &MaxUsd::USDSceneBuilderOptions::SetTimeMode,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets the time mode to be used for export (maxUsd.TimeMode).")
         .def(
             "GetStartFrame",
             &MaxUsd::USDSceneBuilderOptions::GetStartFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the first frame from which to export, only used if the time mode is configured "
             "as ExplicitFrame or FrameRange.")
         .def(
             "SetStartFrame",
             &MaxUsd::USDSceneBuilderOptions::SetStartFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets the first frame from which to export, only used if the time mode is configured "
             "as ExplicitFrame or FrameRange.")
         .def(
             "GetEndFrame",
             &MaxUsd::USDSceneBuilderOptions::GetEndFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the last frame from which to export, only used if the time mode is configured as "
             "FrameRange.")
         .def(
             "SetEndFrame",
             &MaxUsd::USDSceneBuilderOptions::SetEndFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets the last frame from which to export, only used if the time mode is configured as "
             "FrameRange.")
         .def(
             "GetSamplesPerFrame",
             &MaxUsd::USDSceneBuilderOptions::GetSamplesPerFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the number of samples to be exported to USD, per frame.")
         .def(
             "SetSamplesPerFrame",
             &MaxUsd::USDSceneBuilderOptions::SetSamplesPerFrame,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets the number of samples to be exported to USD, per frame.")
         .def(
             "GetUpAxis",
             &MaxUsd::USDSceneBuilderOptions::GetUpAxis,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Returns the \"up axis\" of the USD Stage produced from the translation of the 3ds Max "
             "content (maxUsd.UpAxis).")
         .def(
             "SetUpAxis",
             &MaxUsd::USDSceneBuilderOptions::SetUpAxis,
-            (boost::python::args("self", "upAxis")),
+            (pyboost::args("self", "upAxis")),
             "Sets the \"up axis\" of the USD Stage produced from the translation of the 3ds Max "
             "content (maxUsd.UpAxis).")
         .def(
             "GetBakeObjectOffsetTransform",
             &USDSceneBuilderOptionsWrapper::GetBakeObjectOffsetTransform,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets whether or not the Object - offset transform should be baked into the geometry.")
         .def(
             "SetBakeObjectOffsetTransform",
             &USDSceneBuilderOptionsWrapper::SetBakeObjectOffsetTransform,
-            (boost::python::args("self", "bakeObjectOffsetTransform")),
+            (pyboost::args("self", "bakeObjectOffsetTransform")),
             "Sets whether or not the Object - offset transform should be baked into the geometry.")
         .def(
             "GetPreserveEdgeOrientation",
             &USDSceneBuilderOptionsWrapper::GetPreserveEdgeOrientation,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets whether or not to preserve max edge orientation.")
         .def(
             "SetPreserveEdgeOrientation",
             &USDSceneBuilderOptionsWrapper::SetPreserveEdgeOrientation,
-            (boost::python::args("self", "preserveEdgeOrientation")),
+            (pyboost::args("self", "preserveEdgeOrientation")),
             "Sets whether or not to preserve max edge orientation.")
         .def(
             "GetRootPrimPath",
             &MaxUsd::USDSceneBuilderOptions::GetRootPrimPath,
             return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the configured root prim path")
         .def(
             "SetRootPrimPath",
             &MaxUsd::USDSceneBuilderOptions::SetRootPrimPath,
             return_value_policy<return_by_value>(),
-            (boost::python::args("self", "rootPrimPath")),
+            (pyboost::args("self", "rootPrimPath")),
             "Sets the configured root prim path")
         .def(
             "GetLogPath",
             &USDSceneBuilderOptionsWrapper::GetLogPath,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the path to the log file.")
         .def(
             "SetLogPath",
             &USDSceneBuilderOptionsWrapper::SetLogPath,
-            (boost::python::args("self", "logPath")),
+            (pyboost::args("self", "logPath")),
             "Sets the path to the log file.")
         .def(
             "GetLogLevel",
             &USDSceneBuilderOptionsWrapper::GetLogLevel,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the log level (maxUsd.Log.Level).")
         .def(
             "SetLogLevel",
             &USDSceneBuilderOptionsWrapper::SetLogLevel,
-            (boost::python::args("self", "logLevel")),
+            (pyboost::args("self", "logLevel")),
             "Sets the log level (maxUsd.Log.Level).")
         .def(
             "GetOpenInUsdview",
             &MaxUsd::USDSceneBuilderOptions::GetOpenInUsdview,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if the produced USD file should be opened in USDVIEW at the end of the export.")
         .def(
             "SetOpenInUsdview",
             &MaxUsd::USDSceneBuilderOptions::SetOpenInUsdview,
-            (boost::python::args("self", "openInUsdView")),
+            (pyboost::args("self", "openInUsdView")),
             "Sets whether if the produced USD file should be opened in USDVIEW at the end of the "
             "export.")
         .def(
             "GetChaserNames",
             &MaxUsd::USDSceneBuilderOptions::GetChaserNames,
             return_value_policy<TfPySequenceToSet>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the list of export chasers to be called at USD export.")
         .def(
             "SetChaserNames",
             &MaxUsd::USDSceneBuilderOptions::SetChaserNames,
             return_value_policy<TfPySequenceToSet>(),
-            (boost::python::args("self", "chaserNames")),
+            (pyboost::args("self", "chaserNames")),
             "Sets the list of export chasers to be called at USD export.")
         .def(
             "GetAllChaserArgs",
             &USDSceneBuilderOptionsWrapper::GetAllChaserArgs,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the dictionary of export chasers with their specified arguments.")
         .def(
             "SetAllChaserArgs",
             &USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromDict,
-            (boost::python::args("self", "allChaserArgs")),
+            (pyboost::args("self", "allChaserArgs")),
             "Sets the dictionary of export chasers with their specified arguments, from a "
             "dictionary.")
         .def(
             "SetAllChaserArgs",
             &USDSceneBuilderOptionsWrapper::SetAllChaserArgsFromList,
-            (boost::python::args("self", "allChaserArgs")),
+            (pyboost::args("self", "allChaserArgs")),
             "Sets the dictionary of export chasers with their specified arguments, from a list.")
         .def(
             "GetContextNames",
             &MaxUsd::USDSceneBuilderOptions::GetContextNames,
             return_value_policy<TfPySequenceToSet>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the list of export contexts being used at USD export.")
         .def(
             "SetContextNames",
             &MaxUsd::USDSceneBuilderOptions::SetContextNames,
-            (boost::python::args("self", "contexts")),
+            (pyboost::args("self", "contexts")),
             "Sets the list of export contexts being used at USD export.")
 #ifdef IS_MAX2024_OR_GREATER
         .def(
             "GetMtlSwitcherExportStyle",
             &MaxUsd::USDSceneBuilderOptions::GetMtlSwitcherExportStyle,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the Material Switcher export style to be used for export "
             "(maxUsd.MtlSwitcherExportStyle).")
         .def(
             "SetMtlSwitcherExportStyle",
             &MaxUsd::USDSceneBuilderOptions::SetMtlSwitcherExportStyle,
-            (boost::python::args("self", "exportStyle")),
+            (pyboost::args("self", "exportStyle")),
             "Sets the Material Switcher export style to be used for export "
             "(maxUsd.MtlSwitcherExportStyle).")
 #endif
         .def(
             "GetUseProgressBar",
             &MaxUsd::USDSceneBuilderOptions::GetUseProgressBar,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if the 3ds Max progress bar should be used during export.")
         .def(
             "SetUseProgressBar",
             &MaxUsd::USDSceneBuilderOptions::SetUseProgressBar,
-            (boost::python::args("self", "useProgressBar")),
+            (pyboost::args("self", "useProgressBar")),
             "Sets if the 3ds Max progress bar should be used during export.")
         .def(
             "GetMaterialLayerPath",
             &USDSceneBuilderOptionsWrapper::GetMaterialLayerPath,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the path used for the Material Layer.")
         .def(
             "SetMaterialLayerPath",
             &MaxUsd::USDSceneBuilderOptions::SetMaterialLayerPath,
-            (boost::python::args("self", "matLayerPath")),
+            (pyboost::args("self", "matLayerPath")),
             "Sets the path used for the Material Layer.")
         .def(
             "GetUseSeparateMaterialLayer",
             &MaxUsd::USDSceneBuilderOptions::GetUseSeparateMaterialLayer,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Check if material should be exported to a separate layer.")
         .def(
             "SetUseSeparateMaterialLayer",
             &MaxUsd::USDSceneBuilderOptions::SetUseSeparateMaterialLayer,
-            (boost::python::args("self", "useSeparateMaterialLayer")),
+            (pyboost::args("self", "useSeparateMaterialLayer")),
             "Sets if material should be exported to a separate layer.")
         .def(
             "GetMaterialPrimPath",
             &USDSceneBuilderOptionsWrapper::GetMaterialPrimPath,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the prim path where materials are exported to.")
         .def(
             "SetMaterialPrimPath",
             &MaxUsd::USDSceneBuilderOptions::SetMaterialPrimPath,
-            (boost::python::args("self", "matPrimPath")),
+            (pyboost::args("self", "matPrimPath")),
             "Sets the prim path to export materials to.")
         .def(
             "GetUseLastResortUSDPreviewSurfaceWriter",
             &MaxUsd::USDSceneBuilderOptions::GetUseLastResortUSDPreviewSurfaceWriter,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Checks if the USD Preview Surface Material target should use the last resort shader "
             "writer if no writer can handle the conversion from a material type to "
             "UsdPreviewSurface,"
@@ -767,7 +767,7 @@ void wrapUsdSceneBuilderOptions()
         .def(
             "SetUseLastResortUSDPreviewSurfaceWriter",
             &MaxUsd::USDSceneBuilderOptions::SetUseLastResortUSDPreviewSurfaceWriter,
-            (boost::python::args("self", "useLastResortUSDFallbackMaterial")),
+            (pyboost::args("self", "useLastResortUSDFallbackMaterial")),
             "Sets if the USD Preview Surface Material target should use the last resort shader "
             "writer if no writer can handle the conversion from a material type to "
             "UsdPreviewSurface,"
@@ -777,41 +777,41 @@ void wrapUsdSceneBuilderOptions()
         .def(
             "SetDefaults",
             &MaxUsd::USDSceneBuilderOptions::SetDefaults,
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Sets default options.")
         .def(
             "GetJobContextOptions",
             &MaxUsd::USDSceneBuilderOptions::GetJobContextOptions,
             return_value_policy<TfPyMapToDictionary>(),
-            (boost::python::arg("self"), boost::python::arg("jobContext")),
+            (pyboost::arg("self"), pyboost::arg("jobContext")),
             "Gets the job context options for the given job context.")
         .def(
             "GetAnimationsPrimName",
             &MaxUsd::USDSceneBuilderOptions::GetAnimationsPrimName,
             return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the name of the prim that will contain the animations.")
         .def(
             "SetAnimationsPrimName",
             &MaxUsd::USDSceneBuilderOptions::SetAnimationsPrimName,
             return_value_policy<return_by_value>(),
-            (boost::python::args("self", "animationsPrimName")),
+            (pyboost::args("self", "animationsPrimName")),
             "Sets the name of the prim that will contain the animations.")
         .def(
             "GetBonesPrimName",
             &MaxUsd::USDSceneBuilderOptions::GetBonesPrimName,
             return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            (pyboost::arg("self")),
             "Gets the name of the prim that will contain the bones.")
         .def(
             "SetBonesPrimName",
             &MaxUsd::USDSceneBuilderOptions::SetBonesPrimName,
             return_value_policy<return_by_value>(),
-            (boost::python::args("self", "bonesPrimName")),
+            (pyboost::args("self", "bonesPrimName")),
             "Sets the name of the prim that will contain the bones.")
         .def(
             "Serialize",
             &USDSceneBuilderOptionsWrapper::Serialize,
-            boost::python::arg("self"),
+            pyboost::arg("self"),
             "Serialize the options to JSON format");
 }

@@ -41,11 +41,7 @@
 /**
  * \brief Mock for 3ds Max's "Interface" interface.
  */
-#if MAX_RELEASE >= 23900 && MAX_RELEASE < 27900 // Up to 2025
 class MockCoreInterface : public Interface17
-#elif MAX_RELEASE >= 27900
-class MockCoreInterface : public Interface18 // 3ds Max Beta
-#endif
 {
 protected:
     /**
@@ -286,16 +282,20 @@ public:
     {
         return 0;
     }
-    void         GetModContexts(ModContextList& /*list*/, INodeTab& /*nodes*/) override { }
-    BaseObject*  GetCurEditObject() override { return nullptr; }
-    BOOL         SelectionFrozen() override { return FALSE; }
-    void         FreezeSelection() override { }
-    void         ThawSelection() override { }
-    INode*       GetSelNode(int /*i*/) override { return nullptr; }
-    int          GetSelNodeCount() override { return 0; }
-    void         EnableShowEndResult(BOOL /*enabled*/) override { }
-    BOOL         GetShowEndResult() override { return FALSE; }
-    void         SetShowEndResult(BOOL /*show*/) override { }
+    void        GetModContexts(ModContextList& /*list*/, INodeTab& /*nodes*/) override { }
+    BaseObject* GetCurEditObject() override { return nullptr; }
+    BOOL        SelectionFrozen() override { return FALSE; }
+    void        FreezeSelection() override { }
+    void        ThawSelection() override { }
+    INode*      GetSelNode(int /*i*/) override { return nullptr; }
+    int         GetSelNodeCount() override { return 0; }
+    void        EnableShowEndResult(BOOL /*enabled*/) override { }
+    BOOL        GetShowEndResult() override { return FALSE; }
+    void        SetShowEndResult(BOOL /*show*/) override { }
+#if MAX_RELEASE >= 27900
+    BOOL GetPreserveStackPosition() override { return FALSE; }
+    void SetPreserveStackPosition(BOOL /*preserve*/) override { }
+#endif
     BOOL         GetCrossing() override { return FALSE; }
     void         SetToolButtonState(int /*button*/, BOOL /*state*/) override { }
     BOOL         GetToolButtonState(int /*button*/) override { return FALSE; }
@@ -1106,8 +1106,8 @@ public:
         const MCHAR* name = NULL,
         float        z = 0.0f,
         BOOL         mono = false,
-        bool         disableBitmapProxies = false) override { };
-    virtual void SetPlayPreviewWhenDone(BOOL play) override { };
+        bool         disableBitmapProxies = false) override {};
+    virtual void SetPlayPreviewWhenDone(BOOL play) override {};
     virtual BOOL GetPlayPreviewWhenDone() override { return TRUE; }
 
     virtual bool ArchiveSceneFile(
@@ -1619,16 +1619,23 @@ public:
     virtual const MCHAR* getActiveViewportLabel() override { return nullptr; }
     virtual const MCHAR* getViewportLabel(int index) override { return nullptr; }
 
-    virtual void  SetRegionRect(int index, Rect r) override { }
-    virtual Rect  GetRegionRect(int index) override { return Rect(); }
-    virtual void  SetBlowupRect(int index, Rect r) override { }
-    virtual Rect  GetBlowupRect(int index) override { return Rect(); }
-    virtual void  SetRegionRect2(int index, Rect r) override { }
-    virtual Rect  GetRegionRect2(int index) override { return Rect(); }
-    virtual void  SetBlowupRect2(int index, Rect r) override { }
-    virtual Rect  GetBlowupRect2(int index) override { return Rect(); }
-    virtual int   GetRenderType() override { return 0; }
-    virtual void  SetRenderType(int rtype) override { }
+    virtual void SetRegionRect(int index, Rect r) override { }
+    virtual Rect GetRegionRect(int index) override { return Rect(); }
+    virtual void SetBlowupRect(int index, Rect r) override { }
+    virtual Rect GetBlowupRect(int index) override { return Rect(); }
+    virtual void SetRegionRect2(int index, Rect r) override { }
+    virtual Rect GetRegionRect2(int index) override { return Rect(); }
+    virtual void SetBlowupRect2(int index, Rect r) override { }
+    virtual Rect GetBlowupRect2(int index) override { return Rect(); }
+
+#if MAX_RELEASE < 27900
+    virtual int  GetRenderType() override { return 0; }
+    virtual void SetRenderType(int rtype) override { }
+#else
+    RenderUIType GetRenderType() override { return RenderUIType::RENDER_VIEW; }
+    void         SetRenderType(RenderUIType rtype) override { }
+#endif
+
     virtual BOOL  GetLockImageAspRatio() override { return FALSE; }
     virtual void  SetLockImageAspRatio(BOOL on) override { }
     virtual float GetImageAspRatio() override { return 0; }
@@ -1813,7 +1820,22 @@ public:
         return false;
     }
 
+    virtual void UpdateOsnapDlg() const override { }
+
+    virtual void SetASnapStatus(BOOL enable) override {};
+
+    virtual void SetPSnapStatus(BOOL enable) override {};
+
     virtual void DoUICustomization(CUIDialogPage pageId) override { }
+
+    MSTR GetSceneFileUserName(void) const override { return L""; }
+
+    void SetSceneFileUserName(const MSTR&, bool) override { }
+
+    MSTR GetSceneFileComputerName(void) const override { return L""; }
+
+    void SetSceneFileComputerName(const MSTR&, bool) override { }
+
 #else
     virtual void DoUICustomization(int startPage) override { }
 #endif

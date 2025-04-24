@@ -13,63 +13,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "MaxIntegrationTestListener.h"
-#include "TestGUP.h"
-
+#include <Max.h>
 #include <maxscript/maxscript.h>
 #include <maxscript/util/listener.h>
 
-#include <Max.h>
+#include "TestGUP.h"
 #include <gtest/gtest.h>
+
+#include "MaxIntegrationTestListener.h"
 
 // Simple Maxscript interface to allow running the tests from Maxscript.
 class MaxScriptInterface : public FPStaticInterface
 {
 public:
-    enum
-    {
-        fnIdRunTests
-    };
+	enum
+	{
+		fnIdRunTests
+	};
 
-    void RunTests();
+	void RunTests();
 
-    DECLARE_DESCRIPTOR_INIT(MaxScriptInterface)
-    BEGIN_FUNCTION_MAP
-    VFN_0(fnIdRunTests, RunTests)
-    END_FUNCTION_MAP
+	DECLARE_DESCRIPTOR_INIT(MaxScriptInterface)
+	BEGIN_FUNCTION_MAP
+		VFN_0(fnIdRunTests, RunTests)
+	END_FUNCTION_MAP
 };
 
 const Interface_ID FP_MAXSCRIPT_INTERFACE(0x67001746, 0x4ff4055f);
 
 static MaxScriptInterface fpMaxScriptInterface(
-    FP_MAXSCRIPT_INTERFACE,
-    GetTestGUPDesc()->InternalName(),
-    0,
-    GetTestGUPDesc(),
-    0,
-    MaxScriptInterface::fnIdRunTests,
-    _T("RunTests"),
-    0,
-    TYPE_VOID,
-    0,
-    0,
-    p_end);
+	FP_MAXSCRIPT_INTERFACE, GetTestGUPDesc()->InternalName(), 0, GetTestGUPDesc(), 0,
+	MaxScriptInterface::fnIdRunTests, _T("RunTests"), 0, TYPE_VOID, 0, 0,
+	p_end
+);
 
-void MaxScriptInterface::init()
-{
-    // Register a listener, which will collect test errors and report them
-    // via the MxsUnitReporter.
-    auto& listeners = testing::UnitTest::GetInstance()->listeners();
-    listeners.Append(new MaxIntegrationTestListener());
+void MaxScriptInterface::init() {
+	// Register a listener, which will collect test errors and report them
+	// via the MxsUnitReporter.
+	auto& listeners = testing::UnitTest::GetInstance()->listeners();
+	listeners.Append(new MaxIntegrationTestListener());
 }
 
-void MaxScriptInterface::RunTests()
-{
-    // Setup GTEST arguments so that all found tests are executed.
-    std::vector<char*> argv;
+void MaxScriptInterface::RunTests() {
+	// Setup GTEST arguments so that all found tests are executed.
+	std::vector<char*> argv;
     argv.push_back(const_cast<char*>("--gtest_filter=*"));
-    int argc = static_cast<int>(argv.size());
+	int argc = static_cast<int>(argv.size());
 
-    ::testing::InitGoogleTest(&argc, argv.data());
-    auto result = RUN_ALL_TESTS();
+	::testing::InitGoogleTest(&argc, argv.data());
+	auto result = RUN_ALL_TESTS();
 }

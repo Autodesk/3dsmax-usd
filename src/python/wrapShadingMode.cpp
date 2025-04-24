@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/Translators/ShadingModeRegistry.h>
 
 #include <boost/python/class.hpp>
@@ -46,16 +47,15 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 void wrapShadingMode()
 {
-    boost::python::class_<ShadingModeRegistry>(
+    pyboost::class_<ShadingModeRegistry>(
         "ShadingModeRegistry",
         "The only element exposed to Python from the shading mode registry is the ability"
         "to register conversion type (or material target).",
-        boost::python::no_init)
+        pyboost::no_init)
         .def(
             "RegisterImportConversion",
             &ShadingModeRegistry::RegisterImportConversion,
-            (boost::python::args(
-                "material_conversion", "render_context", "niceName", "description")),
+            (pyboost::args("material_conversion", "render_context", "niceName", "description")),
             "Registers an import material conversion with render context, nice name, and "
             "description. \n"
             "The materialConversion name gets used directly in the render option string as one of\n"
@@ -76,8 +76,7 @@ void wrapShadingMode()
         .def(
             "RegisterExportConversion",
             &ShadingModeRegistry::RegisterExportConversion,
-            (boost::python::args(
-                "material_conversion", "render_context", "niceName", "description")),
+            (pyboost::args("material_conversion", "render_context", "niceName", "description")),
             "Registers an export material conversion with render context, nice name, and "
             "description. \n"
             "The materialConversion name gets used directly in the render option string as one of\n"

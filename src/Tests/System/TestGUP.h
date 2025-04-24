@@ -16,17 +16,17 @@
 #pragma once
 
 #include <guplib.h>
-#include <iparamb2.h>
 #include <max.h>
+#include <iparamb2.h>
 
 class TestGUP : public GUP
 {
 public:
-    TestGUP();
-    DWORD       Start() override;
-    void        Stop() override;
-    void        DeleteThis() override;
-    static void NotifyProc(void* param, NotifyInfo* info);
+	TestGUP();
+	DWORD Start() override;
+	void Stop() override;
+	void DeleteThis() override;
+	static void NotifyProc(void* param, NotifyInfo* info);
 };
 
 ClassDesc2* GetTestGUPDesc();

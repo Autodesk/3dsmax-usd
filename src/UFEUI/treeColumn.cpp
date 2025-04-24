@@ -18,10 +18,13 @@
 
 #include "Views/explorer.h"
 
+#include <qheaderview.h>
+
 namespace UfeUi {
 
 TreeColumn::TreeColumn(int visualIndex)
     : _visualIdx(visualIndex)
+    , _resizeMode(static_cast<int>(QHeaderView::ResizeMode::Interactive))
 {
 }
 

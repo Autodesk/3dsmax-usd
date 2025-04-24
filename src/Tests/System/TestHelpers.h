@@ -146,3 +146,14 @@ MaxSDK::Graphics::SimpleRenderGeometry* GetRenderItemGeometry(
     bool                                      selectionRenderItem = false);
 
 bool Point3ArraysAreAlmostEqual(Point3* array1, int size1, Point3* array2, int size2);
+
+int GetVertexCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated);
+
+int GetTriCount(const MaxSDK::Graphics::RenderItemHandle& renderItem, bool decorated);
+
+Box3 GetBoundingBox(
+    const MaxSDK::Graphics::RenderItemHandle& renderItem,
+    bool                                      decorated,
+    Matrix3*                                  tm = nullptr);
+
+bool BoundingBoxesAreEquivalent(const Box3& box1, const Box3& box2);

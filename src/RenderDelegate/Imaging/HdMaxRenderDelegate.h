@@ -14,11 +14,13 @@
 // limitations under the License.
 //
 #pragma once
+#include "HdMaxBasisCurves.h"
 #include "HdMaxMesh.h"
+#include "RenderDelegate/HdMaxMeshRenderData.h"
 
+#include <RenderDelegate/HdMaxBasisCurvesRenderData.h>
 #include <RenderDelegate/HdMaxDisplaySettings.h>
 #include <RenderDelegate/HdMaxMaterialCollection.h>
-#include <RenderDelegate/HdMaxRenderData.h>
 #include <RenderDelegate/RenderDelegateAPI.h>
 
 #include <pxr/imaging/hd/renderDelegate.h>
@@ -39,24 +41,25 @@ public:
      * \brief Returns the map of prim paths to render data ids.
      * \return The map of prim path to render data id.
      */
-    const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>& GetRenderDataIdMap() const;
+    const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>&
+    GetMeshRenderDataIdMap() const;
 
     /**
      * \brief Gets the render data associated with a given prim.
      * \param primpath The prim to get the render data for.
      * \return The prim's render data.
      */
-    HdMaxRenderData& GetRenderData(const pxr::SdfPath& primpath);
+    HdMaxMeshRenderData& GetMeshRenderData(const pxr::SdfPath& primpath);
 
     /**
      * \brief Attempt to get the render data from its last known index. Indices of render data can change (rarely) over
      * time (for example if a prim is deactivated). This allows us to avoid a map lookup, in most
-     * cases. If the given id doesn't match the path, we fallback to using the path to find the render data.
-     * \param index The index of the render data.
+     * cases. If the given id doesn't match the path, we fallback to using the path to find the
+     * render data. \param index The index of the render data.
      * \param primpath The prim path of render data.
      * \return A reference to the render data.
      */
-    HdMaxRenderData& SafeGetRenderData(size_t index, const pxr::SdfPath& primpath);
+    HdMaxMeshRenderData& SafeGetMeshRenderData(size_t index, const pxr::SdfPath& primpath);
 
     /**
      * \brief Return the internal index of the render data associated with a given path.
@@ -66,7 +69,7 @@ public:
      * unless you know for sure that has not happened, use SafeGetRenderData() to retrieve
      * back a render data from an index.
      */
-    size_t GetRenderDataIndex(const pxr::SdfPath& path) const;
+    size_t GetMeshRenderDataIndex(const pxr::SdfPath& path) const;
 
     /**
      * \brief Returns the render data associated with a given id (essentially the index
@@ -74,13 +77,13 @@ public:
      * \param id The render data id.
      * \return The render data.
      */
-    HdMaxRenderData& GetRenderData(size_t id);
+    HdMaxMeshRenderData& GetMeshRenderData(size_t id);
 
     /**
      * \brief Returns all the render data maintained by this render delegate.
      * \return All render data.
      */
-    std::vector<HdMaxRenderData>& GetAllRenderData();
+    std::vector<HdMaxMeshRenderData>& GetAllMeshRenderData();
 
     /**
      * \brief Returns the render data associated with visible prims only, given their visibility and
@@ -88,7 +91,9 @@ public:
      * \param renderTags The render tags to consider.
      * \param data The visible prims' render data.
      */
-    void GetVisibleRenderData(const TfTokenVector& renderTags, std::vector<HdMaxRenderData*>& data);
+    void GetVisibleMeshRenderData(
+        const TfTokenVector&               renderTags,
+        std::vector<HdMaxMeshRenderData*>& data);
 
     /**
      * \brief Returns a reference to the Max viewport display settings used by this render delegate.
@@ -143,6 +148,19 @@ public:
      */
     void RequestGC() { mustGc = true; }
 
+    // Basis curves related methods. Equivalent to the ones above, but for basis curves.
+    HdMaxBasisCurvesRenderData& GetBasisCurvesRenderData(size_t id);
+    HdMaxBasisCurvesRenderData& GetBasisCurvesRenderData(const pxr::SdfPath& primpath);
+    HdMaxBasisCurvesRenderData&
+           SafeGetBasisCurvesRenderData(size_t index, const pxr::SdfPath& primPath);
+    size_t GetBasisCurvesRenderDataIndex(const pxr::SdfPath& path) const;
+    const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>&
+                                             GetBasisCurvesRenderDataIdMap() const;
+    std::vector<HdMaxBasisCurvesRenderData>& GetAllBasisCurvesRenderData();
+    void                                     GetVisibleBasisCurvesRenderData(
+                                            const TfTokenVector&                      renderTags,
+                                            std::vector<HdMaxBasisCurvesRenderData*>& data);
+
     // HdRenderDelegate overrides.
     const pxr::TfTokenVector&        GetSupportedRprimTypes() const override;
     const pxr::TfTokenVector&        GetSupportedSprimTypes() const override;
@@ -170,10 +188,16 @@ private:
     static const TfTokenVector SUPPORTED_BPRIM_TYPES;
 
     // Keep the nitrous render data in a vector for fast iteration / minimizing cache misses.
-    std::vector<HdMaxRenderData>                                 renderDataVector;
-    std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash> renderDataIndexMap;
+    std::vector<HdMaxMeshRenderData>                             meshRenderDataVector;
+    std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash> meshRenderDataIndexMap;
+    // Same data but for basis curves.
+    std::vector<HdMaxBasisCurvesRenderData>                      basisCurvesRenderDataVector;
+    std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash> basisCurvesRenderDataIndexMap;
     /// The meshes backing the render items.
     std::unordered_map<pxr::SdfPath, std::unique_ptr<HdMaxMesh>, pxr::SdfPath::Hash> meshes;
+    /// The basiscurves backing the render items.
+    std::unordered_map<pxr::SdfPath, std::unique_ptr<HdMaxBasisCurves>, pxr::SdfPath::Hash>
+        basiscurves;
     /// 3dsMax viewport display settings.
     HdMaxDisplaySettings displaySettings;
     /// A material collection, once render, all the stages material's are held

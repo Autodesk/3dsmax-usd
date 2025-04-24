@@ -31,6 +31,7 @@
 
 #include <Shlwapi.h>
 #include <linshape.h>
+#include <string>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -97,31 +98,57 @@ bool MaxUsdStageWriter::Write(
         return true;
     }
 
-    // By default, a reference targets the root prim of a layer. However, it is possible that no
-    // prim is setup as default, if so, we try to use the first primitive we find.
+    // If a population mask exists and contains valid paths (other than root '/'),
+    // use the first path in the mask as the reference target, ignoring the default prim.
+    // If the population mask contains only the root ('/'),
+    // fallback to the default prim.
+    // If no default prim is available, fallback to the first available root prim.
+    auto       paths = referencedStage->GetPopulationMask().GetPaths();
+    bool hasStageMask = false;
     auto       referencedPrim = referencedStage->GetDefaultPrim();
     const bool hasDefaultPrim = referencedPrim.IsValid();
     auto rootPrims = referencedStage->GetPrimAtPath(pxr::SdfPath::AbsoluteRootPath()).GetChildren();
 
-    // Raise a warnings if no default prim is defined, we will fallback to the first available prim.
-    if (!hasDefaultPrim) {
+    if (!paths.empty() && !paths[0].IsAbsoluteRootPath()) {
+        bool hasRootPath = false;
+        int  nonRootPathCount = 0;
+        for (const auto& path : paths) {
+            if (path.IsAbsoluteRootPath()) {
+                hasRootPath = true;
+                nonRootPathCount++;
+                break;
+            }
+        }
+        if (!hasRootPath && paths.size() == 1) {
+            // If there is a stage mask with only one non-root path, use that prim path in the
+            // reference.
+            referencedPrim = referencedStage->GetPrimAtPath(paths[0]);
+            hasStageMask = true;
+        } else if (nonRootPathCount > 1) {
+            // If there are multiple non-root paths, log a warning.
+            MaxUsd::Log::Warn(L"Multiple non-root paths found in population mask, cannot "
+                              L"choose between them.");
+        }
+    } else if (!hasDefaultPrim) {
+        // Raise a warnings if no default prim is defined, we will fallback to the first
+        // available
+        // prim.
         MaxUsd::Log::Warn(
             L"No default Prim is defined on the root USD layer of {0}.", sourceNode->GetName());
 
         if (rootPrims.empty()) {
             MaxUsd::Log::Warn(
-                L"Found no suitable Prim for referencing at the root layer of {0}. The USD Stage "
+                L"Found no suitable Prim for referencing at the root layer of {0}. The USD "
+                L"Stage "
                 L"Object "
                 L"will not be exported as a USD reference.",
                 sourceNode->GetName());
             return true;
         }
-
         referencedPrim = rootPrims.front();
         MaxUsd::Log::Warn(
             "Using prim {0} as reference target.", referencedPrim.GetName().GetString());
     }
-
     // Raise a warning if more than one root primitives, or no default prim defined. Indeed, a
     // reference will only target one prim.
     const bool hasMultipleRootChildren
@@ -222,7 +249,11 @@ bool MaxUsdStageWriter::Write(
         }
     }
 
-    overPrim.GetReferences().AddReference(referencePath, referencedPrim.GetPath());
+    if (hasDefaultPrim && !hasStageMask) {
+        overPrim.GetReferences().AddReference(referencePath);
+    } else {
+        overPrim.GetReferences().AddReference(referencePath, referencedPrim.GetPath());
+    }
     return true;
 }
 

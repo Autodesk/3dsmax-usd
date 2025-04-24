@@ -16,7 +16,7 @@
 #pragma once
 
 #include "HdMaxDisplaySettings.h"
-#include "HdMaxRenderData.h"
+#include "HdMaxMeshRenderData.h"
 #include "MaxRenderGeometryFacade.h"
 #include "RenderDelegateAPI.h"
 
@@ -45,7 +45,7 @@ public:
         size_t operator()(PrimSubsetKey key) const
         {
             std::size_t hash = pxr::SdfPath::Hash {}(key.first);
-            boost::hash_combine(hash, key.second);
+            HASH_COMBINE(hash, key.second);
             return hash;
         }
     };
@@ -120,7 +120,11 @@ public:
     struct ConsolidatedGeom
     {
         MaxSDK::Graphics::GeometryRenderItemHandle renderItem;
+        // Wireframe display requires different render items if the geometry is for gizmos or not.
+        // Only one or the other is used.
         MaxSDK::Graphics::GeometryRenderItemHandle wireframeRenderItem;
+        MaxSDK::Graphics::CustomRenderItemHandle   wireGizmoRenderItem;
+
         // When we need to display selection, use a custom render items that can perform
         // an additional pass to display highlighting. We only use it when needed as there is
         // a performance cost to custom render items (even without the additional render pass).
@@ -208,14 +212,14 @@ public:
     /**
      * \brief Builds the consolidation for the given render data, appending to any pre-existing and valid consolidation at that time.
      * \param renderData The USD prim render data to consider for consolidation.
+     * \param renderNode The 3dsMax render node being consolidated. Can carry some material information.
      * \param time The time code at which the consolidation takes place.
-     * \param wireMaterial The wireframe material to use for consolidated wireframe data.
      * \return The consolidation output result.
      */
     OutputPtr BuildConsolidation(
-        const std::vector<HdMaxRenderData*>&        renderData,
-        const pxr::UsdTimeCode&                     time,
-        const MaxSDK::Graphics::BaseMaterialHandle& wireMaterial);
+        const std::vector<HdMaxMeshRenderData*>&  renderData,
+        const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+        const pxr::UsdTimeCode&                   time);
 
     /**
      * \brief Attempts to update the consolidation at a given time, given the current consolidation config.
@@ -224,13 +228,15 @@ public:
      * 2) The consolidation must be broken as it cannot be updated (because of configuration, or
      * data changes). 3) The consolidation is updated - for example : vertex position animation.
      * \param renderData The render data that we should source the update from.
+     * \param renderNode The 3dsMax render node being consolidated. Can carry some material information.
      * \param previousTime The timeCode of the consolidation we want to update.
      * \param newTime The timeCode associated with the new consolidation.
      */
     void UpdateConsolidation(
-        const std::vector<HdMaxRenderData*>& renderData,
-        const pxr::UsdTimeCode&              previousTime,
-        const pxr::UsdTimeCode&              newTime);
+        const std::vector<HdMaxMeshRenderData*>&  renderData,
+        const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+        const pxr::UsdTimeCode&                   previousTime,
+        const pxr::UsdTimeCode&                   newTime);
 
 private:
     /**
@@ -243,10 +249,10 @@ private:
      * \param inputs Filled by the function, the generated consolidation inputs.
      */
     void GenerateInputs(
-        const HdMaxRenderData* primRenderData,
-        int                    subsetIndex,
-        size_t                 numTriWithSameMaterial,
-        std::vector<Input>&    inputs) const;
+        const HdMaxMeshRenderData* primRenderData,
+        int                        subsetIndex,
+        size_t                     numTriWithSameMaterial,
+        std::vector<Input>&        inputs) const;
 
     /**
      * \brief Builds the consolidation cells from the USD prims' render data. A consolidation cell
@@ -257,11 +263,13 @@ private:
      * is considered, i.e. the cells returned are only created from USD Prims that are not already
      * part of a valid consolidation.
      * \param renderData The candidate render data.
+     * \param renderNode The 3dsMax render node being consolidated. Can carry some material information.
      * \param cells Output, the built cells, organized by material.
      * \param time The timeCode, used to consider any cached consolidation.
      */
     void BuildConsolidationCells(
-        const std::vector<HdMaxRenderData*>&                               renderData,
+        const std::vector<HdMaxMeshRenderData*>&                           renderData,
+        const MaxSDK::Graphics::RenderNodeHandle&                          renderNode,
         std::map<MaxSDK::Graphics::BaseMaterialHandle, std::vector<Cell>>& cells,
         const pxr::UsdTimeCode&                                            time);
 
@@ -331,14 +339,25 @@ private:
      * \brief Computes some information on the subsets of a prim's render data. Notably the material that
      * will be used in the viewport, and the number of triangles.
      * \param renderData The render data to compute the subset infos for.
-     * \param subsetInfo Output variable,
+     * \param renderNode The 3dsMax render node being consolidated. Can carry some material information.
+     * \param subsetInfos Output variable,
      * \param materialTris Output variable, for each unique material, the total number of triangles using
      * the material amongst all subsets.
      */
     void ComputeSubsetInfo(
-        const HdMaxRenderData&                                                renderData,
-        std::vector<SubsetInfo>&                                              subsetInfo,
+        const HdMaxMeshRenderData&                                            renderData,
+        const MaxSDK::Graphics::RenderNodeHandle&                             renderNode,
+        std::vector<SubsetInfo>&                                              subsetInfos,
         std::vector<std::pair<MaxSDK::Graphics::BaseMaterialHandle, size_t>>& materialTris) const;
+
+    /**
+     * Completely removes the given prims from the given consolidation output.
+     * @param consolidation The consolidation to remove prims from.
+     * @param prims The prims to be removed.
+     */
+    void UnconsolidatePrims(
+        const OutputPtr&                         consolidation,
+        const std::vector<HdMaxMeshRenderData*>& prims);
 
     std::shared_ptr<pxr::HdMaxRenderDelegate>                renderDelegate;
     Config                                                   config;

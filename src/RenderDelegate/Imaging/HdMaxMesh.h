@@ -14,7 +14,8 @@
 // limitations under the License.
 //
 #pragma once
-#include <RenderDelegate/HdMaxRenderData.h>
+#include "RenderDelegate/HdMaxMeshRenderData.h"
+
 #include <RenderDelegate/PrimvarInfo.h>
 
 #include <pxr/imaging/hd/mesh.h>
@@ -141,23 +142,23 @@ protected:
      * \return A SubsetRenderData initialized for the subset. Note that as this point, no actual geometry
      * is loaded into the render data, but it is ready to accept it.
      */
-    HdMaxRenderData::SubsetRenderData
+    HdMaxMeshRenderData::SubsetRenderData
     _InitializeSubsetRenderData(const SdfPath& materialId, bool instanced, bool wireframe);
 
     /**
      * \brief Initializes the render data for all UsdGeomSubset of the mesh, we need one for every different material bound.
-     * If no subsets are defined in the mesh, a single subset is created, containing the entire geometry.
-     * \param delegate The scene delegate.
+     * If no subsets are defined in the mesh, a single subset is created, containing the entire
+     * geometry. \param delegate The scene delegate.
      * \param materialId The material bound to the mesh itself (used if we need to create a subset for geometry that is
      * not already part of any subsets).
      * \param renderData The renderData containing the subsets that may need to be updated.
      * \param instanced True if the geometry is meant to be instanced.
      */
     void _UpdatePerMaterialRenderData(
-        HdSceneDelegate* delegate,
-        const SdfPath&   materialId,
-        HdMaxRenderData& renderData,
-        bool             instanced);
+        HdSceneDelegate*     delegate,
+        const SdfPath&       materialId,
+        HdMaxMeshRenderData& renderData,
+        bool                 instanced);
 
     /**
      * \brief Returns the main UV primvar used in a Material. Multiple UV primvars can be used by a material,
@@ -174,7 +175,7 @@ protected:
      * \brief Returns a reference to the nitrous render data associated with this hydra mesh.
      * \return The render data.
      */
-    HdMaxRenderData& _GetRenderData();
+    HdMaxMeshRenderData& _GetRenderData();
 
 private:
     /// The current dirty bits mask.

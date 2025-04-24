@@ -6,4 +6,5 @@
     <CreateMenuSeparator MenuId="88e2fb4c-3e71-4401-a601-7cc61cbb0358" Id="9ae9049b-d8ba-4e74-898f-52ee394cb379"/>
     <CreateMenu ParentId="88e2fb4c-3e71-4401-a601-7cc61cbb0358" MenuId="63afe2a3-5e5b-47e7-8b20-dfb1dcf8bf5d" Title="USD"/>
     <CreateMenuAction MenuId="63afe2a3-5e5b-47e7-8b20-dfb1dcf8bf5d" Id="576c623b-ea72-4aea-ac75-f788de6a2ad7" ActionId="647394-OpenUsdExplorer`USD"/>
+    <CreateMenuAction MenuId="63afe2a3-5e5b-47e7-8b20-dfb1dcf8bf5d" Id="297eb9eb-4cbf-4d83-87fb-35964818da88" ActionId="647394-OpenUsdLayerEditor`USD"/>
 </MaxMenuTransformations>

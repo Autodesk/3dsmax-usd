@@ -16,10 +16,7 @@
     <PrivateComponentName>usd-component-$(VersionTarget)</PrivateComponentName>
     <PublicComponentName>3dsmax-usd-$(VersionTarget)</PublicComponentName>
     <ApplicationPluginsDir>$(RepoRootDir)build\bin\$(Platform)\$(Configuration)\</ApplicationPluginsDir>
-    <PluginsRelDir>ApplicationPlugins\usd-component\Contents\bin\</PluginsRelDir>
     <SrcDir>$(RepoRootDir)src\</SrcDir>
-    <SrcTsDir>$(RepoRootDir)src\tfiles\</SrcTsDir>    
-    <PluginSrcDir>$(RepoRootDir)src\$(PluginsRelDir)\</PluginSrcDir>
     <ContentsDir>$(ApplicationPluginsDir)$(PrivateComponentName)\Contents\</ContentsDir>
     <LibDir>$(RepoRootDir)build\lib\$(Platform)\$(Configuration)\$(VersionTarget)\</LibDir>
     <TestOutDir>$(RepoRootDir)build\bin\$(Platform)\$(Configuration)\$(PrivateComponentName)-test</TestOutDir>
@@ -71,6 +68,10 @@
     <PySideLibraries Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.lib;pyside2.abi3.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.lib;pyside2.cp39-win_amd64.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'=='2022' ">shiboken2.cp37-win_amd64.lib;pyside2.cp37-win_amd64.lib</PySideLibraries>
+    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'&gt;='2025' ">shiboken6.cp311-win_amd64.dll</PySideDelayLoadDLL>
+    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.dll</PySideDelayLoadDLL>
+    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.dll</PySideDelayLoadDLL>
+    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2022' ">shiboken2.cp37-win_amd64.dll</PySideDelayLoadDLL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
     <QtMsBuild>$(Artifacts)$(VersionTarget)\QtMsBuild</QtMsBuild>

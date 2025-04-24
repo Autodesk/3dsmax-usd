@@ -39,18 +39,28 @@ void HdMaxRenderPass::_Execute(
         authoredTagsVer = ver;
     }
 
-    // Active render tags have changed, flag the render data for display accordingly.
-    if (prevRenderTags != renderTags || authoredTagsChanged) {
-        HdMaxRenderDelegate* renderDelegate
-            = static_cast<HdMaxRenderDelegate*>(GetRenderIndex()->GetRenderDelegate());
-        for (auto& rd : renderDelegate->GetAllRenderData()) {
-            const auto&      id = rd.rPrimPath;
+    auto processRenderTags = [&](auto& prds) {
+        for (auto& prd : prds) {
+            const auto&      id = prd.rPrimPath;
             HdSceneDelegate* sceneDelegate = GetRenderIndex()->GetSceneDelegateForRprim(id);
             auto             renderTag = sceneDelegate->GetRenderTag(id);
             bool             renderTagActive
                 = std::find(renderTags.begin(), renderTags.end(), renderTag) != renderTags.end();
-            rd.renderTagActive = renderTagActive;
+
+            if (prd.renderTagActive != renderTagActive) {
+                GetRenderIndex()->GetChangeTracker().MarkRprimDirty(id);
+                prd.renderTagActive = renderTagActive;
+            }
         }
+    };
+
+    // Active render tags have changed, flag the render data for display accordingly.
+    if (prevRenderTags != renderTags || authoredTagsChanged) {
+        HdMaxRenderDelegate* renderDelegate
+            = static_cast<HdMaxRenderDelegate*>(GetRenderIndex()->GetRenderDelegate());
+        processRenderTags(renderDelegate->GetAllMeshRenderData());
+        processRenderTags(renderDelegate->GetAllBasisCurvesRenderData());
+
         prevRenderTags = renderTags;
     }
 }

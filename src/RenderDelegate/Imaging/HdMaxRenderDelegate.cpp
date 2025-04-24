@@ -15,6 +15,7 @@
 //
 #include "HdMaxRenderDelegate.h"
 
+#include "HdMaxBasisCurves.h"
 #include "HdMaxExtComputation.h"
 #include "HdMaxInstancer.h"
 #include "HdMaxMaterial.h"
@@ -27,12 +28,26 @@ using namespace MaxSDK::Graphics;
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-const TfTokenVector HdMaxRenderDelegate::SUPPORTED_RPRIM_TYPES = {
-    HdPrimTypeTokens->mesh,
-};
+const TfTokenVector HdMaxRenderDelegate::SUPPORTED_RPRIM_TYPES
+    = { HdPrimTypeTokens->mesh, HdPrimTypeTokens->basisCurves };
 
 const TfTokenVector HdMaxRenderDelegate::SUPPORTED_SPRIM_TYPES
-    = { HdPrimTypeTokens->material, HdPrimTypeTokens->extComputation };
+    = { HdPrimTypeTokens->material,
+        HdPrimTypeTokens->extComputation,
+        pxr::HdPrimTypeTokens->light,
+        pxr::HdPrimTypeTokens->cylinderLight,
+        pxr::HdPrimTypeTokens->rectLight,
+        pxr::HdPrimTypeTokens->distantLight,
+        pxr::HdPrimTypeTokens->sphereLight,
+        pxr::HdPrimTypeTokens->diskLight,
+        pxr::HdPrimTypeTokens->domeLight,
+        pxr::HdPrimTypeTokens->pluginLight,
+        pxr::HdPrimTypeTokens->simpleLight
+#if PXR_VERSION >= 2311
+        ,
+        pxr::HdPrimTypeTokens->meshLight
+#endif
+      };
 
 const TfTokenVector HdMaxRenderDelegate::SUPPORTED_BPRIM_TYPES = {};
 
@@ -60,56 +75,63 @@ HdMaxRenderDelegate::HdMaxRenderDelegate(HdRenderSettingsMap const& settings)
 
 HdMaxRenderDelegate::~HdMaxRenderDelegate() { }
 
-HdMaxRenderData& HdMaxRenderDelegate::GetRenderData(size_t id) { return renderDataVector[id]; }
-
-HdMaxRenderData& HdMaxRenderDelegate::GetRenderData(const pxr::SdfPath& primpath)
+HdMaxMeshRenderData& HdMaxRenderDelegate::GetMeshRenderData(size_t id)
 {
-    return renderDataVector[renderDataIndexMap[primpath]];
+    return meshRenderDataVector[id];
 }
 
-HdMaxRenderData& HdMaxRenderDelegate::SafeGetRenderData(size_t index, const pxr::SdfPath& primPath)
+HdMaxMeshRenderData& HdMaxRenderDelegate::GetMeshRenderData(const pxr::SdfPath& primpath)
 {
-    static HdMaxRenderData invalid { {} };
+    return meshRenderDataVector[meshRenderDataIndexMap[primpath]];
+}
 
-    auto findByKey = [this](const pxr::SdfPath& primPath) -> HdMaxRenderData& {
-        const auto it = renderDataIndexMap.find(primPath);
-        if (it == renderDataIndexMap.end()) {
+HdMaxMeshRenderData&
+HdMaxRenderDelegate::SafeGetMeshRenderData(size_t index, const pxr::SdfPath& primPath)
+{
+    static HdMaxMeshRenderData invalid { {} };
+
+    auto findByKey = [this](const pxr::SdfPath& primPath) -> HdMaxMeshRenderData& {
+        const auto it = meshRenderDataIndexMap.find(primPath);
+        if (it == meshRenderDataIndexMap.end()) {
             return invalid;
         }
-        return renderDataVector[it->second];
+        return meshRenderDataVector[it->second];
     };
 
-    if (index >= renderDataVector.size()) {
+    if (index >= meshRenderDataVector.size()) {
         return findByKey(primPath);
     }
 
     // If the prim path of the data we retrieved is not the one we expect (index has changed since),
     // use the prim path instead.
-    auto& renderData = renderDataVector[index];
+    auto& renderData = meshRenderDataVector[index];
     if (renderData.rPrimPath == primPath) {
         return renderData;
     }
     return findByKey(primPath);
 }
 
-size_t HdMaxRenderDelegate::GetRenderDataIndex(const pxr::SdfPath& path) const
+size_t HdMaxRenderDelegate::GetMeshRenderDataIndex(const pxr::SdfPath& path) const
 {
-    return renderDataIndexMap.at(path);
+    return meshRenderDataIndexMap.at(path);
 }
 
 const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>&
-HdMaxRenderDelegate::GetRenderDataIdMap() const
+HdMaxRenderDelegate::GetMeshRenderDataIdMap() const
 {
-    return renderDataIndexMap;
+    return meshRenderDataIndexMap;
 }
 
-std::vector<HdMaxRenderData>& HdMaxRenderDelegate::GetAllRenderData() { return renderDataVector; }
-
-void HdMaxRenderDelegate::GetVisibleRenderData(
-    const TfTokenVector&           renderTags,
-    std::vector<HdMaxRenderData*>& data)
+std::vector<HdMaxMeshRenderData>& HdMaxRenderDelegate::GetAllMeshRenderData()
 {
-    for (auto& primRenderData : renderDataVector) {
+    return meshRenderDataVector;
+}
+
+void HdMaxRenderDelegate::GetVisibleMeshRenderData(
+    const TfTokenVector&               renderTags,
+    std::vector<HdMaxMeshRenderData*>& data)
+{
+    for (auto& primRenderData : meshRenderDataVector) {
         // Only display the prim if visible and if its render tag is selected.
         if (!primRenderData.visible || !primRenderData.renderTagActive) {
             continue;
@@ -117,6 +139,79 @@ void HdMaxRenderDelegate::GetVisibleRenderData(
         // If using instancing, make sure we have at least one instance visible.
         if (primRenderData.shadedSubsets.empty()
             || (primRenderData.shadedSubsets[0].IsInstanced()
+                && primRenderData.instancer->GetNumInstances() == 0)) {
+            continue;
+        }
+
+        data.push_back(&primRenderData);
+    }
+}
+
+HdMaxBasisCurvesRenderData& HdMaxRenderDelegate::GetBasisCurvesRenderData(size_t id)
+{
+    return basisCurvesRenderDataVector[id];
+}
+
+HdMaxBasisCurvesRenderData&
+HdMaxRenderDelegate::GetBasisCurvesRenderData(const pxr::SdfPath& primpath)
+{
+    return basisCurvesRenderDataVector[basisCurvesRenderDataIndexMap[primpath]];
+}
+
+HdMaxBasisCurvesRenderData&
+HdMaxRenderDelegate::SafeGetBasisCurvesRenderData(size_t index, const pxr::SdfPath& primPath)
+{
+    static HdMaxBasisCurvesRenderData invalid { {} };
+
+    auto findByKey = [this](const pxr::SdfPath& primPath) -> HdMaxBasisCurvesRenderData& {
+        const auto it = basisCurvesRenderDataIndexMap.find(primPath);
+        if (it == basisCurvesRenderDataIndexMap.end()) {
+            return invalid;
+        }
+        return basisCurvesRenderDataVector[it->second];
+    };
+
+    if (index >= basisCurvesRenderDataVector.size()) {
+        return findByKey(primPath);
+    }
+
+    // If the prim path of the data we retrieved is not the one we expect (index has changed since),
+    // use the prim path instead.
+    auto& renderData = basisCurvesRenderDataVector[index];
+    if (renderData.rPrimPath == primPath) {
+        return renderData;
+    }
+    return findByKey(primPath);
+}
+
+size_t HdMaxRenderDelegate::GetBasisCurvesRenderDataIndex(const pxr::SdfPath& path) const
+{
+    return basisCurvesRenderDataIndexMap.at(path);
+}
+
+const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>&
+HdMaxRenderDelegate::GetBasisCurvesRenderDataIdMap() const
+{
+    return basisCurvesRenderDataIndexMap;
+}
+
+std::vector<HdMaxBasisCurvesRenderData>& HdMaxRenderDelegate::GetAllBasisCurvesRenderData()
+{
+    return basisCurvesRenderDataVector;
+}
+
+void HdMaxRenderDelegate::GetVisibleBasisCurvesRenderData(
+    const TfTokenVector&                      renderTags,
+    std::vector<HdMaxBasisCurvesRenderData*>& data)
+{
+    for (auto& primRenderData : basisCurvesRenderDataVector) {
+        // Only display the prim if visible and if its render tag is selected.
+        if (!primRenderData.visible || !primRenderData.renderTagActive) {
+            continue;
+        }
+        // If using instancing, make sure we have at least one instance visible.
+        if (primRenderData.shadedCurve.wireIndices.empty()
+            || (primRenderData.shadedCurve.IsInstanced()
                 && primRenderData.instancer->GetNumInstances() == 0)) {
             continue;
         }
@@ -145,10 +240,10 @@ void HdMaxRenderDelegate::DestroyInstancer(HdInstancer* instancer) { }
 HdRprim* HdMaxRenderDelegate::CreateRprim(TfToken const& typeId, SdfPath const& rPrimId)
 {
     if (typeId == HdPrimTypeTokens->mesh) {
-        renderDataVector.emplace_back(rPrimId);
+        meshRenderDataVector.emplace_back(rPrimId);
 
-        size_t renderDataIdx = renderDataVector.size() - 1;
-        renderDataIndexMap.insert({ rPrimId, renderDataIdx });
+        size_t renderDataIdx = meshRenderDataVector.size() - 1;
+        meshRenderDataIndexMap.insert({ rPrimId, renderDataIdx });
 
         // We need to keep a reference to the hydra meshes we create, so that they can be deleted
         // properly.
@@ -157,30 +252,61 @@ HdRprim* HdMaxRenderDelegate::CreateRprim(TfToken const& typeId, SdfPath const& 
         meshes.insert({ rPrimId, (std::move(mesh)) });
         return meshPtr;
     }
+    if (typeId == HdPrimTypeTokens->basisCurves) {
+        basisCurvesRenderDataVector.emplace_back(rPrimId);
+
+        size_t renderDataIdx = basisCurvesRenderDataVector.size() - 1;
+        basisCurvesRenderDataIndexMap.insert({ rPrimId, renderDataIdx });
+
+        auto       mesh = std::make_unique<HdMaxBasisCurves>(this, rPrimId, renderDataIdx);
+        const auto meshPtr = mesh.get();
+        basiscurves.insert({ rPrimId, (std::move(mesh)) });
+        return meshPtr;
+    }
     return nullptr;
 }
 
 void HdMaxRenderDelegate::DestroyRprim(HdRprim* rPrim)
 {
     const auto& path = rPrim->GetId();
-    auto        primIdx = renderDataIndexMap.find(path);
-    if (primIdx == renderDataIndexMap.end()) {
+
+    auto meshPrimIdx = meshRenderDataIndexMap.find(path);
+    auto basiscurvesPrimIdx = basisCurvesRenderDataIndexMap.find(path);
+    if (meshPrimIdx == meshRenderDataIndexMap.end()
+        && basiscurvesPrimIdx == basisCurvesRenderDataIndexMap.end()) {
         return;
     }
 
-    // Update our data structures. For the vector, we want to avoid shifting
-    // everything after the index, so to remove the prim's render data, we move
-    // the last item in the vector in its place, and just pop the now emptied
-    // last item.
-    if (primIdx->second != renderDataVector.size() - 1) {
-        auto& availableSlot = renderDataVector[primIdx->second];
-        availableSlot = std::move(renderDataVector.back());
-        // Make sure to update the index in the map.
-        renderDataIndexMap[availableSlot.rPrimPath] = primIdx->second;
+    if (basiscurvesPrimIdx == basisCurvesRenderDataIndexMap.end()) { // non-basiscurves case
+        // Update our data structures. For the vector, we want to avoid shifting
+        // everything after the index, so to remove the prim's render data, we move
+        // the last item in the vector in its place, and just pop the now emptied
+        // last item.
+        if (meshPrimIdx->second != meshRenderDataVector.size() - 1) {
+            auto& availableSlot = meshRenderDataVector[meshPrimIdx->second];
+            availableSlot = std::move(meshRenderDataVector.back());
+            // Make sure to update the index in the map.
+            meshRenderDataIndexMap[availableSlot.rPrimPath] = meshPrimIdx->second;
+        }
+        meshRenderDataVector.pop_back();
+        meshRenderDataIndexMap.erase(path);
+
+        if (meshes.find(rPrim->GetId()) != meshes.end()) {
+            meshes.erase(rPrim->GetId());
+        }
+    } else { // basiscurves case
+        if (basiscurvesPrimIdx->second != basisCurvesRenderDataVector.size() - 1) {
+            auto& availableSlot = basisCurvesRenderDataVector[basiscurvesPrimIdx->second];
+            availableSlot = std::move(basisCurvesRenderDataVector.back());
+            basisCurvesRenderDataIndexMap[availableSlot.rPrimPath] = basiscurvesPrimIdx->second;
+        }
+        basisCurvesRenderDataVector.pop_back();
+        basisCurvesRenderDataIndexMap.erase(path);
+
+        if (basiscurves.find(rPrim->GetId()) != basiscurves.end()) {
+            basiscurves.erase(rPrim->GetId());
+        }
     }
-    renderDataVector.pop_back();
-    renderDataIndexMap.erase(path);
-    meshes.erase(rPrim->GetId());
 }
 
 HdSprim* HdMaxRenderDelegate::CreateSprim(TfToken const& typeId, SdfPath const& sprimId)
@@ -217,9 +343,12 @@ void HdMaxRenderDelegate::CommitResources(HdChangeTracker* tracker) { }
 
 void HdMaxRenderDelegate::Clear()
 {
-    renderDataIndexMap.clear();
-    renderDataVector.clear();
+    meshRenderDataIndexMap.clear();
+    meshRenderDataVector.clear();
+    basisCurvesRenderDataIndexMap.clear();
+    basisCurvesRenderDataVector.clear();
     meshes.clear();
+    basiscurves.clear();
     materialCollection = std::make_shared<HdMaxMaterialCollection>();
 }
 
@@ -228,7 +357,7 @@ void HdMaxRenderDelegate::GarbageCollect()
     if (!mustGc) {
         return;
     }
-    for (auto& data : GetAllRenderData()) {
+    for (auto& data : GetAllMeshRenderData()) {
         data.toDelete.clear();
     }
     mustGc = false;

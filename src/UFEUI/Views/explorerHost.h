@@ -28,7 +28,9 @@ namespace UfeUi {
 class ExplorerHostPrivate;
 
 //! Host widget for explorers. Explorers come in as tabs within this widget.
-class UFEUIAPI ExplorerHost : public QWidget
+class UFEUIAPI ExplorerHost
+    : public QWidget
+    , public Ufe::Subject
 {
     Q_OBJECT
 
@@ -79,6 +81,24 @@ public:
      * \return A vector of all explorers.
      */
     std::vector<Explorer*> explorers() const;
+
+    class ExplorerClosedNotification : public Ufe::Notification
+    {
+    public:
+        ExplorerClosedNotification(Explorer* explorer, bool fromUI)
+            : _explorer(explorer)
+            , _fromUI(fromUI)
+        {
+        }
+        UfeUi::Explorer* explorer() const { return _explorer; }
+        bool             fromUI() const { return _fromUI; }
+
+    private:
+        Explorer* _explorer = nullptr;
+        bool      _fromUI = false;
+    };
+
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     Q_DECLARE_PRIVATE(ExplorerHost);

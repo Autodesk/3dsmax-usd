@@ -96,6 +96,7 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="MaxScriptInterface.cpp" />
     <ClCompile Include="MaxUsdObjects.Camera.test.cpp" />
+    <ClCompile Include="RenderDelegate.LightGizmos.cpp" />
     <ClCompile Include="TestGUP.cpp" />
     <ClCompile Include="USDCore.max.test.cpp" />
     <ClCompile Include="MaxIntegrationTestListener.cpp" />

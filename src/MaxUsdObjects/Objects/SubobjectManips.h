@@ -122,4 +122,8 @@ protected:
     pxr::VtArray<pxr::GfVec3f>    initPositions;
     pxr::VtArray<pxr::GfQuath>    initOrientations;
     pxr::VtArray<pxr::GfVec3f>    initScales;
+
+    pxr::UsdAttribute posAttr;
+    pxr::UsdAttribute sclAttr;
+    pxr::UsdAttribute oriAttr;
 };

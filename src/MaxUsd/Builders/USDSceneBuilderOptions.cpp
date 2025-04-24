@@ -297,11 +297,6 @@ bool USDSceneBuilderOptions::GetTranslateCameras() const
 void USDSceneBuilderOptions::SetTranslateMaterials(bool translateMaterials)
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->translateMaterials] = translateMaterials;
-
-    // set default shading mode if none was set and materials are to be exported
-    if (translateMaterials && GetShadingMode() == MaxUsdShadingModeTokens->none) {
-        SetShadingMode(MaxUsdShadingModeTokens->useRegistry);
-    }
 }
 
 bool USDSceneBuilderOptions::GetTranslateMaterials() const
@@ -332,11 +327,6 @@ bool USDSceneBuilderOptions::GetTranslateMorpher() const
 void USDSceneBuilderOptions::SetShadingMode(const pxr::TfToken& shadingMode)
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->shadingMode] = shadingMode;
-
-    // overrule the 'translateMaterials' boolean if no shading mode is set
-    if (shadingMode == MaxUsdShadingModeTokens->none && GetTranslateMaterials()) {
-        SetTranslateMaterials(false);
-    }
 }
 
 pxr::TfToken USDSceneBuilderOptions::GetShadingMode() const
@@ -349,8 +339,10 @@ void USDSceneBuilderOptions::SetAllMaterialConversions(
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->allMaterialConversions] = materialConversions;
     if (materialConversions.empty()) {
+        // no shading mode set if no material target is set
         SetShadingMode(pxr::MaxUsdShadingModeTokens->none);
-    } else {
+    } else if (GetShadingMode() == pxr::MaxUsdShadingModeTokens->none) {
+        // set default shading mode if not already set
         SetShadingMode(pxr::MaxUsdShadingModeTokens->useRegistry);
     }
 }

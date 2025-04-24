@@ -19,6 +19,10 @@
 #include <MaxUsd/Translators/writeJobContext.h>
 
 #include <pxr/pxr.h>
+#include <pxr/usd/usdGeom/basisCurves.h>
+
+#include <linshape.h>
+#include <splshape.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -39,6 +43,25 @@ public:
     TfToken GetObjectPrimSuffix() override { return TfToken("Shape"); };
 
     WStr GetWriterName() override { return L"Shape writer"; };
+
+private:
+    // Helper function to check if the given spline is linear
+    static bool isSplineLinear(Spline3D* spline);
+    static bool IsSplineSegmentLinear(Spline3D* spline, int segmentIndex);
+
+    bool dataInconsistency = false;
+
+    //  BasisCurves prim category handles
+    pxr::UsdGeomBasisCurves openLinearPrim;
+    pxr::UsdGeomBasisCurves closedLinearPrim;
+    pxr::UsdGeomBasisCurves openCubicPrim;
+    pxr::UsdGeomBasisCurves closedCubicPrim;
+
+    // Spline3D shapes category containers
+    std::vector<Spline3D*> closedLinearShapes;
+    std::vector<Spline3D*> openLinearShapes;
+    std::vector<Spline3D*> closedCubicShapes;
+    std::vector<Spline3D*> openCubicShapes;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

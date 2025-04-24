@@ -34,17 +34,17 @@ class TranslationUtilsWrapper
     ~TranslationUtilsWrapper() = delete;
 
 public:
-    static boost::python::list
+    static pyboost::list
     GetKeyFramesFromValidityInterval(ULONG nodeHandle, const USDSceneBuilderOptionsWrapper& options)
     {
         const auto keyFrames = MaxUsd::GetFramesFromValidityInterval(
             GetCOREInterface()->GetINodeByHandle(nodeHandle), options.GetResolvedTimeConfig());
 
-        boost::python::list frames;
-        const auto&         maxTimeValues = keyFrames.first;
-        const auto&         usdTimeCodes = keyFrames.second;
+        pyboost::list frames;
+        const auto&   maxTimeValues = keyFrames.first;
+        const auto&   usdTimeCodes = keyFrames.second;
         for (int i = 0; i < maxTimeValues.size(); ++i) {
-            frames.append(boost::python::make_tuple(
+            frames.append(pyboost::make_tuple(
                 static_cast<float>(maxTimeValues[i]) / static_cast<float>(GetTicksPerFrame()),
                 usdTimeCodes[i].GetValue()));
         }
@@ -60,7 +60,7 @@ public:
         MaxUsdTranslatorUtil::ReadUsdAttribute(
             usdAttr,
             [&](const VtValue& value, const UsdTimeCode& timeCode, const TimeValue& time) {
-                bool res = boost::python::call<bool>(
+                bool res = pyboost::call<bool>(
                     callable,
                     value,
                     timeCode,
@@ -84,32 +84,31 @@ public:
 
 void wrapTranslationUtils()
 {
-    boost::python::class_<TranslationUtilsWrapper, boost::noncopyable> c(
-        "TranslationUtils", boost::python::no_init);
+    pyboost::class_<TranslationUtilsWrapper, noncopyable> c("TranslationUtils", pyboost::no_init);
 
-    boost::python::scope s(c);
+    pyboost::scope s(c);
 
     c.def(
          "GetKeyFramesFromValidityInterval",
          &TranslationUtilsWrapper::GetKeyFramesFromValidityInterval,
-         boost::python::args("node_handle", "options"))
+         pyboost::args("node_handle", "options"))
         .staticmethod("GetKeyFramesFromValidityInterval")
         .def(
             "ReadUsdAttribute",
             &TranslationUtilsWrapper::ReadUsdAttribute,
-            (boost::python::arg("job_context"),
-             boost::python::arg("functor"),
-             boost::python::arg("context"),
-             boost::python::arg("only_when_authored") = true))
+            (pyboost::arg("job_context"),
+             pyboost::arg("functor"),
+             pyboost::arg("context"),
+             pyboost::arg("only_when_authored") = true))
         .staticmethod("ReadUsdAttribute")
         .def(
             "GetMaxFrameFromUsdTimeCode",
             &MaxUsd::GetMaxFrameFromUsdTimeCode,
-            boost::python::args("stage", "time_code"))
+            pyboost::args("stage", "time_code"))
         .staticmethod("GetMaxFrameFromUsdTimeCode")
         .def(
             "GetMaxTimeValueFromUsdTimeCode",
             &MaxUsd::GetMaxTimeValueFromUsdTimeCode,
-            boost::python::args("stage", "time_code"))
+            pyboost::args("stage", "time_code"))
         .staticmethod("GetMaxTimeValueFromUsdTimeCode");
 }

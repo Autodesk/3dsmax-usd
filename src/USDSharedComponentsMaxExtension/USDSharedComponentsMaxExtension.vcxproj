@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="module.cpp" />
+    <ClCompile Include="moduleDeps.cpp" />
+    <ClCompile Include="wrapPersistentStorage.cpp" />
+    <ClCompile Include="wrapTheme.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="maxExtension.py">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+      <DestinationFileName>__init__%(Extension)</DestinationFileName>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>USDSharedComponentsMaxExtension</ProjectName>
+    <Keyword>QtVS_v302</Keyword>
+    <ProjectGuid>{98AB4CA5-4432-43E5-A0DC-A83CC69489A1}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <OutName>maxExtension</OutName>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
+    <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">true</EmbedManifest>
+    <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EmbedManifest>
+    <TargetName>_$(OutName)</TargetName>
+    <TargetExt>.pyd</TargetExt>
+    <OutDir>$(ContentsDir)bin\python\usdSharedComponents\$(OutName)\</OutDir>
+    <UsdSharedComponentsDir Condition="'$(MaxUsdDevKit)'!='' and '$(UsdSharedComponentsDir)'==''">$(MaxUsdDevKit)\usdSharedComponents</UsdSharedComponentsDir>
+    <UsdSharedComponentsDir Condition="'$(UsdSharedComponentsDir)'==''">$(ProjectDir)usd-shared-components\src\python\usdSharedComponents</UsdSharedComponentsDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>MFB_PACKAGE_NAME=$(OutName);MFB_ALT_PACKAGE_NAME=$(OutName);MFB_PACKAGE_MODULE=$(OutName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings Condition="'$(VersionTarget)'=='2022'">4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">false</ShowIncludes>
+      <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoveUnreferencedCodeData>
+      <ForcedIncludeFiles>..\usd_banned.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(PySideInc);$(PySideShibokenInc);$(PySideInc)/QtCore;$(PySideInc)/QtGui;$(PySideInc)/QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>Maxscrpt.lib;maxUsd.lib;core.lib;geom.lib;maxutil.lib;$(PySideLibraries);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LibDir);$(PySideLib);$(PySideShibokenLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PreBuildEvent>
+      <Command>rmdir /s /q "$(ContentsDir)\bin\python\usdSharedComponents\" 
+robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UsdSharedComponentsDir) $(ContentsDir)\bin\python\usdSharedComponents\ /XD "__pycache__" /XF *.lib /XD "examples"
+if %errorlevel% geq 4 exit /b 1
+exit /b 0</Command>
+      <Message>Installing shared USD python components into $(ContentsDir)\bin\python\usdSharedComponents\</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+</Project>

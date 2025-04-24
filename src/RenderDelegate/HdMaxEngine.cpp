@@ -15,9 +15,13 @@
 //
 #include "HdMaxEngine.h"
 
+#include "GizmoMaterial.h"
+#include "HdLightGizmoSceneIndexFilter.h"
 #include "HdMaxChangeTracker.h"
 #include "HdMaxConsolidator.h"
+#include "HdMaxLightGizmoMeshAccess.h"
 #include "Imaging/HdMaxRenderDelegate.h"
+#include "MaxUsd/Utilities/HydraUtils.h"
 
 #include <MaxUsd/Utilities/MeshUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
@@ -27,7 +31,7 @@
 #include <pxr/base/trace/trace.h>
 #include <pxr/imaging/hd/renderIndex.h>
 #include <pxr/imaging/hd/tokens.h>
-#include <pxr/imaging/hdx/renderTask.h>
+#include <pxr/usd/usdGeom/metrics.h>
 
 #include <Graphics/CustomRenderItemHandle.h>
 #include <Graphics/IVirtualDevice.h>
@@ -65,6 +69,20 @@ void HdMaxEngine::HydraRender(
 
     this->sceneDelegate->SetRootTransform(rootTransform);
 
+    // Update gizmo scaling.
+#if PXR_VERSION >= 2311
+    if (lightGizmoMeshAccess && lightGizmoFilter) {
+
+        const auto userScaling = renderDelegate->GetDisplaySettings().GetLightGizmoScale();
+
+        const double usdUnitsPerMeter = pxr::UsdGeomGetStageMetersPerUnit(rootPrim.GetStage());
+        const auto gizmoOffsetMatrix = MaxUsd::GetLightGizmoScaling(userScaling, usdUnitsPerMeter);
+
+        lightGizmoMeshAccess->SetScalingMatrix(
+            gizmoOffsetMatrix, this->GetChangeTracker(), lightGizmoFilter->GetHandledLights());
+    }
+#endif
+
     // Perform the actual rendering.
     PrepareBatch(timeCode, renderTags);
     RenderBatch();
@@ -76,7 +94,7 @@ void HdMaxEngine::HydraRender(
 }
 
 void HdMaxEngine::UpdateMaterialIdsList(
-    const std::vector<HdMaxRenderData*>&     renderData,
+    const std::vector<HdMaxMeshRenderData*>& renderData,
     std::shared_ptr<HdMaxMaterialCollection> collection)
 {
     // Keep track of the materials that have been converted. Generate an ID for each.
@@ -85,7 +103,7 @@ void HdMaxEngine::UpdateMaterialIdsList(
 
     // Update material.
     for (const auto& primRenderData : renderData) {
-        for (const HdMaxRenderData::SubsetRenderData& subGeom : primRenderData->shadedSubsets) {
+        for (const HdMaxMeshRenderData::SubsetRenderData& subGeom : primRenderData->shadedSubsets) {
             // Fallback to the displayColor for rendering, if no material is defined.
             auto renderMaterialKey
                 = subGeom.materialData ? subGeom.materialData->GetId() : pxr::SdfPath {};
@@ -114,11 +132,11 @@ void HdMaxEngine::UpdateMultiMaterial(MultiMtl* multiMat) const
 }
 
 HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
-    const std::vector<HdMaxRenderData*>&        renderData,
-    const pxr::UsdTimeCode&                     lastTimeCode,
-    const pxr::UsdTimeCode&                     timeCode,
-    const HdMaxConsolidator::Config&            config,
-    const MaxSDK::Graphics::BaseMaterialHandle& wireMaterial)
+    const std::vector<HdMaxMeshRenderData*>&  renderData,
+    const pxr::UsdTimeCode&                   lastTimeCode,
+    const pxr::UsdTimeCode&                   timeCode,
+    const HdMaxConsolidator::Config&          config,
+    const MaxSDK::Graphics::RenderNodeHandle& renderNode)
 {
     HdMaxConsolidator::OutputPtr consolidation = nullptr;
     auto&                        currentConsolidationConfig = consolidator->GetConfig();
@@ -130,7 +148,7 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
         consolidator->SetConfig(config);
     } else {
         // Attempt to update the consolidation...
-        consolidator->UpdateConsolidation(renderData, lastTimeCode, timeCode);
+        consolidator->UpdateConsolidation(renderData, renderNode, lastTimeCode, timeCode);
     }
 
     // Figure out if we are in a static or dynamic context for the purpose of consolidation.
@@ -166,12 +184,20 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
         auto isSameSourceData = [&existingConsolidation, &renderData]() {
             // existingConsolidation->sourceRenderData contains an entry for each subset.
             auto it = existingConsolidation->sourceRenderData.begin();
+
+            auto totalCurrentCount = existingConsolidation->sourceRenderData.size();
+            auto numSubsets = 0;
             for (const auto& rd : renderData) {
                 for (int i = 0; i < rd->shadedSubsets.size(); ++i) {
                     if (it->primPath != rd->rPrimPath) {
                         return false;
                     }
                     ++it;
+                    numSubsets++;
+                }
+                // Case where we now have more render data than before.
+                if (numSubsets > totalCurrentCount) {
+                    return false;
                 }
             }
             return true;
@@ -180,7 +206,7 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
         if (existingConsolidation && isSameSourceData()) {
             consolidation = existingConsolidation;
         } else {
-            consolidation = consolidator->BuildConsolidation(renderData, timeCode, wireMaterial);
+            consolidation = consolidator->BuildConsolidation(renderData, renderNode, timeCode);
         }
     }
     // However, if we have a still valid consolidation, we can use it.
@@ -196,8 +222,8 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
             // things are removed, i.e. when a prim is deactivated) This allows us to avoid a map
             // lookup cost, in most cases. If the given id doesn't match the path, we fallback to
             // using the path to find the render data.
-            auto& primRenderData
-                = renderDelegate->SafeGetRenderData(renderDataInfo.index, renderDataInfo.primPath);
+            auto& primRenderData = renderDelegate->SafeGetMeshRenderData(
+                renderDataInfo.index, renderDataInfo.primPath);
             if (primRenderData.rPrimPath.IsEmpty()
                 || renderDataInfo.subsetIdx >= primRenderData.shadedSubsets.size()) {
                 continue;
@@ -232,10 +258,13 @@ void HdMaxEngine::Render(
     UpdateRootPrim(rootPrim, nodeMtl);
     HydraRender(rootTransform, timeCode, renderTags);
 
-    std::vector<HdMaxRenderData*> renderData;
-    renderDelegate->GetVisibleRenderData(renderTags, renderData);
+    std::vector<HdMaxMeshRenderData*> renderData;
+    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
 
-    if (renderData.empty()) {
+    std::vector<HdMaxBasisCurvesRenderData*> basisCurvesRenderData;
+    renderDelegate->GetVisibleBasisCurvesRenderData(renderTags, basisCurvesRenderData);
+
+    if (renderData.empty() && basisCurvesRenderData.empty()) {
         return;
     }
 
@@ -280,33 +309,39 @@ void HdMaxEngine::Render(
     const auto lastTime = this->lastVpRenderTime.IsDefault() ? timeCode : this->lastVpRenderTime;
     this->lastVpRenderTime = timeCode;
     const HdMaxConsolidator::OutputPtr consolidation = Consolidate(
-        renderData,
-        lastTime,
-        timeCode,
-        consolidationConfig,
-        nodeContext.GetRenderNode().GetWireframeMaterial());
+        renderData, lastTime, timeCode, consolidationConfig, nodeContext.GetRenderNode());
+
+    // Add the consolidated geometry render items...
     if (consolidation) {
         for (const auto& consolidatedGeom : *consolidation->geoms) {
-            if (needShadedRepr) {
+
+            auto& wireItem = consolidatedGeom->GetRenderItem(true);
+            bool  isGizmo
+                = wireItem.GetVisibilityGroup() == MaxSDK::Graphics::RenderItemVisible_Gizmo;
+
+            // Add the shaded repr if the viewport requires it. We do not use shaded reprs for
+            // gizmos, they are always displayed as wireframe.
+            if (needShadedRepr && !isGizmo) {
                 targetRenderItemContainer.AddRenderItem(consolidatedGeom->GetRenderItem(false));
             }
-            if (needWireRepr) {
-                auto& wireItem = consolidatedGeom->GetRenderItem(true);
-                wireItem.SetCustomMaterial(nodeContext.GetRenderNode().GetWireframeMaterial());
+            // Add the wireframe representation if the viewport display is wireframe, or if the
+            // consolidated geometry is gizmos. Gizmos are displayed in wireframe, but should
+            // always be displayed.
+            if (needWireRepr || isGizmo) {
+
+                if (isGizmo) {
+                    const auto mtl = GizmoMaterial::Get(
+                        consolidatedGeom->hasActiveSelection ? GizmoMaterial::Selected
+                                                             : GizmoMaterial::Normal);
+                    wireItem.SetCustomMaterial(mtl);
+
+                } else {
+                    wireItem.SetCustomMaterial(nodeContext.GetRenderNode().GetWireframeMaterial());
+                }
+
                 targetRenderItemContainer.AddRenderItem(wireItem);
             }
         }
-    }
-
-    // Finally add the render items for prims that were not consolidated.
-    // Avoid looking at every prim if we can. If we have as many consolidated prim subsets as there
-    // are subsets total, we can bail early.
-    const int totalSubsets
-        = std::accumulate(renderData.begin(), renderData.end(), 0, [](int total, const auto& data) {
-              return total + static_cast<int>(data->shadedSubsets.size());
-          });
-    if (consolidation && totalSubsets == consolidation->primToGeom.size()) {
-        return;
     }
 
     pxr::GfMatrix4d viewProjMatrixUsd;
@@ -320,24 +355,154 @@ void HdMaxEngine::Render(
         viewProjMatrixUsd = MaxUsd::ToUsd(viewProjectionMatrix);
     }
 
-    const auto              objectTM = maxNode
-                     ? MaxUsd::ToUsd(maxNode->GetObjectTM(updateDisplayContext.GetDisplayTime()))
-                     : pxr::GfMatrix4d {}.SetIdentity();
-    std::unordered_set<int> consolidatedSubsets;
-    for (const auto& primRenderData : renderData) {
-        // Are all the material subsets already part of some still valid consolidated mesh? If so,
-        // we can skip this entire primRenderData..
-        consolidatedSubsets.clear();
-        for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
-            if (primRenderData->shadedSubsets[i].inConsolidation) {
-                consolidatedSubsets.insert(i);
+    const auto objectTM = maxNode
+        ? MaxUsd::ToUsd(maxNode->GetObjectTM(updateDisplayContext.GetDisplayTime()))
+        : pxr::GfMatrix4d {}.SetIdentity();
+
+    // Finally add the render items for prims that were not consolidated.
+    // Avoid looking at every prim if we can. If we have as many consolidated prim subsets as there
+    // are subsets total, we can bail early.
+    const int totalSubsets
+        = std::accumulate(renderData.begin(), renderData.end(), 0, [](int total, const auto& data) {
+              return total + static_cast<int>(data->shadedSubsets.size());
+          });
+
+    const auto allInConsolidation
+        = consolidation && totalSubsets == consolidation->primToGeom.size();
+
+    if (!allInConsolidation) {
+        std::unordered_set<int> consolidatedSubsets;
+        for (const auto& primRenderData : renderData) {
+            // Are all the material subsets already part of some still valid consolidated mesh? If
+            // so, we can skip this entire primRenderData..
+            consolidatedSubsets.clear();
+            for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
+                if (primRenderData->shadedSubsets[i].inConsolidation) {
+                    consolidatedSubsets.insert(i);
+                }
+            }
+
+            if (consolidatedSubsets.size() == primRenderData->shadedSubsets.size()) {
+                continue;
+            }
+
+            // If a view information was given, perform frustum culling.
+            if (view) {
+                auto boundingBox = primRenderData->boundingBox;
+                boundingBox.Transform(objectTM);
+                auto worldSpaceBox = boundingBox.ComputeAlignedBox();
+                if (!pxr::GfFrustum::IntersectsViewVolume(worldSpaceBox, viewProjMatrixUsd)) {
+                    continue;
+                }
+            }
+
+            // Load the index and vertex buffers into the render item.
+            primRenderData->UpdateRenderGeometry(false);
+
+            // No geometry loaded -> nothing to do. Only points and normals are absolutely required.
+            if (primRenderData->points.empty() || primRenderData->normals.empty()) {
+                continue;
+            }
+
+            // Shaded render items (one for each UsdGeomSubset) :
+            if (needShadedRepr && !primRenderData->isGizmo) {
+                for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
+                    // Is this shaded subset already consolidated?
+                    if (consolidatedSubsets.find(i) != consolidatedSubsets.end()) {
+                        continue;
+                    }
+
+                    // Figure out the material we need to use in the viewport.
+                    HdMaxMeshRenderData::SubsetRenderData& subsetGeometry
+                        = primRenderData->shadedSubsets[i];
+                    const bool instanced = primRenderData->shadedSubsets[i].IsInstanced();
+                    MaxSDK::Graphics::BaseMaterialHandle materialToUse
+                        = primRenderData->ResolveViewportMaterial(
+                            *primRenderData,
+                            primRenderData->shadedSubsets[i],
+                            displaySettings,
+                            nodeContext.GetRenderNode(),
+                            instanced);
+                    // Basic geometry. In this case, we already created the renderItem.
+                    if (!instanced) {
+                        auto& renderItem
+                            = subsetGeometry.GetRenderItemDecorator(primRenderData->selected);
+                        renderItem.SetOffsetMatrix(MaxUsd::ToMax(primRenderData->transform));
+                        renderItem.SetCustomMaterial(materialToUse);
+                        targetRenderItemContainer.AddRenderItem(renderItem);
+                    }
+                    // Instanced geometry. For instances, we only created the instance render
+                    // geometry. We only generate the render items now, as we need to display
+                    // context and the node context.
+                    else {
+                        primRenderData->instancer->GenerateInstances(
+                            subsetGeometry.geometry.get(),
+                            &materialToUse,
+                            targetRenderItemContainer,
+                            updateDisplayContext,
+                            nodeContext,
+                            false /*wireframe*/,
+                            MaxSDK::Graphics::RenderItemVisible_Shaded,
+                            i,
+                            view,
+                            false);
+                    }
+                }
+                primRenderData->instancer->SetClean(false);
+            }
+
+            // Wireframe render item (only need one for the whole mesh, even if subsets exist).
+            if (needWireRepr || primRenderData->isGizmo) {
+                // Basic geometry
+                if (!primRenderData->wireframe.IsInstanced()) {
+
+                    // When displaying selection highlighting, use a custom render item able to
+                    // render everything : the geometry AND the highlighting. Because of limitations
+                    // with how gizmos are drawn, gizmos instead rely on different materials to
+                    // display selection.
+                    bool useSelectionRenderItem
+                        = primRenderData->selected && !primRenderData->isGizmo;
+                    auto& wireRenderItem
+                        = primRenderData->wireframe.GetRenderItemDecorator(useSelectionRenderItem);
+                    wireRenderItem.SetOffsetMatrix(MaxUsd::ToMax(primRenderData->transform));
+
+                    if (primRenderData->isGizmo) {
+                        wireRenderItem.SetVisibilityGroup(
+                            MaxSDK::Graphics::RenderItemVisible_Gizmo);
+
+                        const auto mtl = GizmoMaterial::Get(
+                            primRenderData->selected ? GizmoMaterial::Selected
+                                                     : GizmoMaterial::Normal);
+                        wireRenderItem.SetCustomMaterial(mtl);
+                    } else {
+                        wireRenderItem.SetCustomMaterial(
+                            nodeContext.GetRenderNode().GetWireframeMaterial());
+                    }
+
+                    targetRenderItemContainer.AddRenderItem(wireRenderItem);
+                }
+                // Instanced geometry
+                else {
+                    primRenderData->instancer->GenerateInstances(
+                        primRenderData->wireframe.geometry.get(),
+                        nullptr,
+                        targetRenderItemContainer,
+                        updateDisplayContext,
+                        nodeContext,
+                        true,
+                        // Override the vis group to gizmo if required.
+                        primRenderData->isGizmo ? MaxSDK::Graphics::RenderItemVisible_Gizmo
+                                                : MaxSDK::Graphics::RenderItemVisible_Wireframe,
+                        0,
+                        view,
+                        false);
+                    primRenderData->instancer->SetClean(true);
+                }
             }
         }
+    }
 
-        if (consolidatedSubsets.size() == primRenderData->shadedSubsets.size()) {
-            continue;
-        }
-
+    for (const auto& primRenderData : basisCurvesRenderData) {
         // If a view information was given, perform frustum culling.
         if (view) {
             auto boundingBox = primRenderData->boundingBox;
@@ -351,48 +516,47 @@ void HdMaxEngine::Render(
         // Load the index and vertex buffers into the render item.
         primRenderData->UpdateRenderGeometry(false);
 
-        // No geometry loaded -> nothing to do. Only points and normals are absolutely required.
-        if (primRenderData->points.empty() || primRenderData->normals.empty()) {
+        // No geometry loaded -> nothing to do. Only points are absolutely required.
+        if (primRenderData->points.empty()) {
             continue;
         }
 
-        // Shaded render items (one for each UsdGeomSubset) :
+        // Shaded render items
         if (needShadedRepr) {
-            for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
-                // Is this shaded subset already consolidated?
-                if (consolidatedSubsets.find(i) != consolidatedSubsets.end()) {
-                    continue;
-                }
+            // Figure out the material we need to use in the viewport.
+            HdMaxBasisCurvesRenderData::SubsetRenderData& subsetGeometry
+                = primRenderData->shadedCurve;
+            const bool instanced = primRenderData->shadedCurve.IsInstanced();
 
-                // Figure out the material we need to use in the viewport.
-                HdMaxRenderData::SubsetRenderData& subsetGeometry
-                    = primRenderData->shadedSubsets[i];
-                const bool instanced = primRenderData->shadedSubsets[i].IsInstanced();
+            // Basic geometry. In this case, we already created the renderItem.
+            if (!instanced) {
                 MaxSDK::Graphics::BaseMaterialHandle materialToUse
                     = primRenderData->ResolveViewportMaterial(
-                        subsetGeometry, displaySettings, instanced);
-                // Basic geometry. In this case, we already created the renderItem.
-                if (!instanced) {
-                    auto& renderItem
-                        = subsetGeometry.GetRenderItemDecorator(primRenderData->selected);
-                    renderItem.SetOffsetMatrix(MaxUsd::ToMax(primRenderData->transform));
-                    renderItem.SetCustomMaterial(materialToUse);
-                    targetRenderItemContainer.AddRenderItem(renderItem);
-                }
-                // Instanced geometry. For instances, we only created the instance render
-                // geometry. We only generate the render items now, as we need to display context
-                // and the node context.
-                else {
-                    primRenderData->instancer->GenerateInstances(
-                        subsetGeometry.geometry.get(),
-                        &materialToUse,
-                        targetRenderItemContainer,
-                        updateDisplayContext,
-                        nodeContext,
-                        false,
-                        i,
-                        view);
-                }
+                        *primRenderData,
+                        primRenderData->shadedCurve,
+                        displaySettings,
+                        nodeContext.GetRenderNode(),
+                        instanced);
+                auto& renderItem = subsetGeometry.GetRenderItemDecorator(primRenderData->selected);
+                renderItem.SetOffsetMatrix(MaxUsd::ToMax(primRenderData->transform));
+                renderItem.SetCustomMaterial(materialToUse);
+                targetRenderItemContainer.AddRenderItem(renderItem);
+            }
+            // Instanced geometry. For instances, we only created the instance render
+            // geometry. We only generate the render items now, as we need to display
+            // context and the node context.
+            else {
+                primRenderData->instancer->GenerateInstances(
+                    subsetGeometry.geometry.get(),
+                    nullptr, // material is deduced by the instancing api
+                    targetRenderItemContainer,
+                    updateDisplayContext,
+                    nodeContext,
+                    false,
+                    MaxSDK::Graphics::RenderItemVisible_Shaded,
+                    0,
+                    view,
+                    true);
             }
             primRenderData->instancer->SetClean(false);
         }
@@ -400,25 +564,29 @@ void HdMaxEngine::Render(
         // Wireframe render item (only need one for the whole mesh, even if subsets exist).
         if (needWireRepr) {
             // Basic geometry
-            if (!primRenderData->wireframe.IsInstanced()) {
+            if (!primRenderData->wireframeCurve.IsInstanced()) {
+                bool  useSelectionRenderItem = primRenderData->selected;
                 auto& wireRenderItem
-                    = primRenderData->wireframe.GetRenderItemDecorator(primRenderData->selected);
+                    = primRenderData->wireframeCurve.GetRenderItemDecorator(useSelectionRenderItem);
                 wireRenderItem.SetOffsetMatrix(MaxUsd::ToMax(primRenderData->transform));
                 wireRenderItem.SetCustomMaterial(
                     nodeContext.GetRenderNode().GetWireframeMaterial());
+
                 targetRenderItemContainer.AddRenderItem(wireRenderItem);
             }
             // Instanced geometry
             else {
                 primRenderData->instancer->GenerateInstances(
-                    primRenderData->wireframe.geometry.get(),
+                    primRenderData->wireframeCurve.geometry.get(),
                     nullptr,
                     targetRenderItemContainer,
                     updateDisplayContext,
                     nodeContext,
                     true,
+                    MaxSDK::Graphics::RenderItemVisible_Wireframe,
                     0,
-                    view);
+                    view,
+                    true);
                 primRenderData->instancer->SetClean(true);
             }
         }
@@ -548,8 +716,8 @@ void HdMaxEngine::RenderToMeshes(
     UpdateRootPrim(rootPrim, node->GetMtl());
     HydraRender(rootTransform, timeCode, renderTags, true);
 
-    std::vector<HdMaxRenderData*> renderData;
-    renderDelegate->GetVisibleRenderData(renderTags, renderData);
+    std::vector<HdMaxMeshRenderData*> renderData;
+    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
 
     // Then, update a lists of all materials currently in use, and generate associated material Ids.
     const auto materialCollection = renderDelegate->GetMaterialCollection();
@@ -730,6 +898,27 @@ bool HdMaxEngine::UpdateRootPrim(const pxr::UsdPrim& rootPrim, Mtl* nodeMaterial
     // If the root primitive to render from changes, we need to create a new scene delegate for it.
     this->sceneDelegate = std::make_unique<pxr::UsdImagingDelegate>(
         renderIndex.get(), pxr::SdfPath::AbsoluteRootPath());
+
+#if PXR_VERSION >= 2311
+    auto terminalIndex = pxr::TfDynamic_cast<pxr::HdFilteringSceneIndexBaseRefPtr>(
+        sceneDelegate->GetRenderIndex().GetTerminalSceneIndex());
+
+    // Setup a scene index filter to display gizmos for USD lights.
+    // In our hydra setup, the terminal scene index is the merging scene index.
+    if (auto mergingSceneIndex = MaxUsd::FindTopLevelMergingSceneIndex(terminalIndex)) {
+
+        lightGizmoMeshAccess = std::make_shared<HdMaxLightGizmoMeshAccess>();
+
+        // Remove the USD scene index, replacing it with our filter, that has the
+        // USD scene index as source.
+        auto base = mergingSceneIndex->GetInputScenes()[0];
+        lightGizmoFilter = pxr::HdLightGizmoSceneIndexFilter::New(base, lightGizmoMeshAccess);
+        sceneDelegate->GetRenderIndex().RemoveSceneIndex(base);
+        sceneDelegate->GetRenderIndex().InsertSceneIndex(lightGizmoFilter, pxr::SdfPath { "/" });
+        lightGizmoFilter->NotifyInitialAddedPrims();
+    }
+#endif
+
     sceneDelegate->Populate(rootPrim, {});
 
     this->rootPrim = rootPrim;
@@ -751,8 +940,8 @@ size_t HdMaxEngine::GetNumRenderPrim(const pxr::TfTokenVector& renderTags) const
     // already correct.
     size_t numRenderPrim = 0;
 
-    std::vector<HdMaxRenderData*> renderData;
-    renderDelegate->GetVisibleRenderData(renderTags, renderData);
+    std::vector<HdMaxMeshRenderData*> renderData;
+    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
     for (const auto& data : renderData) {
         if (!data->visible || !data->renderTagActive) {
             continue;

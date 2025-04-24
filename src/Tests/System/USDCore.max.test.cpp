@@ -14,10 +14,11 @@
 // limitations under the License.
 //
 #include <gtest/gtest.h>
+
 #include <max.h>
 
 TEST(USDSystemTest, GetCoreInterfaceTest)
 {
-    auto* core_interface = GetCOREInterface();
-    EXPECT_TRUE(core_interface != nullptr);
+	auto* core_interface = GetCOREInterface();
+	EXPECT_TRUE(core_interface != nullptr);
 }

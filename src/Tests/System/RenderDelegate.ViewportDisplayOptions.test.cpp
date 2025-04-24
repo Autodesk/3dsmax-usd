@@ -53,11 +53,12 @@ TEST(ViewportDisplayOptions, MaterialAndPerformance)
     auto simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check points valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer).IsValid());
+    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer).IsValid());
     // Check normals valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer).IsValid());
+    EXPECT_TRUE(
+        simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer).IsValid());
     // Check uvs valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer).IsValid());
+    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer).IsValid());
     // Check multi-material not populated.
     EXPECT_EQ(0, multiMat->NumSubMtls());
 
@@ -86,11 +87,12 @@ TEST(ViewportDisplayOptions, MaterialAndPerformance)
     simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check points valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer).IsValid());
+    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer).IsValid());
     // Check normals valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer).IsValid());
+    EXPECT_TRUE(
+        simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer).IsValid());
     // Check uvs not used.
-    EXPECT_FALSE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer).IsValid());
+    EXPECT_FALSE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer).IsValid());
     // Check multimaterial not populated.
     EXPECT_EQ(0, multiMat->NumSubMtls());
     // Expecting a standard material, to represent the USD displayColor.
@@ -111,11 +113,12 @@ TEST(ViewportDisplayOptions, MaterialAndPerformance)
     simpleRenderGeometry = GetRenderItemGeometry(renderItems.At(0));
 
     // Check points valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::PointsBuffer).IsValid());
+    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer).IsValid());
     // Check normals valid.
-    EXPECT_TRUE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::NormalsBuffer).IsValid());
+    EXPECT_TRUE(
+        simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::NormalsBuffer).IsValid());
     // Check uvs not used.
-    EXPECT_FALSE(simpleRenderGeometry->GetVertexBuffer(HdMaxRenderData::UvsBuffer).IsValid());
+    EXPECT_FALSE(simpleRenderGeometry->GetVertexBuffer(HdMaxMeshRenderData::UvsBuffer).IsValid());
     // Check multimaterial not populated.
     EXPECT_EQ(0, multiMat->NumSubMtls());
 

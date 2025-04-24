@@ -106,7 +106,7 @@ goto :End
 
 :2022
 set VS_VERSION_RANGELO=17.0
-set VS_VERSION_RANGEHI=17.9
+set VS_VERSION_RANGEHI=17.11
 goto :vswhere_vcvarsall
 
 :2019

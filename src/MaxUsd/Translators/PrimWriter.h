@@ -190,8 +190,7 @@ public:
     MaxUSDAPI virtual Interval GetValidityInterval(const TimeValue& time);
 
     MaxUSDAPI const UsdStageRefPtr& GetUsdStage() const;
-    MaxUSDAPI const std::string&          GetFilename() const;
-    MaxUSDAPI virtual boost::python::dict GetNodesToPrims() const;
+    MaxUSDAPI const std::string& GetFilename() const;
 
 protected:
     /// Gets the current global export args in effect.

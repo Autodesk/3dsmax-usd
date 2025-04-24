@@ -39,7 +39,7 @@ if ($ArtifactsXmlFile.Equals("")) {
 
 # Early bail out on error
 $ErrorActionPreference = "Stop"
-$UnstableSdk = @("2026")
+$UnstableSdk = @("2027")
 
 if ($Distrib -And $UnstableSdk -contains $TargetVersion) {
     [xml]$ArtifactsXmlDocument = Get-Content -Path $ArtifactsXmlFile
@@ -103,14 +103,19 @@ function UpdateMinMaxRuntimeRequirementBasedOnTargetVersion {
         [String]$MinMaxVersion
     )
     $XmlDocument.SelectNodes("//RuntimeRequirements") | ForEach-Object {
-        $_.Attributes.RemoveNamedItem("SeriesMin")
-        $_.Attributes.RemoveNamedItem("SeriesMax")
-        $minAttr = $XmlDocument.CreateAttribute("SeriesMin")
-        $minAttr.Value = "$MinMaxVersion"
-        $maxAttr = $XmlDocument.CreateAttribute("SeriesMax")
-        $maxAttr.Value = "$MinMaxVersion"
-        $_.Attributes.SetNamedItem($minAttr)
-        $_.Attributes.SetNamedItem($maxAttr)
+        # Update the version only if the target version is equal or above the min version.
+        if($MinMaxVersion -ge $_.SeriesMin)
+        {
+            $_.Attributes.RemoveNamedItem("SeriesMin")
+            $minAttr = $XmlDocument.CreateAttribute("SeriesMin")
+            $minAttr.Value = "$MinMaxVersion"
+            $_.Attributes.SetNamedItem($minAttr)
+
+            $_.Attributes.RemoveNamedItem("SeriesMax")
+            $maxAttr = $XmlDocument.CreateAttribute("SeriesMax")
+            $maxAttr.Value = "$MinMaxVersion"
+            $_.Attributes.SetNamedItem($maxAttr)
+        }
     }
 }
 

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/Builders/JobContextRegistry.h>
 #include <MaxUsd/Translators/RegistryHelper.h>
 
@@ -25,9 +26,9 @@
 #include <sbkconverter.h>
 #include <shiboken.h>
 #ifdef USE_PYSIDE_6
-#include <QtWidgets/pyside6_qtwidgets_python.h>
+#include <pyside6_qtwidgets_python.h>
 #else
-#include <QtWidgets/pyside2_qtwidgets_python.h>
+#include <pyside2_qtwidgets_python.h>
 #endif
 // these are needed for the conversion of the QWidget pointer to a Python object
 PyTypeObject** SbkPySide_QtWidgetsTypes = nullptr;
@@ -43,27 +44,31 @@ class JobContextRegistry
 public:
     static TfTokenVector ListJobContexts() { return MaxUsdJobContextRegistry::ListJobContexts(); }
 
-    static boost::python::object GetJobContextInfo(const TfToken& jobContext)
+    static pyboost::object GetJobContextInfo(const TfToken& jobContext)
     {
         MaxUsdJobContextRegistry::ContextInfo ctx
             = MaxUsdJobContextRegistry::GetInstance().GetJobContextInfo(jobContext);
-        boost::python::dict dict;
+        pyboost::dict dict;
         dict["jobContext"] = ctx.jobContext;
         dict["niceName"] = ctx.niceName;
         dict["exportDescription"] = ctx.exportDescription;
-        dict["exportEnablerCallback"] = ctx.exportEnablerCallback;
-        dict["exportOptionsCallback"] = ctx.exportOptionsCallback;
+        // not exposing the associated export callbacks on purpose
+        // the callbacks cannot be expressed usefully in Python
+        // dict["exportEnablerCallback"] = ctx.exportEnablerCallback;
+        // dict["exportOptionsCallback"] = ctx.exportOptionsCallback;
         dict["importDescription"] = ctx.importDescription;
-        dict["importEnablerCallback"] = ctx.importEnablerCallback;
-        dict["importOptionsCallback"] = ctx.importOptionsCallback;
+        // not exposing the associated import callbacks on purpose
+        // the callbacks cannot be expressed usefully in Python
+        // dict["importEnablerCallback"] = ctx.importEnablerCallback;
+        // dict["importOptionsCallback"] = ctx.importOptionsCallback;
         return std::move(dict);
     }
 
     static void RegisterImportJobContext(
-        const std::string&    jobContext,
-        const std::string&    niceName,
-        const std::string&    description,
-        boost::python::object enablerFct)
+        const std::string& jobContext,
+        const std::string& niceName,
+        const std::string& description,
+        pyboost::object    enablerFct)
     {
         if (!PyCallable_Check(enablerFct.ptr())) {
             TF_CODING_ERROR(
@@ -74,10 +79,10 @@ public:
             jobContext, niceName, description, [=]() { return callEnablerFn(enablerFct); }, true);
     }
     static void RegisterExportJobContext(
-        const std::string&    jobContext,
-        const std::string&    niceName,
-        const std::string&    description,
-        boost::python::object enablerFct)
+        const std::string& jobContext,
+        const std::string& niceName,
+        const std::string& description,
+        pyboost::object    enablerFct)
     {
         if (!PyCallable_Check(enablerFct.ptr())) {
             TF_CODING_ERROR(
@@ -88,7 +93,7 @@ public:
             jobContext, niceName, description, [=]() { return callEnablerFn(enablerFct); }, true);
     }
 
-    static void SetImportOptionsUI(const std::string& jobContext, boost::python::object optionFct)
+    static void SetImportOptionsUI(const std::string& jobContext, pyboost::object optionFct)
     {
         if (!PyCallable_Check(optionFct.ptr())) {
             TF_CODING_ERROR(
@@ -103,7 +108,7 @@ public:
             true);
     }
 
-    static void SetExportOptionsUI(const std::string& jobContext, boost::python::object optionFct)
+    static void SetExportOptionsUI(const std::string& jobContext, pyboost::object optionFct)
     {
         if (!PyCallable_Check(optionFct.ptr())) {
             TF_CODING_ERROR(
@@ -119,17 +124,17 @@ public:
     }
 
 private:
-    static VtDictionary callEnablerFn(boost::python::object fnc)
+    static VtDictionary callEnablerFn(pyboost::object fnc)
     {
         auto res = TfPyCall<VtDictionary>(fnc)();
         return res;
     }
 
     static VtDictionary callOptionsFn(
-        boost::python::object fnc,
-        const std::string&    jobContext,
-        QWidget*              parentUI,
-        const VtDictionary&   options)
+        pyboost::object     fnc,
+        const std::string&  jobContext,
+        QWidget*            parentUI,
+        const VtDictionary& options)
     {
         PyGILState_STATE gstate = PyGILState_Ensure();
 
@@ -164,8 +169,7 @@ private:
             pyQtWidget = Py_None;
             Py_XINCREF(pyQtWidget);
         }
-        auto res
-            = TfPyCall<VtDictionary>(fnc)(jobContext, boost::python::handle<>(pyQtWidget), options);
+        auto res = TfPyCall<VtDictionary>(fnc)(jobContext, pyboost::handle<>(pyQtWidget), options);
         Py_XDECREF(pyQtWidget);
 
         PyGILState_Release(gstate);
@@ -176,20 +180,19 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 void wrapJobContextRegistry()
 {
-    boost::python::class_<JobContextRegistry, boost::noncopyable>(
-        "JobContextRegistry", boost::python::no_init)
+    pyboost::class_<JobContextRegistry, noncopyable>("JobContextRegistry", pyboost::no_init)
         .def("ListJobContexts", &JobContextRegistry::ListJobContexts)
         .staticmethod("ListJobContexts")
         .def(
             "GetJobContextInfo",
             &JobContextRegistry::GetJobContextInfo,
-            boost::python::arg("job_context_name"),
+            pyboost::arg("job_context_name"),
             "Get the JobContext information dictionary.")
         .staticmethod("GetJobContextInfo")
         .def(
             "RegisterExportJobContext",
             &JobContextRegistry::RegisterExportJobContext,
-            boost::python::args(
+            pyboost::args(
                 "job_context_name",
                 "job_context_nice_name",
                 "job_context_description",
@@ -199,7 +202,7 @@ void wrapJobContextRegistry()
         .def(
             "RegisterImportJobContext",
             &JobContextRegistry::RegisterImportJobContext,
-            boost::python::args(
+            pyboost::args(
                 "job_context_name",
                 "job_context_nice_name",
                 "job_context_description",
@@ -209,13 +212,13 @@ void wrapJobContextRegistry()
         .def(
             "SetImportOptionsUI",
             &JobContextRegistry::SetImportOptionsUI,
-            boost::python::args("job_context_name", "job_context_function"),
+            pyboost::args("job_context_name", "job_context_function"),
             "Static method to register a JobContext option function into the JobContextRegistry.")
         .staticmethod("SetImportOptionsUI")
         .def(
             "SetExportOptionsUI",
             &JobContextRegistry::SetExportOptionsUI,
-            boost::python::args("job_context_name", "job_context_function"),
+            pyboost::args("job_context_name", "job_context_function"),
             "Static method to register a JobContext option function into the JobContextRegistry.")
         .staticmethod("SetExportOptionsUI");
 }

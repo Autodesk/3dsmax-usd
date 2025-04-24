@@ -25,21 +25,21 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 void wrapInterval()
 {
-    using namespace boost::python;
-
-    boost::python::class_<IntervalWrapper> c(
-        "Interval", "A python wrapper for a 3dsMax Interval object.", init<double, double>());
+    pyboost::class_<IntervalWrapper> c(
+        "Interval",
+        "A python wrapper for a 3dsMax Interval object.",
+        pyboost::init<double, double>());
     c.def(
          "Start",
          &IntervalWrapper::Start,
-         return_value_policy<return_by_value>(),
-         (boost::python::arg("self")),
+         pyboost::return_value_policy<pyboost::return_by_value>(),
+         (pyboost::arg("self")),
          "The start frame of the interval.")
         .def(
             "End",
             &IntervalWrapper::End,
-            return_value_policy<return_by_value>(),
-            (boost::python::arg("self")),
+            pyboost::return_value_policy<pyboost::return_by_value>(),
+            (pyboost::arg("self")),
             "The end frame of the interval.")
         .add_property("Forever", &IntervalWrapper::Forever)
         .add_property("Never", &IntervalWrapper::Never);

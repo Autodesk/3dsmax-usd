@@ -1,0 +1,55 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.8.4.0"
+    }
+    defaultPrim = "root"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Xform "PhotometricLight001" (
+        prepend inherits = </root/_class_PhotometricLight001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-32.3124, 0.98435, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    class Class "_class_PhotometricLight001"
+    {
+        def RectLight "PhotometricLight001"
+        {
+            color3f inputs:color = (0.99999994, 0.99999994, 1.0000001)
+            bool inputs:enableColorTemperature = 0
+            float inputs:height = 48
+            float inputs:intensity = 4869.4785
+            bool inputs:normalize = 1
+            color3f inputs:shadow:color = (0, 0, 0)
+            bool inputs:shadow:enable = 1
+            float inputs:width = 24
+        }
+    }
+
+    def Xform "PhotometricLight002" (
+        prepend inherits = </root/_class_PhotometricLight001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (5.10385, 0.98435, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "PhotometricLight003" (
+        prepend inherits = </root/_class_PhotometricLight001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (42.5201, 0.98435, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}
+

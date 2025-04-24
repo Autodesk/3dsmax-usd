@@ -104,7 +104,6 @@ void MaxUsdShaderWriterRegistry::Register(
         auto       className = MaxUsd::GetNonLocalizedClassName(classDesc);
         if (maxClassName == className) {
             Register(classDesc->ClassID(), pred, fn, targetAgnosticFn, fromPython);
-            break;
         }
     }
 }

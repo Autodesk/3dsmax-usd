@@ -102,15 +102,22 @@ fn addUSDMenuItem = (
 		(
 			usdMenu = menuMan.createMenu "USD"
 			
-			-- create a menu items that calls the macroscript
-			local theMenuItem = menuMan.createActionItem "OpenUsdExplorer" "USD"
-			theMenuItem.setTitle ~USD_EXPLORER_MENU_ITEM~
-			theMenuItem.setUseCustomTitle true
-			usdMenu.addItem theMenuItem -1
-			subMenuItem = menuMan.createsubMenuItem "USD" usdMenu
+			-- create a menu item that calls the macroscript to open the explorer
+			local explorerMenuItem = menuMan.createActionItem "OpenUsdExplorer" "USD"
+			explorerMenuItem.setTitle ~USD_EXPLORER_MENU_ITEM~
+			explorerMenuItem.setUseCustomTitle true
+			usdMenu.addItem explorerMenuItem -1
+			
+			-- create a menu item that calls the macroscript to open the layer editor
+			local layerEditorMenuItem = menuMan.createActionItem "OpenUsdLayerEditor" "USD"
+			layerEditorMenuItem.setTitle ~USD_LAYER_EDITOR_MENU_ITEM~
+			layerEditorMenuItem.setUseCustomTitle true
+			usdMenu.addItem layerEditorMenuItem -1
 			
 			toolsMenu.addItem (menuMan.createSeparatorItem()) -1
-			toolsMenu.addItem subMenuItem -1
+			subMenuItem = menuMan.createsubMenuItem "USD" usdMenu
+			
+			toolsMenu.addItem subMenuItem -1			
 			
 			-- redraw the menu bar with the new item
 			menuMan.updateMenuBar()

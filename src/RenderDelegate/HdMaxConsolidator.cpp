@@ -15,6 +15,9 @@
 //
 #include "HdMaxConsolidator.h"
 
+#include "ConsolidatedGizmoRenderItem.h"
+#include "GizmoMaterial.h"
+#include "HdMaxMeshRenderData.h"
 #include "Imaging/HdMaxRenderDelegate.h"
 #include "SelectionRenderItem.h"
 
@@ -24,6 +27,7 @@
 #include <Graphics/StandardMaterialHandle.h>
 
 #include <tbb/parallel_for.h>
+#include <vector>
 
 HdMaxConsolidator::HdMaxConsolidator(
     const std::shared_ptr<pxr::HdMaxRenderDelegate>& renderDelegate)
@@ -54,10 +58,10 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::GetConsolidation(const pxr::UsdT
 }
 
 void HdMaxConsolidator::GenerateInputs(
-    const HdMaxRenderData* primRenderData,
-    int                    subsetIndex,
-    size_t                 numTriWithSameMaterial,
-    std::vector<Input>&    inputs) const
+    const HdMaxMeshRenderData* primRenderData,
+    int                        subsetIndex,
+    size_t                     numTriWithSameMaterial,
+    std::vector<Input>&        inputs) const
 {
     // For instanced data being consolidated, we might need to split them into multiple
     // consolidated mesh.
@@ -148,7 +152,8 @@ void HdMaxConsolidator::GenerateInputs(
 }
 
 void HdMaxConsolidator::BuildConsolidationCells(
-    const std::vector<HdMaxRenderData*>&                               renderData,
+    const std::vector<HdMaxMeshRenderData*>&                           renderData,
+    const MaxSDK::Graphics::RenderNodeHandle&                          renderNode,
     std::map<MaxSDK::Graphics::BaseMaterialHandle, std::vector<Cell>>& cells,
     const pxr::UsdTimeCode&                                            time)
 {
@@ -158,6 +163,16 @@ void HdMaxConsolidator::BuildConsolidationCells(
     for (const auto& primRenderData : renderData) {
         // No geometry -> nothing to consolidate. Only points and normals are absolutely required.
         if (primRenderData->points.empty() || primRenderData->normals.empty()) {
+            continue;
+        }
+
+        // Don't consolidate instanced gizmos. It would complicate the consolidation code
+        // as we would need to figure out cells against not only the assigned material, but
+        // also a selection material (i.e. considering more than one material per mesh / splitting
+        // instances into inputs by selection status / material) We would not gain much
+        // performance (if any at all) by consolidating instanced gizmos - not worth the added
+        // complexity.
+        if (primRenderData->isGizmo && primRenderData->instancer->GetNumInstances() > 1) {
             continue;
         }
 
@@ -171,7 +186,7 @@ void HdMaxConsolidator::BuildConsolidationCells(
         // materials.
         std::vector<SubsetInfo>                                              subsetInfos;
         std::vector<std::pair<MaxSDK::Graphics::BaseMaterialHandle, size_t>> materialTris;
-        ComputeSubsetInfo(*primRenderData, subsetInfos, materialTris);
+        ComputeSubsetInfo(*primRenderData, renderNode, subsetInfos, materialTris);
 
         for (int i = 0; i < primRenderData->shadedSubsets.size(); i++) {
             const auto it = std::find_if(
@@ -311,16 +326,16 @@ void HdMaxConsolidator::BuildConsolidationCells(
 }
 
 HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
-    const std::vector<HdMaxRenderData*>&        renderData,
-    const pxr::UsdTimeCode&                     time,
-    const MaxSDK::Graphics::BaseMaterialHandle& wireMaterial)
+    const std::vector<HdMaxMeshRenderData*>&  renderData,
+    const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+    const pxr::UsdTimeCode&                   time)
 {
     // If a consolidation already exists, we will append to it.
     auto existingConsolidation = GetConsolidation(time);
     std::map<MaxSDK::Graphics::BaseMaterialHandle, std::vector<Cell>> cells;
 
     // Build the consolidation cells, i.e. we are figuring out what prims will be combined together.
-    BuildConsolidationCells(renderData, cells, time);
+    BuildConsolidationCells(renderData, renderNode, cells, time);
 
     // Consolidate!
 
@@ -370,7 +385,7 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
                 simpleRenderGeometry->SetPrimitiveType(MaxSDK::Graphics::PrimitiveTriangleList);
                 // Use the same stream requirements as non-consolidated USD render data.
                 simpleRenderGeometry->SetSteamRequirement(
-                    HdMaxRenderData::GetRequiredStreams(false /*wire*/));
+                    HdMaxMeshRenderData::GetRequiredStreams(false /*wire*/));
 
                 // Build the consolidated index buffer.
                 MaxSDK::Graphics::IndexBufferHandle indexBuffer;
@@ -420,7 +435,7 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
                 simpleRenderGeometry->SetPrimitiveType(MaxSDK::Graphics::PrimitiveLineList);
                 // Use the same stream requirements as non-consolidated USD render data.
                 simpleRenderGeometry->SetSteamRequirement(
-                    HdMaxRenderData::GetRequiredStreams(true));
+                    HdMaxMeshRenderData::GetRequiredStreams(true));
 
                 // Build the wire index buffer.
                 MaxSDK::Graphics::IndexBufferHandle indexBuffer;
@@ -431,24 +446,37 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
 
                 // Assign the vertex buffers, they are shared with the shaded geometry.
                 // UVs are not needed for wireframe geometry.
-                simpleRenderGeometry->AddVertexBuffer(vertexBuffers[HdMaxRenderData::PointsBuffer]);
                 simpleRenderGeometry->AddVertexBuffer(
-                    vertexBuffers[HdMaxRenderData::NormalsBuffer]);
+                    vertexBuffers[HdMaxMeshRenderData::PointsBuffer]);
                 simpleRenderGeometry->AddVertexBuffer(
-                    vertexBuffers[HdMaxRenderData::SelectionBuffer]);
+                    vertexBuffers[HdMaxMeshRenderData::NormalsBuffer]);
+                simpleRenderGeometry->AddVertexBuffer(
+                    vertexBuffers[HdMaxMeshRenderData::SelectionBuffer]);
 
-                result->wireframeRenderItem.Initialize();
-                result->wireframeRenderItem.SetVisibilityGroup(
-                    MaxSDK::Graphics::RenderItemVisible_Wireframe);
-                result->wireframeRenderItem.SetRenderGeometry(simpleRenderGeometry);
+                bool isGizmo = GizmoMaterial::Check(result->material);
+
+                if (isGizmo) {
+                    result->wireGizmoRenderItem.Initialize();
+                    result->wireGizmoRenderItem.SetVisibilityGroup(
+                        MaxSDK::Graphics::RenderItemVisible_Gizmo);
+                    const auto usdRenderItem
+                        = new ConsolidatedGizmoRenderItem { simpleRenderGeometry };
+                    result->wireGizmoRenderItem.SetCustomImplementation(usdRenderItem);
+
+                } else {
+                    result->wireframeRenderItem.Initialize();
+                    result->wireframeRenderItem.SetVisibilityGroup(
+                        MaxSDK::Graphics::RenderItemVisible_Wireframe);
+                    result->wireframeRenderItem.SetRenderGeometry(simpleRenderGeometry);
+                }
 
                 const auto usdRenderItem = new SelectionRenderItem(
                     static_cast<MaxSDK::Graphics::IRenderGeometryPtr>(simpleRenderGeometry), true);
                 result->wireframeRenderItemSelection.Initialize();
                 result->wireframeRenderItemSelection.SetCustomImplementation(usdRenderItem);
                 result->wireframeRenderItemSelection.SetVisibilityGroup(
-                    MaxSDK::Graphics::RenderItemVisible_Wireframe);
-                result->wireframeRenderItemSelection.SetCustomMaterial(wireMaterial);
+                    !isGizmo ? MaxSDK::Graphics::RenderItemVisible_Wireframe
+                             : MaxSDK::Graphics::RenderItemVisible_Gizmo);
             }
 
             existingConsolidation->geoms->push_back(result);
@@ -456,8 +484,8 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
                 existingConsolidation->primToGeom[{ input.primPath, input.subsetIndex }].push_back(
                     result);
                 // Flag the render data as part of a consolidated mesh.
-                const auto rdIdx = renderDelegate->GetRenderDataIndex(input.primPath);
-                auto&      renderData = renderDelegate->GetRenderData(rdIdx);
+                const auto rdIdx = renderDelegate->GetMeshRenderDataIndex(input.primPath);
+                auto&      renderData = renderDelegate->GetMeshRenderData(rdIdx);
                 renderData.shadedSubsets[input.subsetIndex].inConsolidation = true;
                 // Track what exactly goes in the consolidation. Important : here we store the index
                 // of the render data in the delegate to speed up access later on. This index can
@@ -479,7 +507,7 @@ HdMaxConsolidator::OutputPtr HdMaxConsolidator::BuildConsolidation(
         for (const auto& rd : renderData) {
             for (int i = 0; i < rd->shadedSubsets.size(); ++i) {
                 existingConsolidation->sourceRenderData.push_back(
-                    { renderDelegate->GetRenderDataIndex(rd->rPrimPath), rd->rPrimPath, i });
+                    { renderDelegate->GetMeshRenderDataIndex(rd->rPrimPath), rd->rPrimPath, i });
             }
         }
     }
@@ -630,14 +658,15 @@ void HdMaxConsolidator::AppendIndexBuffer(int* pDestIdx, UINT* pSrcIdx, int base
 }
 
 void HdMaxConsolidator::ComputeSubsetInfo(
-    const HdMaxRenderData&                                                renderData,
+    const HdMaxMeshRenderData&                                            renderData,
+    const MaxSDK::Graphics::RenderNodeHandle&                             renderNode,
     std::vector<SubsetInfo>&                                              subsetInfos,
     std::vector<std::pair<MaxSDK::Graphics::BaseMaterialHandle, size_t>>& materialTris) const
 {
     subsetInfos.resize(renderData.shadedSubsets.size());
     for (int i = 0; i < renderData.shadedSubsets.size(); ++i) {
         subsetInfos[i].material = renderData.ResolveViewportMaterial(
-            renderData.shadedSubsets[i], config.displaySettings, false);
+            renderData, renderData.shadedSubsets[i], config.displaySettings, renderNode, false);
         subsetInfos[i].numTris = renderData.shadedSubsets[i].indices.size();
     }
     for (const auto& info : subsetInfos) {
@@ -652,6 +681,69 @@ void HdMaxConsolidator::ComputeSubsetInfo(
     }
 }
 
+void HdMaxConsolidator::UnconsolidatePrims(
+    const OutputPtr&                         consolidation,
+    const std::vector<HdMaxMeshRenderData*>& toUnconsolidate)
+{
+    // Collect all paths for quick access, and flag things dirty
+    // as they will no longer be handled by consolidation.
+    std::set<pxr::SdfPath> paths;
+    for (auto& rd : toUnconsolidate) {
+        paths.insert(rd->rPrimPath);
+        for (auto& subset : rd->shadedSubsets) {
+            subset.inConsolidation = false;
+            HdMaxChangeTracker::SetDirty(subset.dirtyBits, HdMaxChangeTracker::AllDirty);
+        }
+        rd->wireframe.inConsolidation = false;
+        HdMaxChangeTracker::SetDirty(rd->wireframe.dirtyBits, HdMaxChangeTracker::AllDirty);
+    }
+
+    // Remove all references in the consolidation object...
+
+    std::vector<PrimSubsetKey>  subsetsToRemove;
+    std::vector<RenderDataInfo> newConsolidatedRenderData;
+    for (const auto& rd : consolidation->consolidatedRenderData) {
+        const auto it = paths.find(rd.primPath);
+        if (it == paths.end()) {
+            newConsolidatedRenderData.push_back(rd);
+            continue;
+        }
+        subsetsToRemove.push_back({ rd.primPath, rd.subsetIdx });
+    }
+    consolidation->consolidatedRenderData = newConsolidatedRenderData;
+
+    std::vector<RenderDataInfo> newSourceRenderData;
+    for (const auto& rd : consolidation->sourceRenderData) {
+        const auto it = paths.find(rd.primPath);
+        if (it == paths.end()) {
+            newSourceRenderData.push_back(rd);
+        }
+    }
+    consolidation->sourceRenderData = newSourceRenderData;
+
+    std::set<ConsolidatedGeomPtr> geomsToRemove;
+    for (const auto& toRemove : subsetsToRemove) {
+        auto it = consolidation->primToGeom.find(toRemove);
+        if (it == consolidation->primToGeom.end()) {
+            DbgAssert(0 && "Consolidated geom subset not found");
+            continue;
+        }
+        for (const auto& geom : it->second) {
+            geomsToRemove.insert(geom);
+        }
+        consolidation->primToGeom.erase(it);
+    }
+
+    ConsolidatedGeomVectorPtr newGeoms = std::make_shared<ConsolidatedGeomVector>();
+    for (auto& geom : *consolidation->geoms) {
+        const auto& it = geomsToRemove.find(geom);
+        if (it == geomsToRemove.end()) {
+            newGeoms->push_back(geom);
+        }
+    }
+    consolidation->geoms = newGeoms;
+}
+
 void HdMaxConsolidator::UpdateVertexBuffers(
     MaxSDK::Graphics::VertexBufferHandleArray&                       toUpdate,
     const std::vector<Input>&                                        inputs,
@@ -662,11 +754,11 @@ void HdMaxConsolidator::UpdateVertexBuffers(
 
     auto getRawBuffer = [](const Input& input, size_t streamIndex) {
         switch (streamIndex) {
-        case HdMaxRenderData::PointsBuffer:
+        case HdMaxMeshRenderData::PointsBuffer:
             return MaxUsd::Vt::GetNoCopy<Point3, pxr::GfVec3f>(input.points);
-        case HdMaxRenderData::NormalsBuffer:
+        case HdMaxMeshRenderData::NormalsBuffer:
             return MaxUsd::Vt::GetNoCopy<Point3, pxr::GfVec3f>(input.normals);
-        case HdMaxRenderData::UvsBuffer:
+        case HdMaxMeshRenderData::UvsBuffer:
             return MaxUsd::Vt::GetNoCopy<Point3, pxr::GfVec3f>(input.uvs);
         }
         return (Point3*)nullptr;
@@ -674,24 +766,24 @@ void HdMaxConsolidator::UpdateVertexBuffers(
 
     auto getBufferSize = [](const Input& input, size_t streamIndex) {
         switch (streamIndex) {
-        case HdMaxRenderData::PointsBuffer: return int(input.points.size());
-        case HdMaxRenderData::NormalsBuffer: return int(input.normals.size());
-        case HdMaxRenderData::UvsBuffer: return int(input.uvs.size());
+        case HdMaxMeshRenderData::PointsBuffer: return int(input.points.size());
+        case HdMaxMeshRenderData::NormalsBuffer: return int(input.normals.size());
+        case HdMaxMeshRenderData::UvsBuffer: return int(input.uvs.size());
         }
         return 0;
     };
 
     auto getIsDirty = [](const Input& input, size_t streamIndex) {
         switch (streamIndex) {
-        case HdMaxRenderData::PointsBuffer:
+        case HdMaxMeshRenderData::PointsBuffer:
             return (input.dirtyBits & HdMaxChangeTracker::DirtyPoints) != 0
                 || (input.dirtyBits & HdMaxChangeTracker::DirtyTransforms) != 0;
-        case HdMaxRenderData::NormalsBuffer:
+        case HdMaxMeshRenderData::NormalsBuffer:
             return (input.dirtyBits & HdMaxChangeTracker::DirtyNormals) != 0
                 || (input.dirtyBits & HdMaxChangeTracker::DirtyTransforms) != 0;
-        case HdMaxRenderData::SelectionBuffer:
+        case HdMaxMeshRenderData::SelectionBuffer:
             return (input.dirtyBits & HdMaxChangeTracker::DirtySelectionHighlight) != 0;
-        case HdMaxRenderData::UvsBuffer:
+        case HdMaxMeshRenderData::UvsBuffer:
             return (input.dirtyBits & HdMaxChangeTracker::DirtyUvs) != 0;
         }
         return false;
@@ -773,7 +865,7 @@ void HdMaxConsolidator::UpdateVertexBuffers(
                     // Fetch the source buffer data, except for the selection buffer, we just need
                     // to look at the selection flags of the input to know if we should fill in the
                     // selection buffer with ones or zeros in the output consolidated mesh.
-                    if (bufferIndex != HdMaxRenderData::SelectionBuffer) {
+                    if (bufferIndex != HdMaxMeshRenderData::SelectionBuffer) {
                         // Some buffers may not exist (uvs may not be loaded).
                         srcBuffer = getRawBuffer(inputs[i], bufferIndex);
                         if (!srcBuffer) {
@@ -798,7 +890,7 @@ void HdMaxConsolidator::UpdateVertexBuffers(
                         // Special case for selection - there is no source vertex buffer, in
                         // non-consolidated geometry, we do not need one in the prim render data, we
                         // just need a flag.
-                        if (bufferIndex == HdMaxRenderData::SelectionBuffer) {
+                        if (bufferIndex == HdMaxMeshRenderData::SelectionBuffer) {
                             const bool highlight = inputs[i].selection[k];
                             const auto selectionValue
                                 = highlight ? Point3(1, 1, 1) : Point3(0, 0, 0);
@@ -832,11 +924,11 @@ void HdMaxConsolidator::UpdateVertexBuffers(
                                     }
 
                                     // Points, need to bake the transform.
-                                    if (bufferIndex == HdMaxRenderData::PointsBuffer) {
+                                    if (bufferIndex == HdMaxMeshRenderData::PointsBuffer) {
                                         inputDestBuffer[v] = srcBuffer[v] * transform;
                                     }
                                     // Normal, transform the vector
-                                    else if (bufferIndex == HdMaxRenderData::NormalsBuffer) {
+                                    else if (bufferIndex == HdMaxMeshRenderData::NormalsBuffer) {
                                         inputDestBuffer[v]
                                             = VectorTransform(transform, srcBuffer[v]);
                                         const float lenSq = LengthSquared(inputDestBuffer[v]);
@@ -858,7 +950,7 @@ void HdMaxConsolidator::UpdateVertexBuffers(
 
     // If selection is dirty, update the hasSelectionHighlight flag, this allows the caller to pass
     // in the last value it had for it, and use the value as is after the call.
-    if (fullUpdate || dirtyBuffers[HdMaxRenderData::SelectionBuffer]) {
+    if (fullUpdate || dirtyBuffers[HdMaxMeshRenderData::SelectionBuffer]) {
         hasSelectionHighlight = foundSelectionHighlight;
     }
 }
@@ -869,8 +961,8 @@ void HdMaxConsolidator::Reset()
     // consolidated as dirty again, as we are not handling it anymore.
     for (const auto& consolidation : consolidationCache) {
         for (const auto& renderDataInfo : consolidation.second->sourceRenderData) {
-            auto& renderData
-                = renderDelegate->SafeGetRenderData(renderDataInfo.index, renderDataInfo.primPath);
+            auto& renderData = renderDelegate->SafeGetMeshRenderData(
+                renderDataInfo.index, renderDataInfo.primPath);
             if (renderData.rPrimPath.IsEmpty()) {
                 // Render data that was previously consolidated no longer exists (deactivated
                 // maybe).
@@ -908,9 +1000,10 @@ void HdMaxConsolidator::GetConsolidatedPrimSubsets(
 }
 
 void HdMaxConsolidator::UpdateConsolidation(
-    const std::vector<HdMaxRenderData*>& renderData,
-    const pxr::UsdTimeCode&              previousTime,
-    const pxr::UsdTimeCode&              newTime)
+    const std::vector<HdMaxMeshRenderData*>&  renderData,
+    const MaxSDK::Graphics::RenderNodeHandle& renderNode,
+    const pxr::UsdTimeCode&                   previousTime,
+    const pxr::UsdTimeCode&                   newTime)
 {
     const auto it = consolidationCache.find(previousTime);
     if (it == consolidationCache.end()) {
@@ -927,12 +1020,20 @@ void HdMaxConsolidator::UpdateConsolidation(
     // if so, if it can be updated.
     struct PrimConsolidationData
     {
-        HdMaxRenderData* primRenderData;
-        std::vector<int> consolidatedSubsets;
+        HdMaxMeshRenderData* primRenderData;
+        std::vector<int>     consolidatedSubsets;
     };
     std::vector<PrimConsolidationData> dirtyConsolidatedData;
     bool                               consolidationIsDirty = false;
     bool                               breakConsolidation = false;
+
+    // Special case for gizmos - gizmos are rendered in a different pass, and we cannot
+    // use on them the custom shading that allows us to display selection highlighting
+    // of subsets of consolidated meshes without breaking consolidation. For gizmos, we
+    // have no choice but to break. Luckily, gizmos are generally very light weight
+    // meshes so re-consolidating is quite fast. Remove them from consolidation, but keep
+    // the rest of the consolidation intact.
+    bool breakGizmoConsolidation = false;
 
     // Keep track of how many of the prims we need to render are in the existing consolidation, if
     // prims which are part of the consolidation are no longer required (for example they were
@@ -952,8 +1053,6 @@ void HdMaxConsolidator::UpdateConsolidation(
             if (data.dirtyBits == HdMaxChangeTracker::Clean) {
                 continue;
             }
-
-            consolidatedSubsets.push_back(i);
 
             // Data is dirty, and not in dynamic mode, break.
             if (previousTime != newTime && config.strategy != Strategy::Dynamic) {
@@ -975,6 +1074,18 @@ void HdMaxConsolidator::UpdateConsolidation(
                           | HdMaxChangeTracker::DirtyVisibility
                           | HdMaxChangeTracker::DirtyMaterial);
 
+            // Gizmo selection special case - see the comment for "breakGizmoConsolidation".
+            bool gizmoSelectionDirty
+                = primData->isGizmo
+                && HdMaxChangeTracker::CheckDirty(
+                      data.dirtyBits, HdMaxChangeTracker::DirtySelectionHighlight);
+            breakGizmoConsolidation = breakGizmoConsolidation || gizmoSelectionDirty;
+            if (gizmoSelectionDirty) {
+                continue;
+            }
+
+            consolidatedSubsets.push_back(i);
+
             if (breakConsolidation) {
                 break;
             }
@@ -994,14 +1105,27 @@ void HdMaxConsolidator::UpdateConsolidation(
         return;
     }
 
+    // Remove gizmos from consolidation.
+    if (breakGizmoConsolidation) {
+        std::vector<HdMaxMeshRenderData*> toUnconsolidate;
+        for (auto& rd : renderData) {
+            if (rd->isGizmo) {
+                toUnconsolidate.push_back(rd);
+            }
+        }
+        UnconsolidatePrims(currentConsolidation, toUnconsolidate);
+    }
+
     // Do the update...
     if (consolidationIsDirty) {
         std::unordered_map<MaxSDK::Graphics::Identifier, int> updateMap {};
         for (const auto& primData : dirtyConsolidatedData) {
             for (int i = 0; i < primData.consolidatedSubsets.size(); ++i) {
                 auto material = primData.primRenderData->ResolveViewportMaterial(
+                    *primData.primRenderData,
                     primData.primRenderData->shadedSubsets[primData.consolidatedSubsets[i]],
                     config.displaySettings,
+                    renderNode,
                     false);
                 updateMap[material.GetObjectID()]++;
             }
@@ -1024,7 +1148,7 @@ void HdMaxConsolidator::UpdateConsolidation(
             // subsets use the same materials.
             std::vector<SubsetInfo>                                              subsetInfos;
             std::vector<std::pair<MaxSDK::Graphics::BaseMaterialHandle, size_t>> materialTris;
-            ComputeSubsetInfo(*primData.primRenderData, subsetInfos, materialTris);
+            ComputeSubsetInfo(*primData.primRenderData, renderNode, subsetInfos, materialTris);
 
             for (int i = 0; i < primData.consolidatedSubsets.size(); i++) {
                 auto subsetIdx = primData.consolidatedSubsets[i];
@@ -1041,8 +1165,10 @@ void HdMaxConsolidator::UpdateConsolidation(
                 std::vector<Input> inputs;
                 GenerateInputs(primData.primRenderData, subsetIdx, numTriWithSameMaterial, inputs);
                 auto mat = primData.primRenderData->ResolveViewportMaterial(
+                    *primData.primRenderData,
                     primData.primRenderData->shadedSubsets[primData.consolidatedSubsets[i]],
                     config.displaySettings,
+                    renderNode,
                     false);
                 for (const auto& input : inputs) {
                     updateData[mat.GetObjectID()].push_back(input);
@@ -1077,7 +1203,10 @@ HdMaxConsolidator::ConsolidatedGeom::GetRenderItem(bool wireframe)
         if (hasActiveSelection) {
             return wireframeRenderItemSelection;
         }
-        return wireframeRenderItem;
+        if (wireframeRenderItem.IsValid()) {
+            return wireframeRenderItem;
+        }
+        return wireGizmoRenderItem;
     }
 
     if (hasActiveSelection) {

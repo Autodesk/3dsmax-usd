@@ -21,52 +21,52 @@
 class DllDirInternal : public DllDir
 {
 public:
-    // Instantiated as a member of class App
-    CoreExport DllDirInternal();
-    CoreExport ~DllDirInternal();
+	// Instantiated as a member of class App
+	CoreExport DllDirInternal();
+	CoreExport ~DllDirInternal();
 
-    /** Unloads every plug-in DLL 3ds Max has loaded; for internal use only
-            Note that plug-ins should not be calling this method as unloading plug-in dlls
-            is only supported after the scene has been destroyed. */
-    CoreExport void UnloadAllDlls();
+	/** Unloads every plug-in DLL 3ds Max has loaded; for internal use only
+		Note that plug-ins should not be calling this method as unloading plug-in dlls
+		is only supported after the scene has been destroyed. */
+	CoreExport void UnloadAllDlls();
 
-    /** Unloads the DlLDesc at the specified index */
-    void UnloadADll(int dllIndex);
+	/** Unloads the DlLDesc at the specified index */
+	void UnloadADll(int dllIndex);
 
-    // The following methods are used only in core
-    /** Registers a DllDesc with the DllDir.
-    \param loadedDllDesc - The DllDesc to register. It's supposed to be loaded.
-    \return The index into DllDir where the DllDesc got registered. */
-    int RegisterLoadedDllDesc(const DllDesc* loadedDllDesc);
+	// The following methods are used only in core
+	/** Registers a DllDesc with the DllDir. 
+	\param loadedDllDesc - The DllDesc to register. It's supposed to be loaded.
+	\return The index into DllDir where the DllDesc got registered. */
+	int RegisterLoadedDllDesc(const DllDesc* loadedDllDesc);
 
-    /** Replaces a deferred DllDesc with its loaded counterpart.
-    \param loadedDllDesc - The DllDesc used to resolve the deferred one. It's supposed to be loaded.
-    \param deferredDllIndex - The DllDir index of the DllDesc to be resolved
-    \return true if the DllDesc was resolved, false otherwise. */
-    bool ResolveDeferredDllDesc(const DllDesc* loadedDllDesc, int deferredDllIndex);
+	/** Replaces a deferred DllDesc with its loaded counterpart. 
+	\param loadedDllDesc - The DllDesc used to resolve the deferred one. It's supposed to be loaded.
+	\param deferredDllIndex - The DllDir index of the DllDesc to be resolved
+	\return true if the DllDesc was resolved, false otherwise. */
+	bool ResolveDeferredDllDesc(const DllDesc* loadedDllDesc, int deferredDllIndex);
 
-    /** Registers a DllDesc that represents a plug-in Dll proxy.
-    \param filePath The full path of the plug-in Dll
-    \param description The description string of the plug-in Dll
-    \param lastWriteTime The time and date of last modification of the plug-in Dll
-    \return The DllDir index where the DllDesc was registered. */
-    int RegisterDeferredDllDesc(
-        const MaxSDK::Util::Path& filePath,
-        const MCHAR*              description,
-        const FILETIME&           lastWriteTime);
+	/** Registers a DllDesc that represents a plug-in Dll proxy.
+	\param filePath The full path of the plug-in Dll
+	\param description The description string of the plug-in Dll
+	\param lastWriteTime The time and date of last modification of the plug-in Dll
+	\return The DllDir index where the DllDesc was registered. */
+	int RegisterDeferredDllDesc(
+		const MaxSDK::Util::Path& filePath, 
+		const MCHAR* description, 
+		const FILETIME& lastWriteTime);
 
-    /** Finds a DllDesc based on the plug-in DLL's file name and description string.
-    A plug-in DLL is considered to be identified uniquely by its file name and description.
-    For example, if a plug-in dll has two copies 	in two different folders, they
-    are considered the same from the plug-in DLL registry's 	point of view and only
-    one of them is loaded. If the description of the two plug-in dlls differs, then
-    both will be loaded, but only the classes from one of them will get registered
-    if they both expose classes that have the same class ids.
-    \param fileName - the file name of the plug-in whose DllDesc to find
-    \param description - the description of the plug-in whose DllDesc to find
-    \return -1 if no DllDesc is found, otherwise the index in the DllDir of the found DllDesc.	 */
-    int FindDllDesc(const MCHAR* fileName, const MCHAR* description) const;
+	/** Finds a DllDesc based on the plug-in DLL's file name and description string.
+	A plug-in DLL is considered to be identified uniquely by its file name and description.
+	For example, if a plug-in dll has two copies 	in two different folders, they 
+	are considered the same from the plug-in DLL registry's 	point of view and only 
+	one of them is loaded. If the description of the two plug-in dlls differs, then
+	both will be loaded, but only the classes from one of them will get registered
+	if they both expose classes that have the same class ids.
+	\param fileName - the file name of the plug-in whose DllDesc to find
+	\param description - the description of the plug-in whose DllDesc to find
+	\return -1 if no DllDesc is found, otherwise the index in the DllDir of the found DllDesc.	 */
+	int FindDllDesc(const MCHAR* fileName, const MCHAR* description) const;
 
-    /** Singleton access */
-    static DllDirInternal& GetInstance();
+	/** Singleton access */
+	static DllDirInternal& GetInstance();
 };

@@ -18,12 +18,10 @@
 
     <!-- HasImportedCommonProps is used as a flag to tell propertysheets or vcxproj inheriting from that the 3dsmax.common.settings.props has already been imported before. Propersheets importing this can use to flag to ignore importing a duplicate of this props and avoid the MSB4011 warning during compilation -->
     <HasImportedCommonProps>1</HasImportedCommonProps>
-    <VersionTarget Condition="'$(VersionTarget)'==''">2025</VersionTarget>    
+    <VersionTarget Condition="'$(VersionTarget)'==''">2025</VersionTarget>
     <BuildDir>$(RepoRootDir)build\sample\</BuildDir>    
     <ApplicationPluginsDir>$(BuildDir)\bin\$(Platform)\$(Configuration)\</ApplicationPluginsDir>
-    <PluginsRelDir>ApplicationPlugins\usd-component\Contents\bin\</PluginsRelDir>
-    <SrcDir>$(RepoRootDir)src\</SrcDir> 
-    <PluginSrcDir>$(RepoRootDir)src\sample\$(PluginsRelDir)\</PluginSrcDir>
+    <SrcDir>$(RepoRootDir)src\</SrcDir>
     <ContentsDir>$(ApplicationPluginsDir)$(ProjectName)</ContentsDir>
     <LibDir>$(BuildDir)\lib\$(Platform)\$(Configuration)\$(VersionTarget)\</LibDir>
     <!-- Artifacts location -->
@@ -51,15 +49,15 @@
   </ImportGroup>
   <PropertyGroup>
     <IntDir>$(BuildDir)\obj\$(Platform)\$(Configuration)\$(VersionTarget)\$(ProjectName)\</IntDir>
-	  <MaxPdbDir>$(BuildDir)\lib\$(Platform)\$(Configuration)\$(VersionTarget)</MaxPdbDir>
+    <MaxPdbDir>$(BuildDir)\lib\$(Platform)\$(Configuration)\$(VersionTarget)</MaxPdbDir>
     <IntermediateOutputPath>$(IntDir)</IntermediateOutputPath>
     <OutDir>$(ContentsDir)\bin\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>SPDLOG_WCHAR_TO_UTF8_SUPPORT;SPDLOG_WCHAR_FILENAMES;FMT_HEADER_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SpdLogInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-	  <LanguageStandard Condition="'$(VersionTarget)'&gt;='2026'">stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SpdlogInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard Condition="'$(VersionTarget)'&gt;='2026'">stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>

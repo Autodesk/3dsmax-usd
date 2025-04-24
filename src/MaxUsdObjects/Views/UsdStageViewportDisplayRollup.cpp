@@ -31,7 +31,6 @@ UsdStageViewportDisplayRollup::UsdStageViewportDisplayRollup(
 {
     SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
 
-
     ui->setupUi(this);
     modelObj = static_cast<USDStageObject*>(&owner);
 
@@ -50,6 +49,11 @@ UsdStageViewportDisplayRollup::UsdStageViewportDisplayRollup(
     ui->PointInstancesDrawMode->addItem(tr("Default"), 0);
     ui->PointInstancesDrawMode->addItem(tr("Cards (Box)"), 1);
     ui->PointInstancesDrawMode->addItem(tr("Cards (Cross)"), 2);
+
+    // No support for light gizmos in versions using USD < 0.23.11.
+#if PXR_VERSION < 2311
+    ui->LightGizmos->setHidden(true);
+#endif
 }
 
 UsdStageViewportDisplayRollup::~UsdStageViewportDisplayRollup() { }

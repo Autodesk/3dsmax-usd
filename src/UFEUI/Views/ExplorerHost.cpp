@@ -44,6 +44,10 @@ public:
     QPointer<QMenuBar>    m_MenuBar;
     QPointer<TabWidget>   m_TabWidget;
 
+    // True if we are in the middle of a programmatic tab close.
+    // Used to differentiate from closing tabs from the X button in the UI.
+    bool m_InProgrammaticTabClose = false;
+
     Q_DECLARE_PUBLIC(ExplorerHost);
     ExplorerHost* q_ptr;
 
@@ -103,14 +107,23 @@ ExplorerHost::ExplorerHost(QMainWindow* parent, Qt::WindowFlags windowFlags)
     }
 
     // Connect the close (X) button on tabs.
-    connect(d->m_TabWidget, &QTabWidget::tabCloseRequested, [this](int index) {
+    connect(d->m_TabWidget, &QTabWidget::tabCloseRequested, this, [this](int index) {
         Q_D(ExplorerHost);
         if (d->m_TabWidget) {
             const auto widget = d->m_TabWidget->widget(index);
             d->m_TabWidget->removeTab(index);
+
+            ExplorerClosedNotification closedNotification(
+                static_cast<Explorer*>(widget), !d->m_InProgrammaticTabClose);
+            notify(closedNotification);
+
             widget->deleteLater();
         }
     });
+
+    if (d->m_TabWidget->tabBar()) {
+        d->m_TabWidget->tabBar()->installEventFilter(this);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -165,7 +178,10 @@ void ExplorerHost::closeExplorer(const Ufe::Path& rootItemPath)
     if (tabIdx < 0) {
         return;
     }
+
+    d->m_InProgrammaticTabClose = true;
     d->m_TabWidget->tabCloseRequested(tabIdx);
+    d->m_InProgrammaticTabClose = false;
 }
 
 // -----------------------------------------------------------------------------
@@ -200,6 +216,16 @@ std::vector<Explorer*> ExplorerHost::explorers() const
         }
     }
     return explorers;
+}
+
+bool ExplorerHost::eventFilter(QObject* watched, QEvent* event)
+{
+    Q_D(ExplorerHost);
+    if (event->type() == QEvent::Type::Wheel && d->m_TabWidget
+        && watched == d->m_TabWidget->tabBar()) {
+        return true;
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 } // namespace UfeUi

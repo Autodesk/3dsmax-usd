@@ -15,6 +15,8 @@
 #
 
 import sys
+import ufe
+
 if sys.version_info.major == 3 and sys.version_info.minor == 11:
     try:
         import shiboken6
@@ -41,8 +43,8 @@ else:
     del _maxUsd
 del Tf
 
-__version__ = "0.9.0"
-__version_info__ = (0, 9, 0, "", "")
+__version__ = "0.10.0"
+__version_info__ = (0, 10, 0, "", "")
 
 class AnimatedAttributeHelper:
     """Helper class to import prim attributes that may or not be animated"""
@@ -63,3 +65,35 @@ class AnimatedAttributeHelper:
             else:
                 return self.setter(value, usdTimeCode, maxFrame)
         return AssignAttributeValue
+
+# Monkey patch the UFE command manager to support boost python commands
+# for the ufe.UndoableCommandMgr.
+class UfeCmdWrapper(ufe.UndoableCommand):
+    def __init__(self, cmd):
+        super(UfeCmdWrapper, self).__init__()
+        self.cmd = cmd
+
+    def execute(self):
+        self.cmd.execute()
+        
+    def undo(self):
+        self.cmd.undo()
+        
+    def redo(self):
+        self.cmd.redo()
+        
+    def commandString(self):
+        return self.cmd.commandString()
+
+def decorator(func):
+    def wrapper(*args, **kwargs):
+        args_list = list(args)
+        wrapperCmd = UfeCmdWrapper(args_list[1])
+        # Keep a reference in the original command, match it's lifetime.
+        args_list[1]._ufeCmdWrapper = wrapperCmd
+        args_list[1] = wrapperCmd
+        result = func(*args_list, **kwargs)
+        return result
+    return wrapper
+
+ufe.UndoableCommandMgr.executeCmd = decorator(ufe.UndoableCommandMgr.executeCmd)

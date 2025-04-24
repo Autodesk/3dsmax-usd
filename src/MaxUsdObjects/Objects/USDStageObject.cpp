@@ -16,17 +16,22 @@
 #include "USDStageObject.h"
 
 #include "CreateCallbacks/CreateAtPosition.h"
+#include "RenderDelegate/HdMaxMeshRenderData.h"
 #include "USDStageObjectIcon.h"
 #include "USDStageObjectclassDesc.h"
 #include "USDTransformControllers.h"
 #include "UsdCameraObject.h"
 
 #include <MaxUsdObjects/DLLEntry.h>
+#include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
+#include <MaxUsdObjects/LayerEditor/MaxLayerEditorWindow.h>
+#include <MaxUsdObjects/LayerEditor/USDLayerManager.h>
 #include <MaxUsdObjects/MaxUsdUfe/MaxUfeUndoableCommandMgr.h>
 #include <MaxUsdObjects/MaxUsdUfe/QmaxUsdUfeAttributesWidget.h>
 #include <MaxUsdObjects/MaxUsdUfe/StageObjectMap.h>
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 #include <MaxUsdObjects/Objects/SubobjectManips.h>
+#include <MaxUsdObjects/QmaxUsdPythonWidget.h>
 #include <MaxUsdObjects/USDAssetAccessor.h>
 #include <MaxUsdObjects/USDExplorer.h>
 #include <MaxUsdObjects/USDPickingRenderer.h>
@@ -37,6 +42,8 @@
 #include <UFEUI/ReplaceSelectionCommand.h>
 
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
+#include <MaxUsd/Utilities/HydraUtils.h>
+#include <MaxUsd/Utilities/ListenerUtils.h>
 #include <MaxUsd/Utilities/MathUtils.h>
 #include <MaxUsd/Utilities/MeshUtils.h>
 #include <MaxUsd/Utilities/MxsUtils.h>
@@ -45,10 +52,16 @@
 #include <MaxUsd/Utilities/ScopeGuard.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
+#include <MaxUsd/Utilities/UiUtils.h>
 
+#include <UsdLayerEditor/layerLocking.h>
+#include <UsdLayerEditor/layerMuting.h>
+#include <UsdLayerEditor/layers.h>
 #include <usdUfe/ufe/UsdSceneItem.h>
 #include <usdUfe/utils/loadRules.h>
 
+#include <pxr/base/plug/plugin.h>
+#include <pxr/base/plug/registry.h>
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usd/modelAPI.h>
@@ -75,8 +88,14 @@
 #include <IParamm2.h>
 #include <IPathConfigMgr.h>
 #include <QtWidgets/QtWidgets>
+#include <iInstanceMgr.h>
 #include <iparamb2.h>
 #include <irollupsettings.h>
+#include <shiboken.h>
+
+#if MAX_VERSION_MAJOR >= 28
+#include <iEditObjectContextProvider.h>
+#endif
 
 Class_ID USDSTAGEOBJECT_CLASS_ID(0x24ce4724, 0x14d2486b);
 
@@ -87,6 +106,16 @@ constexpr USHORT PRIMVAR_MAPPING_NAME_CHUNK_ID = 200;
 constexpr USHORT PRIMVAR_MAPPING_CHANNELS_CHUNK_ID = 300;
 constexpr USHORT SESSION_LAYER_CHUNK_ID = 400;
 constexpr USHORT PAYLOAD_RULES_CHUNK_ID = 500;
+constexpr USHORT LOCKED_LAYER_IDENTIFIERS_CHUNK_ID = 600;
+constexpr USHORT MUTED_LAYER_IDENTIFIERS_CHUNK_ID = 700;
+constexpr USHORT STAGE_EDIT_TARGET_CHUNK_ID = 800;
+
+// The session layer identifier does not persist, as the layer is anonymous. We need
+// a way to identify it, for example when saving/reloading the edit target to the 3dsmax scene.
+// TODO LE-EXTRACT Save anonymous layers.
+// Once we save anonymous layers and have the remapping behavior in place - use that
+// instead of a special case for the session layer.
+static const std::string SESSION_LAYER_PERSISTANT_ID = "session_layer";
 
 SelectModBoxCMode*  USDStageObject::selectMode = nullptr;
 MoveModBoxCMode*    USDStageObject::moveMode = nullptr;
@@ -94,11 +123,6 @@ RotateModBoxCMode*  USDStageObject::rotateMode = nullptr;
 UScaleModBoxCMode*  USDStageObject::uScaleMode = nullptr;
 NUScaleModBoxCMode* USDStageObject::nuScaleMode = nullptr;
 SquashModBoxCMode*  USDStageObject::squashMode = nullptr;
-
-bool                    USDStageObject::primAttributeRollupOpenStatesLoaded = false;
-std::map<QString, bool> USDStageObject::primAttributeRollupStates;
-std::map<QString, bool> USDStageObject::loadedPrimAttributeRollupStates;
-const QString           USDStageObject::rollupCategory = "USDStageObjectRollups";
 
 void USDStageObject::USDPBAccessor::PreSet(
     PB2Value&       v,
@@ -323,10 +347,12 @@ static USDStageObject::USDPBAccessor pbAccessor;
 // clang-format off
 static FPInterfaceDesc usdStageInterface(
 	IUSDStageProvider_ID, _T("usdStageOps"), 0, GetUSDStageObjectClassDesc(), FP_MIXIN,
-	fnIdReload, _T("Reload"), "Reload the Stage's layers from disk.", TYPE_VOID, 0, 0,
+	fnIdReload, _T("Reload"), "Reload the Stage's layers from disk.", TYPE_VOID, 0, 1,
+            _T("quiet"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
 	fnIdClearSessionLayer, _T("ClearSessionLayer"), "Clears the session layer.", TYPE_VOID, 0, 0,
 	fnIdOpenInUsdExplorer, _T("OpenInUsdExplorer"), "Open the stage in the USD Explorer.", TYPE_VOID, 0, 0,
 	fnIdCloseInUsdExplorer, _T("CloseInUsdExplorer"), "Close the stage in the USD Explorer.", TYPE_VOID, 0, 0,
+        fnIdOpenInUsdLayerEditor, _T("OpenInUsdLayerEditor"), "Open the stage in the USD Layer Editor.", TYPE_VOID, 0, 0,
 	fnIdSetRootLayer, _T("SetRootLayer"), "Sets the USD Stage's root layer and mask", TYPE_VOID, 0, 3,
 		_T("rootLayer"), 0, TYPE_STRING,
 		_T("stageMask"), 0, TYPE_STRING, f_keyArgDefault, _T("/"),
@@ -500,6 +526,10 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 	KindSelection, _M("KindSelection"), TYPE_STRING, P_RESET_DEFAULT, IDS_USDSTAGEOBJECT_ROLL_OUT_KIND_SELECTION,
 		p_default, _T(""),
 		p_end,
+	LightGizmoScale, _M("LightGizmoScale"), TYPE_FLOAT, 0, IDS_USDSTAGEOBJECT_ROLL_OUT_LIGHT_GIZMO_SCALE,
+		p_default, 1.0f,
+		p_range, 0.f, 999999999.f,
+		p_end,
 	p_end
 );
 // clang-format on
@@ -532,6 +562,83 @@ inline std::vector<pxr::TfType> GetAllAncestorSchemaTypes(const pxr::UsdPrim& us
     return result;
 }
 
+inline std::string GetCommonSchemas(
+    const Ufe::Selection&      selection,
+    std::vector<pxr::TfType>&  commonSchemaTypes,
+    std::vector<pxr::TfToken>& commonAppliedSchemas)
+{
+    std::string typeName;
+
+    bool firstOne = true;
+    for (const auto& item : selection) {
+        auto usdPrim = MaxUsd::ufe::ufePathToPrim(item->path());
+        auto schemaTypes = GetAllAncestorSchemaTypes(usdPrim);
+        auto appliedschemas = usdPrim.GetAppliedSchemas();
+        if (firstOne) {
+            commonSchemaTypes = schemaTypes;
+            commonAppliedSchemas = appliedschemas;
+            firstOne = false;
+        } else {
+            // remove from common if not in ancestors
+            commonSchemaTypes.erase(
+                std::remove_if(
+                    commonSchemaTypes.begin(),
+                    commonSchemaTypes.end(),
+                    [&schemaTypes](const auto& it) {
+                        return std::find(schemaTypes.begin(), schemaTypes.end(), it)
+                            == schemaTypes.end();
+                    }),
+                commonSchemaTypes.end());
+            commonAppliedSchemas.erase(
+                std::remove_if(
+                    commonAppliedSchemas.begin(),
+                    commonAppliedSchemas.end(),
+                    [&appliedschemas](const auto& it) {
+                        return std::find(appliedschemas.begin(), appliedschemas.end(), it)
+                            == appliedschemas.end();
+                    }),
+                commonAppliedSchemas.end());
+        }
+    }
+
+    pxr::TfType commonType;
+    if (!commonSchemaTypes.empty()) {
+        commonType = commonSchemaTypes.front();
+    } else if (!commonAppliedSchemas.empty()) {
+        commonType = UsdSchemaRegistry::GetTypeFromName(commonAppliedSchemas.front());
+    }
+    if (commonType) {
+        typeName = UsdSchemaRegistry::IsConcrete(commonType)
+            ? UsdSchemaRegistry::GetSchemaTypeName(commonType).GetString()
+            : commonType.GetTypeName();
+    }
+    return typeName;
+}
+
+bool GetParamBlockBool(IParamBlock2* paramBlock, PBParameterIds id)
+{
+    BOOL     value = false;
+    Interval valid;
+    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
+    return static_cast<bool>(value);
+}
+
+int GetParamBlockInt(IParamBlock2* paramBlock, PBParameterIds id)
+{
+    int      value = 0;
+    Interval valid;
+    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
+    return value;
+}
+
+float GetParamBlockFloat(IParamBlock2* paramBlock, PBParameterIds id)
+{
+    float    value = 0.0;
+    Interval valid;
+    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
+    return value;
+}
+
 } // namespace
 
 FPInterfaceDesc* USDStageObject::GetDesc() { return &usdStageInterface; }
@@ -561,7 +668,7 @@ static void NotifyUnitsChanged(void* param, NotifyInfo* /*info*/)
     usdStageObject->Redraw();
 }
 
-static void NotifyNodeDeleted(void* param, NotifyInfo* info)
+static void NotifyNodePreDeleted(void* param, NotifyInfo* info)
 {
     if (!info->callParam) {
         return;
@@ -576,6 +683,14 @@ static void NotifyNodeDeleted(void* param, NotifyInfo* info)
     usdStageObject->hitTestingCache.erase(deletedNode);
     // Cleanup any cameras associated with this stage object.
     usdStageObject->DeleteCameraNodes(deletedNode);
+
+    // If we are in the process of deleting the last node referencing this
+    // stage object, close the stage in the explorer.
+    INodeTab nodes;
+    IInstanceMgr::GetInstanceMgr()->GetInstances(*deletedNode, nodes);
+    if (nodes.Count() == 1) {
+        USDExplorer::Instance()->CloseStage(usdStageObject);
+    }
 }
 
 static void NotifyNodeCreated(void* param, NotifyInfo* info)
@@ -597,6 +712,26 @@ static void NotifyNodeCreated(void* param, NotifyInfo* info)
     }
 
     usdStageObject->BuildCameraNodes(addedNode);
+}
+
+static void NotifyNodeAdded(void* param, NotifyInfo* info)
+{
+    if (!info->callParam) {
+        return;
+    }
+    const auto addedNode = static_cast<INode*>(info->callParam);
+    const auto usdStageObject = static_cast<USDStageObject*>(param);
+    if (!usdStageObject || addedNode->GetObjectRef() != usdStageObject) {
+        return;
+    }
+
+    // When a node gets added to the scene, open it in explorer if necessary.
+    // When a stage node is deleted, it is removed from the explorer, but if the user
+    // undoes the deletion, it should be reopened (assuming it was open prior to the node
+    // getting deleted).
+    if (GetParamBlockBool(usdStageObject->GetParamBlock(0), IsOpenInExplorer)) {
+        USDExplorer::Instance()->OpenStage(usdStageObject);
+    }
 }
 
 static void NotifyNodePreClone(void* param, NotifyInfo* info)
@@ -640,157 +775,443 @@ static void NotifyNodePostClone(void* param, NotifyInfo* info)
     }
 }
 
-bool GetParamBlockBool(IParamBlock2* paramBlock, PBParameterIds id)
+#if MAX_VERSION_MAJOR >= 28
+class USDStageEditObjectContextProvider : public MaxSDK::IEditObjectContextProvider
 {
-    BOOL     value = false;
-    Interval valid;
-    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
-    return static_cast<bool>(value);
+public:
+    USDStageEditObjectContextProvider(USDStageObject* stageObject)
+        : stageObject(stageObject)
+    {
+    }
+
+    BOOL GetEditObjContext(MSTR& context) override
+    {
+        return stageObject->GetEditObjContext(context);
+    }
+
+private:
+    USDStageObject* stageObject = nullptr;
+};
+#else
+std::map<MSTR, std::map<QString, USDStageObject::RollupState>> USDStageObject::rollupStates = {};
+bool USDStageObject::rollupStatesChanged = false;
+bool USDStageObject::rollupStatesLoaded = false;
+
+const USDStageObject::RollupState* USDStageObject::GetRollupState(const QString& rollupTitle) const
+{
+    auto it = rollupStates.find(currentEditObjectContext);
+    if (it != rollupStates.end()) {
+        auto it2 = it->second.find(rollupTitle);
+        if (it2 != it->second.end()) {
+            return &it2->second;
+        }
+    }
+    return nullptr;
 }
 
-int GetParamBlockInt(IParamBlock2* paramBlock, PBParameterIds id)
+void USDStageObject::SetRollupState(const QString& rollupTitle, int category, bool open)
 {
-    int      value = 0;
-    Interval valid;
-    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
-    return value;
+    auto it = rollupStates.find(currentEditObjectContext);
+
+    if (it == rollupStates.end()) {
+        rollupStatesChanged = true;
+        rollupStates[currentEditObjectContext][rollupTitle] = { category, open };
+        return;
+    }
+
+    auto it2 = it->second.find(rollupTitle);
+    if (it2 == it->second.end()) {
+        rollupStatesChanged = true;
+        it->second[rollupTitle] = { category, open };
+        return;
+    }
+
+    if (it2->second.category == category && it2->second.open == open) {
+        return;
+    }
+
+    rollupStatesChanged = true;
+    it2->second.category = category;
+    it2->second.open = open;
 }
 
-float GetParamBlockFloat(IParamBlock2* paramBlock, PBParameterIds id)
+void USDStageObject::LoadRollupStates()
 {
-    float    value = 0.0;
-    Interval valid;
-    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
-    return value;
+    rollupStates.clear();
+
+    TSTR fileName;
+    if (GetCUIFrameMgr()->ResolveReadPath(_T("USDStageObjectRollupOrder.cfg.json"), fileName)) {
+        QFile file(fileName);
+        if (file.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+            if (DbgVerify(doc.isObject())) {
+                auto jsonObj = doc.object();
+                for (auto it = jsonObj.begin(); it != jsonObj.end(); ++it) {
+                    auto context = it.key();
+                    if (!DbgVerify(it.value().isObject())) {
+                        continue;
+                    }
+                    auto contextObj = it.value().toObject();
+                    for (auto it2 = contextObj.begin(); it2 != contextObj.end(); ++it2) {
+                        auto title = it2.key();
+                        if (!DbgVerify(it2.value().isObject())) {
+                            continue;
+                        }
+                        auto stateObj = it2.value().toObject();
+                        auto category = stateObj["category"].toInt();
+                        auto open = stateObj["open"].toBool();
+                        rollupStates[context][title] = { category, open };
+                    }
+                }
+            }
+        }
+        rollupStatesChanged = false;
+    }
+    rollupStatesLoaded = true;
 }
+
+void USDStageObject::SaveRollupStates()
+{
+    if (!rollupStatesChanged) {
+        return;
+    }
+    if (!rollupStatesLoaded) {
+        return;
+    }
+    QJsonObject jsonObj;
+    for (const auto it : rollupStates) {
+        const auto& context = it.first;
+        const auto& states = it.second;
+        QJsonObject contextObj;
+        for (const auto it2 : states) {
+            const auto& title = it2.first;
+            const auto& state = it2.second;
+            contextObj.insert(
+                title, QJsonObject({ { "category", state.category }, { "open", state.open } }));
+        }
+        jsonObj.insert(context, contextObj);
+    }
+    TSTR fileName;
+    if (DbgVerify(GetCUIFrameMgr()->ResolveWritePath(
+            _T("USDStageObjectRollupOrder.cfg.json"), fileName))) {
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            QJsonDocument doc(jsonObj);
+            file.write(doc.toJson());
+            file.close();
+            rollupStatesChanged = false;
+        }
+    }
+}
+
+void USDStageObject::UpdateRollupStates()
+{
+    if (auto pb = GetParamBlockByID(0)) {
+        for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageSelection,
+                            ParamMapID::UsdStageViewportDisplay,
+                            ParamMapID::UsdStageAnimation,
+                            ParamMapID::UsdStageRenderSettings,
+                            ParamMapID::UsdStageViewportPerformance }) {
+            if (auto map = pb->GetMap(mapID)) {
+                if (auto w = map->GetQWidget()) {
+                    if (auto rollup
+                        = w ? dynamic_cast<MaxSDK::QmaxRollup*>(w->parentWidget()) : nullptr) {
+                        SetRollupState(rollup->title(), rollup->category(), rollup->isOpen());
+                    }
+                }
+            }
+        }
+    }
+
+    for (const auto& w : primAttributeWidgets) {
+        if (auto rollup = w ? dynamic_cast<MaxSDK::QmaxRollup*>(w->parentWidget()) : nullptr) {
+            SetRollupState(rollup->title(), rollup->category(), rollup->isOpen());
+        }
+    }
+}
+
+bool USDStageObject::InjectRollupState(
+    const MSTR& rollupTitle,
+    int         category,
+    bool        open,
+    int&        oldCategory,
+    bool&       oldOpen)
+{
+    bool touched = false;
+    auto sid = SuperClassID();
+    auto cid = ClassID();
+
+    oldCategory = ROLLUP_CAT_STANDARD;
+    oldOpen = open;
+
+    auto catReg = GetIRollupSettings()->GetCatReg();
+#if MAX_VERSION_MAJOR >= 26
+    auto catReg2 = dynamic_cast<ICatRegistry2*>(catReg);
+    if (catReg2) {
+        // get the old category and open state
+        oldCategory = catReg2->GetCat(sid, cid, rollupTitle, -1000, &oldOpen);
+        if (oldCategory != -1000) {
+            if (oldOpen != open || oldCategory != category) {
+                touched = true;
+                catReg2->UpdateCat(sid, cid, rollupTitle, category, open);
+            }
+        }
+    } else {
+#else
+    oldCategory = catReg->GetCat(sid, cid, rollupTitle, -1000);
+    if (oldCategory != -1000) {
+        if (oldCategory != category) {
+            touched = true;
+            catReg->UpdateCat(sid, cid, rollupTitle, category);
+        }
+    }
+#endif // MAX_VERSION_MAJOR < 26
+#if MAX_VERSION_MAJOR >= 26
+    }
+#endif // MAX_VERSION_MAJOR >= 26
+    return touched;
+}
+
+void USDStageObject::RestoreRollupState(const MSTR& rollupTitle, int oldCategory, bool oldOpen)
+{
+    auto sid = SuperClassID();
+    auto cid = ClassID();
+    auto catReg = GetIRollupSettings()->GetCatReg();
+#if MAX_VERSION_MAJOR >= 26
+    auto catReg2 = dynamic_cast<ICatRegistry2*>(catReg);
+    if (catReg2) {
+        catReg2->UpdateCat(sid, cid, rollupTitle, oldCategory, oldOpen);
+    } else {
+#else
+    Q_UNUSED(oldOpen);
+    catReg->UpdateCat(sid, cid, rollupTitle, oldCategory);
+#endif // MAX_VERSION_MAJOR < 26
+#if MAX_VERSION_MAJOR >= 26
+    }
+#endif // MAX_VERSION_MAJOR >= 26
+}
+
+#endif // MAX_VERSION_MAJOR >= 28
 
 void USDStageObject::CleanupPrimAttributeWidgets()
 {
     for (const auto& w : primAttributeWidgets) {
-        if (w) {
-            if (!w->property("ignoreRollupOpenState").toBool()) {
-                if (auto rollup = dynamic_cast<MaxSDK::QmaxRollup*>(w->parentWidget())) {
-                    primAttributeRollupStates[rollup->title()] = rollup->isOpen();
-                }
-            }
-
-            if (ip) {
-                ip->DeleteRollupPage(*w);
-            } else {
-                w->deleteLater();
-            }
+        if (auto rollup = w ? dynamic_cast<MaxSDK::QmaxRollup*>(w->parentWidget()) : nullptr) {
+            delete rollup;
         }
     }
     primAttributeWidgets.clear();
 }
 
-void USDStageObject::AdjustAttributeRollupsForSelection()
+void USDStageObject::RemoveAllRollups()
 {
-    // We need to remember the categories aka order of the common rollups,
-    // before removing the ones we won't show (based on the sub-object level and
-    // the current selection).
-    auto sid = this->SuperClassID();
-    auto cid = this->ClassID();
-
-    if (auto rollupSettings = GetIRollupSettings()) {
-        if (auto catReg = rollupSettings->GetCatReg()) {
-            std::vector<std::pair<MaxSDK::QmaxRollup*, int>> default_rollups;
-
-            if (auto pb = this->GetParamBlockByID(0)) {
-                for (auto mapID : { ParamMapID::UsdStageGeneral,
-                                    ParamMapID::UsdStageSelection,
-                                    ParamMapID::UsdStageViewportDisplay,
-                                    ParamMapID::UsdStageAnimation,
-                                    ParamMapID::UsdStageRenderSettings,
-                                    ParamMapID::UsdStageViewportPerformance }) {
-                    if (auto map = pb->GetMap(mapID)) {
-                        if (auto widget = map->GetQWidget()) {
-                            if (auto rollup
-                                = dynamic_cast<MaxSDK::QmaxRollup*>(widget->parentWidget())) {
-                                default_rollups.push_back(
-                                    { rollup,
-                                      catReg->GetCat(
-                                          sid,
-                                          cid,
-                                          rollup->title().toStdWString().c_str(),
-                                          rollup->category()) });
-                                if (mapID != ParamMapID::UsdStageSelection) {
-                                    const bool stageLevel = subObjectLevel == 0;
-                                    rollup->setVisible(stageLevel);
-                                    // The command panel relies on the "sizeHint" of the rollups to
-                                    // calculate on what column to display the rollups. When hidden,
-                                    // the rollups conserves the same sizeHint, therefor, trick QT
-                                    // into returning a (0,0) size hint, by also hiding the widget
-                                    // inside the rollup, and removing margins.
-                                    widget->setVisible(stageLevel);
-                                    static const auto contentMargins = rollup->contentsMargins();
-                                    rollup->setContentsMargins(
-                                        stageLevel ? contentMargins : QMargins { 0, 0, 0, 0 });
-                                }
-                            }
-                        }
-                    }
+    auto cd = static_cast<USDStageObjectclassDesc*>(GetUSDStageObjectClassDesc());
+    if (auto pb = GetParamBlockByID(0)) {
+        for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageSelection,
+                            ParamMapID::UsdStageViewportDisplay,
+                            ParamMapID::UsdStageAnimation,
+                            ParamMapID::UsdStageRenderSettings,
+                            ParamMapID::UsdStageViewportPerformance }) {
+            if (auto map = pb->GetMap(mapID)) {
+                if (cd->RemoveParamMap(map)) {
+                    DestroyCPParamMap2(map);
                 }
             }
-
-            std::stable_sort(
-                default_rollups.begin(), default_rollups.end(), [](const auto& a, const auto& b) {
-                    return a.second < b.second;
-                });
-
-            // Clear all the data - this will remove all the entries for the
-            // current selection as well.
-            catReg->DeleteList(sid, cid);
-
-            // Add the default rollups back in the user-specified order.
-            int category = ROLLUP_CAT_STANDARD;
-
-#if MAX_VERSION_MAJOR >= 26 // 2024+
-            if (auto catReg2 = dynamic_cast<ICatRegistry2*>(catReg)) {
-                for (const auto& r : default_rollups) {
-                    catReg2->UpdateCat(
-                        sid,
-                        cid,
-                        r.first->title().toStdWString().c_str(),
-                        category++,
-                        r.first->isOpen());
-                }
-            } else {
-#endif
-                for (const auto& r : default_rollups) {
-                    catReg->UpdateCat(
-                        sid, cid, r.first->title().toStdWString().c_str(), category++);
-                }
-#if MAX_VERSION_MAJOR >= 26 // 2024+
-            }
-#endif
-            catReg->Save();
         }
     }
 
-    // remove old rollups
     CleanupPrimAttributeWidgets();
+}
 
-    if (subObjectLevel != 0 && ip) {
-        Ufe::Selection filteredSelection;
-        for (const auto& sceneItem : *Ufe::GlobalSelection::get()) {
-            if (sceneItem && sceneItem->path().startsWith(MaxUsd::ufe::getUsdStageObjectPath(this))
-                && !MaxUsd::ufe::isPointInstance(
-                    sceneItem)) // No rollout for point instances for now.
-            {
-                filteredSelection.append(sceneItem);
+void USDStageObject::AddNonPrimAttributeRollups()
+{
+    if (!DbgVerify(ip)) {
+        return;
+    }
+
+    auto cd = static_cast<USDStageObjectclassDesc*>(GetUSDStageObjectClassDesc());
+
+    if (auto pb = GetParamBlockByID(0)) {
+        for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageSelection,
+                            ParamMapID::UsdStageViewportDisplay,
+                            ParamMapID::UsdStageAnimation,
+                            ParamMapID::UsdStageRenderSettings,
+                            ParamMapID::UsdStageViewportPerformance }) {
+            if (subObjectLevel == 0
+                || (mapID == ParamMapID::UsdStageGeneral || mapID == ParamMapID::UsdStageSelection
+                    || mapID == ParamMapID::UsdStageViewportDisplay)) {
+                if (!pb->GetMap(mapID)) {
+                    MSTR rollupTitle;
+                    int  rollupCategory = ROLLUP_CAT_STANDARD;
+                    int  rollupFlags = 0;
+                    auto pb_widget = cd->CreateQtWidget(
+                        *this, *pb, mapID, rollupTitle, rollupFlags, rollupCategory);
+
+                    if (subObjectLevel == 1 && (mapID == ParamMapID::UsdStageViewportDisplay)) {
+                        // 200 rollups should be enough for everyone. :)
+                        rollupCategory += 200;
+                    }
+
+#if MAX_VERSION_MAJOR < 28
+
+                    // inject the category and open state ...
+                    bool open = (rollupFlags & APPENDROLL_CLOSED) == 0;
+
+                    if (auto state = GetRollupState(rollupTitle)) {
+                        rollupCategory = state->category;
+                        open = state->open;
+                        if (state->open) {
+                            rollupFlags &= ~APPENDROLL_CLOSED;
+                        } else {
+                            rollupFlags |= APPENDROLL_CLOSED;
+                        }
+                    }
+
+                    int  oldCategory = ROLLUP_CAT_STANDARD;
+                    bool oldOpen = true;
+                    bool injected = InjectRollupState(
+                        rollupTitle, rollupCategory, open, oldCategory, oldOpen);
+
+#endif // MAX_VERSION_MAJOR < 28
+
+                    // creating the param map with the rollup now will get the
+                    // temporarily injected category and open flag.
+                    auto map = CreateCPParamMap2(
+                        mapID, pb, ip, *pb_widget, rollupTitle, rollupFlags, rollupCategory);
+
+                    cd->AddParamMap(map);
+
+#if MAX_VERSION_MAJOR < 28
+
+                    // restore the old category and open state as it is shared
+                    // between all the contexts/sub selection modes ...
+                    if (injected) {
+                        RestoreRollupState(rollupTitle, oldCategory, oldOpen);
+                    }
+
+#endif // MAX_VERSION_MAJOR < 28
+                }
             }
         }
-        if (filteredSelection.empty()) {
-            return;
+    }
+}
+
+void USDStageObject::AdjustRollupsForSelection()
+{
+    // nothing changed, no need to re-create the rollups.
+    if (subObjectLevel == 0 && currentEditObjectContext == _T("0")) {
+        return;
+    }
+
+    // This is a workaround, and should be removed once the USD plugin loading
+    // code is fixed.
+    // As the loading of the plug-ins is order dependent loading the hdGp plugin
+    // here ensures that the hdGp plugin is loaded after other required plug-ins
+    // have been initialized.
+    // According to the USD documentation, loading a plugin again after it has
+    // been loaded is a no-op, so there should be no performance side effects.
+    try {
+        auto hdGp = pxr::PlugRegistry::GetInstance().GetPluginWithName("hdGp");
+        if (hdGp) { // Doesn't exist in older USD versions.
+            hdGp->Load();
         }
+    } catch (...) {
+        // nothing we can do here, just ignore the exception.
+    }
 
-        // add rollups
-        int category = 10000;
+    Ufe::Selection selection;
+    for (const auto& sceneItem : *Ufe::GlobalSelection::get()) {
+        if (sceneItem && sceneItem->path().startsWith(MaxUsd::ufe::getUsdStageObjectPath(this))
+            && !MaxUsd::ufe::isPointInstance(sceneItem)) // No rollout for point instances for now.
+        {
+            selection.append(sceneItem);
+        }
+    }
 
-        auto w = new QWidget();
+    if (subObjectLevel == 1 && selection.empty() && currentEditObjectContext == _T("1")) {
+        // nothing changed, no need to re-create the rollups.
+        return;
+    }
+
+#if MAX_VERSION_MAJOR < 28
+    UpdateRollupStates();
+#endif
+
+    RemoveAllRollups();
+
+    if (subObjectLevel == 0) {
+        currentEditObjectContext = _T("0");
+        AddNonPrimAttributeRollups();
+        return;
+    }
+
+    if (selection.empty()) {
+        currentEditObjectContext = _T("1");
+        AddNonPrimAttributeRollups();
+        return;
+    }
+
+    std::vector<pxr::TfType>  commonAncestors;
+    std::vector<pxr::TfToken> commonAppliedSchemas;
+    auto commonTypeName = GetCommonSchemas(selection, commonAncestors, commonAppliedSchemas);
+
+    // this needs to be done here to ensure the edit object context is set
+    // before the rollups are added.
+    currentEditObjectContext = MSTR(_T("1-")) + MSTR::FromUTF8(commonTypeName.c_str());
+
+    AddNonPrimAttributeRollups();
+
+    int category = ROLLUP_CAT_STANDARD + 100;
+
+    auto addRollup = [this, &category](std::unique_ptr<QWidget> widget) {
+        if (widget) {
+            int  rollupCategory = category++;
+            auto w = widget.release();
+            MSTR rollupTitle = w->objectName();
+            int  rollupFlags = 0;
+
+            // for older versions of 3dsMax, we need to update the category and
+            // open state to override the default behavior.
+
+#if MAX_VERSION_MAJOR < 28
+            // inject the category and open state ...
+            bool open = (rollupFlags & APPENDROLL_CLOSED) == 0;
+
+            if (auto state = GetRollupState(rollupTitle)) {
+                rollupCategory = state->category;
+                open = state->open;
+                if (state->open) {
+                    rollupFlags &= ~APPENDROLL_CLOSED;
+                } else {
+                    rollupFlags |= APPENDROLL_CLOSED;
+                }
+            }
+
+            int  oldCategory = ROLLUP_CAT_STANDARD;
+            bool oldOpen = true;
+            bool injected
+                = InjectRollupState(rollupTitle, rollupCategory, open, oldCategory, oldOpen);
+#endif // MAX_VERSION_MAJOR < 28
+
+            ip->AddRollupPage(*w, rollupTitle, rollupFlags, rollupCategory);
+            primAttributeWidgets.push_back(w);
+
+#if MAX_VERSION_MAJOR < 28
+            // restore the old category and open state as it is shared between
+            // all the contexts/sub selection modes ...
+            if (injected) {
+                RestoreRollupState(rollupTitle, oldCategory, oldOpen);
+            }
+#endif // MAX_VERSION_MAJOR < 28
+        }
+    };
+
+    // general rollup
+    if (auto w = new QWidget()) {
         auto l = new QGridLayout(w);
-
         auto label = new QLabel(QApplication::translate("USDStageObject", "Name"));
         auto textEdit = new QLineEdit();
         textEdit->setReadOnly(true);
@@ -799,8 +1220,8 @@ void USDStageObject::AdjustAttributeRollupsForSelection()
         l->addWidget(label, 0, 0);
         l->addWidget(textEdit, 0, 1);
 
-        if (filteredSelection.size() == 1) {
-            auto selected_prim = filteredSelection.front();
+        if (selection.size() == 1) {
+            auto selected_prim = selection.front();
             textEdit->setText(QString::fromStdString(selected_prim->nodeName()));
         } else {
             textEdit->setText(QApplication::translate("USDStageObject", "Multiple prims selected"));
@@ -808,7 +1229,7 @@ void USDStageObject::AdjustAttributeRollupsForSelection()
         }
 
         std::unordered_set<std::string> primTypes;
-        for (const auto& prim : filteredSelection) {
+        for (const auto& prim : selection) {
             primTypes.insert(prim->nodeType());
         }
 
@@ -829,128 +1250,99 @@ void USDStageObject::AdjustAttributeRollupsForSelection()
         l->setColumnStretch(0, 1);
         l->setColumnStretch(1, 2);
 
-        ip->AddRollupPage(
-            *w,
-            QApplication::translate("USDStageObject", "General").toStdWString().c_str(),
-            0,
-            category++);
-        primAttributeWidgets.push_back(w);
+        w->setObjectName(QApplication::translate("USDStageObject", "General"));
 
-        std::vector<pxr::TfType> commonAncestors;
-        if (primTypes.size() == 1) {
-            auto usdPrim = MaxUsd::ufe::ufePathToPrim(filteredSelection.front()->path());
-            commonAncestors = GetAllAncestorSchemaTypes(usdPrim);
-        } else {
-            bool firstOne = true;
-            for (const auto& item : filteredSelection) {
-                auto usdPrim = MaxUsd::ufe::ufePathToPrim(item->path());
-                auto ancestors = GetAllAncestorSchemaTypes(usdPrim);
-                if (firstOne) {
-                    commonAncestors = ancestors;
-                    firstOne = false;
-                } else {
-                    // remove from common if not in ancestors
-                    commonAncestors.erase(
-                        std::remove_if(
-                            commonAncestors.begin(),
-                            commonAncestors.end(),
-                            [&ancestors](const auto& it) {
-                                return std::find(ancestors.begin(), ancestors.end(), it)
-                                    == ancestors.end();
-                            }),
-                        commonAncestors.end());
+        addRollup(std::unique_ptr<QWidget>(w));
+    }
+
+    std::set<std::string> handledAttributeNames;
+
+    for (const auto& t : commonAncestors) {
+        auto widget
+            = MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(selection, t, handledAttributeNames);
+        addRollup(std::move(widget));
+    }
+
+    for (const auto& as : commonAppliedSchemas) {
+        const auto& type = pxr::UsdSchemaRegistry::GetTypeFromName(as);
+        addRollup(MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(
+            selection, type, handledAttributeNames));
+    }
+
+    if (selection.size() == 1) {
+
+        // Catch all rollup: Contains any attribute that is not part of a
+        // schema, or that we missed. Only display this rollup on single
+        // selection.
+        const auto usdPrim = MaxUsd::ufe::ufePathToPrim(selection.front()->path());
+
+        // Find all collections and create a rollup for each.
+        // This would be easier with newer usd versions: CollectionAPI:GetAll(),
+        // but iterating over all attributes to support older versions.
+        std::vector<std::string> handledCollections;
+        for (const auto& attr : usdPrim.GetAttributes()) {
+            const auto& name = attr.GetName().GetString();
+            // Attribute is authored and not yet handled, we want it!
+            if (handledAttributeNames.find(name) == handledAttributeNames.end()) {
+
+                std::stringstream        ss(name);
+                std::vector<std::string> splitAttribute;
+                std::string              token;
+
+                // The collection name is in between :'s in the attribute.
+                // For example: collection:lightlink:includeroot
+                while (std::getline(ss, token, ':')) {
+                    splitAttribute.push_back(token);
                 }
-            }
-        }
 
-        std::set<std::string> handledAttributeNames;
+                // only create new widgets for collections that hasn't been handled yet
+                if (splitAttribute.size() > 2 && splitAttribute[0] == "collection"
+                    && std::find(
+                           handledCollections.begin(), handledCollections.end(), splitAttribute[1])
+                        == handledCollections.end()) {
 
-        bool firstOne = true;
+                    if (auto w = MaxUsd::QmaxUsdPythonWidget::create(
+                            selection,
+                            splitAttribute[1],
+                            "",
+                            "usdSharedComponents.maxExtension",
+                            "CreateCollectionWidget",
+                            handledAttributeNames)) {
+                        std::ostringstream stringStream;
+                        auto               prettyName
+                            = QApplication::translate("USDStageObject", "%1 Collection")
+                                  .arg(MaxUsd::Ui::PrettifyName(splitAttribute[1]).c_str());
+                        w->setObjectName(prettyName);
+                        std::unique_ptr<QWidget> widget(w);
+                        addRollup(std::move(widget));
 
-        auto addRollup = [this, &firstOne, &category](std::unique_ptr<QWidget> widget) {
-            if (widget) {
-                auto w = widget.release();
-                auto rollupTitle = w->objectName();
-                int  rollupFlags = 0;
-
-                if (firstOne) {
-                    w->setProperty("ignoreRollupOpenState", true);
-                    firstOne = false;
-                } else {
-                    auto it = primAttributeRollupStates.find(rollupTitle);
-                    if (it != primAttributeRollupStates.end()) {
-                        if (!it->second) {
-                            rollupFlags = APPENDROLL_CLOSED;
-                        }
+                        // add the attribute name as handled
+                        handledAttributeNames.insert(name);
+                        handledCollections.emplace_back(splitAttribute[1]);
                     }
                 }
-
-                ip->AddRollupPage(*w, rollupTitle.toStdWString().c_str(), rollupFlags, category++);
-                primAttributeWidgets.push_back(w);
             }
-        };
+        }
 
-        // Type schemas.
-        for (const auto& t : commonAncestors) {
-            auto widget = MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(
-                filteredSelection, t, handledAttributeNames);
+        std::vector<std::string> extraAttrNames;
+        for (const auto& attr : usdPrim.GetAuthoredAttributes()) {
+            const auto& name = attr.GetName();
+            // Attribute is authored and not yet handled, we want it!
+            if (handledAttributeNames.find(name) == handledAttributeNames.end()) {
+
+                extraAttrNames.push_back(name);
+            }
+        }
+
+        if (auto widget = MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(
+                selection, extraAttrNames, handledAttributeNames)) {
+            widget->setObjectName(QApplication::translate("USDStageObject", "Extra Attributes"));
             addRollup(std::move(widget));
         }
-
-        // Applied schemas.
-        pxr::TfHashSet<pxr::TfToken, pxr::TfToken::HashFunctor> commonAppliedSchemas;
-        bool                                                    firstItem = true;
-        for (const auto& sel : filteredSelection) {
-            auto usdPrim = MaxUsd::ufe::ufePathToPrim(sel->path());
-            auto schemas = usdPrim.GetAppliedSchemas();
-
-            if (firstItem) {
-                for (const auto& schema : schemas) {
-                    commonAppliedSchemas.insert(schema);
-                }
-                firstItem = false;
-                continue;
-            }
-
-            for (const auto& cs : commonAppliedSchemas) {
-                if (std::find(schemas.begin(), schemas.end(), cs) == schemas.end()) {
-                    commonAppliedSchemas.erase(cs);
-                }
-            }
-        }
-        for (const auto& as : commonAppliedSchemas) {
-
-            const auto& type = pxr::UsdSchemaRegistry::GetTypeFromName(as);
-            addRollup(MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(
-                filteredSelection, type, handledAttributeNames));
-        }
-
-        // Catch all rollup, any attribute that not part of a schema, or that we missed.
-        // Only display this rollup on single selection.
-        if (filteredSelection.size() == 1) {
-            const auto usdPrim = MaxUsd::ufe::ufePathToPrim(filteredSelection.front()->path());
-
-            std::vector<std::string> extraAttrNames;
-            for (const auto& attr : usdPrim.GetAuthoredAttributes()) {
-                const auto& name = attr.GetName();
-                // Attribute is authored and not yet handled, we want it!
-                if (handledAttributeNames.find(name) == handledAttributeNames.end()) {
-
-                    extraAttrNames.push_back(name);
-                }
-            }
-
-            if (auto widget = MaxUsd::ufe::QmaxUsdUfeAttributesWidget::create(
-                    filteredSelection, extraAttrNames, handledAttributeNames)) {
-                widget->setObjectName(
-                    QApplication::translate("USDStageObject", "Extra Attributes"));
-                addRollup(std::move(widget));
-            }
-        }
-
-        addRollup(MaxUsd::ufe::QmaxUsdUfeAttributesWidget::createMetaData(
-            filteredSelection, handledAttributeNames));
     }
+
+    addRollup(
+        MaxUsd::ufe::QmaxUsdUfeAttributesWidget::createMetaData(selection, handledAttributeNames));
 }
 
 void USDStageObject::DirtySelectionDisplay() { isSelectionDisplayDirty = true; }
@@ -1004,7 +1396,13 @@ public:
     void operator()(const Ufe::Notification& notification) override
     {
         if (const auto sc = dynamic_cast<const Ufe::SelectionChanged*>(&notification)) {
-            stageObject->AdjustAttributeRollupsForSelection();
+            // It can happen that the selection change is getting received while
+            // the USDStageObjcet is currently not being edited. In this case,
+            // we'll ignore the change.
+            if (stageObject->IsInEditParams()) {
+
+                stageObject->AdjustRollupsForSelection();
+            }
             stageObject->DirtySelectionDisplay();
             stageObject->Redraw();
         }
@@ -1025,14 +1423,15 @@ USDStageObject::USDStageObject()
     // be changing the scene.
     pxr::TfWeakPtr<USDStageObject> me(this);
     onStageChangeNotice = pxr::TfNotice::Register(me, &USDStageObject::OnStageChange);
+    onLayerMutingChangedNotice = pxr::TfNotice::Register(me, &USDStageObject::OnLayerMutingChanged);
 
     RegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
     RegisterNotification(NotifyUnitsChanged, this, NOTIFY_UNITS_CHANGE);
-    RegisterNotification(NotifyNodeDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
+    RegisterNotification(NotifyNodePreDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
     RegisterNotification(NotifyNodeCreated, this, NOTIFY_NODE_CREATED);
+    RegisterNotification(NotifyNodeAdded, this, NOTIFY_SCENE_ADDED_NODE);
     RegisterNotification(NotifyNodePreClone, this, NOTIFY_PRE_NODES_CLONED);
     RegisterNotification(NotifyNodePostClone, this, NOTIFY_POST_NODES_CLONED);
-
     RegisterNotification(
         NotifySelectionHighlightConfigChanged, this, NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED);
 
@@ -1051,10 +1450,11 @@ USDStageObject::~USDStageObject()
 {
     UnRegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
     UnRegisterNotification(NotifyUnitsChanged, this, NOTIFY_UNITS_CHANGE);
-    UnRegisterNotification(NotifyNodeDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
+    UnRegisterNotification(NotifyNodePreDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
     UnRegisterNotification(
         NotifySelectionHighlightConfigChanged, this, NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED);
     UnRegisterNotification(NotifyNodeCreated, this, NOTIFY_NODE_CREATED);
+    UnRegisterNotification(NotifyNodeAdded, this, NOTIFY_SCENE_ADDED_NODE);
     UnRegisterNotification(NotifyNodePreClone, this, NOTIFY_PRE_NODES_CLONED);
     UnRegisterNotification(NotifyNodePostClone, this, NOTIFY_POST_NODES_CLONED);
 
@@ -1065,11 +1465,13 @@ USDStageObject::~USDStageObject()
         stageCacheId = {};
 
         StageObjectMap::GetInstance()->Remove(this);
+        stage = pxr::TfNullPtr;
+
+        BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
     }
 
     pxr::TfNotice::Revoke(onStageChangeNotice);
-    stage = pxr::TfNullPtr;
-
+    pxr::TfNotice::Revoke(onLayerMutingChangedNotice);
     GetISceneEventManager()->UnRegisterCallback(nodeEventCallbackKey);
 }
 
@@ -1125,14 +1527,15 @@ void USDStageObject::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* pre
         nuScaleMode = new NUScaleModBoxCMode(this, ip);
         squashMode = new SquashModBoxCMode(this, ip);
     }
+
+    currentEditObjectContext = _T("0");
     GetUSDStageObjectClassDesc()->BeginEditParams(ip, this, flags, prev);
 
-    if (!primAttributeRollupOpenStatesLoaded) {
-        primAttributeRollupOpenStatesLoaded = true;
-        primAttributeRollupStates = loadedPrimAttributeRollupStates
-            = MaxUsd::OptionUtils::LoadRollupStates(rollupCategory);
+#if MAX_VERSION_MAJOR < 28
+    if (!rollupStatesLoaded) {
+        LoadRollupStates();
     }
-    AdjustAttributeRollupsForSelection();
+#endif
 }
 
 void USDStageObject::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
@@ -1166,29 +1569,17 @@ void USDStageObject::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     }
     GetUSDStageObjectClassDesc()->EndEditParams(ip, this, flags, next);
 
-    CleanupPrimAttributeWidgets();
+#if MAX_VERSION_MAJOR < 28
+    UpdateRollupStates();
+    if (rollupStatesChanged) {
+        SaveRollupStates();
+    }
+#endif
 
+    CleanupPrimAttributeWidgets();
     this->ip = nullptr;
 
     HdMaxDisplayPreferences::GetInstance().Save();
-
-    // Save the rollup states if needed.
-    bool primAttributeRollupStatesChanged = false;
-    if (primAttributeRollupStates.size() == loadedPrimAttributeRollupStates.size()) {
-        for (const auto& it : primAttributeRollupStates) {
-            auto it2 = loadedPrimAttributeRollupStates.find(it.first);
-            if (it2 == loadedPrimAttributeRollupStates.end() || it2->second != it.second) {
-                primAttributeRollupStatesChanged = true;
-                break;
-            }
-        }
-    } else {
-        primAttributeRollupStatesChanged = true;
-    }
-    if (primAttributeRollupStatesChanged) {
-        MaxUsd::OptionUtils::SaveRollupStates(rollupCategory, primAttributeRollupStates);
-        loadedPrimAttributeRollupStates = primAttributeRollupStates;
-    }
 }
 
 void USDStageObject::ClearRenderCache() { renderCache = {}; }
@@ -1274,12 +1665,27 @@ void USDStageObject::GenerateDrawModes()
         return;
     }
 
+    // Collect all point instancers...
+    std::vector<pxr::UsdPrim> instancerPrims;
+    for (pxr::UsdPrim prim : stage->TraverseAll()) {
+        if (!prim.IsA<pxr::UsdGeomPointInstancer>()) {
+            continue;
+        }
+        instancerPrims.push_back(prim);
+    }
+
+    // If no instancers, no need for the sublayer at all.
+    if (instancerPrims.empty()) {
+        return;
+    }
+
     if (!drawModesLayer) {
         drawModesLayer = pxr::SdfLayer::CreateAnonymous(reservedName);
         if (!drawModesLayer) {
             return;
         }
         session->InsertSubLayerPath(drawModesLayer->GetIdentifier());
+        UsdLayerEditor::addSystemLockedLayer(drawModesLayer);
     }
 
     pxr::TfToken drawMode;
@@ -1307,11 +1713,7 @@ void USDStageObject::GenerateDrawModes()
     pxr::UsdEditContext editContext(stage, drawModesLayer);
 
     // Setup draw modes for the prototypes of all instancers in the scene.
-    for (pxr::UsdPrim prim : stage->TraverseAll()) {
-        if (!prim.IsA<pxr::UsdGeomPointInstancer>()) {
-            continue;
-        }
-
+    for (const pxr::UsdPrim& prim : instancerPrims) {
         const auto instancer = pxr::UsdGeomPointInstancer(prim);
 
         pxr::SdfPathVector targets;
@@ -1358,6 +1760,18 @@ void USDStageObject::GenerateDrawModes()
             }
         }
     }
+}
+
+bool USDStageObject::IsInCreateMode() { return isInCreateMode; }
+
+void USDStageObject::SetLockedLayersState(const std::vector<std::string>& lockedLayers)
+{
+    this->lockedLayers = lockedLayers;
+}
+
+void USDStageObject::SetMutedLayersState(const std::vector<std::string>& mutedLayers)
+{
+    this->mutedLayers = mutedLayers;
 }
 
 RefResult USDStageObject::NotifyRefChanged(
@@ -1417,6 +1831,7 @@ RefResult USDStageObject::NotifyRefChanged(
             // changed, clear the bounding box cache.
             ClearBoundingBoxCache();
             Redraw();
+            BroadcastNotification(NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED, this);
             break;
         }
         case MeshMergeMode:
@@ -1458,6 +1873,10 @@ RefResult USDStageObject::NotifyRefChanged(
             GenerateDrawModes();
             Redraw();
         }
+        case LightGizmoScale: {
+            ClearBoundingBoxCache();
+            Redraw();
+        }
         }
         break;
     }
@@ -1484,7 +1903,11 @@ void USDStageObject::ActivateSubobjSel(int level, XFormModes& modes)
         NotifyDependents(FOREVER, PART_SUBSEL_TYPE | PART_DISPLAY, REFMSG_CHANGE);
         GetCOREInterface()->PipeSelLevelChanged();
     }
-    AdjustAttributeRollupsForSelection();
+
+    if (!Ufe::GlobalSelection::get()->empty()) {
+        // only update the rollups if the user made a sub-object selection
+        AdjustRollupsForSelection();
+    }
     DirtySelectionDisplay();
     Redraw();
 }
@@ -2099,6 +2522,15 @@ void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
     this->ForceNotify(valid);
 }
 
+void USDStageObject::OnLayerMutingChanged(pxr::UsdNotice::LayerMutingChanged const& notice)
+{
+    const auto stage = GetUSDStage();
+    if (!stage) {
+        return;
+    }
+    SetMutedLayersState(stage->GetMutedLayers());
+}
+
 void USDStageObject::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp, Box3& box)
 {
     GetLocalBoundBox(t, inode, vp, box);
@@ -2141,6 +2573,16 @@ BaseInterface* USDStageObject::GetInterface(Interface_ID id)
     if (id == IUSDStageProvider_ID) {
         return this;
     }
+
+#if MAX_VERSION_MAJOR >= 28
+    if (id == MaxSDK::IEditObjectContextProvider::ID) {
+        if (!editObjectContextProvider) {
+            editObjectContextProvider.reset(new USDStageEditObjectContextProvider(this));
+        }
+        return editObjectContextProvider.get();
+    }
+#endif
+
     return Object::GetInterface(id);
 }
 
@@ -2156,8 +2598,12 @@ pxr::UsdStageWeakPtr USDStageObject::GetUSDStage() const
 pxr::UsdStageWeakPtr
 USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayloads)
 {
-    const auto camGenerationGuard
-        = MaxUsd::MakeScopeGuard([]() {}, [this]() { BuildCameraNodes(); });
+    const auto scopeGuard = MaxUsd::MakeScopeGuard(
+        []() {},
+        [this]() {
+            BuildCameraNodes();
+            BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
+        });
 
     if (stage) {
         FullStageReset();
@@ -2233,10 +2679,44 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
             // set the payload rules that apply
             stage->SetLoadRules(UsdUfe::createLoadRulesFromText(savedPayloadRules));
         }
+
+        if (!editTargetFromMaxScene.empty()) {
+
+            pxr::SdfLayerHandle targetLayer;
+            // TODO LE-EXTRACT Save anonymous layers.
+            // Once we save anonymous layers and have the remapping behavior in place - use that
+            // instead of a special case for the session layer.
+            if (editTargetFromMaxScene == SESSION_LAYER_PERSISTANT_ID) {
+                targetLayer = stage->GetSessionLayer();
+            } else {
+                targetLayer = UsdLayerEditor::Layers::getLocalTargetLayerFromString(
+                    {}, *stage, editTargetFromMaxScene);
+            }
+
+            if (targetLayer) {
+                stage->SetEditTarget(targetLayer);
+            } else {
+                // Layer no longer exists or is invalid..
+                const auto nodes = MaxUsd::GetReferencingNodes(this);
+                if (nodes.Count() != 0) {
+                    std::string msg = "Unable to restore the saved edit target (";
+                    msg.append(editTargetFromMaxScene);
+                    msg.append(") for USDStageObject ");
+                    msg.append(MaxUsd::MaxStringToUsdString(nodes[0]->GetName()));
+                    MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(msg).ToMCHAR(), true);
+                }
+            }
+            // Clear the string, if the stage object is repurposed with a new root layer, and
+            // reloaded, we do not want to reapply this. Should only be applied once when loading
+            // from disk.
+            editTargetFromMaxScene = {};
+        }
     }
 
-    // Default the target to the session layer.
-    stage->SetEditTarget(stage->GetSessionLayer());
+    // TODO LE-EXTRACT Anonymous layer save - need to map layer renames.
+    UsdLayerEditor::LayerNameMap nameMap;
+    UsdLayerEditor::loadLayerLockState(lockedLayers, nameMap, *stage);
+    UsdLayerEditor::loadLayerMuteState(mutedLayers, nameMap, *stage);
 
     // Insert the stage into the cache, and expose the CacheId so that it is accessible from
     // Maxscript.
@@ -2319,6 +2799,18 @@ void USDStageObject::EnumAuxFiles(AssetEnumCallback& nameEnum, DWORD flags)
 
 IOResult USDStageObject::Save(ISave* iSave)
 {
+    // Ask the USD layer manager to handle the scene save. If there are any dirty USD layers
+    // the users will be prompted about what to do.
+    // The first USD stage in the scene being saved will trigger the save of all dirty layers.
+    // On subsequent stage objects this would be a no-op. The reason is that there is no
+    // clean way to cancel the save operation before we traverse the scene up until the
+    // first object. If the user requests to cancel the save (to be able to deal some dirty layers),
+    // we want to do interupt the save - and do so at the earliest possible time. The stage object
+    // "class" save callback is not suitable, as those are called into last.
+    if (!USDLayerManager::Instance()->HandleMaxSceneSave()) {
+        return IO_INTERRUPT;
+    }
+
     ULONG nb = 0;
 
     // Save the version first - if the saved format changes, we need to know what we are reading..
@@ -2350,7 +2842,8 @@ IOResult USDStageObject::Save(ISave* iSave)
     }
     iSave->EndChunk();
 
-    if (const auto stage = GetUSDStage()) {
+    const auto stage = GetUSDStage();
+    if (stage) {
         // Save the session layer, if it exists.
         if (const auto sessionLayer = stage->GetSessionLayer()) {
             iSave->BeginChunk(SESSION_LAYER_CHUNK_ID);
@@ -2374,6 +2867,38 @@ IOResult USDStageObject::Save(ISave* iSave)
         iSave->WriteWString(MaxUsd::UsdStringToMaxString(savedPayloadRules).ToACP());
         iSave->EndChunk();
     }
+
+    // Save layer lock / mute states.
+    for (auto lockedLayer : lockedLayers) {
+        iSave->BeginChunk(LOCKED_LAYER_IDENTIFIERS_CHUNK_ID);
+        const auto layerId = MaxUsd::UsdStringToMaxString(lockedLayer);
+        iSave->WriteWString(layerId.ToACP());
+        iSave->EndChunk();
+    }
+    for (auto mutedLayer : mutedLayers) {
+        iSave->BeginChunk(MUTED_LAYER_IDENTIFIERS_CHUNK_ID);
+        const auto layerId = MaxUsd::UsdStringToMaxString(mutedLayer);
+        iSave->WriteWString(layerId.ToACP());
+        iSave->EndChunk();
+    }
+
+    // Save the stage's current edit target
+    if (stage) {
+        auto editTarget = UsdLayerEditor::Layers::getLocalTargetLayerAsString(stage);
+        if (!editTarget.empty()) {
+            iSave->BeginChunk(STAGE_EDIT_TARGET_CHUNK_ID);
+            // TODO LE-EXTRACT Save anonymous layers.
+            // Once we save anonymous layers and have the remapping behavior in place - use that
+            // instead of a special case for the session layer.
+            if (editTarget == stage->GetSessionLayer()->GetIdentifier()) {
+                editTarget = SESSION_LAYER_PERSISTANT_ID;
+            }
+            const auto layerId = MaxUsd::UsdStringToMaxString(editTarget);
+            iSave->WriteWString(layerId.ToACP());
+            iSave->EndChunk();
+        }
+    }
+
     return IO_OK;
 }
 
@@ -2418,6 +2943,8 @@ IOResult USDStageObject::Load(ILoad* iLoad)
 
     std::vector<std::string> primvarNames;
     std::vector<int>         primvarChannels;
+    std::vector<std::string> lockedLayers;
+    std::vector<std::string> mutedLayers;
 
     while (IO_OK == (res = iLoad->OpenChunk())) {
         switch (iLoad->CurChunkID()) {
@@ -2489,10 +3016,43 @@ IOResult USDStageObject::Load(ILoad* iLoad)
             savedPayloadRules = MaxUsd::MaxStringToUsdString(payloadRulesRaw);
             break;
         }
+        case LOCKED_LAYER_IDENTIFIERS_CHUNK_ID: {
+            TCHAR*     layerID = NULL;
+            const auto strRes = iLoad->ReadWStringChunk(&layerID);
+            if (strRes != IO_OK) {
+                DbgAssert(0 && _T("Error reading locked layer ID in UsdStageObject."));
+                return strRes;
+            }
+            lockedLayers.push_back(MaxUsd::MaxStringToUsdString(layerID));
+            break;
+        }
+        case MUTED_LAYER_IDENTIFIERS_CHUNK_ID: {
+            TCHAR*     layerID = NULL;
+            const auto strRes = iLoad->ReadWStringChunk(&layerID);
+            if (strRes != IO_OK) {
+                DbgAssert(0 && _T("Error reading muted layer ID in UsdStageObject."));
+                return strRes;
+            }
+            mutedLayers.push_back(MaxUsd::MaxStringToUsdString(layerID));
+            break;
+        }
+        case STAGE_EDIT_TARGET_CHUNK_ID: {
+            TCHAR*     layerID = NULL;
+            const auto strRes = iLoad->ReadWStringChunk(&layerID);
+            if (strRes != IO_OK) {
+                DbgAssert(0 && _T("Error reading edit target layer ID in UsdStageObject."));
+                return strRes;
+            }
+            editTargetFromMaxScene = MaxUsd::MaxStringToUsdString(layerID);
+            break;
+        }
         default: break;
         }
         iLoad->CloseChunk();
     }
+
+    SetLockedLayersState(lockedLayers);
+    SetMutedLayersState(mutedLayers);
 
     // We should always find the same number of names/channels.
     if (primvarNames.size() != primvarChannels.size()) {
@@ -2685,6 +3245,13 @@ void USDStageObject::BuildCameraNodes(INode* stageNode) const
             paramBlock->SetValue(USDCameraParams_PrimPath, 0, pathStr);
 
             auto node = GetCOREInterface()->CreateObjectNode(camera);
+
+            // Use the 3dsMax default camera color.
+            const Point3 defCameraColor = GetUIColor(COLOR_CAMERA_OBJ);
+            Color        tempColor(defCameraColor);
+            const DWORD  wireColor = tempColor.toRGB();
+            node->SetWireColor(wireColor);
+
             paramBlock->SetValue(USDCameraParams_USDStage, 0, stageNode);
 
             camera->Eval(GetCOREInterface()->GetTime());
@@ -2770,6 +3337,7 @@ void USDStageObject::SetupRenderDelegateDisplaySettings(INode* node) const
     displaySettings.SetDisplayMode(
         static_cast<HdMaxDisplaySettings::DisplayMode>(resolvedDisplayModeIndex), tracker);
     displaySettings.SetWireColor(Color(node->GetWireColor()), tracker);
+    displaySettings.SetLightGizmoScale(GetParamBlockFloat(pb, LightGizmoScale));
 }
 
 void USDStageObject::SetPrimvarChannelMappingDefaults()
@@ -2802,6 +3370,8 @@ void USDStageObject::CloseInUsdExplorer()
     USDExplorer::Instance()->CloseStage(this);
     pb->SetValue(IsOpenInExplorer, GetCOREInterface()->GetTime(), FALSE);
 }
+
+void USDStageObject::OpenInUsdLayerEditor() { MaxLayerEditor::Instance()->OpenStage(this); }
 
 const std::string& USDStageObject::GetGuid() const { return guid; }
 
@@ -3108,7 +3678,7 @@ int USDStageObject::HitTest(
 
             // Need to consider hit flags VS selection. This is important for sub-object
             // select/transform to behave correctly.
-            if (!selectAny) {
+            if (GetCOREInterface()->GetSubObjectLevel() != 0 && !selectAny) {
                 const auto& globalSelection = Ufe::GlobalSelection::get();
                 bool        hasHit = false;
                 for (const auto& path : usdHit) {
@@ -3202,6 +3772,12 @@ std::vector<USDPickingRenderer::HitInfo> USDStageObject::PickStage(
 
     const auto stageTransform = GetStageRootTransform() * MaxUsd::ToUsd(node->GetObjectTM(time));
 
+    // Light gizmo scaling (considers user scaling, and units).
+    const auto   userScaling = GetParamBlockFloat(pb, LightGizmoScale);
+    const double usdUnitsPerMeter = pxr::UsdGeomGetStageMetersPerUnit(stage);
+
+    const auto gizmoOffsetMatrix = MaxUsd::GetLightGizmoScaling(userScaling, usdUnitsPerMeter);
+
     auto hits = pickingRenderer->Pick(
         stageTransform,
         camera,
@@ -3213,7 +3789,8 @@ std::vector<USDPickingRenderer::HitInfo> USDStageObject::PickStage(
         GetDisplayPurpose(pxr::TfToken("render")),
         pickTarget,
         ResolveRenderTimeCode(time),
-        excludedPaths);
+        excludedPaths,
+        gizmoOffsetMatrix);
 
     return hits;
 }
@@ -3488,12 +4065,57 @@ void USDStageObject::WireColorChanged(Color newColor)
     }
 }
 
-void USDStageObject::Reload()
+void USDStageObject::Reload(bool quiet)
 {
     const auto stage = GetUSDStage();
     if (!stage) {
         return;
     }
+
+    // If any changes could be lost by the reload operation, warn the user.
+    // Stage reloading ignores the session layer and its sublayers. Look for dirty layers
+    // and anonymous layers (that are cleared on reload), but skip session layers.
+    // The session layer and its sublayers are found before the root layer in the layer stack.
+    const auto localLayers = stage->GetLayerStack();
+    const auto rootIt = std::find(localLayers.begin(), localLayers.end(), stage->GetRootLayer());
+    std::set<SdfLayerHandle> sessionLayers;
+    for (auto it = localLayers.begin(); it < rootIt; ++it) {
+        sessionLayers.insert(*it);
+    }
+
+    bool       warnUser = false;
+    const auto allLayers = stage->GetUsedLayers(true);
+    for (const auto& layer : allLayers) {
+        if (sessionLayers.find(layer) != sessionLayers.end()) {
+            continue;
+        }
+        // Edits will be discarded, and anonymous layers will be cleared.
+        if (layer->IsDirty() || layer->IsAnonymous()) {
+            warnUser = true;
+            break;
+        }
+    }
+
+    if (warnUser && !quiet) {
+        const WStr stageLabel = MaxUsd::UsdStringToMaxString(MaxUsd::Ui::GetStageLabel(stage));
+
+        QString textStr = QObject::tr("Reloading %s will discard edits on all its layers (except "
+                                      "the session layer). This action is irreversible.");
+        WStr    text;
+        text.printf(textStr.toStdWString().c_str(), stageLabel.ToMCHAR());
+
+        QMessageBox msgBox;
+        msgBox.setWindowTitle(QObject::tr("Discard Edits and Reload"));
+        msgBox.setText(text);
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.setDefaultButton(QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText(QObject::tr("Reload"));
+
+        if (msgBox.exec() != QMessageBox::Ok) {
+            return;
+        }
+    }
+
     stage->Reload();
     Redraw();
 }
@@ -3570,8 +4192,11 @@ Box3 USDStageObject::GetStageBoundingBox(
     auto includedPurposes = GetRenderTags();
     includedPurposes.insert(includedPurposes.end(), pxr::UsdGeomTokens->default_);
 
-    std::vector<HdMaxRenderData*> visibleData;
-    hydraEngine->GetRenderDelegate()->GetVisibleRenderData(includedPurposes, visibleData);
+    std::vector<HdMaxMeshRenderData*> visibleData;
+    hydraEngine->GetRenderDelegate()->GetVisibleMeshRenderData(includedPurposes, visibleData);
+    std::vector<HdMaxBasisCurvesRenderData*> visibleCurvesData;
+    hydraEngine->GetRenderDelegate()->GetVisibleBasisCurvesRenderData(
+        includedPurposes, visibleCurvesData);
 
     pxr::GfBBox3d totalBoundingBox;
 
@@ -3579,9 +4204,11 @@ Box3 USDStageObject::GetStageBoundingBox(
     numFaces = 0;
 
     for (const auto data : visibleData) {
+        // if we are in selection mode, we only want to consider the selected prims.
         if (useSel) {
             auto selState
                 = GetHydraEngine()->GetRenderDelegate()->GetSelectionStatus(data->rPrimPath);
+            // if prim is not selected or not fully selected and not instanced data
             if (!selState || (!selState->fullySelected && selState->instanceIndices.empty())) {
                 continue;
             }
@@ -3610,10 +4237,36 @@ Box3 USDStageObject::GetStageBoundingBox(
         totalBoundingBox = pxr::GfBBox3d::Combine(totalBoundingBox, bboxToUse);
     }
 
+    for (const auto curvesData : visibleCurvesData) {
+        if (useSel) {
+            auto selState
+                = GetHydraEngine()->GetRenderDelegate()->GetSelectionStatus(curvesData->rPrimPath);
+            if (!selState || (!selState->fullySelected && selState->instanceIndices.empty())) {
+                continue;
+            }
+        }
+
+        const auto numInstances = std::max(1, int(curvesData->instancer->GetNumInstances()));
+        numVerts += curvesData->sourceNumPoints * numInstances;
+
+        pxr::GfBBox3d bboxToUse;
+        if (curvesData->IsInstanced() && useSel) {
+            bboxToUse = curvesData->instancer->ComputeSelectionBoundingBox(curvesData->extent);
+        } else {
+            bboxToUse = curvesData->boundingBox;
+        }
+
+        const auto& range = bboxToUse.GetRange();
+        if (range.IsEmpty() || range.GetSize().GetLength() > FLT_MAX) {
+            continue;
+        }
+        totalBoundingBox = pxr::GfBBox3d::Combine(totalBoundingBox, bboxToUse);
+    }
+
     auto extent = totalBoundingBox.GetRange();
     if (extent.IsEmpty() && !useSel) {
-        if (visibleData.empty()) {
-            return boundingBox;
+        if (visibleData.empty() && visibleCurvesData.empty()) {
+            return boundingBox; // empty bb if no visible prims
         }
 
         // We prefer to compute the bounding box from the data that is visible. However, it is

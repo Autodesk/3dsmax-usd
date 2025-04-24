@@ -24,6 +24,7 @@ import argparse
 #    2) the help text to display when help is invoked for the current script
 artifact_map = {'maxsdk':('MaxSDK', 'The path location for the \'MaxSDK\' folder.'),
                 'qtinstall':('QtInstall', 'The Qt reference version from QtVsTools (aka \'Qt Installation\').'),
+                'pybind11inc':('PyBind11Inc', 'The path location for the \'pybind11\' include folder.'),
                 'materialx':('MaterialXDir', 'The path location for the 3ds Max MaterialX material plugin folder.'),
                 'googletest':('GoogleTestDir', 'The path location for the \'gtest\' folder.'),
                 'pyopengl':('PyOpenGLDir', 'The path location for the \'OpenGL\' Python module (PyOpenGL).'),
@@ -35,6 +36,8 @@ artifact_map = {'maxsdk':('MaxSDK', 'The path location for the \'MaxSDK\' folder
                 'ufeinc':('UfeInc', 'The path location for the \'Ufe\' include folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'ufelib':('UfeLib', ' The path location for the \'Ufe\' lib folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'usdufe':('UsdUfeDir', 'The path location for the \'UsdUfe\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
+                'usdlayereditor':('UsdLayerEditorDir', 'The path location for the \'UsdLayerEditor\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
+                'usdsharedcomponent':('UsdSharedComponentsDir', 'The path location for the \'usdSharedComponents\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'openusd':('PxrUsdRoot', 'The path location for the \'OpenUSD\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'tbb':('TBBDir', 'The path location for the \'TBB\' folder. If not provided, using the path from the \'OpenUSD\' if the \'openusd\' or \'maxusddevkit\' option is provided.'),
                 'boostinc':('BoostInc', 'The path location for the \'Boost\' include folder. If not provided, using the path from the \'OpenUSD\' if the \'openusd\' or \'maxusddevkit\' option is provided.'),

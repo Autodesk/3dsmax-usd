@@ -52,7 +52,7 @@ def getMtlxLibPath():
 	return mtlxLibPath
 
 def addUsdToolPythonBindingsToPythonPath():
-	usdToolPythonPath = os.path.join(scriptPath, "python-usd-tool-packages")
+	usdToolPythonPath = os.path.join(scriptPath, r"..\tools-site-packages")
 	if os.path.exists(usdToolPythonPath):
 		if not usdToolPythonPath in sys.path:
 			sys.path.insert(0, usdToolPythonPath)

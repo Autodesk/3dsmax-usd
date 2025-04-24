@@ -15,6 +15,7 @@
 //
 #pragma once
 
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/Builders/MaxSceneBuilderOptions.h>
 #include <MaxUsd/MappedAttributeBuilder.h>
 
@@ -39,7 +40,7 @@ public:
      * \brief Sets the stage mask's paths. Only USD prims at or below these paths will be imported.
      * \param paths The mask paths.
      */
-    void SetStageMaskPathsList(const boost::python::list& paths);
+    void SetStageMaskPathsList(const pyboost::list& paths);
 
     /**
      * \brief Returns the export log path.
@@ -57,21 +58,21 @@ public:
      * \brief Return the map of chasers and their respective arguments map
      * \return The map of chasers' arguments
      */
-    boost::python::dict GetAllChaserArgs() const;
+    pyboost::dict GetAllChaserArgs() const;
 
     /**
      * \brief Sets all of the chasers' arguments from a dictionnary.
      * {'chaser' : {'param' : 'val'}}
      * \param args The chasers' args.
      */
-    void SetAllChaserArgsFromDict(boost::python::dict args);
+    void SetAllChaserArgsFromDict(pyboost::dict args);
 
     /**
      * \brief Set all of the chasers' arguments from a list
      * {'chaser', 'param1', 'val', 'chaser2', 'param', 'val'}
      * \param args The chasers' args.
      */
-    void SetAllChaserArgsFromList(boost::python::list args);
+    void SetAllChaserArgsFromList(pyboost::list args);
 
     // PrimvarMappingOptions helpers
     /**
@@ -129,7 +130,7 @@ public:
      * @param args A list of dictionaries, each dictionary is expected to contain two keys,
      * 'materialConversion' and 'mode'
      */
-    void SetShadingModes(boost::python::list args);
+    void SetShadingModes(pyboost::list args);
 
     /**
      * \brief Serialize the options to a Json formatted string.

@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "MaxUsd/Utilities/VtDictionaryUtils.h"
-
 #include <gtest/gtest.h>
+
+#include "MaxUsd/Utilities/VtDictionaryUtils.h"
 
 using namespace MaxUsd;
 
@@ -27,7 +27,7 @@ const std::string SdfPathStr = "SdfPath";
 const std::string vectorSdfPathStr = "vectorSdfPath";
 const std::string setStringStr = "setString";
 
-} // namespace
+}
 
 TEST(VtDictionaryUtilsTest, TestCoerceDictToGuideType)
 {
@@ -37,36 +37,32 @@ TEST(VtDictionaryUtilsTest, TestCoerceDictToGuideType)
     guideDict[stringStr] = std::string(stringStr);
     guideDict[TfTokenStr] = pxr::TfToken(TfTokenStr);
     guideDict[SdfPathStr] = pxr::SdfPath(SdfPathStr);
-    guideDict[vectorSdfPathStr] = std::vector<pxr::SdfPath> { pxr::SdfPath(vectorSdfPathStr) };
-    guideDict[setStringStr] = std::set<std::string> { setStringStr };
+    guideDict[vectorSdfPathStr] = std::vector<pxr::SdfPath>{ pxr::SdfPath(vectorSdfPathStr) };
+    guideDict[setStringStr] = std::set<std::string>{ setStringStr };
 
     // Create the dictionary to be coerced
     pxr::VtDictionary coercedDict;
     // Int assigned to test the coercing of int to double
     coercedDict[doubleStr] = 2;
     // Leave this one out, and make sure later that it's not added to the dict.
-    // coercedDict[stringStr] = stringStr;
+    //coercedDict[stringStr] = stringStr;
     // Test string -> TfToken
     coercedDict[TfTokenStr] = TfTokenStr;
     // Test string -> SdfPath
     coercedDict[SdfPathStr] = SdfPathStr;
     // Test vector<string> -> vector<SdfPath>
-    coercedDict[vectorSdfPathStr] = std::vector<std::string> { vectorSdfPathStr };
+    coercedDict[vectorSdfPathStr] = std::vector<std::string>{ vectorSdfPathStr };
     // Test vector<string> -> set<string>
-    coercedDict[setStringStr] = std::vector<std::string> { setStringStr };
+    coercedDict[setStringStr] = std::vector<std::string>{ setStringStr };
 
     DictUtils::CoerceDictToGuideType(coercedDict, guideDict);
 
     EXPECT_FALSE(pxr::VtDictionaryIsHolding<std::string>(coercedDict, stringStr));
     EXPECT_DOUBLE_EQ(coercedDict[doubleStr].Get<double>(), 2.0);
-    EXPECT_EQ(
-        coercedDict[TfTokenStr].Get<pxr::TfToken>(), guideDict[TfTokenStr].Get<pxr::TfToken>());
-    EXPECT_EQ(
-        coercedDict[SdfPathStr].Get<pxr::SdfPath>(), guideDict[SdfPathStr].Get<pxr::SdfPath>());
-    EXPECT_EQ(
-        coercedDict[vectorSdfPathStr].Get<std::vector<pxr::SdfPath>>(),
-        guideDict[vectorSdfPathStr].Get<std::vector<pxr::SdfPath>>());
-    EXPECT_EQ(
-        coercedDict[setStringStr].Get<std::set<std::string>>(),
-        guideDict[setStringStr].Get<std::set<std::string>>());
+    EXPECT_EQ(coercedDict[TfTokenStr].Get<pxr::TfToken>(), guideDict[TfTokenStr].Get<pxr::TfToken>());
+    EXPECT_EQ(coercedDict[SdfPathStr].Get<pxr::SdfPath>(), guideDict[SdfPathStr].Get<pxr::SdfPath>());
+    EXPECT_EQ(coercedDict[vectorSdfPathStr].Get<std::vector<pxr::SdfPath>>(),
+            guideDict[vectorSdfPathStr].Get<std::vector<pxr::SdfPath>>());
+    EXPECT_EQ(coercedDict[setStringStr].Get<std::set<std::string>>(),
+            guideDict[setStringStr].Get<std::set<std::string>>());
 }

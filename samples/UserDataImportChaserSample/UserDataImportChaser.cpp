@@ -26,7 +26,20 @@
 
 #include <maxscript/mxsplugin/mxsCustomAttributes.h>
 
-#include <boost/tokenizer.hpp>
+// simple tokenizer implementation
+std::vector<std::string> split(std::string str, char delimiter)
+{
+
+    std::vector<std::string> res;
+    size_t                   first;
+    size_t                   last = 0;
+
+    while ((first = str.find_first_not_of(delimiter, last)) != std::string::npos) {
+        last = str.find(delimiter, first);
+        res.push_back(str.substr(first, last - first));
+    }
+    return res;
+}
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -86,19 +99,17 @@ UserDataImportChaserSample::UserDataImportChaserSample(
         = { { PropertyType::USER_PROP, { "myUserProperty" } }, { PropertyType::CUSTOM_DATA, {} } };
 
     // Parsing the specific import chaser arguments
-    boost::char_separator<char> sep(",");
-
     for (const auto& args : context.GetArgs().GetAllChaserArgs()) {
         for (const auto& item : args.second) {
             if (item.first == "user") {
                 dataToImport[PropertyType::USER_PROP].clear();
-                boost::tokenizer<boost::char_separator<char>> tokens(item.second, sep);
+                auto tokens = split(item.second, ',');
                 for (const auto& name : tokens) {
                     dataToImport[PropertyType::USER_PROP].insert(name);
                 }
             } else if (item.first == "custom") {
                 dataToImport[PropertyType::CUSTOM_DATA].clear();
-                boost::tokenizer<boost::char_separator<char>> tokens(item.second, sep);
+                auto tokens = split(item.second, ',');
                 for (const auto& name : tokens) {
                     dataToImport[PropertyType::CUSTOM_DATA].insert(name);
                 }

@@ -17,6 +17,7 @@
 //
 #include "RegistryHelper.h"
 
+#include <BoostPythonWrapper.h>
 #include <MaxUsd/DebugCodes.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 
@@ -227,7 +228,7 @@ void MaxUsd_RegistryHelper::AddUnloader(const std::function<void()>& func, bool 
 {
     if (fromPython) {
         g_pythonUnloaders.emplace_back(func);
-        if (boost::python::import("atexit")
+        if (pyboost::import("atexit")
                 .attr("register")(&PythonUnload, g_pythonUnloaders.size() - 1)
                 .is_none()) {
             TF_CODING_ERROR("Couldn't register unloader to atexit");

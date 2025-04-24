@@ -55,12 +55,7 @@ void MaxUsdEditCommand::execute()
     if (!checkEditTarget()) {
         return;
     }
-
-    try {
-        EditCommand::execute();
-    } catch (const std::exception& ex) {
-        Listener::Write(MaxUsd::UsdStringToMaxString(ex.what()).data(), true);
-    }
+    EditCommand::execute();
 }
 
 void MaxUsdEditCommand::undo()

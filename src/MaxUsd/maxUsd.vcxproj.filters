@@ -277,6 +277,9 @@
     <ClCompile Include="CurveConversion\CurveConverter.cpp">
       <Filter>Source Files\CurveConversion</Filter>
     </ClCompile>
+    <ClCompile Include="Utilities\HydraUtils.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="USDSceneController.h">
@@ -581,6 +584,9 @@
     </ClInclude>
     <ClInclude Include="CurveConversion\CurveConverter.h">
       <Filter>Header Files\CurveConversion</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\HydraUtils.h">
+      <Filter>Header Files\Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

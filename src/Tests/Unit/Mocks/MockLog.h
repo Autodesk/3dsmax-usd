@@ -17,26 +17,23 @@
 
 #include <log.h>
 
-class MockLogSys : public LogSys
-{
-public:
-    virtual void         SetQuietMode(bool quiet) { }
-    virtual bool         GetQuietMode() { return true; }
-    virtual void         SetEnabledMode(bool enabled) { }
-    virtual bool         GetEnabledMode() { return false; }
-    virtual void         SetSessionLogName(const MCHAR* logName) { }
-    virtual const MCHAR* GetSessionLogName() { return L""; }
-    virtual const MCHAR* NetLogName() { return L""; }
 
-    virtual void LogEntry(DWORD type, BOOL dialogue, const MCHAR* title, const MCHAR* format, ...)
-    {
-    }
-    virtual void SaveState(void) { }
-    virtual void LoadState(void) { }
+class MockLogSys : public LogSys {
+public:
+	virtual		void	SetQuietMode(bool quiet) {}
+	virtual		bool	GetQuietMode() { return true; }
+	virtual		void	SetEnabledMode(bool enabled) {}
+	virtual		bool	GetEnabledMode() { return false; }
+	virtual     void	SetSessionLogName(const MCHAR* logName) {}
+	virtual     const MCHAR*	GetSessionLogName() { return L""; }
+	virtual     const   MCHAR*	NetLogName() { return L""; }
+
+	virtual		void	LogEntry(DWORD type, BOOL dialogue, const MCHAR* title, const MCHAR* format, ...) {}
+	virtual		void	SaveState(void) {}
+	virtual		void	LoadState(void) {}
 
 #if MAX_RELEASE >= 26900
-    void
-    LogEntry(DWORD type, BOOL dialogue, const MSTR& title, const wchar_t* format, ...) override { };
-    void LogEntry(DWORD type, BOOL dialogue, const MSTR& title, MSTR format, ...) override { };
+	void LogEntry(DWORD type, BOOL dialogue, const MSTR& title, const wchar_t* format, ...) override {};
+	void LogEntry(DWORD type, BOOL dialogue, const MSTR& title, MSTR format, ...) override {};
 #endif
 };
