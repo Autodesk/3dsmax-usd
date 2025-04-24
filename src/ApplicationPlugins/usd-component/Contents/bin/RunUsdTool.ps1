@@ -56,7 +56,6 @@ else {
   	
 	$IntVer = [int]$version
 	switch ($IntVer) {
-		2022 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\24.0" }
 		2023 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\25.0" }
 		2024 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\26.0" }
 		2025 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\27.0" }
@@ -70,13 +69,7 @@ else {
 	if (Test-Path $registryPath) {
 		$InstallDir = (Get-ItemProperty -Path $registryPath).InstallDir
 		if ($InstallDir) {
-			if ($IntVer -eq 2022) {
-                # 3dsMax 2022 uses a different directory structure for python.
-				$PythonExe = Join-Path -Path $installDir -ChildPath "Python37\python.exe"
-			}
-			else {
-				$PythonExe = Join-Path -Path $installDir -ChildPath "Python\python.exe"
-			}
+			$PythonExe = Join-Path -Path $installDir -ChildPath "Python\python.exe"
 		}
 	}
 

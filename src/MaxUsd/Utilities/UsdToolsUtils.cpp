@@ -37,12 +37,7 @@ std::wstring _getQuotedPythonPath()
     std::wstring pythonExe = pathMgr->GetDir(APP_MAX_SYS_ROOT_DIR);
 #endif
 
-    // Relative path of the python exe has changed in 2023.
-#ifdef IS_MAX2023_OR_GREATER
     pythonExe.append(L"/Python/python.exe");
-#else
-    pythonExe.append(L"/Python37/python.exe");
-#endif
 
     return std::wstring(L"\"") + pythonExe + std::wstring(L"\"");
 }

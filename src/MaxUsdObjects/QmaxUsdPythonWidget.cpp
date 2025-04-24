@@ -17,24 +17,7 @@
 #include "QmaxUsdPythonWidget.h"
 
 #include <autodecref.h>
-#ifdef IS_MAX2022
-#pragma warning(push)
-#pragma warning(disable : 2220 4005)
-#ifdef HAVE_SNPRINTF
-#pragma push_macro("HAVE_SNPRINTF")
-#define PUSHED_HAVE_SNPRINTF 1
-#undef HAVE_SNPRINTF
-#endif
-#endif
 #include <pybind11/pybind11.h>
-#ifdef IS_MAX2022
-#ifdef PUSHED_HAVE_SNPRINTF
-#pragma pop_macro("HAVE_SNPRINTF")
-#undef PUSHED_HAVE_SNPRINTF
-#endif
-#pragma warning(pop)
-#endif
-
 #include <sbkconverter.h>
 #include <sbkstring.h>
 #include <shiboken.h>

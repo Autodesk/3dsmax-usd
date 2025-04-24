@@ -51,7 +51,7 @@ def parse_arguments() -> argparse.Namespace:
                         choices=['release', 'hybrid'],
                         default='release',
                         help="The build configuration type.")
-    parser.add_argument("target", choices=[2022, 2023, 2024, 2025, 2026], help="The 3ds Max version to target.", type=int)
+    parser.add_argument("target", choices=[2023, 2024, 2025, 2026], help="The 3ds Max version to target.", type=int)
     parser.add_argument("-b", "--build", help="The build number coming from the pipeline.", default=0, type=int)
     parser.add_argument("-v", "--version", help="The 3ds Max USD component version being built.", default='0.0.0')
     parser.add_argument("-w", "--warnaserror", help="Enable the compiler to treat all warnings as errors.", action='store_true')
@@ -71,13 +71,7 @@ def build_command(args:argparse.Namespace) -> list:
     swd = get_script_folder()
     # set up the build environment
     cmd = [swd + "\\configure-vsdevcmd.bat"]
-    if args.target == 2022:
-        # 3ds Max 2022 is expected to be compiled with VS2017 and winsdk 10.0.17134.0
-        # Visual Studio 2019 can be used as long as VS2017 tooling is available
-        #cmd.append("2017")
-        #cmd.append("10.0.17134.0")
-        cmd.append("2019")
-    elif args.target == 2026:
+    if args.target >= 2026:
         cmd.append("2022")
     else:
         cmd.append("2019")

@@ -46,13 +46,7 @@ UsdStageNodeParametersRollup::UsdStageNodeParametersRollup(
 
     QSizePolicy sp = this->ui->progressBar->sizePolicy();
 
-    // 2023+ not using the embedded progress bar. Instead, uses the global progress bar, which is
-    // more feature rich in those versions.
-#ifdef IS_MAX2023_OR_GREATER
     sp.setRetainSizeWhenHidden(false);
-#else
-    sp.setRetainSizeWhenHidden(true);
-#endif
 
     this->ui->progressBar->setSizePolicy(sp);
     this->ui->progressBar->setVisible(false);
@@ -100,10 +94,6 @@ void UsdStageNodeParametersRollup::RegisterProgressReporter()
         return;
     }
 
-    // In Max2023 and a later, the global progress bar can be configured to disable
-    // cancellation, and avoid suspending object edition, this was not possible in <= 2022.
-    // Therefor, in 2022, we use an embedded QProgressBar instead of the global one.
-#ifdef IS_MAX2023_OR_GREATER
     auto start = [this](const std::wstring& title) {
         GetCOREInterface()->ProgressStart(title.c_str(), false);
         GetCOREInterface()->ProgressUpdate(0);
@@ -116,22 +106,6 @@ void UsdStageNodeParametersRollup::RegisterProgressReporter()
         GetCOREInterface()->ProgressUpdate(100);
         GetCOREInterface()->ProgressEnd();
     };
-#else
-    auto start = [this](const std::wstring& title) {
-        QString format = QString::fromStdWString(title) + QString("%p%");
-        this->ui->progressBar->setFormat(format);
-        this->ui->progressBar->setVisible(true);
-    };
-    auto update = [this](int progress) {
-        const auto value = std::min(100, std::max(0, progress));
-        this->ui->progressBar->setValue(value);
-    };
-    auto end = [this]() {
-        this->ui->progressBar->setVisible(false);
-        this->ui->progressBar->setValue(0);
-        this->ui->progressBar->setFormat(QString {});
-    };
-#endif
 
     const MaxUsd::ProgressReporter progressReporter { start, update, end };
     modelObj->RegisterProgressReporter(progressReporter);

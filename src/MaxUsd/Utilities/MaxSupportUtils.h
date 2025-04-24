@@ -31,10 +31,6 @@
 #define IS_MAX2023_OR_GREATER
 #endif
 
-#if MAX_RELEASE >= 23900 && MAX_RELEASE < 24900
-#define IS_MAX2022
-#endif
-
 #include <maxapi.h>
 #ifdef IS_MAX2025_OR_GREATER
 #include <notifyParams.h>
