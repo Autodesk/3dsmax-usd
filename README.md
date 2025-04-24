@@ -43,7 +43,6 @@ We take security serious at Autodesk and the same goes for our open source contr
 
 ## Versions
 3ds Max USD actively supports the following versions of 3ds Max.
-- 2022
 - 2023
 - 2024
 - 2025
