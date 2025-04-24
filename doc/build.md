@@ -67,21 +67,20 @@ The OpenUSD library can also be rebuilt to fit with your needs. See OpenUSD's of
 
 |               |      ![](images/logo-horizontal-color.svg)          | USD version used in 3ds Max | USD source for MaxUsd |
 |:------------: |:---------------:                  |:------------------------:|:-------------------------:|
-|  CommitID/Tags | Officially supported:<br> [v21.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v21.11), [v22.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v22.11), [v23.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.11) | 3ds Max 2022 = v21.11<br>3ds Max 2023 = v21.11<br>3ds Max 2024 = v22.11<br>3ds Max 2025 = v23.11 | [v21.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v21.11-MaxUsd-Public)<br>[v22.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v22.11-MaxUsd-Public)<br>[v23.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v23.11-MaxUsd-Public) |
+|  CommitID/Tags | Officially supported:<br> [v21.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v21.11), [v22.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v22.11), [v23.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.11), [v24.11](https://github.com/PixarAnimationStudios/OpenUSD/tree/v24.11)| 3ds Max 2022 = v21.11<br>3ds Max 2023 = v21.11<br>3ds Max 2024 = v22.11<br>3ds Max 2025 = v23.11<br>3ds Max 2026 = v24.11 | [v21.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v21.11-MaxUsd-Public)<br>[v22.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v22.11-MaxUsd-Public)<br>[v23.11-MaxUsd-Public](https://github.com/autodesk-forks/USD/tree/v23.11-MaxUsd-Public)<br>[v24.11-MayaUsd-Public](https://github.com/autodesk-forks/USD/tree/v24.11-MayaUsd-Public) |
 
 The OpenUSD component has dependencies that are being reused to build the 3ds Max USD component (boost and TBB are dependencies to the 3ds Max USD) . Their source files are automatically fetched and built by the build script of OpenUSD. The table below reports on the various dependencies being used by the compiled version of OpenUSD found in the 3ds Max USD plugin.
 
-| Dependency       | 3ds Max 2022 | 3ds Max 2024 | 3ds Max 2024 | 3ds Max 2025 |
-|:----------------:|:------------:|:------------:|:------------:|:------------:|
-| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.2.13     |
-| boost            | 1.70.0       | 1.70.0       | 1.76.0       | 1.81.0       |
-| TBB              | tbb2018 (update 6)| tbb2018 (update 6)| tbb2019 (update 6)| tbb2020.3       |
-| HDF5             | 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1) |
-| OpenEXR          | 2.3.0| 2.3.0| 2.5.2| 3.3.1       |
-| Alembic          | 1.7.10| 1.7.10| 1.7.10| 1.8.5       |
-| MaterialX        | 1.38.0| 1.38.0| 1.38.4| 1.38.8       |
-| OpenSubDiv       | 3.4.3| 3.4.3| 3.5.0| 3.5.1     |
-
+| Dependency       | 3ds Max 2022 | 3ds Max 2024 | 3ds Max 2024 | 3ds Max 2025 | 3ds Max 2026 |
+|:----------------:|:------------:|:------------:|:------------:|:------------:|:------------:|
+| zlib             | 1.2.13 | 1.2.13 | 1.2.13 | 1.2.13     | 1.3.1     |
+| boost            | 1.70.0       | 1.70.0       | 1.76.0       | 1.81.0       | ----       |
+| TBB              | tbb2018 (update 6)| tbb2018 (update 6)| tbb2019 (update 6)| tbb2020.3       | tbb2020.3       |
+| HDF5             | 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1)| 1.10.0 (patch 1) | 1.10.0 (patch 1) |
+| OpenEXR          | 2.3.0| 2.3.0| 2.5.2| 3.3.1       | 3.3.1       |
+| Alembic          | 1.7.10| 1.7.10| 1.7.10| 1.8.5       | 1.8.5       |
+| MaterialX        | 1.38.0| 1.38.0| 1.38.4| 1.38.8       | 1.38.10       |
+| OpenSubDiv       | 3.4.3| 3.4.3| 3.5.0| 3.5.1     | 3.6.0     |
 > :warning: Make sure that you don't have an older USD locations in your ```PATH``` and ```PYTHONPATH``` environment settings. ```PATH``` and ```PYTHONPATH``` are automatically adjusted inside the project to point to the correct USD location. See ```cmake/usd.cmake```.
 
 #### 3. Internal shared libraries
@@ -124,11 +123,11 @@ Once the 3ds Max USD plugin is installed, you will find the `MaterialX for 3ds M
 
 > :warning: Make sure to use the specified versions of the dependencies. Otherwise, you might face execution issues or crashes.
 
-| Dependency       | 3ds Max 2022 | 3ds Max 2023 | 3ds Max 2024 | 3ds Max 2025 |Link                                          |
-|:----------------:|:------------:|:------------:|:------------:|:------------:|:---------------------------------------------:|
-| pybind11         | 2.10.2       | 2.10.2       | 2.10.2       | 2.10.2       | https://github.com/pybind/pybind11            |
-| spdlog           | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | https://github.com/gabime/spdlog              |
-| gtest            | 1.8.1        | 1.8.1        | 1.11.0       | 1.11.0       | https://github.com/google/googletest/releases |
+| Dependency       | 3ds Max 2022 | 3ds Max 2023 | 3ds Max 2024 | 3ds Max 2025 | 3ds Max 2026 | Link                                          |
+|:----------------:|:------------:|:------------:|:------------:|:------------:|:------------:|:---------------------------------------------:|
+| pybind11         | 2.10.2       | 2.10.2       | 2.10.2       | 2.10.2       | 2.10.2       | https://github.com/pybind/pybind11            |
+| spdlog           | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | 1.14.1       | https://github.com/gabime/spdlog              |
+| gtest            | 1.8.1        | 1.8.1        | 1.11.0       | 1.11.0       | 1.11.0       | https://github.com/google/googletest/releases |
 
 ##### pybind11
 

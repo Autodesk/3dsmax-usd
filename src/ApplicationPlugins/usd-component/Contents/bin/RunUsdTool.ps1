@@ -60,6 +60,7 @@ else {
 		2023 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\25.0" }
 		2024 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\26.0" }
 		2025 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\27.0" }
+		2026 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\28.0" }
 		default { 
 			Write-Output "3dsMax version not supported : $IntVer."
 			exit
