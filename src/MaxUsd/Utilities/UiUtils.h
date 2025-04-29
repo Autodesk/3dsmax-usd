@@ -20,9 +20,7 @@
 #include <QtCore/QObject>
 #include <string>
 
-#ifdef IS_MAX2023_OR_GREATER
 #include <Qt/QmaxHelpers.h>
-#endif
 
 namespace MAXUSD_NS_DEF {
 namespace Ui {

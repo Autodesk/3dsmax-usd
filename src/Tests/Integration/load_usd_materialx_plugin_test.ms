@@ -39,6 +39,7 @@ struct load_usd_materialx_plugin_test
         if maxver[1] < 27900 then (
             prim = stage.GetPrimAtPath("/root/mtl/Material__43/Materials/Iberian_Blue_Ceramic_Tiles/ND_standard_surface_surfaceshader")
         ) else (
+            -- 2026 builds is when we introduced 24.11
             prim = stage.GetPrimAtPath("/root/mtl/Material__43/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
         )
         assert_true (prim.IsValid())

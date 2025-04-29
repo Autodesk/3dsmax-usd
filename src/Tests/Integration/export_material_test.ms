@@ -1100,6 +1100,7 @@ struct export_material_test
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
         ) else (
+            -- 2026 builds is when we introduced 24.11
             local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
@@ -1130,6 +1131,7 @@ struct export_material_test
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
         ) else (
+            -- 2026 builds is when we introduced 24.11
             local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
@@ -1198,6 +1200,7 @@ struct export_material_test
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
         ) else (
+            -- 2026 builds is when we introduced 24.11
             local mtlxShaderPrim = stage.GetPrimAtPath("/mtl/mtlx1/MaterialX/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))

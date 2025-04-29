@@ -230,17 +230,8 @@ Graphics::MaterialConversionHelper::ConvertMaxToNitrousMaterial(
     TimeValue t,
     bool      realistic)
 {
-#ifdef IS_MAX2023_OR_GREATER
     return MaxSDK::Graphics::MaterialConversionHelper::ConvertMaxToNitrousMaterial(
         mtl, t, realistic);
-#endif
-
-#ifdef IS_MAX2022
-    return MaxSDK::Graphics::MaterialConversionHelper::ConvertMaxToNitrousMaterial(
-        mtl,
-        t,
-        MaxSDK::Graphics::MaterialConversionHelper::MaterialStyles::MaterialStyle_MaterialDecide);
-#endif
 }
 
 } // namespace MaxSDKSupport

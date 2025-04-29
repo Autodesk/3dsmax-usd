@@ -50,6 +50,7 @@ struct materialX_shader_writer_test
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))
         ) else (
+            -- 2026 builds is when we introduced 24.11
             local mtlxShaderPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/Materials/Iberian_Blue_Ceramic_Tiles/SR_Iberian_Blue_Ceramic_Tiles")
             assert_true (mtlxShaderPrim.IsValid())
             assert_true (mtlxShaderPrim.IsA(pyShade.Shader))

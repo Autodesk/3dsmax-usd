@@ -80,7 +80,6 @@
       <PreprocessorDefinitions>MFB_PACKAGE_NAME=$(OutName);MFB_ALT_PACKAGE_NAME=$(OutName);MFB_PACKAGE_MODULE=$(OutName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <DisableSpecificWarnings Condition="'$(VersionTarget)'=='2022'">4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">false</ShowIncludes>
       <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoveUnreferencedCodeData>

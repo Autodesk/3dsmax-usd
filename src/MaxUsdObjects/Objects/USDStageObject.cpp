@@ -384,27 +384,12 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 	// Define the multiple rollups we need.
 	6,
 	// The order matters, it is the default order in the UI.
-	// Use a different order for 2022 - in 2022 we cannot use the general
-	// progress bar, so we have an embedded one in the general rollout. 
-	// To increase the odds that this progress bar is visible on screen
-	// when materials are generated, bring the render settings window closer
-	// to the general rollout. In 2023+, the render settings is all the way 
-	// at the bottom.
-#ifdef IS_MAX2023_OR_GREATER
 	ParamMapID::UsdStageGeneral,
 	ParamMapID::UsdStageSelection,
 	ParamMapID::UsdStageViewportDisplay,
 	ParamMapID::UsdStageAnimation,
 	ParamMapID::UsdStageRenderSettings,
 	ParamMapID::UsdStageViewportPerformance,
-#else 
-	ParamMapID::UsdStageGeneral,
-	ParamMapID::UsdStageSelection,
-	ParamMapID::UsdStageRenderSettings,
-	ParamMapID::UsdStageViewportDisplay,
-	ParamMapID::UsdStageAnimation,
-	ParamMapID::UsdStageViewportPerformance,
-#endif
 	// Parameters
 	StageFile, _M("FilePath"), TYPE_FILENAME, P_RESET_DEFAULT | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_FILEPATH,
 		p_default, _T(""),

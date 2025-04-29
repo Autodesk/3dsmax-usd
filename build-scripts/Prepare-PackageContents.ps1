@@ -54,7 +54,7 @@ if ($Distrib -And $UnstableSdk -contains $TargetVersion) {
 
 function GetSeriesMinMaxVersion {
     Param(
-        [Parameter(Mandatory=$true, HelpMessage="Target Max Version (major) ex 2022")]
+        [Parameter(Mandatory=$true, HelpMessage="Target Max Version (major) ex 2023")]
         [String]$MaxMajorVersion,
         [Parameter(Mandatory=$true, HelpMessage="Target MaxSDK version ex. 24.0.0")]
         [String]$MaxSdkVersion,
@@ -134,7 +134,7 @@ function AddMenus {
 "@
     $legacyMenuApiXmlSnippet = @"
 
-        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2024" />
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2023" SeriesMax="2024" />
         <ComponentEntry ModuleName="./Contents/scripts/registerMenu.ms" />
   
 "@

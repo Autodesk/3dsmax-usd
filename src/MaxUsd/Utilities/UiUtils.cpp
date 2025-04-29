@@ -63,14 +63,7 @@ void IterateOverChildrenRecursively(
 
 void DisableMaxAcceleratorsOnFocus(QWidget* widget, bool disableMaxAccelerators)
 {
-#ifdef IS_MAX2023_OR_GREATER
     QtHelpers::DisableMaxAcceleratorsOnFocus(QWidget * widget, bool disableMaxAccelerators);
-#else
-    if (widget) {
-        static constexpr char noMaxAccelerators[] = "NoMaxAccelerators";
-        widget->setProperty(noMaxAccelerators, disableMaxAccelerators ? true : QVariant());
-    }
-#endif
 }
 
 namespace {

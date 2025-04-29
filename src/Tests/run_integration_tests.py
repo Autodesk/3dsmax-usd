@@ -39,7 +39,7 @@ def parse_user_args(parsed_values):
         '-m', '--maxpath',
         dest='maxpath',
         help='Location of 3dsMax.exe to use. '
-             'Ex: --maxpath "C:\\Program Files\\Autodesk\\3ds Max 2022\\3dsmax.exe"',
+             'Ex: --maxpath "C:\\Program Files\\Autodesk\\3ds Max 2026\\3dsmax.exe"',
         required=True
     )
     parser.add_argument(
