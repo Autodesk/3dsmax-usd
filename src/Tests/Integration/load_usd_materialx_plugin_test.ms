@@ -23,7 +23,7 @@ struct load_usd_materialx_plugin_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_usd_material_x_plugin_loaded = (

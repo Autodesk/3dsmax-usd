@@ -38,7 +38,7 @@ struct usd_camera_object_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale        
-        resetMaxFile #noprompt
+        quickReset()
     ),
     
     function generatecameras_test = (

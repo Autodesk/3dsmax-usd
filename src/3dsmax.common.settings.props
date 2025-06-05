@@ -12,7 +12,7 @@
     <!-- HasImportedCommonProps is used as a flag to tell propertysheets or vcxproj inheriting from that the 3dsmax.common.settings.props has already been imported before. Propersheets importing this can use to flag to ignore importing a duplicate of this props and avoid the MSB4011 warning during compilation -->
     <HasImportedCommonProps>1</HasImportedCommonProps>
 
-    <VersionTarget Condition="'$(VersionTarget)'==''">2025</VersionTarget>
+    <VersionTarget Condition="'$(VersionTarget)'==''">2026</VersionTarget>
     <PrivateComponentName>usd-component-$(VersionTarget)</PrivateComponentName>
     <PublicComponentName>3dsmax-usd-$(VersionTarget)</PublicComponentName>
     <ApplicationPluginsDir>$(RepoRootDir)build\bin\$(Platform)\$(Configuration)\</ApplicationPluginsDir>

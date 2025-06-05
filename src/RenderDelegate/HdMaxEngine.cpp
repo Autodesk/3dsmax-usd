@@ -21,6 +21,7 @@
 #include "HdMaxConsolidator.h"
 #include "HdMaxLightGizmoMeshAccess.h"
 #include "Imaging/HdMaxRenderDelegate.h"
+#include "MaxUsd/MaxTokens.h"
 #include "MaxUsd/Utilities/HydraUtils.h"
 
 #include <MaxUsd/Utilities/MeshUtils.h>
@@ -40,6 +41,8 @@
 #include <Rendering/IRenderMessageManager.h>
 #include <mesh.h>
 #include <stdmat.h>
+
+PXR_NAMESPACE_USING_DIRECTIVE
 
 HdMaxEngine::HdMaxEngine()
 {
@@ -126,6 +129,10 @@ void HdMaxEngine::UpdateMultiMaterial(MultiMtl* multiMat) const
 
     multiMat->SetNumSubMtls(int(materials.size()));
     for (const auto& matRef : materials) {
+        if (!matRef.second.second) {
+            continue;
+        }
+
         auto material = matRef.second.second->GetAs<Mtl>();
         multiMat->SetSubMtlAndName(matRef.second.first, material, material->GetName());
     }
@@ -189,6 +196,9 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
             auto numSubsets = 0;
             for (const auto& rd : renderData) {
                 for (int i = 0; i < rd->shadedSubsets.size(); ++i) {
+                    if (it == existingConsolidation->sourceRenderData.end()) {
+                        return false;
+                    }
                     if (it->primPath != rd->rPrimPath) {
                         return false;
                     }
@@ -237,6 +247,29 @@ HdMaxConsolidator::OutputPtr HdMaxEngine::Consolidate(
     return consolidation;
 }
 
+size_t HdMaxEngine::ComputeFingerPrint(const std::vector<HdMaxMeshRenderData*>& renderData)
+{
+    size_t fingerPrint = 0;
+    for (const auto& rd : renderData) {
+        MaxUsd::HashCombine(fingerPrint, rd->rPrimPath.GetHash());
+    }
+    return fingerPrint;
+}
+
+void HdMaxEngine::ClearGeomObjectDirtyBits() const
+{
+    for (auto& rd : renderDelegate->GetAllMeshRenderData()) {
+        if (rd.renderTag != MaxUsdPurposeTokens->geomObjectSource) {
+            continue;
+        }
+        for (auto& subset : rd.shadedSubsets) {
+            if (subset.dirtyBits != 0) {
+                subset.dirtyBits = 0;
+            }
+        }
+    }
+}
+
 void HdMaxEngine::Render(
     const pxr::UsdPrim&                           rootPrim,
     const pxr::GfMatrix4d&                        rootTransform,
@@ -255,14 +288,16 @@ void HdMaxEngine::Render(
     const auto maxNode = nodeContext.GetRenderNode().GetMaxNode();
     Mtl*       nodeMtl = maxNode ? maxNode->GetMtl() : nullptr;
 
+    ClearGeomObjectDirtyBits();
+
     UpdateRootPrim(rootPrim, nodeMtl);
     HydraRender(rootTransform, timeCode, renderTags);
 
     std::vector<HdMaxMeshRenderData*> renderData;
-    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
+    renderDelegate->GetMeshRenderData(renderData);
 
     std::vector<HdMaxBasisCurvesRenderData*> basisCurvesRenderData;
-    renderDelegate->GetVisibleBasisCurvesRenderData(renderTags, basisCurvesRenderData);
+    renderDelegate->GetBasisCurvesRenderData(basisCurvesRenderData);
 
     if (renderData.empty() && basisCurvesRenderData.empty()) {
         return;
@@ -683,71 +718,91 @@ void HdMaxEngine::SetSelection(
     }
 }
 
-void HdMaxEngine::RenderToMeshes(
-    INode*                              node,
-    const pxr::UsdPrim&                 rootPrim,
-    const pxr::GfMatrix4d&              rootTransform,
-    std::vector<std::shared_ptr<Mesh>>& outputMeshes,
-    std::vector<Matrix3>&               meshTransforms,
-    const pxr::UsdTimeCode&             timeCode,
-    const pxr::TfTokenVector&           renderTags)
+void HdMaxEngine::RenderToMesh(
+    INode*                    node,
+    const pxr::UsdPrim&       root,
+    const pxr::GfMatrix4d&    renderRootTM,
+    const Matrix3&            offsetTM,
+    const pxr::UsdTimeCode&   timeCode,
+    const pxr::TfTokenVector& renderTags,
+    HdMaxTriMesh&             outputMesh,
+    bool                      includeInvisible,
+    bool                      includeGeomObjectSrc)
 {
-    // Raise a warning if no material is applied to the UsdStage object. The user may need to
-    // explicitly apply the UsdPreviewSurface materials.
-    if (!node->GetMtl()) {
-        IRenderMessageManager* pRenderMessageManager = GetRenderMessageManager();
-        const std::wstring     warningNoMtl
-            = std::wstring(L"Warning : No material applied to ") + node->GetName()
-            + std::wstring(
-                  L". If you want to use the UsdPreviewSurface materials from the USD Stage, use "
-                  L"the \"Assign "
-                  L"UsdPreviewSurface material\" command from the \"Rendering settings\" rollup.");
+    std::vector<Matrix3> transforms;
 
-        pRenderMessageManager->LogMessage(
-            IRenderMessageManager::kSource_ProductionRenderer,
-            IRenderMessageManager::kType_Warning,
-            0,
-            warningNoMtl.c_str());
-    }
+    // We still perform the hydra render from the stage's root, to avoid flushing
+    // what we have cached. We then filter after the fact, to respect the given root prim.
+    const auto stageRoot = root.GetStage()->GetPseudoRoot();
+    UpdateRootPrim(stageRoot, node->GetMtl());
+    HydraRender(renderRootTM, timeCode, renderTags, true);
 
-    outputMeshes.clear();
-    meshTransforms.clear();
-
-    UpdateRootPrim(rootPrim, node->GetMtl());
-    HydraRender(rootTransform, timeCode, renderTags, true);
+    std::vector<HdMaxMeshRenderData*> allData;
+    renderDelegate->GetMeshRenderData(allData, includeInvisible, includeGeomObjectSrc);
 
     std::vector<HdMaxMeshRenderData*> renderData;
-    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
+    for (auto rd : allData) {
+        if (!rd->rPrimPath.HasPrefix(root.GetPath())) {
+            continue;
+        }
+        renderData.push_back(rd);
+    }
+
+    // Check if something has changed before actually rebuilding the mesh..
+
+    // First check if we have the same render data collection.
+    const auto fingerPrint = ComputeFingerPrint(renderData);
+    bool       isDirty = fingerPrint != outputMesh.GetSourceFingerPrint();
+    // If so, look at the dirty bits.
+    if (!isDirty) {
+        for (auto& rd : renderData) {
+            for (const auto& subset : rd->shadedSubsets) {
+                isDirty |= subset.dirtyBits != HdMaxChangeTracker::Clean;
+                if (isDirty) {
+                    break;
+                }
+            }
+            if (isDirty) {
+                break;
+            }
+        }
+        if (!isDirty) {
+            return;
+        }
+    }
 
     // Then, update a lists of all materials currently in use, and generate associated material Ids.
     const auto materialCollection = renderDelegate->GetMaterialCollection();
-    UpdateMaterialIdsList(renderData, materialCollection);
+    UpdateMaterialIdsList(allData, materialCollection);
+
+    // Create the inputs to build the HdMaxTriMesh. Essentially setting up the data in a format
+    // easier to digest and better suited for use in 3dsMax tools (versus viewport).
+
+    std::vector<HdMaxTriMesh::Input::Ptr> inputs;
 
     pxr::TfHashSet<pxr::TfToken, pxr::TfToken::HashFunctor> unmappedPrimvars;
     for (const auto& primRenderData : renderData) {
-        // Create a 3dsMax mesh for this USD prim's data.
-        auto primMesh = std::make_shared<Mesh>();
 
-        MaxUsd::MeshUtils::UsdRenderGeometry usdRenderGeom;
+        HdMaxTriMesh::Input::Ptr input = std::make_shared<HdMaxTriMesh::Input>();
         // VtArray have copy-on-write semantics, so these assignments are not copying the data.
-        usdRenderGeom.points = primRenderData->points;
-        usdRenderGeom.uvs = primRenderData->uvs;
-        usdRenderGeom.normals = primRenderData->normals;
-        usdRenderGeom.colors = primRenderData->colors;
+        input->points = primRenderData->points;
+        input->uvs = primRenderData->uvs;
+        input->normals = primRenderData->normals;
+        input->colors = primRenderData->colors;
 
-        // We are converting the geometry used in the viewport, to geometry usable for rendering.
-        // If any mapped data (uvs, normals, colors, etc.) cannot be shared, then we also needed to
+        // We are converting the geometry used in the viewport, to proper 3dsMax meshes. In the VP,
+        // if any mapped data (uvs, normals, colors, etc.) cannot be shared, then we also needed to
         // "unshare" the vertices themselves to satisfy nitrous (vertex buffers must all be the same
-        // size). When rendering, this is not great because the meshes dont appear "welded" and for
-        // some materials this is an issue (think displacement for example). So for vertices we must
-        // make sure to share again the vertices that were shared in the source geometry. For mapped
-        // data (primvar data) it does not matter.
-        usdRenderGeom.subsetTopoIndices.resize(primRenderData->shadedSubsets.size());
-        usdRenderGeom.subsetPrimvarIndices.resize(primRenderData->shadedSubsets.size());
+        // size). When rendering/modeling, this is not great because the meshes dont appear "welded"
+        // and for some materials this is an issue (think displacement for example). So for vertices
+        // we must make sure to share again the vertices that were shared in the source geometry.
+        // For mapped data (primvar data) it does not matter.
+        input->subsetTopoIndices.resize(primRenderData->shadedSubsets.size());
+        input->subsetPrimvarIndices.resize(primRenderData->shadedSubsets.size());
 
         // Did we "unshare" the vertices to satisfy Nitrous?
         const bool unsharedPoints
-            = usdRenderGeom.points.size() != primRenderData->sourceTopology.GetNumPoints();
+            = input->points.size() != primRenderData->sourceTopology.GetNumPoints();
 
         if (unsharedPoints) {
             // If the points were unshared for Nitrous, we need to make sure to share them again.
@@ -787,67 +842,70 @@ void HdMaxEngine::RenderToMeshes(
                     auto sceneIndex2 = renderIdxToSceneIdx[subset.indices[j][1]];
                     auto sceneIndex3 = renderIdxToSceneIdx[subset.indices[j][2]];
 
-                    usdRenderGeom.subsetTopoIndices[i].emplace_back(
+                    input->subsetTopoIndices[i].emplace_back(
                         sceneIdxToRenderIdx[sceneIndex1],
                         sceneIdxToRenderIdx[sceneIndex2],
                         sceneIdxToRenderIdx[sceneIndex3]);
                 }
                 // Mapped data indices are kept as is.
-                usdRenderGeom.subsetPrimvarIndices[i] = subset.indices;
+                input->subsetPrimvarIndices[i] = subset.indices;
             }
         } else {
             // Otherwise, we can use the indices as is for points & data.
             for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
                 auto& subset = primRenderData->shadedSubsets[i];
-                usdRenderGeom.subsetTopoIndices[i] = subset.indices;
-                usdRenderGeom.subsetPrimvarIndices[i] = subset.indices;
+                input->subsetTopoIndices[i] = subset.indices;
+                input->subsetPrimvarIndices[i] = subset.indices;
             }
+        }
+
+        // Edge visibility data (we want to know which edges were generated from triangulation).
+        input->subsetEdgeVis.resize(primRenderData->shadedSubsets.size());
+        for (int i = 0; i < primRenderData->shadedSubsets.size(); ++i) {
+            auto& subset = primRenderData->shadedSubsets[i];
+            input->subsetEdgeVis[i] = subset.edgeVis;
         }
 
         // Figure out the material ids associated with each subset.
         const auto materialCollection = renderDelegate->GetMaterialCollection();
         for (const auto& subsetGeometry : primRenderData->shadedSubsets) {
-            int  matId = 0;
-            auto renderMaterial = subsetGeometry.materialData ? subsetGeometry.materialData->GetId()
-                                                              : pxr::SdfPath {};
-            auto it = materials.find(renderMaterial);
+            int        matId = 0;
+            const auto renderMaterial = subsetGeometry.materialData
+                ? subsetGeometry.materialData->GetId()
+                : pxr::SdfPath {};
+            const auto it = materials.find(renderMaterial);
             if (it != materials.end()) {
                 matId = it->second.first;
             }
-            usdRenderGeom.materialIds.push_back(matId);
-        }
-
-        if (!ToRenderMesh(
-                usdRenderGeom,
-                *primMesh,
-                GetRenderDelegate()->GetPrimvarMappingOptions(),
-                unmappedPrimvars)) {
-            GetCOREInterface()->Log()->LogEntry(
-                SYSLOG_ERROR,
-                NO_DIALOG,
-                NULL,
-                _T("Failed to convert %s's geometry for rendering."),
-                primRenderData->rPrimPath.GetString());
+            input->materialIds.push_back(matId);
         }
 
         // If instanced, use all the instance transforms, otherwise, just the transform defined on
         // the prim.
-        auto transforms = primRenderData->instancer->GetTransforms();
-        if (transforms.empty()) {
+        auto instanceTransforms = primRenderData->instancer->GetTransforms();
+        if (instanceTransforms.empty()) {
             Matrix3 primTransform = MaxUsd::ToMaxMatrix3(primRenderData->transform);
-            transforms.push_back(primTransform);
+            instanceTransforms.push_back(primTransform);
         }
 
-        for (auto& transform : transforms) {
-            outputMeshes.push_back(primMesh);
-            meshTransforms.push_back(transform);
+        for (auto& transform : instanceTransforms) {
+            inputs.push_back(input);
+            transforms.push_back(transform * offsetTM);
         }
+    }
+
+    if (!outputMesh.Build(
+            inputs,
+            transforms,
+            fingerPrint,
+            GetRenderDelegate()->GetPrimvarMappingOptions(),
+            unmappedPrimvars)) {
+        TF_RUNTIME_ERROR("Failed to convert USD geometry for rendering.");
     }
 
     // If we have unmapped primvars (primvars that are in use by some material, but not mapped to
     // any 3dsMax channel), the render result may not be as we would expect. Warn the user.
     if (!unmappedPrimvars.empty()) {
-        IRenderMessageManager* pRenderMessageManager = GetRenderMessageManager();
         std::wstring warningUnmapped = std::wstring(L"Warning : The Usd Stage ") + node->GetName()
             + std::wstring(L", contains materials using primvars that are not mapped to any 3dsMax "
                            L"map channel : ");
@@ -864,11 +922,8 @@ void HdMaxEngine::RenderToMeshes(
         warningUnmapped.append(
             L". Primvar/channel mappings can be set using the maxscript function "
             L"\"SetPrimvarChannelMapping(...) available on the Stage object.\"");
-        pRenderMessageManager->LogMessage(
-            IRenderMessageManager::kSource_ProductionRenderer,
-            IRenderMessageManager::kType_Warning,
-            0,
-            warningUnmapped.c_str());
+
+        TF_WARN(MaxUsd::MaxStringToUsdString(warningUnmapped.c_str()));
     }
 }
 
@@ -941,12 +996,8 @@ size_t HdMaxEngine::GetNumRenderPrim(const pxr::TfTokenVector& renderTags) const
     size_t numRenderPrim = 0;
 
     std::vector<HdMaxMeshRenderData*> renderData;
-    renderDelegate->GetVisibleMeshRenderData(renderTags, renderData);
+    renderDelegate->GetMeshRenderData(renderData);
     for (const auto& data : renderData) {
-        if (!data->visible || !data->renderTagActive) {
-            continue;
-        }
-
         numRenderPrim += std::max(size_t(1), data->instancer->GetNumInstances());
     }
     return numRenderPrim;
@@ -963,6 +1014,38 @@ void HdMaxEngine::PrepareBatch(
     taskController->SetRenderTags(renderTags);
     sceneDelegate->SetTime(timeCode);
     sceneDelegate->ApplyPendingUpdates();
+
+    ApplyActiveRenderTags(renderTags);
+}
+
+void HdMaxEngine::ApplyActiveRenderTags(const pxr::TfTokenVector& renderTags)
+{
+    bool authoredTagsChanged = false;
+    auto ver = renderIndex->GetChangeTracker().GetRenderTagVersion();
+    if (ver != authoredTagsVer) {
+        authoredTagsChanged = true;
+        authoredTagsVer = ver;
+    }
+
+    auto processRenderTags = [this, &renderTags](auto& prds) {
+        for (auto& prd : prds) {
+            const auto& id = prd.rPrimPath;
+            auto        renderTag = sceneDelegate->GetRenderTag(id);
+            bool        renderTagActive
+                = std::find(renderTags.begin(), renderTags.end(), renderTag) != renderTags.end();
+            if (prd.renderTagActive != renderTagActive) {
+                renderIndex->GetChangeTracker().MarkRprimDirty(id);
+                prd.renderTagActive = renderTagActive;
+            }
+        }
+    };
+
+    // Active render tags have changed, flag the render data for display accordingly.
+    if (prevRenderTags != renderTags || authoredTagsChanged) {
+        processRenderTags(renderDelegate->GetAllMeshRenderData());
+        processRenderTags(renderDelegate->GetAllBasisCurvesRenderData());
+        prevRenderTags = renderTags;
+    }
 }
 
 void HdMaxEngine::InitializeMaterialCollection(pxr::UsdStageWeakPtr stage, Mtl* material)

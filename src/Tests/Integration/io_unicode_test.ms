@@ -42,7 +42,7 @@ struct unicode_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
         exportOptions.Materials = true
@@ -153,7 +153,7 @@ struct unicode_test
         assert_equal unicodeTestString1 (model.GetKind())
 
         -- when import unicode data encoded as ascii (multibyte) in usd file
-        resetmaxfile #noprompt
+        quickReset()
         status = USDImporter.ImportFile testUsdFile
 
         -- then

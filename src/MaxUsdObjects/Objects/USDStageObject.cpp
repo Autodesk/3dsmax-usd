@@ -31,6 +31,7 @@
 #include <MaxUsdObjects/MaxUsdUfe/StageObjectMap.h>
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 #include <MaxUsdObjects/Objects/SubobjectManips.h>
+#include <MaxUsdObjects/Objects/USDGeomObject.h>
 #include <MaxUsdObjects/QmaxUsdPythonWidget.h>
 #include <MaxUsdObjects/USDAssetAccessor.h>
 #include <MaxUsdObjects/USDExplorer.h>
@@ -41,11 +42,18 @@
 #include <RenderDelegate/HdMaxDisplayPreferences.h>
 #include <UFEUI/ReplaceSelectionCommand.h>
 
+// clang-format off
+#include <BoostPythonWrapper.h>
+#include <shiboken.h>
+#include <pybind11/pybind11.h>
+// clang-format on
+
+#include <MaxUsd/MaxTokens.h>
+#include <MaxUsd/MeshConversion/MeshFacade.h>
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
 #include <MaxUsd/Utilities/HydraUtils.h>
 #include <MaxUsd/Utilities/ListenerUtils.h>
 #include <MaxUsd/Utilities/MathUtils.h>
-#include <MaxUsd/Utilities/MeshUtils.h>
 #include <MaxUsd/Utilities/MxsUtils.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/PluginUtils.h>
@@ -62,6 +70,8 @@
 
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/registry.h>
+#include <pxr/base/tf/pyFunction.h>
+#include <pxr/base/tf/pyObjWrapper.h>
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usd/modelAPI.h>
@@ -88,10 +98,10 @@
 #include <IParamm2.h>
 #include <IPathConfigMgr.h>
 #include <QtWidgets/QtWidgets>
+#include <Rendering/IRenderMessageManager.h>
 #include <iInstanceMgr.h>
 #include <iparamb2.h>
 #include <irollupsettings.h>
-#include <shiboken.h>
 
 #if MAX_VERSION_MAJOR >= 28
 #include <iEditObjectContextProvider.h>
@@ -109,6 +119,11 @@ constexpr USHORT PAYLOAD_RULES_CHUNK_ID = 500;
 constexpr USHORT LOCKED_LAYER_IDENTIFIERS_CHUNK_ID = 600;
 constexpr USHORT MUTED_LAYER_IDENTIFIERS_CHUNK_ID = 700;
 constexpr USHORT STAGE_EDIT_TARGET_CHUNK_ID = 800;
+constexpr USHORT LAYER_EDITS_CHUNK_ID = 900;
+constexpr USHORT LAYER_EDITS_LAYER_ID_SIZE_CHUNK_ID = 1000;
+constexpr USHORT LAYER_EDITS_LAYER_ID_CHUNK_ID = 1100;
+constexpr USHORT LAYER_EDITS_LAYER_DATA_SIZE_CHUNK_ID = 1200;
+constexpr USHORT LAYER_EDITS_LAYER_DATA_CHUNK_ID = 1300;
 
 // The session layer identifier does not persist, as the layer is anonymous. We need
 // a way to identify it, for example when saving/reloading the edit target to the 3dsmax scene.
@@ -371,7 +386,10 @@ static FPInterfaceDesc usdStageInterface(
 	fnIdGetMappedPrimvars, _T("GetMappedPrimvars"), "Returns the list of currently mapped primvars.", TYPE_STRING_TAB_BV, FP_NO_REDRAW, 0,
 	fnIdClearMappedPrimvars, _T("ClearMappedPrimvars"), "Clears all primvar to channel mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
 	fnIdGenerateDrawModes, _T("GenerateDrawModes"), "Regenerate USD Draw Modes.", TYPE_VOID, 0, 0,
-	p_end
+	fnIdPromoteTo3dsMaxObject, _T("PromoteTo3dsMaxObject"), "Promote a USD Prim tree to a UsdGeomObject...", TYPE_VOID, 0, 2,
+		_T("primPath"), 0, TYPE_STRING,
+                _T("select"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
+        p_end
 );
 
 ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
@@ -382,14 +400,16 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 	P_AUTO_CONSTRUCT | P_AUTO_UI_QT | P_MULTIMAP, // This flag makes 3ds Max automatically create the paramblock for this object
 	PBLOCK_REF, // To satisfy P_AUTO_CONSTRUCT
 	// Define the multiple rollups we need.
-	6,
+	8,
 	// The order matters, it is the default order in the UI.
 	ParamMapID::UsdStageGeneral,
+        ParamMapID::UsdStageTools,
 	ParamMapID::UsdStageSelection,
 	ParamMapID::UsdStageViewportDisplay,
 	ParamMapID::UsdStageAnimation,
 	ParamMapID::UsdStageRenderSettings,
 	ParamMapID::UsdStageViewportPerformance,
+        ParamMapID::UsdStageMetadata,
 	// Parameters
 	StageFile, _M("FilePath"), TYPE_FILENAME, P_RESET_DEFAULT | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_FILEPATH,
 		p_default, _T(""),
@@ -473,18 +493,22 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 	CustomAnimationStartFrame, _M("CustomAnimationStartFrame"), TYPE_FLOAT, P_ANIMATABLE | P_RESET_DEFAULT, IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_START_FRAME, 
 		p_default, 0.0f,
 		p_range, -9999999.f, 9999999.f,
+		p_nonLocalizedName, _T("Custom Start Frame"),
 		p_end,
 	CustomAnimationSpeed, _M("CustomAnimationSpeed"), TYPE_FLOAT, P_ANIMATABLE | P_RESET_DEFAULT, IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_SPEED, 
 		p_default, 1.0f,
 		p_range, -9999999.f, 9999999.f,
+		p_nonLocalizedName, _T("Custom Animation Speed"),
 		p_end,
 	CustomAnimationEndFrame, _M("CustomAnimationEndFrame"), TYPE_FLOAT, P_ANIMATABLE | P_RESET_DEFAULT, IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_END_FRAME, 
 		p_default, 0.0f,
 		p_range, -9999999.f, 9999999.f,
+		p_nonLocalizedName, _T("Custom End Frame"),
 		p_end,
 	CustomAnimationPlaybackTimecode, _M("CustomAnimationPlaybackTimecode"), TYPE_FLOAT, P_ANIMATABLE | P_RESET_DEFAULT, IDS_USDSTAGEOBJECT_ROLL_OUT_CUSTOM_ANIM_PLAYBACK_TIMECODE, 
 		p_default, 0.0f,
 		p_range, 0.f, 9999999.f,
+		p_nonLocalizedName, _T("Custom Playback TimeCode"),
 		p_end,
 	AnimationMode, _M("AnimationMode"), TYPE_INT, 0, IDS_USDSTAGEOBJECT_ROLL_OUT_ANIM_MODE, 
 		p_default, 0,
@@ -627,6 +651,20 @@ float GetParamBlockFloat(IParamBlock2* paramBlock, PBParameterIds id)
 } // namespace
 
 FPInterfaceDesc* USDStageObject::GetDesc() { return &usdStageInterface; }
+
+static void NotifyPostOpenProcess(void* param, NotifyInfo* /*info*/)
+{
+    using namespace MaxSDK::AssetManagement;
+    USDStageObject* usdStageObject = static_cast<USDStageObject*>(param);
+    if (nullptr == usdStageObject) {
+        return;
+    }
+    // the 3ds Max file loading is done at this point
+    usdStageObject->SetLoadingMaxFile(false);
+    // properly remove and replace the camera nodes if required
+    usdStageObject->BuildCameraNodes();
+    BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, usdStageObject);
+}
 
 static void NotifyTimeRangeChanged(void* param, NotifyInfo* /*info*/)
 {
@@ -893,11 +931,13 @@ void USDStageObject::UpdateRollupStates()
 {
     if (auto pb = GetParamBlockByID(0)) {
         for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageTools,
                             ParamMapID::UsdStageSelection,
                             ParamMapID::UsdStageViewportDisplay,
                             ParamMapID::UsdStageAnimation,
                             ParamMapID::UsdStageRenderSettings,
-                            ParamMapID::UsdStageViewportPerformance }) {
+                            ParamMapID::UsdStageViewportPerformance,
+                            ParamMapID::UsdStageMetadata }) {
             if (auto map = pb->GetMap(mapID)) {
                 if (auto w = map->GetQWidget()) {
                     if (auto rollup
@@ -994,11 +1034,13 @@ void USDStageObject::RemoveAllRollups()
     auto cd = static_cast<USDStageObjectclassDesc*>(GetUSDStageObjectClassDesc());
     if (auto pb = GetParamBlockByID(0)) {
         for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageTools,
                             ParamMapID::UsdStageSelection,
                             ParamMapID::UsdStageViewportDisplay,
                             ParamMapID::UsdStageAnimation,
                             ParamMapID::UsdStageRenderSettings,
-                            ParamMapID::UsdStageViewportPerformance }) {
+                            ParamMapID::UsdStageViewportPerformance,
+                            ParamMapID::UsdStageMetadata }) {
             if (auto map = pb->GetMap(mapID)) {
                 if (cd->RemoveParamMap(map)) {
                     DestroyCPParamMap2(map);
@@ -1020,14 +1062,17 @@ void USDStageObject::AddNonPrimAttributeRollups()
 
     if (auto pb = GetParamBlockByID(0)) {
         for (auto mapID : { ParamMapID::UsdStageGeneral,
+                            ParamMapID::UsdStageTools,
                             ParamMapID::UsdStageSelection,
                             ParamMapID::UsdStageViewportDisplay,
                             ParamMapID::UsdStageAnimation,
                             ParamMapID::UsdStageRenderSettings,
-                            ParamMapID::UsdStageViewportPerformance }) {
+                            ParamMapID::UsdStageViewportPerformance,
+                            ParamMapID::UsdStageMetadata }) {
             if (subObjectLevel == 0
                 || (mapID == ParamMapID::UsdStageGeneral || mapID == ParamMapID::UsdStageSelection
-                    || mapID == ParamMapID::UsdStageViewportDisplay)) {
+                    || mapID == ParamMapID::UsdStageViewportDisplay
+                    || mapID == ParamMapID::UsdStageTools)) {
                 if (!pb->GetMap(mapID)) {
                     MSTR rollupTitle;
                     int  rollupCategory = ROLLUP_CAT_STANDARD;
@@ -1254,6 +1299,37 @@ void USDStageObject::AdjustRollupsForSelection()
             selection, type, handledAttributeNames));
     }
 
+    { // Call the onBuildUsdPropertiesRollups callback to allow for custom rollups.
+        const TfToken _token = TfToken("onBuildUsdPropertiesRollups");
+        if (UsdUfe::isUICallbackRegistered(_token)) {
+
+            if (!Py_IsInitialized()) {
+                Py_Initialize();
+            }
+
+            Shiboken::GilState gilState;
+            auto               pySelection = pybind11::cast(selection);
+
+            VtDictionary context;
+            context["selection"] = TfPyObjWrapper(
+                pyboost::object(pyboost::handle<>(pyboost::borrowed(pySelection.inc_ref().ptr()))));
+
+            auto addPythonRollup = pybind11::cpp_function(
+                [&addRollup](const pybind11::object& pyWidget) {
+                    if (QWidget* widget = MaxUsd::QmaxUsdPythonWidget::embed(pyWidget.ptr())) {
+                        addRollup(std::unique_ptr<QWidget>(widget));
+                    }
+                },
+                pybind11::arg("widget"));
+
+            context["addRollup"] = TfPyObjWrapper(pyboost::object(
+                pyboost::handle<>(pyboost::borrowed(addPythonRollup.inc_ref().ptr()))));
+
+            VtDictionary data;
+            UsdUfe::triggerUICallback(_token, context, data);
+        }
+    }
+
     if (selection.size() == 1) {
 
         // Catch all rollup: Contains any attribute that is not part of a
@@ -1328,6 +1404,49 @@ void USDStageObject::AdjustRollupsForSelection()
 
     addRollup(
         MaxUsd::ufe::QmaxUsdUfeAttributesWidget::createMetaData(selection, handledAttributeNames));
+}
+
+void USDStageObject::CheckUpdateGeomObjectPurposes(pxr::UsdNotice::ObjectsChanged const& notice)
+{
+    const auto stage = notice.GetStage();
+    if (!stage) {
+        return;
+    }
+
+    // Prims displayed from USDGeomObjects are hidden in the stage object
+    // and at render time by assigning special purposes to them. To make sure
+    // prims are effectively hidden, we need to override the purposes on a stronger
+    // layer on prims that already have purposes authored (assuming those are
+    // being used for display). When the stage changes, we need react, as there
+    // could be new prims for which we need to update the purposes.
+    for (const auto& path : geomObjectSources) {
+
+        // Prims with changed purposes.
+        auto purposeChanged = [&notice, &path]() {
+            for (const auto& path : notice.GetChangedInfoOnlyPaths()) {
+                if (path.IsPropertyPath() && path.HasPrefix(path)
+                    && path.GetNameToken() == pxr::TfToken("purpose")) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Structural changes to the tree.
+        auto subtreeChanged = [&notice, &path]() {
+            for (const auto& path : notice.GetResyncedPaths()) {
+                if (path.HasPrefix(path)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (subtreeChanged() || purposeChanged()) {
+            UpdateGeomObjectPurposesLayer();
+            break;
+        }
+    }
 }
 
 void USDStageObject::DirtySelectionDisplay() { isSelectionDisplayDirty = true; }
@@ -1410,6 +1529,7 @@ USDStageObject::USDStageObject()
     onStageChangeNotice = pxr::TfNotice::Register(me, &USDStageObject::OnStageChange);
     onLayerMutingChangedNotice = pxr::TfNotice::Register(me, &USDStageObject::OnLayerMutingChanged);
 
+    RegisterNotification(NotifyPostOpenProcess, this, NOTIFY_FILE_POST_OPEN_PROCESS_FINALIZED);
     RegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
     RegisterNotification(NotifyUnitsChanged, this, NOTIFY_UNITS_CHANGE);
     RegisterNotification(NotifyNodePreDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
@@ -1433,6 +1553,7 @@ USDStageObject::USDStageObject()
 
 USDStageObject::~USDStageObject()
 {
+    UnRegisterNotification(NotifyPostOpenProcess, this, NOTIFY_FILE_POST_OPEN_PROCESS_FINALIZED);
     UnRegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
     UnRegisterNotification(NotifyUnitsChanged, this, NOTIFY_UNITS_CHANGE);
     UnRegisterNotification(NotifyNodePreDeleted, this, NOTIFY_SCENE_PRE_DELETED_NODE);
@@ -1567,7 +1688,7 @@ void USDStageObject::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     HdMaxDisplayPreferences::GetInstance().Save();
 }
 
-void USDStageObject::ClearRenderCache() { renderCache = {}; }
+void USDStageObject::ClearRenderCache() { renderCache = std::make_unique<RenderCache>(); }
 
 void USDStageObject::ClearBoundingBoxCache() { boundingBoxCache.clear(); }
 
@@ -1747,7 +1868,164 @@ void USDStageObject::GenerateDrawModes()
     }
 }
 
-bool USDStageObject::IsInCreateMode() { return isInCreateMode; }
+INode* USDStageObject::PromoteTo3dsMaxObject(const wchar_t* primPath, bool select)
+{
+    const auto path = SdfPath { MaxUsd::MaxStringToUsdString(primPath) };
+    return PromoteTo3dsMaxObject(path, select);
+}
+
+INode* USDStageObject::PromoteTo3dsMaxObject(const pxr::SdfPath& primPath, bool select)
+{
+    // Find the referencing node.
+    ULONG handle = 0;
+    this->NotifyDependents(FOREVER, (PartID)&handle, REFMSG_GET_NODE_HANDLE);
+    const auto stageNode = GetCOREInterface()->GetINodeByHandle(handle);
+    if (!stageNode) {
+        MaxUsd::Listener::Write(
+            L"The UsdStageObject must be added to the scene, before promoting "
+            L"prims to 3dsMax objects.",
+            true);
+        return nullptr;
+    }
+
+    const auto stage = GetUSDStage();
+    if (!stage || stage.IsInvalid()) {
+        MaxUsd::Listener::Write(
+            L"Unable to promote to a 3dsMax object, the USD Stage is invalid.", true);
+        return nullptr;
+    }
+
+    if (!stage->GetPrimAtPath(primPath).IsValid()) {
+        MaxUsd::Listener::Write(
+            L"Unable to promote to a 3dsMax object, the prim is invalid.", true);
+        return nullptr;
+    }
+
+    // 3dsMax object are created with the same parameters as the last object that was edited of
+    // that type. An issue we hit is if a USDGeomObject is currently being edited, and another is
+    // created, the previous object's parameters don't have a chance to get saved, as the UI is just
+    // updated with a new paramblock, without a full "end edit param". To work around this, force a
+    // swap to the create panel, to get 3dsmax to save the previous object's parameters as the new
+    // default, as users would expect.
+    bool wasEditingGeomObject = false;
+    if (GetCOREInterface()->GetCommandPanelTaskMode() == TASK_MODE_MODIFY) {
+        if (GetCOREInterface()->GetSelNodeCount() == 1) {
+            const auto selNode = GetCOREInterface()->GetSelNode(0);
+            if (selNode->GetObjectRef()->FindBaseObject()->ClassID() == USDGeomObject_CLASS_ID) {
+                wasEditingGeomObject = true;
+                GetCOREInterface()->SetCommandPanelTaskMode(TASK_MODE_CREATE);
+            }
+        }
+    }
+
+    // Create the USDGeomObject and node. Undoable.
+    theHold.Begin();
+
+    USDGeomObject* geomObject = static_cast<USDGeomObject*>(
+        GetCOREInterface17()->CreateInstance(GEOMOBJECT_CLASS_ID, USDGeomObject_CLASS_ID));
+    const auto pb = geomObject->GetParamBlock(0);
+    pb->SetValue(USDGeomObjectParams_USDStage, 0, stageNode);
+    const auto pathStr = MaxUsd::UsdStringToMaxString(primPath.GetString());
+    pb->SetValue(USDGeomObjectParams_PrimPath, 0, pathStr);
+
+    // Create a new node in the scene for this object.
+    auto geomObjectNode = GetCOREInterface()->CreateObjectNode(geomObject);
+    stageNode->AttachChild(geomObjectNode);
+    const auto name = MaxUsd::UsdStringToMaxString(primPath.GetName());
+    geomObjectNode->SetName(name);
+
+#ifdef IS_MAX2024_OR_GREATER
+
+    // Setup a list controller...
+    auto listController = static_cast<Control*>(
+        CreateInstance(CTRL_MATRIX3_CLASS_ID, Class_ID(TMLIST_CONTROL_CLASS_ID, 0)));
+    IListControl* listControl = GetIListControlInterface(listController);
+
+    // With :
+    // A USD transform controller, so that the object follows the USD Prim used as root.
+    USDXformableController* usdController = static_cast<USDXformableController*>(
+        CreateInstance(CTRL_MATRIX3_CLASS_ID, USDXFORMABLECONTROLLER_CLASS_ID));
+    const auto controllerPb = usdController->GetParamBlock(0);
+    controllerPb->SetValue(USDControllerParams_USDStage, 0, stageNode);
+    controllerPb->SetValue(USDControllerParams_Path, 0, pathStr);
+    listControl->AssignController(usdController, 0);
+
+    // A PRS controller, set active, so that users can still move the promoted object by default.
+    listControl->AssignController(CreatePRSControl(), 1);
+    listControl->SetActive(1);
+
+    geomObjectNode->SetTMController(listControl);
+
+#else
+
+    auto posListController = static_cast<Control*>(
+        CreateInstance(CTRL_POSITION_CLASS_ID, Class_ID(POSLIST_CONTROL_CLASS_ID, 0)));
+    IListControl* posListControl = GetIListControlInterface(posListController);
+
+    USDPositionController* usdPosController = static_cast<USDPositionController*>(
+        CreateInstance(CTRL_POSITION_CLASS_ID, USDPOSITIONCONTROLLER_CLASS_ID));
+
+    const auto tmCtrl = geomObjectNode->GetTMController();
+    tmCtrl->SetInheritanceFlags(0, FALSE);
+
+    const auto posCtrlPb = usdPosController->GetParamBlock(0);
+    posCtrlPb->SetValue(USDControllerParams_USDStage, 0, stageNode);
+    posCtrlPb->SetValue(USDControllerParams_Path, 0, pathStr);
+
+    posListControl->AssignController(usdPosController, 0);
+    posListControl->AssignController(NewDefaultPositionController(), 1);
+    posListControl->SetActive(1);
+
+    auto rotListController = static_cast<Control*>(
+        CreateInstance(CTRL_ROTATION_CLASS_ID, Class_ID(ROTLIST_CONTROL_CLASS_ID, 0)));
+    IListControl* rotListControl = GetIListControlInterface(rotListController);
+
+    USDRotationController* usdRotController = static_cast<USDRotationController*>(
+        CreateInstance(CTRL_ROTATION_CLASS_ID, USDROTATIONCONTROLLER_CLASS_ID));
+    const auto rotCtrlPb = usdRotController->GetParamBlock(0);
+    rotCtrlPb->SetValue(USDControllerParams_USDStage, 0, stageNode);
+    rotCtrlPb->SetValue(USDControllerParams_Path, 0, pathStr);
+
+    rotListControl->AssignController(usdRotController, 0);
+    rotListControl->AssignController(NewDefaultRotationController(), 1);
+    rotListControl->SetActive(1);
+
+    auto scaleListController = static_cast<Control*>(
+        CreateInstance(CTRL_SCALE_CLASS_ID, Class_ID(SCALELIST_CONTROL_CLASS_ID, 0)));
+    IListControl* sclListControl = GetIListControlInterface(scaleListController);
+
+    USDScaleController* usdScaleController = static_cast<USDScaleController*>(
+        CreateInstance(CTRL_SCALE_CLASS_ID, USDSCALECONTROLLER_CLASS_ID));
+    const auto scaleCtrlPb = usdScaleController->GetParamBlock(0);
+    scaleCtrlPb->SetValue(USDControllerParams_USDStage, 0, stageNode);
+    scaleCtrlPb->SetValue(USDControllerParams_Path, 0, pathStr);
+
+    sclListControl->AssignController(usdScaleController, 0);
+    sclListControl->AssignController(NewDefaultScaleController(), 1);
+    sclListControl->SetActive(1);
+
+    tmCtrl->SetPositionController(posListControl);
+    tmCtrl->SetRotationController(rotListControl);
+    tmCtrl->SetScaleController(sclListControl);
+
+#endif
+
+    geomObjectNode->InvalidateTM();
+
+    if (select) {
+        GetCOREInterface()->SetSubObjectLevel(0);
+        GetCOREInterface()->SelectNode(geomObjectNode);
+    }
+
+    if (wasEditingGeomObject) {
+        GetCOREInterface()->SetCommandPanelTaskMode(TASK_MODE_MODIFY);
+    }
+
+    theHold.Accept(L"Promote to 3ds Max Object");
+    return geomObjectNode;
+}
+
+bool USDStageObject::IsInCreateMode() const { return isInCreateMode; }
 
 void USDStageObject::SetLockedLayersState(const std::vector<std::string>& lockedLayers)
 {
@@ -1783,23 +2061,29 @@ RefResult USDStageObject::NotifyRefChanged(
             if (const auto parametersMap = pb->GetMap(ParamMapID::UsdStageGeneral)) {
                 parametersMap->UpdateUI(GetCOREInterface()->GetTime());
             }
+            if (const auto parametersMap = pb->GetMap(ParamMapID::UsdStageTools)) {
+                parametersMap->UpdateUI(GetCOREInterface()->GetTime());
+            }
             break;
         }
         case DisplayGuide: {
             displayPurposeUpdated = true;
             ClearAllCaches();
+            UpdateGeomObjectPurposesLayer();
             Redraw();
             break;
         }
         case DisplayProxy: {
             displayPurposeUpdated = true;
             ClearAllCaches();
+            UpdateGeomObjectPurposesLayer();
             Redraw();
             break;
         }
         case DisplayRender: {
             displayPurposeUpdated = true;
             ClearAllCaches();
+            UpdateGeomObjectPurposesLayer();
             Redraw();
             break;
         }
@@ -1889,8 +2173,9 @@ void USDStageObject::ActivateSubobjSel(int level, XFormModes& modes)
         GetCOREInterface()->PipeSelLevelChanged();
     }
 
-    if (!Ufe::GlobalSelection::get()->empty()) {
-        // only update the rollups if the user made a sub-object selection
+    if (!(level && Ufe::GlobalSelection::get()->empty())) {
+        // when switching to subobject mode, only update the rollups
+        // if the user made a sub-object selection
         AdjustRollupsForSelection();
     }
     DirtySelectionDisplay();
@@ -2157,6 +2442,16 @@ void USDStageObject::TransformStart(TimeValue t)
     }
 }
 
+void USDStageObject::TransformHoldingFinish(TimeValue t)
+{
+    // The 3dsmax "Move" undoable command should not be in the undo stack.
+    // This "Move" operation would be added to the stack when moving a camera prim.
+    // Resulting in two items in the stack for one operation (native max + Ufe).
+    // Cancel it before it get accepted.
+    // The UfeUndoableCommandMgr will take care of that.
+    theHold.Cancel();
+}
+
 void USDStageObject::TransformFinish(TimeValue t)
 {
     if (subObjectManips.empty()) {
@@ -2176,6 +2471,24 @@ void USDStageObject::TransformFinish(TimeValue t)
             compositeCmd,
             QApplication::translate("USDStageObject", "Change USD transform").toStdString()));
     }
+    subObjectManips.clear();
+}
+
+void USDStageObject::TransformCancel(TimeValue t)
+{
+    if (subObjectManips.empty()) {
+        return;
+    }
+
+    const auto compositeCmd = Ufe::CompositeUndoableCommand::create({});
+    for (const auto& manip : subObjectManips) {
+        if (auto cmd = manip->BuildTransformCmd()) {
+            compositeCmd->append(cmd);
+        }
+    }
+    // Execute and undo the command to keep USD/Max in sync.
+    compositeCmd->execute();
+    compositeCmd->undo();
     subObjectManips.clear();
 }
 
@@ -2480,6 +2793,10 @@ void USDStageObject::SetRootLayer(
 
 void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
 {
+    if (pauseUsdNotices) {
+        return;
+    }
+
     if (notice.GetStage() != GetUSDStage()) {
         return;
     }
@@ -2501,6 +2818,8 @@ void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
     if (!notice.GetResyncedPaths().empty()) {
         BuildCameraNodes();
     }
+
+    CheckUpdateGeomObjectPurposes(notice);
 
     // Notify that the object may have changed, so that it is flagged for redraw.
     Interval valid = FOREVER;
@@ -2534,7 +2853,7 @@ void USDStageObject::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vp, Bo
     }
 
     if (showIcon) {
-        shapeIcon.GetLocalBoundBox(t, inode, vp, box);
+        shapeIcon->GetLocalBoundBox(t, inode, vp, box);
         if (!stage) {
             return;
         }
@@ -2586,8 +2905,10 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
     const auto scopeGuard = MaxUsd::MakeScopeGuard(
         []() {},
         [this]() {
-            BuildCameraNodes();
-            BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
+            if (!isLoadingMaxFile) {
+                BuildCameraNodes();
+                BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
+            }
         });
 
     if (stage) {
@@ -2655,6 +2976,7 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
         }
 
         if (!stage) {
+            editTargetFromMaxScene.clear();
             return nullptr;
         }
 
@@ -2887,8 +3209,11 @@ IOResult USDStageObject::Save(ISave* iSave)
     return IO_OK;
 }
 
+void USDStageObject::SetLoadingMaxFile(bool loading) { isLoadingMaxFile = loading; }
+
 IOResult USDStageObject::Load(ILoad* iLoad)
 {
+    SetLoadingMaxFile(true);
     iLoad->RegisterPostLoadCallback(new USDItemPostLoadCB(this));
 
     IOResult res = IO_OK;
@@ -3074,9 +3399,9 @@ bool USDStageObject::GetDisplayPurpose(pxr::TfToken purpose) const
     return display;
 }
 
-void USDStageObject::CheckRenderCache(TimeValue time, const pxr::TfTokenVector& renderTags)
+void USDStageObject::CheckFlushRenderCache(TimeValue time, const pxr::TfTokenVector& renderTags)
 {
-    if (renderCache.IsValid(time, renderTags)) {
+    if (renderCache->IsValid(time, renderTags)) {
         return;
     }
     // Cache is invalid.
@@ -3181,7 +3506,6 @@ void USDStageObject::BuildCameraNodes(INode* stageNode) const
     };
 
     FindUsdCameraDependentsProc cameraFinder;
-    ;
     stageNode->DoEnumDependents(&cameraFinder);
 
     if (!stage || !GetParamBlockBool(pb, GenerateCameras)) {
@@ -3389,6 +3713,281 @@ void USDStageObject::OnPrimvarMappingChanged()
     ClearRenderCache();
 }
 
+void USDStageObject::UpdateGeomObjectPurposesLayer()
+{
+    if (!stage) {
+        return;
+    }
+
+    UsdNoticePauseGuard guard { this };
+
+    // Custom purposes to hide geometry handled by USDGeomObjects are setup
+    // on a sublayer to the session layer.
+    auto              session = stage->GetSessionLayer();
+    auto              subLayers = session->GetSubLayerPaths();
+    const std::string reservedName = "MaxUsd_USDGeomObjects_Reserved";
+
+    // Check we already have an existing layer.
+    pxr::SdfLayerRefPtr geomObjectSourceLayer;
+    int                 layerIndex;
+    for (layerIndex = 0; layerIndex < subLayers.size(); ++layerIndex) {
+        std::string layerPath = subLayers[layerIndex];
+        if (layerPath.find(reservedName) != std::string::npos) {
+            // Identified this is our layer, however, if we are loading the max scene from disk, it
+            // could no longer exist...
+            if (auto layer = pxr::SdfLayer::FindOrOpen(subLayers[layerIndex])) {
+                geomObjectSourceLayer = layer;
+                break;
+            }
+            // Remove the "dead" layer. We will generate a new one below if required.
+            session->RemoveSubLayerPath(layerIndex);
+            break;
+        }
+    }
+
+    // No prim fully displayed externally, no need for the layer.
+    if (geomObjectSources.empty()) {
+        if (geomObjectSourceLayer) {
+            session->RemoveSubLayerPath(layerIndex);
+        }
+        return;
+    }
+
+    // If the layer does not already exist, create it.
+    if (!geomObjectSourceLayer) {
+        geomObjectSourceLayer = pxr::SdfLayer::CreateAnonymous(reservedName);
+        if (!geomObjectSourceLayer) {
+            return;
+        }
+        session->InsertSubLayerPath(geomObjectSourceLayer->GetIdentifier(), 0);
+        // System lock the layer, users should not be manually editing this layer.
+        UsdLayerEditor::addSystemLockedLayer(geomObjectSourceLayer);
+    }
+
+    // If there are overlapping subtrees displayed externally,
+    // Only need to work with the root-most ones.
+    std::vector<const GeomObjectSource*> rootMost;
+
+    // First sort the sources by path length.
+    std::vector<const GeomObjectSource*> orderedSources;
+    for (const auto& extGeom : geomObjectSources) {
+        orderedSources.push_back(&(extGeom.second));
+    }
+    std::sort(
+        orderedSources.begin(),
+        orderedSources.end(),
+        [](const GeomObjectSource* a, const GeomObjectSource* b) { return a->path < b->path; });
+
+    // Then, we can loop find the root-most paths. We know parent paths come before their
+    // descendants.
+    for (const auto& extGeom : orderedSources) {
+        const auto it
+            = std::find_if(rootMost.begin(), rootMost.end(), [&extGeom](const GeomObjectSource* s) {
+                  return extGeom->path.HasPrefix(s->path);
+              });
+        if (it == rootMost.end()) {
+            rootMost.push_back(extGeom);
+        }
+    }
+
+    pxr::UsdEditContext editContext(stage, geomObjectSourceLayer);
+    geomObjectSourceLayer->Clear();
+
+    // Prims displayed from USDGeomObjects are hidden in the stage object
+    // and at render time by assigning special purposes to them. To make sure
+    // prims are effectively hidden, we need to override the purposes on a stronger
+    // layer on prims that already have purposes authored (assuming those are
+    // being used for display).
+
+    for (const auto& source : rootMost) {
+        const auto subtreeRoot = stage->GetPrimAtPath(source->path);
+        if (!subtreeRoot.IsValid()) {
+            continue;
+        }
+
+        pxr::TfTokenVector tags;
+        if (source->useCustomRenderTags) {
+            tags = source->customRenderTags; // Tags from the USDGeomObject
+        } else {
+            tags = GetRenderTags(); // Tags from the USDStageObject
+        }
+
+        // Break any instancing, so we can update the purposes.
+        {
+            // First make sure ancestors are not instanced. Deal with the
+            // prim itself as well.
+            // Deal with paths, as in the process of breaking instancing, we may
+            // invalidate prims. Only get the prim when we need it.
+            std::vector<SdfPath> ancestors;
+            auto                 parent = subtreeRoot;
+            while (parent.IsValid()) {
+                if (parent.IsInstanceable()) {
+                    ancestors.push_back(parent.GetPath());
+                }
+                parent = parent.GetParent();
+            }
+            // Break instancing from the top as we can't edit inside instance proxies.
+            for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it) {
+                auto prim = stage->GetPrimAtPath(*it);
+                prim.SetInstanceable(false);
+            }
+
+            // Then, deal with descendants. We also need to break instancing down the
+            // hierarchy as we may need to edit the purposes of descendants as well.
+            std::vector<SdfPath> descendants;
+            for (const auto prim : subtreeRoot.GetAllDescendants()) {
+                if (prim.IsInstanceable()) {
+                    descendants.push_back(prim.GetPath());
+                }
+            }
+
+            {
+                // Set all uninstanceable using SDF apis to avoid recomposition at each step.
+                SdfChangeBlock instancingChanges;
+                for (auto it = descendants.begin(); it != descendants.end(); ++it) {
+                    SdfCreatePrimInLayer(geomObjectSourceLayer, *it);
+                    geomObjectSourceLayer->SetField(
+                        *it, SdfFieldKeys->Instanceable, VtValue(false));
+                }
+            }
+        }
+
+        // Update the purpose to geomObjectSource if the current purpose is included
+        // or geomObjectSkip if it should be excluded from the mesh, but hidden in
+        // the viewport.
+        auto updatePurpose = [&tags](const pxr::UsdPrim& prim, bool root) {
+            if (!prim.IsA<UsdGeomImageable>()) {
+                return;
+            }
+
+            UsdAttribute attr;
+            if (root) {
+                attr = pxr::UsdGeomImageable(prim).CreatePurposeAttr();
+            } else {
+                attr = pxr::UsdGeomImageable(prim).GetPurposeAttr();
+            }
+
+            if (!attr.IsValid()) {
+                return;
+            }
+
+            pxr::TfToken purpose;
+            attr.Get(&purpose);
+
+            if (root || std::find(tags.begin(), tags.end(), purpose) != tags.end()) {
+                attr.Set(MaxUsdPurposeTokens->geomObjectSource);
+                return;
+            }
+            // Non default purpose not in use, skip.
+            if (purpose != pxr::TfToken("default")) {
+                attr.Set(MaxUsdPurposeTokens->geomObjectSkip);
+            }
+        };
+
+        // Breadth-first traversal of the subtree.
+        // Check if we need to override the purposes and/or disable draw modes.
+        // We can prune descendants of prims using purposes that should not be
+        // included in the usd geom object from the traversal.
+        std::vector<SdfPath> stack;
+        stack.push_back(subtreeRoot.GetPath());
+        while (!stack.empty()) {
+            const auto& path = stack.back();
+            stack.pop_back();
+
+            auto prim = stage->GetPrimAtPath(path);
+
+            // Disable any draw modes.
+            if (prim.HasAPI<UsdGeomModelAPI>()) {
+                const auto api = UsdGeomModelAPI(prim);
+                auto       attr = api.GetModelDrawModeAttr();
+                if (attr.IsValid()) {
+                    attr.Set(pxr::UsdGeomTokens->default_);
+                }
+            }
+
+            // For the root, we need to create the purpose attr if it does not exist.
+            updatePurpose(prim, path == source->path);
+
+            for (const auto& child : prim.GetAllChildren()) {
+                stack.push_back(child.GetPath());
+            }
+        }
+    }
+
+    ClearRenderCache();
+    ClearBoundingBoxCache();
+    Interval valid = FOREVER;
+    this->ForceNotify(valid);
+}
+
+void USDStageObject::RegisterGeomObjectSource(const std::string& id, const GeomObjectSource& source)
+{
+    geomObjectSources[id] = source;
+    UpdateGeomObjectPurposesLayer();
+}
+
+void USDStageObject::UnRegisterGeomObjectSource(const std::string& id)
+{
+    geomObjectSources.erase(id);
+    UpdateGeomObjectPurposesLayer();
+}
+
+void USDStageObject::BuildPrimTriMesh(
+    const pxr::SdfPath& path,
+    TimeValue           t,
+    HdMaxTriMesh&       mesh,
+    bool                includeInvisible,
+    bool                includeGeomObjectSrc)
+{
+    ULONG handle = 0;
+    this->NotifyDependents(FOREVER, (PartID)&handle, REFMSG_GET_NODE_HANDLE);
+    const auto node = GetCOREInterface()->GetINodeByHandle(handle);
+    if (!node) {
+        mesh.Reset();
+        return;
+    }
+
+    const auto stage = GetUSDStage();
+    if (!stage || stage.IsInvalid()) {
+        mesh.Reset();
+        return;
+    }
+
+    auto prim = stage->GetPrimAtPath(path);
+    if (!prim.IsValid()) {
+        mesh.Reset();
+        return;
+    }
+
+    auto       renderTags = GetRenderTags();
+    const auto timeCodeSample = ResolveRenderTimeCode(t);
+
+    // We want to offset the mesh by the transform of the prim, to get the mesh
+    // in local space.
+
+    // Get the USD Transform including the pivot.
+    const auto imageable = pxr::UsdGeomImageable { prim };
+    auto       usdWorldTM = imageable.ComputeLocalToWorldTransform(timeCodeSample);
+
+    const auto pivotTM = MaxUsd::GetPivotTransform(pxr::UsdGeomXformable { prim }, timeCodeSample);
+    usdWorldTM = pivotTM * usdWorldTM;
+
+    auto unitAxisInv = MaxUsd::ToMaxMatrix3(GetStageRootTransform());
+    unitAxisInv.Invert();
+    const auto fullTM = unitAxisInv * MaxUsd::ToMaxMatrix3(usdWorldTM.GetInverse());
+
+    hydraEngine->RenderToMesh(
+        node,
+        prim,
+        GetStageRootTransform(),
+        fullTM,
+        timeCodeSample,
+        renderTags,
+        mesh,
+        includeInvisible,
+        includeGeomObjectSrc);
+}
+
 bool USDStageObject::IsMappedPrimvar(const wchar_t* primvarName)
 {
     return MaxUsd::mxs::IsMappedPrimvar(
@@ -3443,7 +4042,7 @@ bool USDStageObject::UpdatePerViewItems(
 
     const bool showIcon = GetParamBlockBool(pb, ShowIcon);
     if (showIcon) {
-        shapeIcon.UpdatePerNodeItems(updateDisplayContext, nodeContext, targetRenderItemContainer);
+        shapeIcon->UpdatePerNodeItems(updateDisplayContext, nodeContext, targetRenderItemContainer);
     }
 
     const auto stage = GetUSDStage();
@@ -3671,6 +4270,8 @@ int USDStageObject::HitTest(
                     const bool  isSelected = globalSelection->contains(ufePath);
                     if ((selectedOnly && isSelected) || (unselectedOnly && !isSelected)) {
                         hasHit = true;
+                        vpt->LogHit(
+                            iNode, nullptr, static_cast<DWORD>(out.z), 0, new UsdHitData(usdHit));
                         break;
                     }
                 }
@@ -3690,7 +4291,7 @@ int USDStageObject::HitTest(
     }
     if (showIcon) {
         // This Hit test also set the GraphicsWindow Hit Distance.
-        if (shapeIcon.HitTest(t, iNode, type, crossing, flags, p, vpt)) {
+        if (shapeIcon->HitTest(t, iNode, type, crossing, flags, p, vpt)) {
             return true;
         }
     }
@@ -3824,6 +4425,10 @@ BOOL USDStageObject::PolygonCount(TimeValue t, int& numFaces, int& numVerts)
 
 Mesh* USDStageObject::GetRenderMesh(TimeValue t, INode* inode, View& view, BOOL& needDelete)
 {
+    // Forward all messages to the render message dialog.
+    const auto del
+        = MaxUsd::Diagnostics::ScopedDelegate::Create<MaxUsd::Diagnostics::RenderMessageDelegate>();
+
     // Keep control of the lifetime of the meshes we produce.
     needDelete = false;
 
@@ -3838,14 +4443,22 @@ Mesh* USDStageObject::GetRenderMesh(TimeValue t, INode* inode, View& view, BOOL&
 
     const auto renderTags = GetRenderTags();
 
-    // Warning : some renderers hold on to the mesh pointer that we return (scanline), so we
-    // must make sure that the mesh survives the whole render call. If a day comes where the mesh
-    // returned must be different per-node, we will need to make sure that any previously generated
-    // mesh for another instance is kept alive somehow.
-    CheckRenderCache(t, renderTags);
+    // If still have a valid mesh in the cache, use it.
+    CheckFlushRenderCache(t, renderTags);
+    if (!renderCache->IsEmpty()) {
+        return renderCache->GetData().GetMesh();
+    }
 
-    if (renderCache.fullMesh) {
-        return renderCache.fullMesh.get();
+    // Raise a warning if no material is applied to the UsdStage object. The user may need to
+    // explicitly apply the UsdPreviewSurface materials.
+    if (!inode->GetMtl()) {
+        const std::wstring warningNoMtl
+            = std::wstring(L"Warning : No material applied to ") + inode->GetName()
+            + std::wstring(
+                  L". If you want to use the UsdPreviewSurface materials from the USD Stage, use "
+                  L"the \"Assign "
+                  L"UsdPreviewSurface material\" command from the \"Rendering settings\" rollup.");
+        TF_WARN(MaxUsd::MaxStringToUsdString(warningNoMtl.data()));
     }
 
     // Setup the display settings. For offline rendering via the generic apis, use
@@ -3856,26 +4469,19 @@ Mesh* USDStageObject::GetRenderMesh(TimeValue t, INode* inode, View& view, BOOL&
 
     const auto timeCodeSample = ResolveRenderTimeCode(t);
 
-    if (renderCache.meshes.empty()) {
-        hydraEngine->RenderToMeshes(
-            inode,
-            stage->GetPseudoRoot(),
-            GetStageRootTransform(),
-            renderCache.meshes,
-            renderCache.transforms,
-            timeCodeSample,
-            renderTags);
-    }
+    hydraEngine->RenderToMesh(
+        inode,
+        stage->GetPseudoRoot(),
+        GetStageRootTransform(),
+        Matrix3 {},
+        timeCodeSample,
+        renderTags,
+        renderCache->GetData(),
+        false,
+        false);
 
-    if (renderCache.meshes.empty()) {
-        return &emptyMesh;
-    }
-
-    renderCache.fullMesh = std::make_unique<Mesh>();
-    MaxUsd::MeshUtils::AttachAll(renderCache.meshes, renderCache.transforms, *renderCache.fullMesh);
-
-    renderCache.SetValidity(t, renderTags, inode->GetMtl());
-    return renderCache.fullMesh.get();
+    renderCache->SetValidity(t, renderTags);
+    return renderCache->GetData().GetMesh();
 }
 
 pxr::TfTokenVector USDStageObject::GetRenderTags() const
@@ -3890,17 +4496,24 @@ pxr::TfTokenVector USDStageObject::GetRenderTags() const
     if (GetDisplayPurpose(pxr::TfToken("render"))) {
         renderTags.push_back(pxr::HdRenderTagTokens->render);
     }
+
+    // We always want to include geomObjectSource prims in the hydra render.
+    // This way we get the geometry that is in turn used in the USDGeomObjects.
+    // However, the render output is usually filtered after the fact when displaying
+    // the USDStageObject itself, to avoid duplication of the geometry.
+    renderTags.push_back(MaxUsdPurposeTokens->geomObjectSource);
+
     return renderTags;
 }
 
 void USDStageObject::UpdateViewportStageIcon()
 {
-    UsdStageObjectIcon::GetIcon(shapeIcon.shape);
+    UsdStageObjectIcon::GetIcon(shapeIcon->shape);
     const float iconScale = GetParamBlockFloat(pb, IconScale);
     if (!MaxUsd::MathUtils::IsAlmostZero(abs(iconScale - 1.0f))) {
         Matrix3 scaleTM;
         scaleTM.Scale(Point3(iconScale, iconScale, 1.0f));
-        shapeIcon.shape.Transform(scaleTM);
+        shapeIcon->shape.Transform(scaleTM);
     }
 }
 
@@ -3923,90 +4536,6 @@ Mtl* USDStageObject::GetUsdPreviewSurfaceMaterials(bool sync)
     return usdMaterials.GetAs<Mtl>();
 }
 
-int USDStageObject::NumberOfRenderMeshes()
-{
-    const auto stage = GetUSDStage();
-    if (!stage || stage.IsInvalid()) {
-        return 0;
-    }
-
-    return int(hydraEngine->GetNumRenderPrim(GetRenderTags()));
-}
-
-Mesh* USDStageObject::GetMultipleRenderMesh(
-    TimeValue t,
-    INode*    inode,
-    View&     view,
-    BOOL&     needDelete,
-    int       meshNumber)
-{
-    // Keep control of the lifetime of the meshes we produce.
-    needDelete = false;
-
-    const auto stage = GetUSDStage();
-    if (!stage || stage.IsInvalid()) {
-        nullptr;
-    }
-
-    const auto renderTags = GetRenderTags();
-    CheckRenderCache(t, renderTags);
-    if (!renderCache.meshes.empty()) {
-        return renderCache.meshes[meshNumber].get();
-    }
-
-    // Setup the display settings. For rendering, go for the highest quality.
-    auto& displaySettings = hydraEngine->GetRenderDelegate()->GetDisplaySettings();
-    auto& changeTracker = hydraEngine->GetChangeTracker();
-    displaySettings.SetDisplayMode(HdMaxDisplaySettings::USDPreviewSurface, changeTracker);
-
-    const auto timeCodeSample = ResolveRenderTimeCode(t);
-
-    hydraEngine->RenderToMeshes(
-        inode,
-        stage->GetPseudoRoot(),
-        GetStageRootTransform(),
-        renderCache.meshes,
-        renderCache.transforms,
-        timeCodeSample,
-        renderTags);
-    renderCache.SetValidity(t, renderTags, inode->GetMtl());
-    return renderCache.meshes[meshNumber].get();
-}
-
-void USDStageObject::GetMultipleRenderMeshTM(
-    TimeValue t,
-    INode*    inode,
-    View&     view,
-    int       meshNumber,
-    Matrix3&  meshTM,
-    Interval& meshTMValid)
-{
-    const auto stage = GetUSDStage();
-    if (!stage || stage.IsInvalid()) {
-        return;
-    }
-    const auto renderTags = GetRenderTags();
-    CheckRenderCache(t, renderTags);
-
-    if (!renderCache.transforms.empty()) {
-        meshTM = Inverse(inode->GetObjectTM(t)) * renderCache.transforms[meshNumber]
-            * inode->GetObjectTM(t);
-        return;
-    }
-    const auto timeCodeSample = ResolveRenderTimeCode(t);
-    hydraEngine->RenderToMeshes(
-        inode,
-        stage->GetPseudoRoot(),
-        GetStageRootTransform(),
-        renderCache.meshes,
-        renderCache.transforms,
-        timeCodeSample,
-        renderTags);
-    renderCache.SetValidity(t, renderTags, inode->GetMtl());
-    meshTM = Inverse(inode->GetObjectTM(t)) * renderCache.transforms[meshNumber]
-        * inode->GetObjectTM(t);
-}
-
 void USDStageObject::Redraw(bool completeRedraw)
 {
     // Notify that the object has changed and force a redraw.
@@ -4021,10 +4550,10 @@ void USDStageObject::Redraw(bool completeRedraw)
 
 void USDStageObject::InvalidateParams()
 {
-    const auto usdStageGeneralParamsMap = pb->GetMap(ParamMapID::UsdStageGeneral);
-    if (usdStageGeneralParamsMap) {
-        usdStageGeneralParamsMap->Invalidate(SourceMetersPerUnit);
-        usdStageGeneralParamsMap->Invalidate(SourceUpAxis);
+    const auto usdStageUsdStageMetadataParamsMap = pb->GetMap(ParamMapID::UsdStageMetadata);
+    if (usdStageUsdStageMetadataParamsMap) {
+        usdStageUsdStageMetadataParamsMap->Invalidate(SourceMetersPerUnit);
+        usdStageUsdStageMetadataParamsMap->Invalidate(SourceUpAxis);
     }
     const auto usdStageAnimationParamsMap = pb->GetMap(ParamMapID::UsdStageAnimation);
     if (usdStageAnimationParamsMap) {
@@ -4039,7 +4568,7 @@ void USDStageObject::InvalidateParams()
 bool USDStageObject::PrepareDisplay(
     const MaxSDK::Graphics::UpdateDisplayContext& prepareDisplayContext)
 {
-    return shapeIcon.PrepareDisplay(prepareDisplayContext);
+    return shapeIcon->PrepareDisplay(prepareDisplayContext);
 }
 
 void USDStageObject::WireColorChanged(Color newColor)
@@ -4178,10 +4707,9 @@ Box3 USDStageObject::GetStageBoundingBox(
     includedPurposes.insert(includedPurposes.end(), pxr::UsdGeomTokens->default_);
 
     std::vector<HdMaxMeshRenderData*> visibleData;
-    hydraEngine->GetRenderDelegate()->GetVisibleMeshRenderData(includedPurposes, visibleData);
+    hydraEngine->GetRenderDelegate()->GetMeshRenderData(visibleData);
     std::vector<HdMaxBasisCurvesRenderData*> visibleCurvesData;
-    hydraEngine->GetRenderDelegate()->GetVisibleBasisCurvesRenderData(
-        includedPurposes, visibleCurvesData);
+    hydraEngine->GetRenderDelegate()->GetBasisCurvesRenderData(visibleCurvesData);
 
     pxr::GfBBox3d totalBoundingBox;
 

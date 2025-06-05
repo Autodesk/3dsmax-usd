@@ -35,7 +35,7 @@ struct export_shapes_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),
@@ -121,6 +121,101 @@ struct export_shapes_test
         assert_float_equal 20 curveExtent[2][1] message:"Unexpected max extent point value in X."
         assert_float_equal 21.224491 curveExtent[2][2] message:"Unexpected max extent point value in Y."
         assert_float_equal 0 curveExtent[2][3] message:"Unexpected max extent point value in Z."
+    ),    
+
+    -- Test inconsistent data 2 categories and object offset
+    function export_inconsistent_data_2_categories_object_offset_spline_test = (
+        
+        -- Build a simple splineshape with 2 splines
+        spline = splineShape name:"spline"
+        
+        --cubic closed
+        splineIdx = addNewSpline spline
+        addKnot spline splineIdx #smooth #curve [0, 10, 0]
+        addKnot spline splineIdx #smooth #curve [0, 20, 0]
+        addKnot spline splineIdx #smooth #curve [20, 20, 0]
+        close spline splineIdx
+
+        --cubic open
+        splineIdx2 = addNewSpline spline
+        addKnot spline splineIdx2 #smooth #curve [10, 10, 0]
+        addKnot spline splineIdx2 #smooth #curve [10, 20, 0]
+        addKnot spline splineIdx2 #smooth #curve [30, 20, 0]
+
+        --set a object offset
+        spline.objectOffsetPos = [-2, -2, 0]
+
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Shapes = true
+        
+        local exportPath = output_prefix + "export_inconsistent_data_2_categories_object_offset_spline_test.usd"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        
+        local stage = pyUsd.Stage.Open(exportPath)
+        local splineXformPrim = stage.GetPrimAtPath("/spline")
+        assert_true (pyUsd.Prim.IsValid(splineXformPrim)) message:"The spline was not exported to a USD prim as expected."
+        assert_true (splineXformPrim.IsA(pyUsdGeom.Xformable)) message:"The spline prim is not a Xform."
+
+        local xformChildren = splineXformPrim.GetAllChildren()
+        assert_equal xformChildren.count 2 message:"The parent Xform prim should have 2 children."
+        
+        local splineShapePrim = stage.GetPrimAtPath("/spline/spline_Shape")
+        assert_true (pyUsd.Prim.IsValid(splineShapePrim)) message:"The spline was not exported to a USD prim as expected."
+        assert_true (splineShapePrim.IsA(pyUsdGeom.BasisCurves)) message:"The spline prim is not a BasisCurves."
+    
+        local splineShape2Prim = stage.GetPrimAtPath("/spline/spline_Shape_2")
+        assert_true (pyUsd.Prim.IsValid(splineShape2Prim)) message:"The spline was not exported to a USD prim as expected."
+        assert_true (splineShape2Prim.IsA(pyUsdGeom.BasisCurves)) message:"The spline prim is not a BasisCurves."
+
+        -- 1st Shape
+        local splineShapeCurve = pyUsdGeom.BasisCurves(splineShapePrim)
+        local shapeCurveVertexCounts = (splineShapeCurve.GetCurveVertexCountsAttr()).Get()
+        assert_equal 7 shapeCurveVertexCounts[1] message:"Unexpected curve vertex counts."
+        
+        local shapeExpectedPoints = #([10, 10, 0], [10, 10, 0], [10, 20, 0], [10, 20, 0], [10, 20, 0], [30, 20, 0], [30, 20, 0])
+            
+        local shapePoints = (splineShapeCurve.GetPointsAttr()).Get()
+        for i = 1 to 7 do (
+            assert_float_equal shapeExpectedPoints[i][1] shapePoints[i][1] message:"Unexpected curve point position in X."
+            assert_float_equal shapeExpectedPoints[i][2] shapePoints[i][2] message:"Unexpected curve point position in Y."
+            assert_float_equal shapeExpectedPoints[i][3] shapePoints[i][3] message:"Unexpected curve point position in Z."
+        )
+        
+        local shapeTypeAttr = (splineShapeCurve.GetTypeAttr()).Get()
+        assert_equal "cubic" shapeTypeAttr message:"The exported curve type should be \"cubic\"."
+        local shapeWrapAttr = (splineShapeCurve.GetWrapAttr()).Get()
+        assert_equal "nonperiodic" shapeWrapAttr message:"The exported curve wrap should be \"nonperiodic\"."
+
+        -- 2nd Shape
+        local splineShape2Curve = pyUsdGeom.BasisCurves(splineShape2Prim)
+        local shape2CurveVertexCounts = (splineShape2Curve.GetCurveVertexCountsAttr()).Get()
+        assert_equal 9 shape2CurveVertexCounts[1] message:"Unexpected curve vertex counts."
+        
+        local shape2ExpectedPoints = #([0, 10, 0], [0, 10, 0], [0, 20, 0], [0, 20, 0], [0, 20, 0], [20, 20, 0], [20, 20, 0], [20, 20, 0], [0, 10, 0])
+            
+        local shape2Points = (splineShape2Curve.GetPointsAttr()).Get()
+        for i = 1 to 9 do (
+            assert_float_equal shape2ExpectedPoints[i][1] shape2Points[i][1] message:"Unexpected curve point position in X."
+            assert_float_equal shape2ExpectedPoints[i][2] shape2Points[i][2] message:"Unexpected curve point position in Y."
+            assert_float_equal shape2ExpectedPoints[i][3] shape2Points[i][3] message:"Unexpected curve point position in Z."
+        )
+        
+        local shape2TypeAttr = (splineShape2Curve.GetTypeAttr()).Get()
+        assert_equal "cubic" shape2TypeAttr message:"The exported curve type should be \"cubic\"."
+        local shape2WrapAttr = (splineShape2Curve.GetWrapAttr()).Get()
+        assert_equal "periodic" shape2WrapAttr message:"The exported curve wrap should be \"periodic\"."
+
+        -- Both BasisCurves should have the same local transform as the object offset
+
+        local shapeLocalTransform = splineShapeCurve.GetLocalTransformation()
+        local expectedShapeTransform = #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(-2, -2, 0, 1))
+        assert_true (compare2dMatrix shapeLocalTransform expectedShapeTransform 4 4)
+
+        local shape2LocalTransform = splineShape2Curve.GetLocalTransformation()
+        local expectedShape2Transform = #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(-2, -2, 0, 1))
+        assert_true (compare2dMatrix shape2LocalTransform expectedShape2Transform 4 4)
     ),    
 
     -- Test inconsistent data 2 categories
@@ -564,7 +659,7 @@ struct export_shapes_test
         assert_equal 128 curveVertexCounts[1] message:"Unexpected curve vertex counts with adaptive steps."
     
         -- To test the optimize property, need something other than a circle, as it would have no colinear points.
-        resetMaxFile #noprompt
+        quickReset()
             
         local rectNode = rectangle name:"rectangle"
             
@@ -776,6 +871,7 @@ struct export_shapes_test
         export_inconsistent_data_2_categories_spline_test,
         export_inconsistent_data_3_categories_spline_test,
         export_inconsistent_data_4_categories_spline_test,
+        export_inconsistent_data_2_categories_object_offset_spline_test,
         export_simple_spline_linear_test,
         export_animated_spline_test,
         export_spline_offset,

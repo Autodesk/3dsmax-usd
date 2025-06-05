@@ -48,11 +48,12 @@ public:
      * hierarchy. Used by the runtime hierarchy implementation.
      * \return The list of UFE scene items matching the given search filter.
      */
-    static std::vector<Ufe::SceneItem::Ptr> findMatchingPaths(
+    static void findMatchingPaths(
         const Ufe::SceneItem::Ptr&         sceneItem,
         const std::string&                 searchFilter,
         const TypeFilter&                  typeFilter,
-        const Ufe::Hierarchy::ChildFilter& childFilter);
+        const Ufe::Hierarchy::ChildFilter& childFilter,
+        std::vector<Ufe::SceneItem::Ptr>&  outItems);
 
     /**
      * \brief Check if the given string needle is contained in the given string haystack, in a case-insensitive way.

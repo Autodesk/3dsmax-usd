@@ -202,7 +202,9 @@ void MeshFacade::LoadNormals()
         if (!normalSpec) {
             triMesh->SpecifyNormals();
             normalSpec = triMesh->GetSpecifiedNormals();
-            normalSpec->SetParent(triMesh);
+            if (normalSpec) {
+                normalSpec->SetParent(triMesh);
+            }
         } else {
             // It's easy for modifiers for mess up and leave the normals flag in a bad state,
             // which can lead to corrupt data, for safety we have no choice but to force a

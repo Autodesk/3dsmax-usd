@@ -15,8 +15,12 @@
 //
 #pragma once
 
-#if MAX_RELEASE >= 27900
+#if MAX_RELEASE >= 28000
 #define IS_MAX_BETA
+#endif
+
+#if MAX_RELEASE >= 27900
+#define IS_MAX2026_OR_GREATER
 #endif
 
 #if MAX_RELEASE >= 26900

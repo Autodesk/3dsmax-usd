@@ -30,6 +30,7 @@ void CameraConverter::ToPhysicalCamera(
     const MaxUsdReadJobContext& readContext)
 {
     const auto prim = usdCamera.GetPrim();
+    const float usdToMaxScaleFactor = static_cast<float> (MaxUsd::GetUsdToMaxScaleFactor(prim.GetStage()));
 
     TimeValue defaultTimeValue
         = MaxUsd::GetMaxTimeValueFromUsdTimeCode(prim.GetStage(), UsdTimeCode::Default());
@@ -61,46 +62,49 @@ void CameraConverter::ToPhysicalCamera(
             maxCamera->SetClipDist(timeValue, CAM_YON_CLIP, farDistance);
             return true;
         },
-        readContext);
-
-    // Focus Distance
-    MaxUsdTranslatorUtil::ReadUsdAttribute(
-			usdCamera.GetFocusDistanceAttr(),
-			[maxCamera, prim](const VtValue& value, const UsdTimeCode&, const TimeValue& timeValue) {
-				float focus = value.Get<float>();
-
-				// the Focus Distance shall not be set to 0.f
-				if (focus == 0.0)
-				{
-					// set a default Focus Distance for the camera to properly work
-					// based on the default Free Camera setting
-					focus = 160.f;
-					MaxUsd::Log::Warn("Focus Distance is set to '0.0f' for camera '{0}'. Setting value to '160.f' to "
-									  "get a minimal working camera.",
-							prim.GetName().GetString());
-				}
-				maxCamera->SetTDist(timeValue, focus);
-				return true;
-			},
-			readContext,
-			false /* if not authored, 'focus' will be set to 0 and a default will be applied by this method */);
+        readContext,
+        false /* use USD defaults if not authored */);
 
     // USD Cameras are not targeted.
     auto camParamBlock = maxCamera->GetParamBlock(0);
     camParamBlock->SetValueByName(L"targeted", false, 0);
 
-    // Aperture horizontal (and its dependencies0
+    // Focus Distance
+    MaxUsdTranslatorUtil::ReadUsdAttribute(
+            usdCamera.GetFocusDistanceAttr(),
+            [camParamBlock, prim, defaultTimeValue](const VtValue& value, const UsdTimeCode&, const TimeValue& timeValue) {
+                float focus = value.Get<float>();
+
+                // the Focus Distance shall not be set to 0.f
+                if (focus == 0.0)
+                {
+                    // set a default Focus Distance for the camera to properly work
+                    // based on the default Free Camera setting
+                    focus = 160.f;
+                    MaxUsd::Log::Warn("Focus Distance is set to '0.0f' for camera '{0}'. Setting value to '160.f' to "
+                                      "get a minimal working camera.",
+                            prim.GetName().GetString());
+                }
+                camParamBlock->SetValue(10 /*pb_specify_focus*/, defaultTimeValue, 1);
+                camParamBlock->SetValue(9 /*pb_focus_distance*/, timeValue, focus);
+                return true;
+            },
+            readContext,
+            false /* if not authored, 'focus' will be set to 0 and a default will be applied by this method */);
+
+    // Aperture horizontal (and its dependencies)
     MaxUsdTranslatorUtil::ReadUsdAttribute(
         usdCamera.GetHorizontalApertureAttr(),
-        [camParamBlock, usdCamera, prim, defaultTimeValue](
+        [camParamBlock, usdCamera, prim, defaultTimeValue, usdToMaxScaleFactor](
             const VtValue& value, const UsdTimeCode& timeCode, const TimeValue& timeValue) {
-            float horizontalAperture = value.Get<float>();
+            float horizontalAperture = value.Get<float>() * .1f * usdToMaxScaleFactor
+                * static_cast<float>(GetSystemUnitScale(UNITS_MILLIMETERS));
 
             // Setting pb_film_width_mm in the physical camera is slow, because it loads presets, in
             // order to set pb_film_preset to the "custom" preset. We can speed this up by checking
             // if the preset is already on "Custom", and if so, directly assigning the value,
             // instead of going through the setter. The setter also invalidates the camera
-            // internally - which this approach wont do. But the next call, to setup the length
+            // internally - which this approach won't do. But the next call, to setup the length
             // breathing will, so we should be ok.
             const MCHAR* presetNameStr = nullptr;
             Interval     valid = FOREVER;
@@ -123,6 +127,9 @@ void CameraConverter::ToPhysicalCamera(
             if (usdCamera.GetHorizontalApertureOffsetAttr().IsAuthored()
                 && usdCamera.GetHorizontalApertureOffsetAttr().Get(
                     &horizontalApertureOffset, timeCode)) {
+                // put back in the expected unit system (written in tenths of a scene unit)
+                horizontalApertureOffset *= .1f * usdToMaxScaleFactor
+                    * static_cast<float>(GetSystemUnitScale(UNITS_MILLIMETERS));
                 // the value is stored has a percentage of the aperture size
                 camParamBlock->SetValue(
                     39 /*pb_lens_horizontal_shift*/,
@@ -148,6 +155,9 @@ void CameraConverter::ToPhysicalCamera(
                 if (usdCamera.GetVerticalApertureOffsetAttr().IsAuthored()
                     && usdCamera.GetVerticalApertureOffsetAttr().Get(
                         &verticalApertureOffset, timeCode)) {
+                    // put back in the expected unit system (written in tenths of a scene unit)
+                    verticalApertureOffset *= .1f * usdToMaxScaleFactor
+                        * static_cast<float>(GetSystemUnitScale(UNITS_MILLIMETERS));
                     // the value is stored has a percentage of the aperture size
                     camParamBlock->SetValue(
                         40 /*pb_lens_vertical_shift*/,
@@ -162,7 +172,7 @@ void CameraConverter::ToPhysicalCamera(
     // Focal Length
     MaxUsdTranslatorUtil::ReadUsdAttribute(
         usdCamera.GetFocalLengthAttr(),
-        [maxCamera, camParamBlock, defaultTimeValue](
+        [maxCamera, camParamBlock, defaultTimeValue, usdToMaxScaleFactor](
             const VtValue& value, const UsdTimeCode&, const TimeValue& timeValue) {
             // the focal length is exported using the FOV and the Horizontal Aperture values
             // both the focal length and zoom factor have an influence on the FOV value
@@ -171,10 +181,15 @@ void CameraConverter::ToPhysicalCamera(
             camParamBlock->SetValue(
                 19 /*pb_fov_specify*/, defaultTimeValue, 0); // force uncheck 'Specify FOV'
             camParamBlock->SetValue(7 /*pb_lens_zoom*/, defaultTimeValue, 1.0f);
-            camParamBlock->SetValue(5 /*pb_focal_length_mm*/, timeValue, value.Get<float>());
+            camParamBlock->SetValue(
+                5 /*pb_focal_length_mm*/,
+                timeValue,
+                value.Get<float>() * .1f * usdToMaxScaleFactor
+                    * static_cast<float>(GetSystemUnitScale(UNITS_MILLIMETERS)));
             return true;
         },
-        readContext);
+        readContext,
+        false /* use USD default if not authored */);
 
     // Lens Aperture
     MaxUsdTranslatorUtil::ReadUsdAttribute(

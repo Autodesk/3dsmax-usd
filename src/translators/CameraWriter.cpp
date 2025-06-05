@@ -102,8 +102,8 @@ bool MaxUsdCameraWriter::Write(
 
         // Focal Length
         // The use of the effective lens focal length would counteract lens breathing
-        float focal = maxPhysicalCamera->GetEffectiveLensFocalLength(timeVal, valid)
-            * static_cast<float>(GetSystemUnitScale(UNITS_MILLIMETERS));
+        // Perspective focal length in tenths of a scene unit
+        float focal = maxPhysicalCamera->GetEffectiveLensFocalLength(timeVal, valid) * 10.f;
         usdCamera.CreateFocalLengthAttr().Set(focal, usdTimeCode);
 
         // Aperture

@@ -1,0 +1,179 @@
+--
+-- Copyright 2025 Autodesk
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+--
+
+FileIn "helpers/usd_test_utils.mxs"
+
+-- Make sure the USD plugin is properly loaded.
+setupUsdPlugins()
+
+-- Some useful python modules for USD validation.
+pyUsd = python.import("pxr.Usd")
+pyUsdGeom = python.import("pxr.UsdGeom")
+pyUsdTf = python.import("pxr.Tf")
+pyShade = python.import("pxr.UsdShade")
+pysdf = python.import("pxr.Sdf")
+pyGf = python.import("pxr.Gf")
+
+output_prefix = pathConfig.appendPath (getDir #temp) "/MTLXSHADER_WRITER_TEST_"
+deleteTestFiles(output_prefix + "*.*")
+
+struct mtlx_shader_writer_test
+( 
+    function setup =
+    (
+        quickReset()
+    ),
+    
+    function test_export_physical_material = (
+        maxver = maxVersion()
+        -- Don't test version before 2025
+        if maxver[1] < 26900 then (
+            return 0
+        )
+
+        local teapot001 = teapot name:"teapot001"
+
+        local mtl1 = MaterialXMaterial()
+        mtl1.name = "matTeapot001"
+        local scriptDir = getFilenamePath (getThisScriptFilename())
+        local mtlxDoc = (scriptDir + @"data\Iberian_Blue_Ceramic_Tiles_1k_8b\Iberian_Blue_Ceramic_Tiles.mtlx")
+        mtl1.importMaterial mtlxDoc
+        teapot001.material = mtl1
+        mtl1.explode()
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.AllMaterialTargets = #("MaterialX")
+
+        local exportPath = output_prefix + "testExportPhysicalMaterial.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+            
+        local mtlPrim = stage.GetPrimAtPath("/root/mtl/Iberian_Blue_Ceramic_Tiles")
+        assert_true (mtlPrim.IsValid())
+        -- Let's validate the Surface Shader
+        local surfacePrim = stage.GetPrimAtPath("/root/mtl/Iberian_Blue_Ceramic_Tiles/Iberian_Blue_Ceramic_Tiles")
+        assert_true (surfacePrim.IsValid())
+        assert_true (surfacePrim.IsA(pyShade.Shader))
+        local surfaceShader = pyShade.Shader(surfacePrim)
+        assert_equal ((surfacePrim.GetAttribute "info:id").Get()) "ND_standard_surface_surfaceshader"
+        assert_equal ((surfaceShader.GetInput "base").Get()) 0.8
+        assert_equal ((((surfaceShader.GetInput "base_color").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/Iberian_Blue_Ceramic_Tiles/NG_Iberian_Blue_Ceramic_Tiles")
+        assert_equal ((surfaceShader.GetInput "coat").Get()) 0
+        assert_equal ((surfaceShader.GetInput "coat_affect_color").Get()) 0
+        assert_equal ((surfaceShader.GetInput "coat_affect_roughness").Get()) 0
+        assert_equal ((surfaceShader.GetInput "coat_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((surfaceShader.GetInput "coat_IOR").Get()) 1.5
+        assert_equal ((((surfaceShader.GetInput "coat_normal").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/Iberian_Blue_Ceramic_Tiles/NG_Iberian_Blue_Ceramic_Tiles")
+        assert_equal ((surfaceShader.GetInput "coat_roughness").Get()) 0.1
+        assert_equal ((surfaceShader.GetInput "diffuse_roughness").Get()) 0
+        assert_equal ((surfaceShader.GetInput "emission").Get()) 0
+        assert_equal ((surfaceShader.GetInput "emission_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((((surfaceShader.GetInput "metalness").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/Iberian_Blue_Ceramic_Tiles/NG_Iberian_Blue_Ceramic_Tiles")
+        assert_equal ((((surfaceShader.GetInput "normal").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/Iberian_Blue_Ceramic_Tiles/NG_Iberian_Blue_Ceramic_Tiles")
+        assert_equal ((surfaceShader.GetInput "specular").Get()) 1
+        assert_equal ((surfaceShader.GetInput "specular_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((surfaceShader.GetInput "specular_IOR").Get()) 1.5
+        assert_equal ((surfaceShader.GetInput "specular_rotation").Get()) 0
+        assert_equal ((((surfaceShader.GetInput "specular_roughness").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/Iberian_Blue_Ceramic_Tiles/NG_Iberian_Blue_Ceramic_Tiles")
+        assert_equal ((surfaceShader.GetInput "subsurface").Get()) 0
+        assert_equal ((surfaceShader.GetInput "subsurface_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((surfaceShader.GetInput "subsurface_radius").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((surfaceShader.GetInput "subsurface_scale").Get()) 1
+        assert_false ((surfaceShader.GetInput "thin_walled").Get())
+        assert_equal ((surfaceShader.GetInput "transmission").Get()) 0
+        assert_equal ((surfaceShader.GetInput "transmission_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((surfaceShader.GetInput "transmission_depth").Get()) 0
+	),
+
+    function test_export_OpenPBR_material = (
+        maxver = maxVersion()
+        -- Don't test version before 2026
+        -- OpenPBR is only 2025.3 and above
+        if maxver[1] < 27900 then (
+            return 0
+        )
+
+        local teapot001 = teapot name:"teapot001"
+        local mtl1 = OpenPBR()
+        mtl1.name = "matTeapot001"
+        teapot001.material = mtl1
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.AllMaterialTargets = #("MaterialX")
+
+        local exportPath = output_prefix + "testOpenPBRMaterial.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local mtlPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001")
+        assert_true (mtlPrim.IsValid())
+        -- Let's validate the OpenPBR Shader
+        local shaderPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/matTeapot001")
+        assert_true (shaderPrim.IsValid())
+        assert_true (shaderPrim.IsA(pyShade.Shader))
+        local shader = pyShade.Shader(shaderPrim)
+
+        -- Validate shader attributes
+        assert_equal ((shaderPrim.GetAttribute "info:id").Get()) "ND_open_pbr_surface_surfaceshader"
+        assert_equal ((shader.GetInput "base_color").Get()) (pyGf.Vec3f 0.8 0.8 0.8)
+        assert_equal ((shader.GetInput "base_diffuse_roughness").Get()) 0
+        assert_equal ((shader.GetInput "base_metalness").Get()) 0
+        assert_equal ((shader.GetInput "base_weight").Get()) 1
+        assert_equal ((shader.GetInput "coat_bump_map_amt").Get()) 1
+        assert_equal ((shader.GetInput "coat_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((shader.GetInput "coat_darkening").Get()) 1
+        assert_equal ((shader.GetInput "coat_ior").Get()) 1.6
+        assert_equal ((shader.GetInput "coat_roughness").Get()) 0
+        assert_equal ((shader.GetInput "coat_roughness_anisotropy").Get()) 0
+        assert_equal ((shader.GetInput "coat_weight").Get()) 0
+        assert_equal ((shader.GetInput "emission_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((shader.GetInput "emission_luminance").Get()) 0
+        assert_equal ((shader.GetInput "fuzz_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((shader.GetInput "fuzz_roughness").Get()) 0.5
+        assert_equal ((shader.GetInput "fuzz_weight").Get()) 0
+        assert_false ((shader.GetInput "geometry_thin_walled").Get())
+        assert_equal ((shader.GetInput "specular_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((shader.GetInput "specular_ior").Get()) 1.5
+        assert_equal ((shader.GetInput "specular_roughness").Get()) 0.3
+        assert_equal ((shader.GetInput "specular_roughness_anisotropy").Get()) 0
+        assert_equal ((shader.GetInput "specular_weight").Get()) 1
+        assert_equal ((shader.GetInput "subsurface_color").Get()) (pyGf.Vec3f 0.8 0.8 0.8)
+        assert_equal ((shader.GetInput "subsurface_radius").Get()) 1
+        assert_equal ((shader.GetInput "subsurface_radius_scale").Get()) (pyGf.Vec3f 0.794704 0.531734 0.292854)
+        assert_equal ((shader.GetInput "subsurface_scatter_anisotropy").Get()) 0
+        assert_equal ((shader.GetInput "subsurface_weight").Get()) 0
+        assert_equal ((shader.GetInput "thin_film_ior").Get()) 1.4
+        assert_equal ((shader.GetInput "thin_film_thickness").Get()) 0.5
+        assert_equal ((shader.GetInput "thin_film_weight").Get()) 0
+        assert_equal ((shader.GetInput "transmission_color").Get()) (pyGf.Vec3f 1 1 1)
+        assert_equal ((shader.GetInput "transmission_depth").Get()) 0
+        assert_equal ((shader.GetInput "transmission_dispersion_abbe_number").Get()) 20
+        assert_equal ((shader.GetInput "transmission_dispersion_scale").Get()) 0
+        assert_equal ((shader.GetInput "transmission_scatter").Get()) (pyGf.Vec3f 0 0 0)
+        assert_equal ((shader.GetInput "transmission_scatter_anisotropy").Get()) 0
+        assert_equal ((shader.GetInput "transmission_weight").Get()) 0
+    ),
+
+    function teardown = (
+    ),
+
+    Tests = #(
+        test_export_physical_material,
+        test_export_OpenPBR_material
+        )
+)
+
+runUsdTestFixture mtlx_shader_writer_test (getThisScriptFilename())

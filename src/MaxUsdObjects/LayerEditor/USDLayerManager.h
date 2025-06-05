@@ -14,9 +14,17 @@
 // limitations under the License.
 //
 #pragma once
+#include <MaxUsdObjects/Views/SaveUSDOptionsDialog.h>
 
 struct NotifyInfo;
 class USDStageObject;
+
+enum class SaveMode
+{
+    SaveAll,
+    SaveAllEditsMax,
+    Save3dsMaxOnly
+};
 
 /**
  * Singleton to manage and save USD Layers.
@@ -44,11 +52,30 @@ public:
      */
     bool HandleMaxSceneSave();
 
+    /**
+     * Returns the Save Mode for the Layer Manager.
+     * @return The save mode
+     */
+    SaveMode GetSaveMode();
+
+    /**
+     * Sets the Save Mode for the Layer Manager
+     * @param saveMode The save mode to set
+     */
+    void SetSaveMode(SaveMode saveMode);
+
     // Delete the copy/move constructors assignment operators.
     USDLayerManager(const USDLayerManager&) = delete;
     USDLayerManager& operator=(const USDLayerManager&) = delete;
     USDLayerManager(USDLayerManager&&) = delete;
     USDLayerManager& operator=(USDLayerManager&&) = delete;
+
+    /**
+     * Adds a dirty layer to dirtyLayersFromMaxScene vector. Used to simply
+     * keep references to SdfLayers created in memory.
+     * @param dirtyLayer loaded from .max scene file
+     */
+    void AddDirtyLayerFromMaxScene(const pxr::SdfLayerRefPtr dirtyLayer);
 
 private:
     USDLayerManager();
@@ -65,4 +92,24 @@ private:
     // There is no direct way to know from the Max API - we always assume auto-save,
     // unless we received NOTIFY_FILE_CHECK_STATUS which only regular saves send out.
     bool isAutoSave = true;
+
+    // The last used save mode
+    SaveMode saveMode;
+
+    /**
+     * Clears the dirtyLayersFromMaxScene vector. Note this is called after
+     * NOTIFY_FILE_POST_OPEN notification is sent.
+     */
+    void ClearMaxSceneDirtyLayers();
+
+    /// Storage of dirty layers found in the Max Scene file on load.
+    /**
+     * NOTE: This vector is used to drive the mechanism of loading layers from the .max scene on
+     * disk; first the layers are read from the .max scene file, then they are created as anonymous
+     * layers with the same identifiers as they had when they were saved, and finally,
+     * when the USD stages associated with the .max scene file are created, upon their
+     * creation, they will find SdfLayers that exist in memory with the same identifier
+     * and use them instead of the ones associated with the root .usd layer of the stage.
+     */
+    std::vector<pxr::SdfLayerRefPtr> dirtyLayersFromMaxScene;
 };

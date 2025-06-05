@@ -18,12 +18,12 @@
 #include "utils.h"
 
 #include <UFEUI/Views/explorer.h>
+#include <UFEUI/standardTreeColumns.h>
 #include <UFEUI/treeitem.h>
 
 #include <ufe/scene.h>
 #include <ufe/sceneNotification.h>
 
-#include <QtCore/QCoreApplication>
 #include <gtest/gtest.h>
 
 class ExplorerObserverTest : public UfeUiBaseTest
@@ -36,7 +36,12 @@ protected:
         const auto              root = Ufe::Hierarchy::createItem(UfeUiTest::getUfePath("/root"));
         const UfeUi::TypeFilter typeFilter;
         Ufe::Hierarchy::ChildFilter childFilter;
-        _testExplorer = new UfeUi::Explorer(root, {}, typeFilter, childFilter, false, "", {});
+
+        UfeUi::TreeColumns columns;
+        columns.push_back(std::make_shared<UfeUiTest::TestColumn>(0));
+
+        _testExplorer = new UfeUi::Explorer(root, columns, typeFilter, childFilter, false, "", {});
+        _testExplorer->treeView()->expandAll();
     }
     void TearDown() override
     {
@@ -52,6 +57,7 @@ namespace {
 // Simulate a new object added from a runtime.
 void _addSceneItem(const Ufe::Path& path)
 {
+    UfeUiTest::TestHierarchy::addChild(path.pop(), path);
     const auto newObject = Ufe::Hierarchy::createItem(path);
     Ufe::Scene::instance().notify(Ufe::ObjectAdd { newObject });
 }
@@ -71,18 +77,20 @@ TEST_F(ExplorerObserverTest, ExplorerObserver_objectAdded)
     const auto pseudoRoot = _testExplorer->treeModel()->root()->child(0);
     ASSERT_EQ(pseudoRoot->childCount(), 3);
 
-    // Keep track of current children, to make sure those are kept, and not re-created.
-    const auto c1 = pseudoRoot->child(0);
-    const auto c2 = pseudoRoot->child(1);
-    const auto c3 = pseudoRoot->child(2);
+    // Keep track of current children paths.
+    const auto c1 = pseudoRoot->child(0)->sceneItem()->path();
+    const auto c2 = pseudoRoot->child(1)->sceneItem()->path();
+    const auto c3 = pseudoRoot->child(2)->sceneItem()->path();
 
     const auto newObjectPath = UfeUiTest::getUfePath("/root/new");
     _addSceneItem(newObjectPath);
 
+    // The tree is rebuild from the parent of a new object.
+    // Make sure that the siblings are still there with their correct paths.
     EXPECT_EQ(pseudoRoot->childCount(), 4);
-    EXPECT_EQ(c1, pseudoRoot->child(0));
-    EXPECT_EQ(c2, pseudoRoot->child(1));
-    EXPECT_EQ(c3, pseudoRoot->child(2));
+    EXPECT_EQ(c1, pseudoRoot->child(0)->sceneItem()->path());
+    EXPECT_EQ(c2, pseudoRoot->child(1)->sceneItem()->path());
+    EXPECT_EQ(c3, pseudoRoot->child(2)->sceneItem()->path());
 
     const auto idx = _testExplorer->treeModel()->getIndexFromPath(newObjectPath);
     ASSERT_TRUE(idx.isValid());
@@ -117,10 +125,10 @@ TEST_F(ExplorerObserverTest, ExplorerObserver_objectsRemoved)
     const auto pseudoRoot = _testExplorer->treeModel()->root()->child(0);
     ASSERT_EQ(pseudoRoot->childCount(), 3);
 
-    const auto a1 = pseudoRoot->child(0);
-    const auto a2 = pseudoRoot->child(1);
-    const auto b2 = pseudoRoot->child(0)->child(1);
-    const auto c2 = pseudoRoot->child(0)->child(1)->child(1);
+    const auto a1 = pseudoRoot->child(0)->sceneItem()->path();
+    const auto a2 = pseudoRoot->child(1)->sceneItem()->path();
+    const auto b2 = pseudoRoot->child(0)->child(1)->sceneItem()->path();
+    const auto c2 = pseudoRoot->child(0)->child(1)->child(1)->sceneItem()->path();
 
     // Remove some object at each level.
     _removeSceneItem(UfeUiTest::TestHierarchy::C1);
@@ -128,12 +136,12 @@ TEST_F(ExplorerObserverTest, ExplorerObserver_objectsRemoved)
     _removeSceneItem(UfeUiTest::TestHierarchy::A3);
 
     ASSERT_EQ(pseudoRoot->childCount(), 2);
-    EXPECT_EQ(pseudoRoot->child(0), a1);
-    EXPECT_EQ(pseudoRoot->child(1), a2);
+    EXPECT_EQ(pseudoRoot->child(0)->sceneItem()->path(), a1);
+    EXPECT_EQ(pseudoRoot->child(1)->sceneItem()->path(), a2);
     ASSERT_EQ(pseudoRoot->child(0)->childCount(), 1);
-    EXPECT_EQ(pseudoRoot->child(0)->child(0), b2);
+    EXPECT_EQ(pseudoRoot->child(0)->child(0)->sceneItem()->path(), b2);
     ASSERT_EQ(pseudoRoot->child(0)->child(0)->childCount(), 1);
-    EXPECT_EQ(pseudoRoot->child(0)->child(0)->child(0), c2);
+    EXPECT_EQ(pseudoRoot->child(0)->child(0)->child(0)->sceneItem()->path(), c2);
 }
 
 TEST_F(ExplorerObserverTest, ExplorerObserver_objectsRemovedNoop)
@@ -188,6 +196,7 @@ TEST_F(ExplorerObserverTest, ExplorerObserver_subTreeInvalidate)
     ASSERT_FALSE(
         _testExplorer->treeModel()->getIndexFromPath(UfeUiTest::TestHierarchy::C2).isValid());
 
+    _testExplorer->treeView()->expandAll();
     // New subtree!
     ASSERT_TRUE(_testExplorer->treeModel()->getIndexFromPath(fooPath).isValid());
     ASSERT_TRUE(_testExplorer->treeModel()->getIndexFromPath(barPath).isValid());
@@ -205,6 +214,7 @@ TEST_F(ExplorerObserverTest, ExplorerObserver_subTreeInvalidate)
     ASSERT_TRUE(
         _testExplorer->treeModel()->getIndexFromPath(UfeUiTest::TestHierarchy::A1).isValid());
 
+    _testExplorer->treeView()->expandAll();
     // Base test subtree is back.
     ASSERT_TRUE(
         _testExplorer->treeModel()->getIndexFromPath(UfeUiTest::TestHierarchy::B1).isValid());

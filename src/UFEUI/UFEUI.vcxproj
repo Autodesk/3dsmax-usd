@@ -35,6 +35,9 @@
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4275;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>ufeui_pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>ufeui_pch.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -54,6 +57,7 @@
     <ClInclude Include="treeColumn.h" />
     <ClInclude Include="treeItem.h" />
     <QtMoc Include="treeModel.h" />
+    <ClInclude Include="ufeui_pch.h" />
     <ClInclude Include="utils.h" />
     <QtMoc Include="Views\explorer.h" />
     <QtMoc Include="Views\tabWidget.h" />
@@ -77,6 +81,9 @@
     <ClCompile Include="treeColumn.cpp" />
     <ClCompile Include="treeItem.cpp" />
     <ClCompile Include="treeModel.cpp" />
+    <ClCompile Include="ufeui_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="Views\explorer.cpp" />
     <ClCompile Include="Views\explorerHost.cpp" />

@@ -37,7 +37,7 @@ struct export_material_id_test
     (
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_export_material_id = (

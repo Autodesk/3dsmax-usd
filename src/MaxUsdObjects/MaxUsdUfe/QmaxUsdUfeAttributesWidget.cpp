@@ -367,7 +367,7 @@ QString cleanDocumentation(const std::string& doc)
 
     { // converts the markdown bold/emphasized "__something__" or "_something_" to just "something"
         QRegularExpression bold(
-            R"((?>^|\s)(?<open>(__)|(_))(?U:.+)(?<close>(\g{open}))(?>[:.,;\s]))",
+            R"((?>^|\s)(?<open>(__)|(_))(?U:.+)(?<close>(\g{open}))(?>[:.,;'\s$]))",
             QRegularExpression::MultilineOption);
         auto boldMatch = bold.globalMatch(result);
         replacements.clear();
@@ -440,8 +440,107 @@ QString cleanDocumentation(const std::string& doc)
     }
 
     {
-        QRegularExpression note(R"(\\note\s)", QRegularExpression::MultilineOption);
-        result.replace(note, "");
+        QRegularExpression note(R"(\\note[\s$])", QRegularExpression::MultilineOption);
+        result.replace(note, "\n\n");
+    }
+
+    { // converts the html bold "<b>something</b>" to just "something"
+        QRegularExpression htmlBold(
+            R"((?<open><b>)(?U:.+)(?<close><\/b>))", QRegularExpression::MultilineOption);
+        auto boldMatch = htmlBold.globalMatch(result);
+        replacements.clear();
+        while (boldMatch.hasNext()) {
+            auto match = boldMatch.next();
+            replacements.emplace_back(
+                match.capturedStart("open"), match.capturedLength("open"), "");
+            replacements.emplace_back(
+                match.capturedStart("close"), match.capturedLength("close"), "");
+        }
+        for (auto it = replacements.rbegin(); it != replacements.rend(); ++it) {
+            auto start = std::get<0>(*it);
+            auto len = std::get<1>(*it);
+            result.replace(start, len, "");
+        }
+    }
+
+    { // converts the html italic "<i>something</i>" to just "something"
+        QRegularExpression htmlItalic(
+            R"((?<open><i>)(?U:.+)(?<close><\/i>))", QRegularExpression::MultilineOption);
+        auto boldMatch = htmlItalic.globalMatch(result);
+        replacements.clear();
+        while (boldMatch.hasNext()) {
+            auto match = boldMatch.next();
+            replacements.emplace_back(
+                match.capturedStart("open"), match.capturedLength("open"), "");
+            replacements.emplace_back(
+                match.capturedStart("close"), match.capturedLength("close"), "");
+        }
+        for (auto it = replacements.rbegin(); it != replacements.rend(); ++it) {
+            auto start = std::get<0>(*it);
+            auto len = std::get<1>(*it);
+            result.replace(start, len, "");
+        }
+    }
+
+    { // converts the html unordered lists to something more readable
+        QRegularExpression htmlUL(
+            R"((?<ul_open><ul>)(?U:.+)(?<ul_close><\/ul>))", QRegularExpression::MultilineOption);
+
+        QRegularExpression htmlLI(
+            R"((?<li_open><li>\s*)(?U:.+)(?<li_close><\/li>\s*))",
+            QRegularExpression::MultilineOption);
+
+        auto ulMatches = htmlUL.globalMatch(result);
+        replacements.clear();
+        auto ulContentReplacements = std::vector<std::tuple<int, int, QString>>();
+        while (ulMatches.hasNext()) {
+            auto ulMatch = ulMatches.next();
+            replacements.emplace_back(ulMatch.capturedStart("ul_open"), 4, "\n\n");
+
+            // replace the list items with new lines
+            int     ulContentStart = ulMatch.capturedStart("ul_open") + 4;
+            int     ulContentEnd = ulMatch.capturedStart("ul_close");
+            QString ulContent = result.mid(ulContentStart, ulContentEnd - ulContentStart);
+            ulContentReplacements.clear();
+            auto liMatches = htmlLI.globalMatch(ulContent);
+            while (liMatches.hasNext()) {
+                auto liMatch = liMatches.next();
+                ulContentReplacements.emplace_back(liMatch.capturedStart("li_open"), 4, "");
+                ulContentReplacements.emplace_back(liMatch.capturedStart("li_close"), 5, "\n\n");
+            }
+            for (auto it = ulContentReplacements.rbegin(); it != ulContentReplacements.rend();
+                 ++it) {
+                auto start = std::get<0>(*it);
+                auto len = std::get<1>(*it);
+                ulContent.replace(start, len, std::get<2>(*it));
+            }
+            replacements.emplace_back(ulContentStart, ulContentEnd - ulContentStart, ulContent);
+
+            replacements.emplace_back(ulMatch.capturedStart("ul_close"), 5, "\n");
+        }
+        for (auto it = replacements.rbegin(); it != replacements.rend(); ++it) {
+            auto start = std::get<0>(*it);
+            auto len = std::get<1>(*it);
+            result.replace(start, len, std::get<2>(*it));
+        }
+    }
+
+    lines = result.split("\n");
+    result.clear();
+    for (const auto& line : lines) {
+        auto l = line.simplified(); // replaces continuous white spaces, trims begin and end
+        if (!result.isEmpty()) {
+            if (l.isEmpty()) {
+                if (result.back() != '\n') {
+                    result += "\n\n";
+                }
+                continue;
+            }
+            if (result.back() != '\n') {
+                result += " ";
+            }
+        }
+        result += l;
     }
 
     result = result.trimmed();

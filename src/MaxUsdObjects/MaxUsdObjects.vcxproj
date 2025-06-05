@@ -36,9 +36,11 @@
       <PreprocessorDefinitions>MAXUSDOBJECTS_EXPORTS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(PySideInc);$(PySideShibokenInc);$(PySideInc)\QtWidgets;$(PySideInc)\QtGui;$(PySideInc)\QtCore;$(UfeInc);$(UfeUsdInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <ForcedIncludeFiles>$(ProjectDir)maxusdobjects_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>maxusdobjects_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>maxusdobjects_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(PySideShibokenLib);$(PySideLib);$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -69,7 +71,6 @@ cmake  ^
   -DPython3_FIND_STRATEGY=LOCATION ^
   -DPython3_FIND_FRAMEWORK=NEVER ^
   -DPython3_FIND_REGISTRY=NEVER ^
-  -DBOOST_LIB_TOOLSET="vc142" ^
   -DQT_VERSION=%qt_major_version% ^
   -DCMAKE_PREFIX_PATH=$(QtInstall)/lib/cmake/Qt%qt_major_version% ^
   -DCMAKE_INSTALL_PREFIX=$(UsdLayerEditorDir) ^
@@ -97,10 +98,15 @@ exit /b 0</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClassDescs.cpp" />
+    <ClCompile Include="FindUSDGeomObjectProc.cpp" />
+    <ClCompile Include="Objects\USDGeomObject.cpp" />
     <ClCompile Include="LayerEditor\MaxLayerEditorItemDelegate.cpp" />
     <ClCompile Include="LayerEditor\USDLayerManager.cpp" />
     <ClCompile Include="LayerEditor\MaxLayerEditorWindow.cpp" />
     <ClCompile Include="LayerEditor\MaxSessionState.cpp" />
+    <ClCompile Include="maxusdobjects_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="MaxUsdUfe\MaxUsdHierarchyHandler.cpp" />
     <ClCompile Include="MaxUsdUfe\MaxUsdRootChildHierarchy.cpp" />
     <ClCompile Include="MaxUsdUfe\MaxUfeUndoableCmdMgr.cpp" />
@@ -121,11 +127,18 @@ exit /b 0</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClassDescs.h" />
+    <ClInclude Include="FindUSDGeomObjectsProc.h" />
+    <ClInclude Include="USDGeomObject.h" />
+    <QtMoc Include="Views\UsdStageMetadataRollup.h" />
+    <QtMoc Include="Views\UsdStageToolsRollup.h" />
+    <QtMoc Include="Views\UsdGeomObjectIncludesRollup.h" />
+    <QtMoc Include="Views\UsdGeomObjectParametersRollup.h" />
     <QtMoc Include="Views\SaveUSDOptionsDialog.h" />
     <QtMoc Include="LayerEditor\MaxLayerEditorWindow.h" />
     <QtMoc Include="LayerEditor\MaxSessionState.h" />
     <QtMoc Include="LayerEditor\MaxLayerEditorItemDelegate.h" />
     <ClInclude Include="LayerEditor\USDLayerManager.h" />
+    <ClInclude Include="maxusdobjects_pch.h" />
     <ClInclude Include="MaxUsdUfe\MaxUfeUndoableCommandMgr.h" />
     <ClInclude Include="MaxUsdUfe\MaxUsdHierarchyHandler.h" />
     <ClInclude Include="MaxUsdUfe\MaxUsdRootChildHierarchy.h" />
@@ -190,7 +203,7 @@ exit /b 0</Command>
     <ClInclude Include="MaxUsdObjectsAPI.h" />
     <ClInclude Include="Objects\USDStageObjectIcon.h" />
     <ClInclude Include="Objects\CreateCallbacks\CreateAtPosition.h" />
-    <QtMoc Include="Views\UsdStageNodeParametersRollup.h" />
+    <QtMoc Include="Views\UsdStageNodeStageRollup.h" />
     <QtMoc Include="Views\UsdStageNodePrimSelectionDialog.h" />
     <QtMoc Include="Views\UsdStageViewportDisplayRollup.h" />
     <QtMoc Include="Views\UsdStageViewportPerformanceRollup.h" />
@@ -212,9 +225,13 @@ exit /b 0</Command>
     <ClCompile Include="Objects\USDSnaps.cpp" />
     <ClCompile Include="Views\SaveUSDOptionsDialog.cpp" />
     <ClCompile Include="Views\UsdCameraObjectRollup.cpp" />
+    <ClCompile Include="Views\UsdGeomObjectIncludesRollup.cpp" />
+    <ClCompile Include="Views\UsdGeomObjectParametersRollup.cpp" />
+    <ClCompile Include="Views\UsdStageMetadataRollup.cpp" />
     <ClCompile Include="Views\UsdStageNodeAnimationRollup.cpp" />
-    <ClCompile Include="Views\UsdStageNodeParametersRollup.cpp" />
+    <ClCompile Include="Views\UsdStageNodeStageRollup.cpp" />
     <ClCompile Include="Views\UsdStageNodePrimSelectionDialog.cpp" />
+    <ClCompile Include="Views\UsdStageToolsRollup.cpp" />
     <ClCompile Include="Views\UsdStageViewportDisplayRollup.cpp" />
     <ClCompile Include="Views\UsdStageViewportPerformanceRollup.cpp" />
     <ClCompile Include="Views\UsdStageRenderSettingsRollup.cpp" />
@@ -226,10 +243,14 @@ exit /b 0</Command>
     <QtUic Include="Views\SaveUSDOptionsDialog.ui" />
     <QtUic Include="Views\UsdCameraObjectRollup.ui" />
     <QtUic Include="Views\UsdControllerWidget.ui" />
+    <QtUic Include="Views\UsdGeomObjectIncludesRollup.ui" />
+    <QtUic Include="Views\UsdGeomObjectParametersRollup.ui" />
+    <QtUic Include="Views\UsdStageMetadataRollup.ui" />
     <QtUic Include="Views\UsdStageNodeAnimationRollup.ui" />
-    <QtUic Include="Views\UsdStageNodeParametersRollup.ui" />
+    <QtUic Include="Views\UsdStageNodeStageRollup.ui" />
     <QtUic Include="Views\UsdStageNodePrimSelectionDialog.ui" />
     <QtUic Include="Views\UsdStageRenderSettingsRollup.ui" />
+    <QtUic Include="Views\UsdStageToolsRollup.ui" />
     <QtUic Include="Views\UsdStageViewportDisplayRollup.ui" />
     <QtUic Include="Views\UsdStageViewportPerformanceRollup.ui" />
     <QtUic Include="Views\UsdStageViewportSelectionRollup.ui" />

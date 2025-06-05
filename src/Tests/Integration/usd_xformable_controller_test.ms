@@ -38,7 +38,7 @@ struct usd_xformable_controller_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale
-        resetMaxFile #noprompt
+        quickReset()
         units.SystemType = #inches
         units.SystemScale = 1
     ),
@@ -115,7 +115,7 @@ struct usd_xformable_controller_test
         local maxSceneSavePath = output_prefix + "sphere_xform_controller.max"
         saveMaxFile maxSceneSavePath quiet:true
         
-        resetMaxFile #noprompt
+        quickReset()
         
         -- Load the save scene, and make sure the controller still behaves..
         loadMaxFile maxSceneSavePath useFileUnits:true

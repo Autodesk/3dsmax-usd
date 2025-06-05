@@ -25,7 +25,10 @@
 #include <UFEUI/Views/Explorer.h>
 #include <UFEUI/Views/ExplorerHost.h>
 #include <UFEUI/editCommand.h>
+#include <UFEUI/utils.h>
 
+#include <MaxUsd/Utilities/ListenerUtils.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/UiUtils.h>
 
 #include <usdUfe/ufe/Global.h>
@@ -265,6 +268,7 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
                 = MaxUsd::ufe::getUsdStageObjectFromPath(activeExplorer->rootItem()->path());
             MaxLayerEditor::Instance()->OpenStage(stageObject);
         });
+
         return dockWidget;
     }();
 
@@ -405,6 +409,10 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
         host->addExplorer(explorer, stageLabel.c_str(), true);
 
         explorer->treeView()->installEventFilter(ContextMenuEventFilter::Instance());
+
+        UfeUi::Utils::SetErrorFunction([](std::string str) {
+            MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(str).data(), true);
+        });
     }
     // Make sure the host is showed.
     dock->show();

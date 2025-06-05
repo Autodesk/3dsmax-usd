@@ -18,6 +18,7 @@ test-results/
 resource.aps
 .env/
 .vscode/
+.history/
 docs/out/
 .env*/
 .env

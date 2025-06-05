@@ -37,7 +37,7 @@ struct create_reference_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale        
-        resetMaxFile #noprompt
+        quickReset()
     ),
     
     function test_set_root_layer = (
@@ -47,7 +47,7 @@ struct create_reference_test
         local exportOptions = USDExporter.CreateOptions()
         exportOptions.FileFormat = #ascii
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetMaxFile #noprompt
+        quickReset()
         
         local usdReference = USDStageObject()
         assert_defined usdReference
@@ -76,7 +76,7 @@ struct create_reference_test
         local exportPath = output_prefix + "box.usd"
         local exportOptions = USDExporter.CreateOptions()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetMaxFile #noprompt
+        quickReset()
         
         -- Test that a cache id is assigned correctly with a initialized stage.        
         local usdReference = USDStageObject()
@@ -137,7 +137,7 @@ struct create_reference_test
         local exportPath = output_prefix + "boxIcon.usd"
         local exportOptions = USDExporter.CreateOptions()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetMaxFile #noprompt
+        quickReset()
 
         -- Test that an empty stage has an icon by default.        
         local usdReference = USDStageObject()

@@ -46,6 +46,7 @@ USDLayerManager::USDLayerManager()
     RegisterNotification(NotifyFileSave, this, NOTIFY_FILE_PRE_SAVE);
     RegisterNotification(NotifyFileSave, this, NOTIFY_FILE_POST_SAVE);
     RegisterNotification(NotifyFileSave, this, NOTIFY_FILE_CHECK_STATUS);
+    RegisterNotification(NotifyFileSave, this, NOTIFY_FILE_POST_OPEN);
 }
 
 USDLayerManager::~USDLayerManager()
@@ -53,6 +54,7 @@ USDLayerManager::~USDLayerManager()
     UnRegisterNotification(NotifyFileSave, this, NOTIFY_FILE_PRE_SAVE);
     UnRegisterNotification(NotifyFileSave, this, NOTIFY_FILE_POST_SAVE);
     UnRegisterNotification(NotifyFileSave, this, NOTIFY_FILE_CHECK_STATUS);
+    UnRegisterNotification(NotifyFileSave, this, NOTIFY_FILE_POST_OPEN);
 }
 
 std::unordered_map<USDStageObject*, std::vector<pxr::SdfLayerHandle>>
@@ -104,7 +106,8 @@ bool USDLayerManager::HandleMaxSceneSave()
             // User cancelled the save.
             return false;
         }
-        if (dialog->GetSaveMode() == SaveUSDOptionsDialog::SaveMode::SaveAll) {
+
+        if (saveMode == SaveMode::SaveAll) {
 
             std::vector<UsdLayerEditor::StageSavingInfo> stagesToSave;
             for (const auto& entry : stagesDirtyLayers) {
@@ -188,5 +191,17 @@ void USDLayerManager::NotifyFileSave(void* param, NotifyInfo* info)
         break;
     }
     case NOTIFY_FILE_CHECK_STATUS: layerManager->isAutoSave = false; break;
+    case NOTIFY_FILE_POST_OPEN: layerManager->ClearMaxSceneDirtyLayers(); break;
     }
 }
+
+SaveMode USDLayerManager::GetSaveMode() { return saveMode; }
+
+void USDLayerManager::SetSaveMode(SaveMode saveMode) { this->saveMode = saveMode; }
+
+void USDLayerManager::AddDirtyLayerFromMaxScene(const pxr::SdfLayerRefPtr dirtyLayer)
+{
+    dirtyLayersFromMaxScene.emplace_back(dirtyLayer);
+}
+
+void USDLayerManager::ClearMaxSceneDirtyLayers() { dirtyLayersFromMaxScene.clear(); }

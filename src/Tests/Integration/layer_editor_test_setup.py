@@ -37,8 +37,19 @@ def undo():
 def redo():
     pymxs.run_redo()
 
+def openStageLayerEditor(rootFile):
+    maxUsdObj = mxs.USDStageObject()
+    maxUsdObj.SetRootLayer(rootFile, stageMask='/')
+    stageCache = UsdUtils.StageCache.Get()
+    stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+    stage.Reload()
+
+    maxUsdObj.OpenInUsdLayerEditor()
+    return stage
+
 def setup():
     UsdLayerEditorTest._createStage = staticmethod(createStage)
     UsdLayerEditorTest._resetScene = staticmethod(resetScene)
     UsdLayerEditorTest._undo = staticmethod(undo)
     UsdLayerEditorTest._redo = staticmethod(redo)
+    UsdLayerEditorTest._openStageLayerEditor = staticmethod(openStageLayerEditor)

@@ -36,7 +36,7 @@ struct map_channel_export_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),

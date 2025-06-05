@@ -35,13 +35,15 @@ struct io_camera_test
     initialUnits,initialScale,
     public 
     function resetMaxAndUnitSetup = (
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Inches
         units.SystemScale = 1
     ),
 
     function setup =
     (
+        maxOps.autoKeyDefaultKeyOn = true
+        maxOps.autoKeyDefaultKeyTime = 0
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
         initialUnits = units.SystemType
@@ -131,7 +133,7 @@ struct io_camera_test
         
         local importedCamera = $Camera001
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float 160.0f (importedCamera.target_distance) message:"Expected 'focusDistance' to be equal to default free camera setting"
+        assert_float 160.0f (importedCamera.focus_distance) message:"Expected 'focusDistance' to be equal to default free camera setting"
         assert_float camFOV (importedCamera.fov) message:"Expected FOV value is not equal to free camera setting"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
         assert_true (importedCamera.clip_on) message:("The clip range property is defined in the imported USD file - The camera 'clip_on' property must be on")
@@ -201,7 +203,7 @@ struct io_camera_test
         
         local importedCamera = $Camera001
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float camTargetDistance (importedCamera.target_distance) message:"Expected 'focusDistance' is not equal to target camera target setting"
+        assert_float camTargetDistance (importedCamera.focus_distance) message:"Expected 'focusDistance' is not equal to target camera target setting"
         assert_float camFOV (importedCamera.fov) message:"Expected FOV value is not equal to target camera setting"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
         assert_true (importedCamera.clip_on) message:("The clip range property is defined in the imported USD file - The camera 'clip_on' property must be on")
@@ -238,15 +240,16 @@ struct io_camera_test
         local usdGfCamera = usdCamera.GetCamera()
 
         assert_equal pyUsdGf.Camera.Perspective usdGfCamera.projection message:"Expected 'projection' type to be 'Perspective'"
-        assert_float phys_camera.target_distance usdGfCamera.focusDistance message:"Expected 'focusDistance' is not equal to physical camera target setting"
-        assert_float phys_camera.focal_length_mm usdGfCamera.focalLength message:"Expected 'focalLength' is not equal to physical camera setting"
+        assert_float phys_camera.focus_distance usdGfCamera.focusDistance message:"Expected 'focusDistance' is not equal to physical camera target setting"
+        -- focal length in tenths of the scene unit
+        assert_float_equal ((units.decodeValue ((phys_camera.focal_length_mm as string) + "mm")) * 10) (usdGfCamera.focalLength as float) message:"Expected 'focalLength' is not equal to physical camera setting"
         
         -- the FOV value covers the horizontal aperture and zoom values
         local usdGfCameraFOV = usdGfCamera.frustum.GetFOV()
         assert_float phys_camera.fov usdGfCameraFOV message:"Expected FOV value is not equal to physical camera setting"
 
         -- the clipping plane range was not specified nor enabled at the
-        -- physical camera creation, therefor, the default USD camera values
+        -- physical camera creation, however, the default USD camera values
         -- should be in effect
         assert_false phys_camera.clip_on message:("Expected physical camera not to enable the clipping planes by default")
         local usdGfCameraClipRange = usdGfCamera.clippingRange
@@ -277,10 +280,10 @@ struct io_camera_test
         
         local importedCamera = $PhysCamera001
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float camTargetDistance (importedCamera.target_distance) message:"Expected 'focusDistance' is not equal to physical camera setting"
+        assert_float camTargetDistance (importedCamera.focus_distance) message:"Expected 'focusDistance' is not equal to physical camera setting"
         assert_float camFOV (importedCamera.fov) message:"Expected FOV value is not equal to physical camera setting"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
-        assert_false (importedCamera.clip_on) message:("The clip range property is not defined in the imported USD file - The camera 'clip_on' property must be off")
+        assert_true (importedCamera.clip_on) message:("The clip range property has default values in USD - The camera 'clip_on' property must be on")
         assert_float 1.f (importedCamera.zoom_factor) message:("No zoom factor should be applied by default on imported USD cameras")
         assert_float 0.f (importedCamera.lens_breathing_amount) message:("No lens breathing amount value should be applied by default on imported USD cameras")
         assert_equal 3 (importedCamera.shutter_unit_type) message:("Expected shutter unit type to be set to 'Frames'")
@@ -300,7 +303,7 @@ struct io_camera_test
         -- Focus distance
         -- instead of using the default target distance setting, use the user specified focus
         phys_camera.specify_focus = 1
-        phys_camera.focus_distance = phys_camera.target_distance + 50.f
+        phys_camera.focus_distance = phys_camera.focus_distance + 50.f
 
         -- shutter offset
         phys_camera.shutter_length_frames = 0.6f
@@ -338,8 +341,8 @@ struct io_camera_test
 
         -- Focus distance
         assert_float phys_camera.focus_distance usdGfCamera.focusDistance message:"'focusDistance' is not equal to physical camera focus setting"
-        -- Focal length; takes into consideration the lens breathing
-        assert_float 40.2568f usdGfCamera.focalLength message:"'focalLength' is not equal to the effective lens focal length"
+        -- Focal length; takes into consideration the lens breathing (in tenths of a scene unit)
+        assert_float_equal ((units.decodeValue "40.2568mm") * 10) (usdGfCamera.focalLength as float) message:"Expected 'focalLength' is not equal to physical camera setting"
 
         -- Field of view
         local usdGfCameraFOV = usdGfCamera.frustum.GetFOV()
@@ -365,13 +368,13 @@ struct io_camera_test
         -- horizontal 25% offset from 24mm is 6mm
         -- vertical   25% offset from 13mm is 6mm (it considers aspect ratio)
         local horizontalApertureOffsetAttr = usdCamera.GetHorizontalApertureOffsetAttr()
-        assert_float 6f (horizontalApertureOffsetAttr.Get()) message:("Horizontal aperture offset is not equal to physical camera setting")
+        assert_float_equal ((units.decodeValue "6mm") * 10) (horizontalApertureOffsetAttr.Get() as float) message:("Horizontal aperture offset is not equal to physical camera setting")
         local verticalApertureOffsetAttr = usdCamera.GetVerticalApertureOffsetAttr()
-        assert_float 6f (verticalApertureOffsetAttr.Get()) message:("Vertical aperture offset is not equal to physical camera setting")
+        assert_float_equal ((units.decodeValue "6mm") * 10) (verticalApertureOffsetAttr.Get() as float) message:("Vertical aperture offset is not equal to physical camera setting")
 
         -- keep track of expected values on import
         local camFOV = phys_camera.fov
-        local camTargetDistance = usdGfCamera.focusDistance  -- parameter is coming from USD
+        local camFocusDistance = phys_camera.focus_distance
         local camClipNear = phys_camera.clip_near
         local camClipFar = phys_camera.clip_far
         local camHozizontalShift = phys_camera.horizontal_shift
@@ -388,7 +391,7 @@ struct io_camera_test
         
         local importedCamera = $PhysCamera001
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float camTargetDistance (importedCamera.target_distance) message:"Expected 'focusDistance' is not equal to the value specified in the USD file"
+        assert_float camFocusDistance (importedCamera.focus_distance) message:"Expected 'focusDistance' is not equal to the value specified in the USD file"
         assert_float camFOV (importedCamera.fov) message:"Expected FOV value is not equal to physical camera setting"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
         assert_true (importedCamera.clip_on) message:("The clip range property is defined in the imported USD file - The camera 'clip_on' property must be on")
@@ -414,13 +417,16 @@ struct io_camera_test
         -- Non-animatable properties...
         phys_camera.specify_focus = 1
         phys_camera.clip_on = true
-        phys_camera.shutter_offset_enabled = true 
+        phys_camera.shutter_offset_enabled = true
+        -- remove lens breathing influence on focal length
+        -- easier for this test purpose
+        phys_camera.lens_breathing_amount = 0
         
         -- Animate every other camera property over 10 frames.
         with animate on (
             
-            at time 0 phys_camera.focus_distance = phys_camera.target_distance + 50.f 
-            at time 10 phys_camera.focus_distance = phys_camera.target_distance + 100.f 
+            at time 0 phys_camera.focus_distance = phys_camera.focus_distance + 50.f 
+            at time 10 phys_camera.focus_distance = phys_camera.focus_distance + 100.f 
             
             -- shutter offset
             at time 0 phys_camera.shutter_length_frames = 0.3f
@@ -496,19 +502,6 @@ struct io_camera_test
             17.9148,
             18.0,
             18.0)
-        expectedFocalLengths = #(40.2568,
-            40.2568,
-            40.2554,
-            40.2515,
-            40.246,
-            40.2396,
-            40.2331,
-            40.2269,
-            40.2214,
-            40.2172,
-            40.2143,
-            40.2133,
-            40.2133)
 
         dataIndex = 1
         -- Test exported values...
@@ -519,8 +512,8 @@ struct io_camera_test
 
             -- Focus distance
             assert_float (at time frame phys_camera.focus_distance) usdGfCamera.focusDistance message:("'focusDistance' is not equal to physical camera focus setting at t = " + frame as string)
-            -- Focal length; takes into consideration the lens breathing
-            assert_float expectedFocalLengths[dataIndex] usdGfCamera.focalLength message:("'focalLength' is not equal to the effective lens focal length at t = " + frame as string)
+            -- Focal length
+            assert_float_equal ((units.decodeValue "40mm") * 10) (usdGfCamera.focalLength as float) message:("'focalLength' is not equal to the effective lens focal length at t = " + frame as string)
 
             -- Field of view
             local usdGfCameraFOV = usdGfCamera.frustum.GetFOV()
@@ -544,9 +537,9 @@ struct io_camera_test
             assert_float ((at time frame phys_camera.shutter_length_frames)+shutterOffsetAtFrame) shutterCloseValue message:("'shutter:close' value is not equal to physical camera setting at t = " + frame as string)
             -- Aperture Offset
             local horizontalApertureOffsetAttr = usdCamera.GetHorizontalApertureOffsetAttr()
-            assert_float expectedHorizontalApertureOffsets[dataIndex] (horizontalApertureOffsetAttr.Get(frame)) message:("Horizontal aperture offset is not equal to physical camera setting at t = " + frame as string)
+            assert_float ((units.decodeValue ((expectedHorizontalApertureOffsets[dataIndex] as string) + "mm")) * 10) (horizontalApertureOffsetAttr.Get(frame)) message:("Horizontal aperture offset is not equal to physical camera setting at t = " + frame as string)
             local verticalApertureOffsetAttr = usdCamera.GetVerticalApertureOffsetAttr()
-            assert_float expectedVerticalApertureOffsets[dataIndex] (verticalApertureOffsetAttr.Get(frame)) message:("Vertical aperture offset is not equal to physical camera setting at t = " + frame as string) 
+            assert_float ((units.decodeValue ((expectedVerticalApertureOffsets[dataIndex] as string) + "mm")) * 10) (verticalApertureOffsetAttr.Get(frame)) message:("Vertical aperture offset is not equal to physical camera setting at t = " + frame as string) 
             
             dataIndex = dataIndex + 1
         )
@@ -616,12 +609,12 @@ struct io_camera_test
 
         -- Animate the zoom in such a way to generate validity intervals.
         with animate on (
-            at time 0 phys_camera.zoom_factor = 1.0
             at time 2 phys_camera.zoom_factor = 2.0 -- valid till 4
             at time 4 phys_camera.zoom_factor = 2.0
             at time 6 phys_camera.zoom_factor = 3.0
             at time 8 phys_camera.zoom_factor = 3.0 -- valid till 10 
             at time 10 phys_camera.zoom_factor = 4.0    
+            at time 0 phys_camera.zoom_factor = 1.0 -- at the end, to make sure the key gets saved
         )
         
         -- Export the animiated camera.
@@ -671,7 +664,7 @@ struct io_camera_test
         local importedCamera = $Camera001
         sliderTime = 0
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float 5000.0f (importedCamera.target_distance) message:"Expected 'focusDistance' to be equal to the value specified in the USD file"
+        assert_float 5000.0f (importedCamera.focus_distance) message:"Expected 'focusDistance' to be equal to the value specified in the USD file"
         assert_float 40.3226 (importedCamera.focal_length_mm) message:"Expected 'focalLength' to be equal to the value specified in the USD file"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
         assert_float 6.0f (importedCamera.exposure_value) message:"Expected 'exposure' to be equal to the value specified in the USD file"
@@ -690,7 +683,7 @@ struct io_camera_test
 
         sliderTime = 10
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
-        assert_float 5000.0f (importedCamera.target_distance) message:"Expected 'focusDistance' to be equal to the value specified in the USD file"
+        assert_float 2500.0f (importedCamera.focus_distance) message:"Expected 'focusDistance' to be equal to the value specified in the USD file"
         assert_float 45.8249 (importedCamera.focal_length_mm) message:"Expected 'focalLength' to be equal to the value specified in the USD file"
         assert_float 12.0f (importedCamera.exposure_value) message:"Expected 'exposure' to be equal to the value specified in the USD file"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
@@ -741,9 +734,9 @@ struct io_camera_test
         assert_equal Physical (classof importedCamera) message:("Imported camera from USD is expected to be a 'Physical' camera type")
         assert_float 34.8093 (importedCamera.fov) message:"Expected FOV value is not equal to calculated value from input"
         assert_false (importedCamera.specifyfov) message:"Expected 'Specify FOV' option to be disabled"
-        assert_false (importedCamera.clip_on) message:("The clip range property is not defined in the imported USD file - The camera 'clip_on' property must be off")
+        assert_true (importedCamera.clip_on) message:("The clip range property has default values in USD - The camera 'clip_on' property must be on")
         -- overruled values from USD
-        assert_float 160.0f (importedCamera.target_distance) message:"Expected 'focusDistance' to be equal to default '160.0' setting when USD attribute is set to '0'"
+        assert_float 160.0f (importedCamera.focus_distance) message:"Expected 'focusDistance' to be equal to default '160.0' setting when USD attribute is set to '0'"
         assert_float 0.5f (importedCamera.shutter_length_frames) message:("The shutter duration property value shall be set to default '0.5' when USD attribute is set to '0'")
         assert_float 8f (importedCamera.f_number) message:("'fStop' value shall be set to default '8' when USD attribute is set to '0'")
         assert_float 6f (importedCamera.exposure_value) message:("'exposure' value shall be set to default '6' when USD attribute is set to '0'")

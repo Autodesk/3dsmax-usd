@@ -81,3 +81,4 @@ maxUsd.ShaderWriter.Register(DefaultShaderWriter, rt.PhysicalMaterial.nonLocaliz
 maxUsd.ShaderWriter.Register(DefaultShaderWriter, "PBR Material (Metal/Rough)")
 maxUsd.ShaderWriter.Register(DefaultShaderWriter, "PBR Material (Spec/Gloss)")
 maxUsd.ShaderWriter.Register(DefaultShaderWriter, "USD Preview Surface")
+maxUsd.ShaderWriter.Register(DefaultShaderWriter, "OpenPBR Material")

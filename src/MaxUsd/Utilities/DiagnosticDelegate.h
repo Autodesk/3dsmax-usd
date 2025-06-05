@@ -15,12 +15,11 @@
 //
 #pragma once
 
+#include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
 #include <pxr/base/tf/diagnosticMgr.h>
 #include <pxr/pxr.h>
-
-#include <MaxUsd.h>
 
 namespace MAXUSD_NS_DEF {
 namespace Diagnostics {
@@ -120,6 +119,18 @@ protected:
 
 //! Delegate to forward diagnostics to the 3dsMax listener.
 class MaxUSDAPI ListenerDelegate : public DiagnosticDelegate
+{
+    using DiagnosticDelegate::DiagnosticDelegate;
+    friend ScopedDelegate;
+
+protected:
+    void WriteError(const std::string& message) override;
+    void WriteWarning(const std::string& message) override;
+    void WriteInfo(const std::string& message) override;
+};
+
+//! Delegate to forward diagnostics to the 3dsMax render messsage window
+class MaxUSDAPI RenderMessageDelegate : public DiagnosticDelegate
 {
     using DiagnosticDelegate::DiagnosticDelegate;
     friend ScopedDelegate;

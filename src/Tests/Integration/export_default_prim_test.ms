@@ -32,7 +32,7 @@ struct export_default_prim_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"        		
     ),

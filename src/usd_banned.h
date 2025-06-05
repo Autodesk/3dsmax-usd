@@ -44,6 +44,14 @@ struct binary_function
 #include <boost/bimap.hpp>
 #endif
 
+#if PXR_VERSION < 2211
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#include <boost/python/override.hpp>
+#include <boost/python/call.hpp>
+#pragma warning(pop)
+#endif
+
 #pragma warning(push)
 #pragma warning(disable : 4244 4305 4267 4003 4305 6011 6319 6386 26451 26439 26478 26487)
 #include <pxr/base/gf/vec2f.h>

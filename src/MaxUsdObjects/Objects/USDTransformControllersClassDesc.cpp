@@ -31,7 +31,7 @@ const TCHAR* USDXformableControllerClassDesc::ClassName()
 
 const TCHAR* USDXformableControllerClassDesc::NonLocalizedClassName()
 {
-    return _T("USDXformableController");
+    return _T("USD Xformable");
 }
 
 SClass_ID USDXformableControllerClassDesc::SuperClassID() { return CTRL_MATRIX3_CLASS_ID; }
@@ -103,10 +103,7 @@ const TCHAR* USDPositionControllerClassDesc::ClassName()
     return GetString(IDS_USDPOSITIONCONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDPositionControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDPositionController");
-}
+const TCHAR* USDPositionControllerClassDesc::NonLocalizedClassName() { return _T("USD Position"); }
 
 SClass_ID USDPositionControllerClassDesc::SuperClassID() { return CTRL_POSITION_CLASS_ID; }
 
@@ -127,10 +124,7 @@ const TCHAR* USDScaleControllerClassDesc::ClassName()
     return GetString(IDS_USDSCALECONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDScaleControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDScaleController");
-}
+const TCHAR* USDScaleControllerClassDesc::NonLocalizedClassName() { return _T("USD Scale"); }
 
 SClass_ID USDScaleControllerClassDesc::SuperClassID() { return CTRL_SCALE_CLASS_ID; }
 
@@ -151,10 +145,7 @@ const TCHAR* USDRotationControllerClassDesc::ClassName()
     return GetString(IDS_USDROTATIONCONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDRotationControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDRotationController");
-}
+const TCHAR* USDRotationControllerClassDesc::NonLocalizedClassName() { return _T("USD Rotation"); }
 
 SClass_ID USDRotationControllerClassDesc::SuperClassID() { return CTRL_ROTATION_CLASS_ID; }
 

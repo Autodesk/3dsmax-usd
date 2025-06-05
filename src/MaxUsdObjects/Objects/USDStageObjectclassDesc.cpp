@@ -19,11 +19,14 @@
 
 #include <MaxUsdObjects/DLLEntry.h>
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
+#include <MaxUsdObjects/LayerEditor/USDLayerManager.h>
 #include <MaxUsdObjects/USDExplorer.h>
+#include <MaxUsdObjects/Views/UsdStageMetadataRollup.h>
 #include <MaxUsdObjects/Views/UsdStageNodeAnimationRollup.h>
-#include <MaxUsdObjects/Views/UsdStageNodeParametersRollup.h>
 #include <MaxUsdObjects/Views/UsdStageNodePrimSelectionDialog.h>
+#include <MaxUsdObjects/Views/UsdStageNodeStageRollup.h>
 #include <MaxUsdObjects/Views/UsdStageRenderSettingsRollup.h>
+#include <MaxUsdObjects/Views/UsdStageToolsRollup.h>
 #include <MaxUsdObjects/Views/UsdStageViewportDisplayRollup.h>
 #include <MaxUsdObjects/Views/UsdStageViewportPerformanceRollup.h>
 #include <MaxUsdObjects/Views/UsdStageViewportSelectionRollup.h>
@@ -32,6 +35,8 @@
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 
+#include <pxr/usd/sdf/layerStateDelegate.h>
+
 #include <Qt/QmaxMainWindow.h>
 #include <maxscript/foundation/arrays.h>
 #include <maxscript/foundation/strings.h>
@@ -39,6 +44,15 @@
 #include <GetCoreInterface.h>
 #include <QtWidgets/QFileDialog>
 #include <ifnpub.h>
+
+// Bump this version number when saved data changes.
+static int       USD_OBJECT_CLASS_DATA_SAVE_VERSION = 1;
+constexpr USHORT SAVE_VERSION_CHUNK_ID = 100;
+constexpr USHORT LAYER_EDITS_CHUNK_ID = 200;
+constexpr USHORT LAYER_EDITS_LAYER_ID_SIZE_CHUNK_ID = 300;
+constexpr USHORT LAYER_EDITS_LAYER_ID_CHUNK_ID = 400;
+constexpr USHORT LAYER_EDITS_LAYER_DATA_SIZE_CHUNK_ID = 500;
+constexpr USHORT LAYER_EDITS_LAYER_DATA_CHUNK_ID = 600;
 
 int USDStageObjectclassDesc::IsPublic() { return true; }
 
@@ -53,7 +67,7 @@ Class_ID USDStageObjectclassDesc::ClassID() { return USDSTAGEOBJECT_CLASS_ID; }
 
 const MCHAR* USDStageObjectclassDesc::InternalName() { return _M("USDStageObject"); }
 
-const MCHAR* USDStageObjectclassDesc::NonLocalizedClassName() { return _T("USDStageObject"); }
+const MCHAR* USDStageObjectclassDesc::NonLocalizedClassName() { return _T("USD Stage"); }
 
 SClass_ID USDStageObjectclassDesc::SuperClassID() { return GEOMOBJECT_CLASS_ID; }
 
@@ -74,8 +88,8 @@ MaxSDK::QMaxParamBlockWidget* USDStageObjectclassDesc::CreateQtWidget(
 
     switch (paramMapID) {
     case UsdStageGeneral: {
-        const auto stageSetupUi = new UsdStageNodeParametersRollup(owner, paramBlock);
-        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_PARAMETERS_TITLE);
+        const auto stageSetupUi = new UsdStageNodeStageRollup(owner, paramBlock);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_STAGE_TITLE);
         return stageSetupUi;
     }
     case UsdStageViewportDisplay: {
@@ -112,6 +126,16 @@ MaxSDK::QMaxParamBlockWidget* USDStageObjectclassDesc::CreateQtWidget(
             IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_SELECTION_SETUP_TITLE);
         return viewportSelectionUI;
     }
+    case UsdStageTools: {
+        const auto toolsDisplayUi = new UsdStageToolsRollup(owner, paramBlock);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_TOOLS_TITLE);
+        return toolsDisplayUi;
+    }
+    case UsdStageMetadata: {
+        const auto metadataDisplayUi = new UsdStageMetadataRollup(owner, paramBlock);
+        rollupTitle = MaxSDK::GetResourceStringAsMSTR(IDS_USDSTAGEOBJECT_ROLLUP_METADATA_TITLE);
+        return metadataDisplayUi;
+    }
     default: return nullptr;
     }
 }
@@ -139,6 +163,259 @@ void USDStageObjectclassDesc::AddParamMap(IParamMap2* pParamMap)
 {
     auto& maps = GetParamMaps();
     maps.Append(1, &pParamMap);
+}
+
+BOOL USDStageObjectclassDesc::NeedsToSave() { return TRUE; };
+
+IOResult USDStageObjectclassDesc::Save(ISave* iSave)
+{
+    ULONG nb = 0;
+
+    // Save the version first - if the saved format changes, we need to know what we are reading..
+    iSave->BeginChunk(SAVE_VERSION_CHUNK_ID);
+    iSave->Write(
+        &USD_OBJECT_CLASS_DATA_SAVE_VERSION, sizeof(USD_OBJECT_CLASS_DATA_SAVE_VERSION), &nb);
+    iSave->EndChunk();
+
+    if (USDLayerManager::Instance()->GetSaveMode() == SaveMode::SaveAllEditsMax) {
+
+        std::unordered_map<std::string, bool> writtenLayerNames;
+        const auto dirtyLayersMap = USDLayerManager::Instance()->GetDirtyLayersToSave();
+        for (auto dirtyLayerTup : dirtyLayersMap) {
+            auto dirtyLayers = dirtyLayerTup.second;
+
+            if (dirtyLayers.size() > 0) {
+                for (auto& dirtylayer : dirtyLayers) {
+                    std::string dirtyLayersStr;
+                    std::string layerIdentifierStr = dirtylayer->GetIdentifier();
+
+                    // Check if we already wrote this layer to storage
+                    if (writtenLayerNames.find(layerIdentifierStr) != writtenLayerNames.end()) {
+                        continue;
+                    }
+                    writtenLayerNames[layerIdentifierStr] = true;
+
+                    const bool sessionExpResult = dirtylayer->ExportToString(&dirtyLayersStr);
+                    // If there is an error, log it, but do not fail the entire max scene save.
+                    if (!sessionExpResult) {
+                        const auto msg = _T("USDStageObjectclassDesc save error. Unable to ")
+                                         _T("serialize the dirty ")
+                                         _T("layer to a string.");
+                        DbgAssert(0 && msg);
+                        GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
+                        dirtyLayersStr.clear();
+                    }
+
+                    int maxLayerSize = std::numeric_limits<int>().max(); // 2147483647
+                    // HACK: unfortunately, the USD "ExportToString()" function seems to limit the
+                    // amount of data exported to string to 2GB. As such, in order to avoid writing
+                    // corrupt/incomplete data to disk, we only save layers that are under the 2GB
+                    // size. The current condition checks if the file is exactly 2GB, so it is
+                    // technically possible that a USD layer is exactly the below size, being a
+                    // valid file for saving, but we do not save it.
+                    if (dirtyLayersStr.size() >= maxLayerSize) {
+                        const auto msg = _T("USDStageObjectclassDesc save error. Unable to ")
+                                         _T("serialize the dirty ")
+                                         _T("layer to a string. Size is over the 2GB limit.");
+                        DbgAssert(0 && msg);
+                        GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
+                        dirtyLayersStr.clear();
+                    } else {
+                        iSave->BeginChunk(LAYER_EDITS_CHUNK_ID);
+
+                        iSave->BeginChunk(LAYER_EDITS_LAYER_ID_SIZE_CHUNK_ID);
+                        auto layerIdentifierStrSize = static_cast<ULONG>(layerIdentifierStr.size());
+                        iSave->Write(&layerIdentifierStrSize, sizeof(ULONG), &nb);
+                        iSave->EndChunk();
+
+                        iSave->BeginChunk(LAYER_EDITS_LAYER_ID_CHUNK_ID);
+                        iSave->Write(layerIdentifierStr.c_str(), layerIdentifierStrSize, &nb);
+                        iSave->EndChunk();
+
+                        iSave->BeginChunk(LAYER_EDITS_LAYER_DATA_SIZE_CHUNK_ID);
+                        auto dirtyLayersStrSize = static_cast<ULONG>(dirtyLayersStr.size());
+                        iSave->Write(&dirtyLayersStrSize, sizeof(ULONG), &nb);
+                        iSave->EndChunk();
+
+                        iSave->BeginChunk(LAYER_EDITS_LAYER_DATA_CHUNK_ID);
+                        iSave->Write(dirtyLayersStr.c_str(), dirtyLayersStrSize, &nb);
+                        iSave->EndChunk();
+
+                        iSave->EndChunk();
+                    }
+                }
+            }
+        }
+    }
+    return IO_OK;
+}
+
+IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
+{
+    IOResult res = IO_OK;
+    ULONG    nb = 0;
+
+    res = iLoad->OpenChunk();
+
+    // Nothing to load. Could be a USDStageObjectclassDesc in an earlier version of the plugin.
+    if (res == IO_END) {
+        return IO_OK;
+    }
+
+    if (res != IO_OK) {
+        DbgAssert(0 && _T("Problem in loading saved data USDStageObjectclassDesc."));
+        return res;
+    }
+
+    if (iLoad->CurChunkID() != SAVE_VERSION_CHUNK_ID) {
+        DbgAssert(iLoad->CurChunkID() == SAVE_VERSION_CHUNK_ID); // Should always be first
+        return IO_ERROR;
+    }
+
+    // Read save model version
+    int loadedVersion = -1;
+    res = iLoad->Read(&loadedVersion, sizeof(loadedVersion), &nb);
+    iLoad->CloseChunk();
+    if (IO_OK != res) {
+        DbgAssert(0 && _T("Problem in loading version of the USDStageObjectclassDesc"));
+        return res;
+    }
+
+    // For now don't do anything. In the future there are actually multiple versions, we will
+    // need to deal with them individually...
+    if (loadedVersion != USD_OBJECT_CLASS_DATA_SAVE_VERSION) {
+        return IO_OK;
+    }
+
+    int numDirtyLayer = 0;
+    while (IO_OK == (res = iLoad->OpenChunk())) {
+        switch (iLoad->CurChunkID()) {
+        case LAYER_EDITS_CHUNK_ID: {
+            std::string layerStr;
+            std::string layerIdStr;
+            ULONG       layerStrSize = 0;
+            ULONG       layerIdStrSize = 0;
+            char*       buffer = NULL;
+            while (IO_OK == (res = iLoad->OpenChunk())) {
+                switch (iLoad->CurChunkID()) {
+                case LAYER_EDITS_LAYER_ID_SIZE_CHUNK_ID: {
+                    const auto layerIdStarSizeRes
+                        = iLoad->Read(&layerIdStrSize, sizeof(layerIdStrSize), &nb);
+                    if (layerIdStarSizeRes != IO_OK) {
+                        DbgAssert(
+                            0
+                            && _T("Error reading saved dirty layer id size in ")
+                               _T("USDStageObjectclassDesc."));
+                        return layerIdStarSizeRes;
+                    }
+                    break;
+                }
+                case LAYER_EDITS_LAYER_DATA_SIZE_CHUNK_ID: {
+                    const auto layerStrSizeRes
+                        = iLoad->Read(&layerStrSize, sizeof(layerStrSize), &nb);
+                    if (layerStrSizeRes != IO_OK) {
+                        DbgAssert(
+                            0
+                            && _T("Error reading saved dirty layer data size in ")
+                               _T("USDStageObjectclassDesc."));
+                        return layerStrSizeRes;
+                    }
+                    break;
+                }
+                case LAYER_EDITS_LAYER_ID_CHUNK_ID: {
+                    buffer = new char[layerIdStrSize + 1];
+                    const auto layerIdStrRes = iLoad->Read(buffer, layerIdStrSize, &nb);
+                    if (layerIdStrRes != IO_OK) {
+                        delete buffer;
+                        DbgAssert(
+                            0
+                            && _T("Error reading saved dirty layer id in ")
+                               _T("USDStageObjectclassDesc."));
+                        return layerIdStrRes;
+                    }
+                    buffer[layerIdStrSize] = '\0';
+                    layerIdStr = std::string(buffer);
+                    delete buffer;
+                    break;
+                }
+                case LAYER_EDITS_LAYER_DATA_CHUNK_ID: {
+                    buffer = new char[layerStrSize + 1];
+                    const auto layerStrRes = iLoad->Read(buffer, layerStrSize, &nb);
+                    if (layerStrRes != IO_OK) {
+                        delete buffer;
+                        DbgAssert(
+                            0
+                            && _T("Error reading saved dirty layer data in ")
+                               _T("USDStageObjectclassDesc."));
+                        return layerStrRes;
+                    }
+                    buffer[layerStrSize] = '\0';
+                    layerStr = std::string(buffer);
+                    delete buffer;
+                    break;
+                }
+                default: break;
+                }
+                iLoad->CloseChunk();
+            }
+
+            // Layer name used for anonymous layer created from disk
+            const auto& layerName
+                = "3dsmax_usd_dirty_layer_" + std::to_string(numDirtyLayer) + ".usda";
+            // Create an anonymous layer to hold the data loaded from disk
+            pxr::SdfLayerRefPtr dirtyLayerFromMaxScene = pxr::SdfLayer::CreateAnonymous(layerName);
+
+            // Import the actual layer data loaded from the max file
+            const bool layerImportRes = dirtyLayerFromMaxScene->ImportFromString(layerStr);
+
+            // First check if the layer already exists in memory for whatever reason
+            // (e.g. created via scripting)
+            // Note that if it already exists with the same identifier, the one we load from the
+            // max file takes priority always.
+            pxr::SdfLayerRefPtr layerPtr = pxr::SdfLayer::Find(layerIdStr);
+            if (layerPtr) {
+                // Note: we do a content transfer here instead of just doing a
+                // "ImportFromString()" call on the layer that we found from memory that has the
+                // name id, because depending on if it was created with a ".usda" tag or not,
+                // internally, "ImportFromString()" will behave differently. Doing a
+                // "TransferContent" call will ensure that the data loaded from the max scene is
+                // applied to the existing layer in memory that has the same identifier
+                layerPtr->TransferContent(dirtyLayerFromMaxScene);
+                dirtyLayerFromMaxScene = layerPtr;
+                break;
+            }
+
+            // Set the identifier of the layer to the same identifier that we just loaded from disk
+            dirtyLayerFromMaxScene->SetIdentifier(layerIdStr);
+
+            // If there is an error, log it, but do not fail the entire max scene load.
+            if (!layerImportRes) {
+                const auto msg = _T("UsdStageObject load error. Unable to load the session layer ")
+                                 _T("from the max file.");
+                DbgAssert(0 && msg);
+                GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
+            }
+
+            // HACK: there are no APIs for setting a stage to the dirty state
+            // so we abuse the "DeleteSpec()" function with dummy arguments
+            // as it sets the layer to dirty in the first line of the function.
+            // NOTE: ultimately, we do not need to explicitly load the layer
+            // to the stage. The dirty state layer was already created the layer
+            // in memory in the "Load()" function: when the stage is loaded
+            // and composed, that layer will be loaded and associated to the stage
+            // object via the identifier (i.e. filename) of the layer. We simply
+            // need to mark it as dirty to return to the state of unsaved layer edits.
+            dirtyLayerFromMaxScene->GetStateDelegate()->DeleteSpec(pxr::SdfPath(), false);
+
+            USDLayerManager::Instance()->AddDirtyLayerFromMaxScene(dirtyLayerFromMaxScene);
+
+            numDirtyLayer++;
+        }
+        default: break;
+        }
+        iLoad->CloseChunk();
+    }
+    return IO_OK;
 }
 
 // Function Publishing
@@ -262,6 +539,16 @@ protected:
 
     void CloseUsdLayerEditor() { MaxLayerEditor::Instance()->Close(); }
 
+    int GetDefaultSaveMode()
+    {
+        return static_cast<int>(USDLayerManager::Instance()->GetSaveMode());
+    }
+
+    void SetDefaultSaveMode(int saveMode)
+    {
+        USDLayerManager::Instance()->SetSaveMode(static_cast<SaveMode>(saveMode));
+    }
+
     enum
     {
         fnIdSelectRootLayerAndPrim,
@@ -269,11 +556,14 @@ protected:
         fnIdCloseUsdExplorer,
         fnIdOpenUsdLayerEditor,
         fnIdCloseUsdLayerEditor,
+        fnIdGetDefaultSaveMode,
+        fnIdSetDefaultSaveMode,
     };
 
     enum
     {
-        eidFilteringType
+        eidFilteringType,
+        eidSaveMode
     };
 
     // clang-format off
@@ -283,6 +573,8 @@ protected:
         VFN_0(fnIdCloseUsdExplorer, CloseUsdExplorer);
         VFN_0(fnIdOpenUsdLayerEditor, OpenUsdLayerEditor);
         VFN_0(fnIdCloseUsdLayerEditor, CloseUsdLayerEditor);
+        FN_0(fnIdGetDefaultSaveMode, TYPE_ENUM, GetDefaultSaveMode);
+        VFN_1(fnIdSetDefaultSaveMode, SetDefaultSaveMode, TYPE_ENUM);
     END_FUNCTION_MAP
     // clang-format on
 };
@@ -305,11 +597,17 @@ static UsdStageObjectStaticInterface usdStageObjectStaticInterface(
         UsdStageObjectStaticInterface::fnIdCloseUsdExplorer, _T("CloseUsdExplorer"), IDS_CLOSEUSDEXPLORER, TYPE_VALUE, FP_NO_REDRAW, 0,
         UsdStageObjectStaticInterface::fnIdOpenUsdLayerEditor, _T("OpenUsdLayerEditor"), IDS_OPENUSDLAYEREDITOR, TYPE_VALUE, FP_NO_REDRAW, 0,
         UsdStageObjectStaticInterface::fnIdCloseUsdLayerEditor, _T("CloseUsdLayerEditor"), IDS_CLOSEUSDLAYEREDITOR, TYPE_VALUE, FP_NO_REDRAW, 0,
+        UsdStageObjectStaticInterface::fnIdGetDefaultSaveMode, _T("GetDefaultSaveMode"), "Get the default save mode.", TYPE_ENUM, UsdStageObjectStaticInterface::eidSaveMode, FP_NO_REDRAW, 0,
+        UsdStageObjectStaticInterface::fnIdSetDefaultSaveMode, _T("SetDefaultSaveMode"), "Set the default save mode.", TYPE_VOID, FP_NO_REDRAW, 1,
+        _T("saveMode"), 0, TYPE_ENUM, UsdStageObjectStaticInterface::eidSaveMode,
         enums,
         UsdStageObjectStaticInterface::eidFilteringType, 3,
         _T("none"), MaxUsd::TreeModelFactory::TypeFilteringMode::NoFilter,
         _T("include"), MaxUsd::TreeModelFactory::TypeFilteringMode::Include,
         _T("exclude"), MaxUsd::TreeModelFactory::TypeFilteringMode::Exclude,
-
+    	UsdStageObjectStaticInterface::eidSaveMode, 3,
+	_T("saveAll"), SaveMode::SaveAll,
+	_T("saveAllEditsMax"), SaveMode::SaveAllEditsMax,
+	_T("save3dsMaxOnly"), SaveMode::Save3dsMaxOnly,
         p_end);
 // clang-format on

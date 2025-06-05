@@ -38,7 +38,7 @@ struct usd_prs_controllers_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale
-        resetMaxFile #noprompt
+        quickReset()
         units.SystemType = #inches
         units.SystemScale = 1
     ),
@@ -200,7 +200,7 @@ struct usd_prs_controllers_test
         local maxSceneSavePath = output_prefix + "prs_controllers_save.max"
         saveMaxFile maxSceneSavePath quiet:true
         
-        resetMaxFile #noprompt
+        quickReset()
         
         -- Load the save scene, and make sure the controllers still behaves..
         loadMaxFile maxSceneSavePath useFileUnits:true

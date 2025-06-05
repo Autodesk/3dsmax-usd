@@ -11,6 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="python_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="wrapImportChaser.cpp" />
     <ClCompile Include="wrapMaterialConverter.cpp" />
     <ClCompile Include="module.cpp" />
@@ -35,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pythonObjectRegistry.h" />
+    <ClInclude Include="python_pch.h" />
     <ClInclude Include="wrapInterval.h" />
     <ClInclude Include="wrapMaxSceneBuilderOptions.h" />
     <QtMoc Include="wrapPickItems.h" />
@@ -80,12 +84,15 @@
       <PreprocessorDefinitions>MFB_PACKAGE_NAME=$(OutName);MFB_ALT_PACKAGE_NAME=$(OutName);MFB_PACKAGE_MODULE=$(OutName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings Condition="'$(VersionTarget)'=='2022'">4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">false</ShowIncludes>
       <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoveUnreferencedCodeData>
-      <ForcedIncludeFiles>..\usd_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>python_pch.h</ForcedIncludeFiles>
       <AdditionalIncludeDirectories>$(SolutionDir);$(PySideInc);$(PySideShibokenInc);$(PySideInc)/QtCore;$(PySideInc)/QtGui;$(PySideInc)/QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>python_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>

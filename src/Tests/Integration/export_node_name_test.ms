@@ -34,7 +34,7 @@ struct export_node_name_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),
@@ -45,7 +45,7 @@ struct export_node_name_test
         box1.name = "name"
         local box2 = box()
         box2.name = "name"
-        local exportPath = (output_prefix + "simple_conflict.usda")
+        local exportPath = (output_prefix + "test_node_name_conflict.usda")
         USDExporter.ExportFile exportPath exportOptions:exportOptions
         stage = pyUsd.Stage.Open(exportPath)
         
@@ -72,7 +72,7 @@ struct export_node_name_test
         assert_true (box2prim.IsA(pyUsdGeom.Mesh)) message:("box2 should have been exported to an Mesh prim")
 
         -- Tests that reusing the same name at different levels in the hierarchy is supported.
-        resetMaxFile #noprompt
+        quickReset()
         local level1 = box()
         level1.name = "name"
         local level2 = box()
@@ -93,7 +93,7 @@ struct export_node_name_test
         -- Makes sure that Max node names that are not valid in USD are transformed to be valid upon export.
         local box1 = box()
         box1.name = "box:1"
-        local exportPath = (output_prefix + "simple_conflict.usda")
+        local exportPath = (output_prefix + "test_invalid_usd_node_name.usda")
         USDExporter.ExportFile exportPath exportOptions:exportOptions
         stage = pyUsd.Stage.Open(exportPath)
         box1Prim = stage.GetPrimAtPath("/box_1")

@@ -31,38 +31,6 @@ void HdMaxRenderPass::_Execute(
     TfTokenVector const&              renderTags)
 {
     TRACE_FUNCTION();
-
-    bool authoredTagsChanged = false;
-    auto ver = GetRenderIndex()->GetChangeTracker().GetRenderTagVersion();
-    if (ver != authoredTagsVer) {
-        authoredTagsChanged = true;
-        authoredTagsVer = ver;
-    }
-
-    auto processRenderTags = [&](auto& prds) {
-        for (auto& prd : prds) {
-            const auto&      id = prd.rPrimPath;
-            HdSceneDelegate* sceneDelegate = GetRenderIndex()->GetSceneDelegateForRprim(id);
-            auto             renderTag = sceneDelegate->GetRenderTag(id);
-            bool             renderTagActive
-                = std::find(renderTags.begin(), renderTags.end(), renderTag) != renderTags.end();
-
-            if (prd.renderTagActive != renderTagActive) {
-                GetRenderIndex()->GetChangeTracker().MarkRprimDirty(id);
-                prd.renderTagActive = renderTagActive;
-            }
-        }
-    };
-
-    // Active render tags have changed, flag the render data for display accordingly.
-    if (prevRenderTags != renderTags || authoredTagsChanged) {
-        HdMaxRenderDelegate* renderDelegate
-            = static_cast<HdMaxRenderDelegate*>(GetRenderIndex()->GetRenderDelegate());
-        processRenderTags(renderDelegate->GetAllMeshRenderData());
-        processRenderTags(renderDelegate->GetAllBasisCurvesRenderData());
-
-        prevRenderTags = renderTags;
-    }
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

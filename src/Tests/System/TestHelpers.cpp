@@ -167,3 +167,25 @@ bool BoundingBoxesAreEquivalent(const Box3& box1, const Box3& box2)
         && abs(box1.pmax.z - box2.pmax.z) < epsilon && abs(box1.pmin.x - box2.pmin.x) < epsilon
         && abs(box1.pmin.y - box2.pmin.y) < epsilon && abs(box1.pmin.z - box2.pmin.z) < epsilon;
 };
+
+void QuickReset()
+{
+
+    INode*              rootNode = GetCOREInterface10()->GetRootNode();
+    INodeTab            allNodes;
+    std::vector<INode*> stack;
+    stack.push_back(rootNode);
+    while (!stack.empty()) {
+        INode* node = stack.back();
+        stack.pop_back();
+        if (node != rootNode) {
+            allNodes.AppendNode(node);
+        }
+        for (int i = 0; i < node->NumberOfChildren(); ++i) {
+            stack.push_back(node->GetChildNode(i));
+        }
+    }
+
+    GetCOREInterface10()->DeleteNodes(allNodes);
+    GetCOREInterface()->FlushUndoBuffer();
+}

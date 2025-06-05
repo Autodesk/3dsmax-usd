@@ -24,6 +24,7 @@ pyUsd = python.import("pxr.Usd")
 pyUsdGeom = python.import("pxr.UsdGeom")
 pyGf = python.import("pxr.Gf")
 pyKind = python.import("pxr.Kind")
+pyUsdUtils = python.import("pxr.UsdUtils")
     
 output_prefix = pathConfig.appendPath (getDir #temp) "/EXPORT_METADATA_TEST_"
 deleteTestFiles(output_prefix + "*.*")
@@ -36,7 +37,7 @@ struct export_metadata_test
 
     function resetMaxFileAndSetupUnits =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     public
@@ -59,26 +60,28 @@ struct export_metadata_test
 
     function createTestSceneWithUsdCustomAttributes =
     (
-        testFile = output_prefix + "test_file.usda"
-        local stage = pyUsd.Stage.CreateNew(testFile)
+        local stage = pyUsd.Stage.CreateInMemory()
         local prim001 = pyUsdGeom.Mesh.Define stage "/Box001"
         local purposeAttr = (pyUsdGeom.Imageable(prim001)).CreatePurposeAttr()
         purposeAttr.Set(pyUsdGeom.Tokens.proxy)
         (pyUsd.ModelAPI(prim001)).SetKind(pyKind.Tokens.component)
         (prim001.GetPrim()).SetHidden(True)
-        (stage.GetRootLayer()).Save()
-
-        USDImporter.ImportFile testFile importOptions:importOptions
+            
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
+        USDImporter.ImportFromCache stageId importOptions:importOptions
     ),
 
     function createTestSceneWithDefaultValues =
     (
-        testFile = output_prefix + "test_default_file.usda"
-        local stage = pyUsd.Stage.CreateNew(testFile)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
+        
         local prim001 = pyUsdGeom.Mesh.Define stage "/Box001"
-        (stage.GetRootLayer()).Save()
-
-        USDImporter.ImportFile testFile importOptions:importOptions
+        USDImporter.ImportFromCache stageId importOptions:importOptions
     ),
 
     function test_metadata = (
@@ -224,7 +227,7 @@ struct export_metadata_test
         testBox.baseObject.usd_hidden = false
 
         -- when
-        testUsdFile = output_prefix + "test_default_values.usda"
+        testUsdFile = output_prefix + "test_hidden_false.usda"
         status = USDExporter.ExportFile testUsdFile exportOptions:exportOptions
 
         -- then
@@ -498,21 +501,21 @@ struct export_metadata_test
         myBox1 = Box name:"Box001"
         myBox2 = Box name:"Box002"
         myBox3 = Box name:"Box003"
-		
+        
         myGroup = group #(myBox1, myBox2, myBox3) name:"myGroup001"
-		
+        
         -- when
         testUsdFile = output_prefix + "test_kind_metadata.usda"
         status = USDExporter.ExportFile testUsdFile exportOptions:exportOptions
-		
+        
         -- then
         local stage = pyUsd.Stage.Open(testUsdFile)
         local prim = stage.GetPrimAtPath("/myGroup001")
         assert_equal "group" ((pyUsd.ModelAPI(prim)).GetKind())      
     ),
-	
+    
     function test_user_defined_kind_metadata_prioritized = (
-		
+        
         usdKindCA = attributes USDData
         (
             parameters USD
@@ -520,31 +523,31 @@ struct export_metadata_test
                 usd_kind type:#string
             )
         )
-		
+        
         -- given
         myBox1 = Box name:"Box001"
         myBox2 = Box name:"Box002"
         myBox3 = Box name:"Box003"
-		      
-		
+              
+        
         myGroup = group #(myBox1, myBox2, myBox3) name:"myGroup001"
-		
+        
         custAttributes.add myGroup usdKindCA #Unique BaseObject:true
         myGroup.usd_kind = "userDefined"
-		
+        
         -- when
         testUsdFile = output_prefix + "test_kind_metadata.usda"
         status = USDExporter.ExportFile testUsdFile exportOptions:exportOptions
-		
+        
         -- then
         local stage = pyUsd.Stage.Open(testUsdFile)
         local prim = stage.GetPrimAtPath("/myGroup001")
-        assert_equal "userDefined" ((pyUsd.ModelAPI(prim)).GetKind()) 	
+        assert_equal "userDefined" ((pyUsd.ModelAPI(prim)).GetKind())     
     ),
 
 
     function teardown = (
-        resetMaxFile #noPrompt
+        resetMaxFile #noprompt
         -- clean up manually scripted custom attributes
         scriptedCADefs = custAttributes.getSceneDefs()
         toDeleteDefs = #()

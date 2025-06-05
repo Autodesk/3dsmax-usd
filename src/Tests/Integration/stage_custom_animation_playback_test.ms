@@ -31,7 +31,7 @@ struct stage_custom_animation_playback_test
     function setup =
     (
         deleteTestFiles(output_prefix + "*.*")
-        resetMaxFile #noprompt
+        quickReset()
     ),
 
     function test_source_params = (
@@ -306,7 +306,7 @@ struct stage_custom_animation_playback_test
     ),    
         
     function teardown = (
-        resetMaxFile #noprompt
+        quickReset()
     ),
 
     Tests = #(test_source_params, 

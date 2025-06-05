@@ -17,6 +17,7 @@
     <ClInclude Include="CameraWriter.h" />
     <ClInclude Include="DLLEntry.h" />
     <ClInclude Include="HelperWriter.h" />
+    <ClInclude Include="maxusdtranslators_pch.h" />
     <ClInclude Include="MeshWriter.h" />
     <ClInclude Include="MtlSwitcherWriter.h" />
     <ClInclude Include="PhotometricLightWriter.h" />
@@ -33,9 +34,13 @@
     <ClCompile Include="DllEntry.cpp" />
     <ClCompile Include="HelperWriter.cpp" />
     <ClCompile Include="LightReader.cpp" />
+    <ClCompile Include="maxusdtranslators_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="MeshReader.cpp" />
     <ClCompile Include="MeshWriter.cpp" />
     <ClCompile Include="MtlSwitcherWriter.cpp" />
+    <ClCompile Include="MtlxShaderWriter.cpp" />
     <ClCompile Include="NurbsCurvesReader.cpp" />
     <ClCompile Include="PhotometricLightWriter.cpp" />
     <ClCompile Include="ScopeReader.cpp" />
@@ -61,6 +66,7 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
     <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
@@ -78,12 +84,15 @@
       <!--DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings-->
       <TreatWarningAsError>true</TreatWarningAsError>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
-      <ForcedIncludeFiles>..\usd_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>maxusdtranslators_pch.h</ForcedIncludeFiles>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zc:__cplusplus /Zc:inline-</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>maxusdtranslators_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
       <AdditionalDependencies>maxUsd.lib;core.lib;geom.lib;edmodel.lib;maxutil.lib;maxscrpt.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;'2024'">MaterialXCore.lib;3dsmax_usdMtlx.lib;MaterialXFormat.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(LibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

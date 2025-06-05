@@ -174,6 +174,15 @@ Ufe::Path getUsdStageObjectPath(const USDStageObject* object)
     return Ufe::Path({ stageObjectSegment });
 }
 
+Ufe::Path getUsdStageObjectPath(const Ufe::Path& path)
+{
+    const auto segments = path.getSegments();
+    if (segments.empty()) {
+        return {};
+    }
+    return Ufe::Path { { segments[0] } };
+}
+
 USDStageObject* getUsdStageObjectFromPath(const Ufe::Path& path)
 {
     const auto segments = path.getSegments();
@@ -207,6 +216,22 @@ Ufe::Path getUsdPrimUfePath(USDStageObject* object, const pxr::SdfPath& primPath
             std::to_string(instanceIdx), UsdUfe::getUsdRunTimeId(), usdSeparator });
     }
     return Ufe::Path { segments };
+}
+
+Ufe::Path getUfePath(const pxr::UsdPrim& prim, int instanceIdx)
+{
+    if (!prim.IsValid()) {
+        return {};
+    }
+    const auto stage = prim.GetStage();
+    if (!stage) {
+        return {};
+    }
+    const auto object = StageObjectMap::GetInstance()->Get(stage);
+    if (!object) {
+        return {};
+    }
+    return getUsdPrimUfePath(object, prim.GetPath(), instanceIdx);
 }
 
 bool isPointInstance(const Ufe::SceneItemPtr& item)

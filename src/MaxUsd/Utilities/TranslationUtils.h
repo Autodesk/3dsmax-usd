@@ -15,11 +15,11 @@
 //
 #pragma once
 
+#include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
 #include <pxr/usd/usd/common.h>
 
-#include <MaxUsd.h>
 #include <inode.h>
 #pragma warning(push)
 #pragma warning(disable : 4275) // non dll-interface class 'boost::python::api::object' used as base
@@ -755,6 +755,13 @@ MaxUSDAPI std::string
 ResolveToken(const std::string& str, const std::string& token, const std::string& replacement);
 
 /**
+ * \brief Gets the first node referencing a given object.
+ * \param object The object for which to get the first node.
+ * \return The first node referencing the object.
+ */
+MaxUSDAPI INode* GetFirstReferencingNode(Object* object);
+
+/**
  * \brief Gets all nodes referencing a given object (more than one if instanced)
  * \param object The object for which to get the nodes
  * \return The nodes referencing the object.
@@ -769,5 +776,28 @@ MaxUSDAPI INodeTab GetReferencingNodes(Object* object);
  */
 MaxUSDAPI const pxr::GfRange3d
 ComputeTotalExtent(const pxr::GfRange3d& extent, const pxr::VtMatrix4dArray& transformList);
+
+/**
+ * Combines two hashes.
+ * @param seed The seed, gets updated to the combined hash.
+ * @param hash The hash to combine with the seed.
+ */
+inline void HashCombine(size_t& seed, const size_t& hash)
+{
+    // Differentiation due to the removal of boost in 24.11
+#if PXR_VERSION < 2411
+    boost::hash_combine(seed, hash);
+#else
+    seed = pxr::TfHash::Combine(seed, hash);
+#endif
+}
+
+template <typename T> bool GetParamBlockValue(IParamBlock2* paramBlock, int id)
+{
+    T        value = false;
+    Interval valid;
+    paramBlock->GetValue(id, GetCOREInterface()->GetTime(), value, valid);
+    return static_cast<T>(value);
+}
 
 } // namespace MAXUSD_NS_DEF

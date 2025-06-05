@@ -32,9 +32,11 @@
       <PreprocessorDefinitions>_USRDLL;USDCORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(MaxSdkInc);$(QtInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <ForcedIncludeFiles>$(ProjectDir)/usdimport_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>usdimport_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;26945;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>usdimport_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(QtLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -47,6 +49,9 @@
     <ClCompile Include="DllEntry.cpp" />
     <ClCompile Include="USDImport.cpp" />
     <ClCompile Include="USDImportInterface.cpp" />
+    <ClCompile Include="usdimport_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Views\USDImportDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +60,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="USDImport.h" />
     <ClInclude Include="usdimport_banned.h" />
+    <ClInclude Include="usdimport_pch.h" />
     <ClInclude Include="VersionOverrides.h" />
     <ClInclude Include="Views\IUSDImportView.h" />
     <ClInclude Include="Views\USDImportDialog.h" />

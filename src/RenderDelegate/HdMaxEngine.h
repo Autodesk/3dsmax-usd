@@ -17,6 +17,7 @@
 
 #include "HdMaxConsolidator.h"
 #include "HdMaxLightGizmoMeshAccess.h"
+#include "HdMaxTriMesh.h"
 #include "Imaging/HdMaxRenderDelegate.h"
 #include "Imaging/HdMaxTaskController.h"
 #include "RenderDelegateAPI.h"
@@ -81,23 +82,34 @@ public:
                           newSelection) const;
 
     /**
-     * \brief Renders the USD stage to 3dsMax TriMeshes (suitable for rendering by any renderer).
+     * \brief Renders the USD stage to a basic 3dsMax Mesh. The output can be filtered to only
+     * contain a subset of the stage - internally, the entire stage is still rendered, typically
+     * benefiting from previously cached data (used in the viewport), and the output is then
+     * filtered (to the subtree starting at root) to produce the Mesh.
      * \param node The node from which the UsdStage is being rendered.
-     * \param rootPrim The prim to render from.
-     * \param rootTransform The transform to apply at the root when rendering.
-     * \param outputMeshes Filled with the generated meshes.
-     * \param meshTransforms The mesh transforms.
+     * \param root The root prim of the subtree we want to end up in the 3dsMax mesh.
+     * \param renderRootTM The transform to apply at the render root when rendering. Typically, this
+     * would be the axis & unit transform.
+     * \param offsetTM An offset transform to apply on geometry when building the mesh. For example
+     * to center the geometry when building from a subset of the stage.
      * \param timeCode The UsdTimeCode at which to render.
      * \param renderTags The render tags (purposes) to use.
+     * \param outputMesh The output geometry. If the passed mesh is the result of a previous render,
+     * it will only be updated if something actually changed.
+     * \param includeInvisible Whether to include currently invisible prims in the mesh.
+     * \param includeGeomObjectSrc Whether to include prims with the "UsdGeomObjectSource"
+     * render purpose. I.e. used as source for USDGeomObjects.
      */
-    void RenderToMeshes(
-        INode*                              node,
-        const pxr::UsdPrim&                 rootPrim,
-        const pxr::GfMatrix4d&              rootTransform,
-        std::vector<std::shared_ptr<Mesh>>& outputMeshes,
-        std::vector<Matrix3>&               meshTransforms,
-        const pxr::UsdTimeCode&             timeCode,
-        const pxr::TfTokenVector&           renderTags);
+    void RenderToMesh(
+        INode*                    node,
+        const pxr::UsdPrim&       root,
+        const pxr::GfMatrix4d&    renderRootTM,
+        const Matrix3&            offsetTM,
+        const pxr::UsdTimeCode&   timeCode,
+        const pxr::TfTokenVector& renderTags,
+        HdMaxTriMesh&             outputMesh,
+        bool                      includeInvisible,
+        bool                      includeGeomObjectSrc);
 
     /**
      * \brief Updates the root primitive to render from and initialize materials. If the given root prim is different from the
@@ -163,17 +175,12 @@ public:
 
 private:
     /**
-     * \brief Update the scene delegate to prepare it for rendering.
-     * \param timeCode TimeCode at which the render will take place.
-     * \param renderTags Render tags to be used by the render.
+     * \brief Updates the 3dsMax multi-material holding all of the converted USD materials, from the given render data.
+     * This is typically called when rendering. The multi-material is typically applied to the Node
+     * owning the USD Stage, so it can be rendered.
+     * \param multiMat The multi-material we are updating.
      */
-    void PrepareBatch(const pxr::UsdTimeCode& timeCode, const pxr::TfTokenVector& renderTags);
-
-    /**
-     * \brief Effectively do the processing of the scene, updating the associated render delegate.
-     * \warning PrepareBatch must be called first.
-     */
-    void RenderBatch();
+    void UpdateMultiMaterial(MultiMtl* multiMat) const;
 
     /**
      * \brief Updates the list of UsdPreviewSurface materials, from the given render data.
@@ -189,12 +196,19 @@ private:
         std::shared_ptr<HdMaxMaterialCollection> collection);
 
     /**
-     * \brief Updates the 3dsMax multi-material holding all of the converted USD materials, from the given render data.
-     * This is typically called when rendering. The multi-material is typically applied to the Node
-     * owning the USD Stage, so it can be rendered.
-     * \param multiMat The multi-material we are updating.
+     * \brief Update the scene delegate to prepare it for rendering.
+     * \param timeCode TimeCode at which the render will take place.
+     * \param renderTags Render tags to be used by the render.
      */
-    void UpdateMultiMaterial(MultiMtl* multiMat) const;
+    void PrepareBatch(const pxr::UsdTimeCode& timeCode, const pxr::TfTokenVector& renderTags);
+
+    void ApplyActiveRenderTags(const pxr::TfTokenVector& renderTags);
+
+    /**
+     * \brief Process and render the scene, updating the associated render delegate.
+     * \warning PrepareBatch must be called first.
+     */
+    void RenderBatch();
 
     /**
      * \brief Attempts consolidation of the given render data.
@@ -212,6 +226,23 @@ private:
         const pxr::UsdTimeCode&                   timeCode,
         const HdMaxConsolidator::Config&          config,
         const MaxSDK::Graphics::RenderNodeHandle& renderNode);
+
+    /**
+     * Computes a unique fingerprint for a vector of render data. Useful to quickly
+     * compare collections of rendered prims. Essentially combines the hashes of the source
+     * prim paths.
+     * @param renderData The render data to fingerprint.
+     * @return The fingerprint
+     */
+    size_t ComputeFingerPrint(const std::vector<HdMaxMeshRenderData*>& renderData);
+
+    /**
+     * Clear any remaining dirty bits on geometry used as source for geom objects.
+     * We need the dirty state to remain while the rest of the max scene is evaluated
+     * so that geom objects know what has changed. Therefor, clear the bits when we
+     * initiate the following render.
+     */
+    void ClearGeomObjectDirtyBits() const;
 
     /// Create a sceneDelegate out of a stage.
     std::unique_ptr<pxr::UsdImagingDelegate> CreateSceneDelegate(const pxr::UsdPrim& rootPrim);
@@ -251,4 +282,10 @@ private:
     pxr::HdLightGizmoSceneIndexFilterRefPtr    lightGizmoFilter = nullptr;
     std::shared_ptr<HdMaxLightGizmoMeshAccess> lightGizmoMeshAccess = nullptr;
 #endif
+
+    /// Keep track of used render tags, to react to changes.
+    pxr::TfTokenVector prevRenderTags;
+    /// Keep track of the versioning for authored render tags so
+    /// that we can react to changes.
+    unsigned authoredTagsVer = 1;
 };

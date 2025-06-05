@@ -140,8 +140,7 @@ void USDFloatController::GetValue(TimeValue t, void* val, Interval& valid, GetSe
 
 void USDFloatController::GetClassName(MSTR& className, bool localized) const
 {
-    className
-        = localized ? GetString(IDS_USDFLOATCONTROLLER_CLASS_NAME) : _T("USD Float Controller");
+    className = localized ? GetString(IDS_USDFLOATCONTROLLER_CLASS_NAME) : _T("USD Float");
 }
 
 void USDFloatController::SetupDialog(
@@ -210,8 +209,7 @@ void USDPoint3Controller::GetValue(TimeValue t, void* val, Interval& valid, GetS
 
 void USDPoint3Controller::GetClassName(MSTR& className, bool localized) const
 {
-    className
-        = localized ? GetString(IDS_USDPOINT3CONTROLLER_CLASS_NAME) : _T("USD Point3 Controller");
+    className = localized ? GetString(IDS_USDPOINT3CONTROLLER_CLASS_NAME) : _T("USD Point3");
 }
 
 void USDPoint3Controller::SetupDialog(
@@ -280,8 +278,7 @@ void USDPoint4Controller::GetValue(TimeValue t, void* val, Interval& valid, GetS
 
 void USDPoint4Controller::GetClassName(MSTR& className, bool localized) const
 {
-    className
-        = localized ? GetString(IDS_USDPOINT4CONTROLLER_CLASS_NAME) : _T("USD Point4 Controller");
+    className = localized ? GetString(IDS_USDPOINT4CONTROLLER_CLASS_NAME) : _T("USD Point4");
 }
 
 void USDPoint4Controller::SetupDialog(

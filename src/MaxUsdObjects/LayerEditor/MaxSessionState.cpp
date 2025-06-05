@@ -108,6 +108,10 @@ std::vector<SessionState::StageEntry> MaxSessionState::allStages() const
         stages.push_back(entry);
     }
 
+    std::sort(stages.begin(), stages.end(), [](const StageEntry& a, const StageEntry& b) {
+        return a._displayName < b._displayName;
+    });
+
     return stages;
 }
 

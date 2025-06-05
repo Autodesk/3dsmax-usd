@@ -23,11 +23,12 @@
 
 namespace UfeUi {
 
-std::vector<Ufe::SceneItem::Ptr> ItemSearch::findMatchingPaths(
+void ItemSearch::findMatchingPaths(
     const Ufe::SceneItem::Ptr&         sceneItem,
     const std::string&                 searchFilter,
     const TypeFilter&                  typeFilter,
-    const Ufe::Hierarchy::ChildFilter& childFilter)
+    const Ufe::Hierarchy::ChildFilter& childFilter,
+    std::vector<Ufe::SceneItem::Ptr>& outItems)
 {
     // Using regular expressions when searching through the set of data can be expensive compared to
     // doing a plain text search. In addition, it may be possible for the User to want to search for
@@ -36,7 +37,6 @@ std::vector<Ufe::SceneItem::Ptr> ItemSearch::findMatchingPaths(
     // the future, where Users would be able to pick the type of search they wish to perform (likely
     // defaulting to a plain text search).
     const bool useWildCardSearch = searchFilter.find('*') != std::string::npos;
-    std::vector<Ufe::SceneItem::Ptr> matchingUfeItems;
 
     const auto root = Ufe::Hierarchy::hierarchy(sceneItem);
 
@@ -65,12 +65,11 @@ std::vector<Ufe::SceneItem::Ptr> ItemSearch::findMatchingPaths(
                         continue;
                     }
                 }
-                matchingUfeItems.emplace_back(child);
+                outItems.emplace_back(child);
             }
             hierarchyStack.push(Ufe::Hierarchy::hierarchy(child));
         }
     }
-    return matchingUfeItems;
 }
 
 bool ItemSearch::findString(

@@ -31,11 +31,11 @@ struct import_udim_texture_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function test_valid_udim_data_imported = (
-        resetMaxFile #noprompt
+        quickReset()
         local testDataDir = getFilenamePath (getThisScriptFilename())
         local importPath = (testDataDir + @"data\import_udim_test_data\max-osl-uber-bitmap-udims-plane.usda")
 

@@ -30,7 +30,7 @@ struct export_texture_transform_test
     function setup =
     (
         deleteTestFiles(output_prefix + "*.*")
-        resetmaxfile #noprompt
+        quickReset()
         thisFileName = getSourceFileName()
         test_python_path = pathConfig.removePathLeaf thisFileName
         pysys = python.import("sys")

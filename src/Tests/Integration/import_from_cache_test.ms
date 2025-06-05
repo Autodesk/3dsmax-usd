@@ -35,7 +35,7 @@ struct import_from_cache_test
     public
     
     function resetFileAndUnits = (
-        resetMaxFile #noprompt
+        quickReset()
         units.SystemType = #Centimeters
         units.SystemScale = 1
     ),    

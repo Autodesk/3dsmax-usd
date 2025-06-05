@@ -18,12 +18,13 @@
 #include "utils.h"
 
 #include <UFEUI/Views/explorer.h>
+#include <UFEUI/standardTreeColumns.h>
 #include <UFEUI/treeitem.h>
 
-#include <ufe/scene.h>
 #include <ufe/sceneNotification.h>
 
 #include <gtest/gtest.h>
+#include <memory>
 
 class ExplorerTest : public UfeUiBaseTest
 {
@@ -32,10 +33,17 @@ protected:
     {
         UfeUiBaseTest::SetUp();
         // Explorer widget with our test hierarchy used as base for testing.
-        const auto              root = Ufe::Hierarchy::createItem(UfeUiTest::getUfePath("/root"));
-        const UfeUi::TypeFilter typeFilter;
+        const auto root = Ufe::Hierarchy::createItem(UfeUiTest::getUfePath("/root"));
+
+        const UfeUi::TypeFilter     typeFilter;
         Ufe::Hierarchy::ChildFilter childFilter;
-        _testExplorer = new UfeUi::Explorer(root, {}, typeFilter, childFilter, false, "", {});
+
+        // The column field is required so that Qt can properly call the canFetchMore and fetchMore
+        // methods. It was found that internally Qt would just bail out if the column count was 0.
+        UfeUi::TreeColumns columns;
+        columns.push_back(std::make_shared<UfeUiTest::TestColumn>(0));
+
+        _testExplorer = new UfeUi::Explorer(root, columns, typeFilter, childFilter, false, "", {});
     }
     void TearDown() override
     {
@@ -51,6 +59,7 @@ TEST_F(ExplorerTest, ExplorerObserver_updateFilter)
     const auto model = _testExplorer->treeModel();
     const auto treeItemRoot = model->root();
 
+    _testExplorer->treeView()->expandAll();
     // No filter active.
     EXPECT_EQ(treeItemRoot->sceneItem(), nullptr);
     EXPECT_EQ(treeItemRoot->childCount(), 1);
@@ -61,9 +70,12 @@ TEST_F(ExplorerTest, ExplorerObserver_updateFilter)
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->child(0)->childCount(), 0);
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->child(1)->childCount(), 2);
 
-    // Set the test fitler (filters A2,B2,C2).
+    // Set the test filter (filters A2,B2,C2).
     auto filter = UfeUiTest::TestHierarchy::childFilter();
+
     _testExplorer->setChildFilter(filter);
+    _testExplorer->treeView()->expandAll();
+
     EXPECT_EQ(treeItemRoot->sceneItem(), nullptr);
     EXPECT_EQ(treeItemRoot->childCount(), 1);
     EXPECT_EQ(treeItemRoot->child(0)->childCount(), 2);
@@ -74,6 +86,9 @@ TEST_F(ExplorerTest, ExplorerObserver_updateFilter)
     // Disable the filter.
     filter.front().value = false;
     _testExplorer->setChildFilter(filter);
+
+    _testExplorer->treeView()->expandAll();
+
     EXPECT_EQ(treeItemRoot->sceneItem(), nullptr);
     EXPECT_EQ(treeItemRoot->childCount(), 1);
     EXPECT_EQ(treeItemRoot->child(0)->childCount(), 3);
@@ -86,6 +101,8 @@ TEST_F(ExplorerTest, ExplorerObserver_updateFilter)
     // Re-enable.
     filter.front().value = true;
     _testExplorer->setChildFilter(filter);
+    _testExplorer->treeView()->expandAll();
+
     EXPECT_EQ(treeItemRoot->sceneItem(), nullptr);
     EXPECT_EQ(treeItemRoot->childCount(), 1);
     EXPECT_EQ(treeItemRoot->child(0)->childCount(), 2);

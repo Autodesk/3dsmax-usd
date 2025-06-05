@@ -19,6 +19,9 @@
 #include <MaxUsd/MeshConversion/MeshConverter.h>
 
 #include <pxr/usd/usd/inherits.h>
+#ifdef IS_MAX2025_OR_GREATER
+#include <pxr/usd/usdMtlx/utils.h>
+#endif
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usdImaging/usdImaging/primAdapter.h>
@@ -472,8 +475,17 @@ UsdShadeOutput CreateShaderOutputAndConnectMaterial(
     } else {
         return UsdShadeOutput();
     }
-
+#ifdef IS_MAX2025_OR_GREATER
+    UsdShadeOutput shaderOutput;
+    if (renderContext == TfToken("mtlx")) {
+        shaderOutput
+            = shader.CreateOutput(UsdMtlxTokens->DefaultOutputName, SdfValueTypeNames->Token);
+    } else {
+        shaderOutput = shader.CreateOutput(terminalName, materialOutput.GetTypeName());
+    }
+#else
     UsdShadeOutput shaderOutput = shader.CreateOutput(terminalName, materialOutput.GetTypeName());
+#endif
 
     UsdPrim parentPrim = shader.GetPrim().GetParent();
     if (parentPrim == material.GetPrim()) {

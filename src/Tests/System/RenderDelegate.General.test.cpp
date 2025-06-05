@@ -22,6 +22,7 @@
 #include <MaxUsd/Utilities/TypeUtils.h>
 
 #include <pxr/base/gf/rotation.h>
+#include <pxr/usd/usdGeom/basisCurves.h>
 
 #include <Graphics/GeometryRenderItemHandle.h>
 #include <Graphics/SimpleRenderGeometry.h>
@@ -623,4 +624,309 @@ TEST(USDRenderDelegateGeneralTest, AlembicSupport)
     const auto wireGeometry = GetRenderItemGeometry(renderItems.At(1));
     const auto indexBuffer2 = wireGeometry->GetIndexBuffer();
     EXPECT_EQ(48, indexBuffer2.GetNumberOfIndices());
+}
+
+// Tests rendering a USD basiscurves primitive to a RenderItem.
+TEST(USDRenderDelegateGeneralTest, SimpleCurve)
+{
+    auto       testDataPath = GetTestDataPath();
+    const auto filePath = testDataPath.append("3pointlinenonperiodic.usda");
+    const auto stage = pxr::UsdStage::Open(MaxUsd::MaxStringToUsdString(filePath.c_str()));
+
+    HdMaxEngine                      testEngine;
+    MockRenderItemDecoratorContainer renderItems;
+
+    // Render with to both wireframe and shaded items.
+    TestRender(
+        stage,
+        testEngine,
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull, pxr::HdReprTokens->wire });
+
+    auto& renderDelegate = testEngine.GetRenderDelegate();
+    auto  renderData = renderDelegate->GetBasisCurvesRenderDataIdMap();
+
+    ASSERT_EQ(1, renderData.size());
+    auto it = renderData.find(pxr::SdfPath("/root/Line001"));
+    ASSERT_TRUE(it != renderData.end());
+
+    // Two render items : shaded + wireframe
+    ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
+
+    // Make sure that the render items was correctly added to the container (shaded / wireframe)
+
+    // Shaded item...
+    auto& shadedRenderItem = renderItems.At(0);
+    ASSERT_EQ(
+        MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Shaded,
+        shadedRenderItem.GetVisibilityGroup());
+
+    auto shadedGeometry = GetRenderItemGeometry(shadedRenderItem, true);
+    ASSERT_EQ(
+        shadedGeometry,
+        renderDelegate->GetBasisCurvesRenderData(it->second)
+            .shadedCurve.geometry->GetSimpleRenderGeometry());
+
+    ASSERT_NE(nullptr, shadedGeometry);
+    ASSERT_EQ(MaxSDK::Graphics::PrimitiveLineList, shadedGeometry->GetPrimitiveType());
+    // Curves have 2 vertex buffers: points and selection
+    ASSERT_EQ(2, shadedGeometry->GetVertexBufferCount());
+    ASSERT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
+
+    // Check that points are OK.
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    EXPECT_EQ(3, pointsBuffer.GetNumberOfVertices());
+    std::array<Point3, 3> expectedPoints
+        = { Point3(-18.95, 6.75, 0.0), Point3(19.29, 6.96, 0.0), Point3(-0.34, -13.72, 0.0) };
+
+    const auto pointsData
+        = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedPoints.begin(), expectedPoints.end(), pointsData));
+
+    // Check that indices are OK.
+    auto linesIndexBuffer = shadedGeometry->GetIndexBuffer();
+    EXPECT_EQ(4, linesIndexBuffer.GetNumberOfIndices());
+    std::array<int, 4> expectedIndices = { 0, 1, 1, 2 };
+    const auto         indicesData
+        = reinterpret_cast<int*>(linesIndexBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices.begin(), expectedIndices.end(), indicesData));
+
+    // Wireframe item...
+    auto& wireframeRenderItem = renderItems.At(1);
+    EXPECT_EQ(
+        MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Wireframe,
+        wireframeRenderItem.GetVisibilityGroup());
+
+    const auto wireframeGeometry = GetRenderItemGeometry(wireframeRenderItem, true);
+    ASSERT_EQ(
+        wireframeGeometry,
+        renderDelegate->GetBasisCurvesRenderData(it->second)
+            .wireframeCurve.geometry->GetSimpleRenderGeometry());
+
+    ASSERT_NE(nullptr, wireframeGeometry);
+    ASSERT_EQ(MaxSDK::Graphics::PrimitiveLineList, wireframeGeometry->GetPrimitiveType());
+    ASSERT_EQ(2, wireframeGeometry->GetVertexBufferCount());
+    ASSERT_TRUE(wireframeGeometry->GetIndexBuffer().IsValid());
+
+    // Check that indices for the wire edges are OK. They should be the same as for shaded geometry
+    auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
+    EXPECT_EQ(4, edgeIndexBuffer.GetNumberOfIndices());
+    const auto wireframeIndicesData
+        = reinterpret_cast<int*>(edgeIndexBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices.begin(), expectedIndices.end(), wireframeIndicesData));
+}
+
+// Tests rendering a USD periodic basiscurves primitive to a RenderItem.
+TEST(USDRenderDelegateGeneralTest, SimplePeriodicCurve)
+{
+    auto       testDataPath = GetTestDataPath();
+    const auto filePath = testDataPath.append("3pointlineperiodic.usda");
+    const auto stage = pxr::UsdStage::Open(MaxUsd::MaxStringToUsdString(filePath.c_str()));
+
+    HdMaxEngine                      testEngine;
+    MockRenderItemDecoratorContainer renderItems;
+
+    // Render with to both wireframe and shaded items.
+    TestRender(
+        stage,
+        testEngine,
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull, pxr::HdReprTokens->wire });
+
+    auto& renderDelegate = testEngine.GetRenderDelegate();
+    auto  renderData = renderDelegate->GetBasisCurvesRenderDataIdMap();
+
+    ASSERT_EQ(1, renderData.size());
+    auto it = renderData.find(pxr::SdfPath("/root/Line001"));
+    ASSERT_TRUE(it != renderData.end());
+
+    // Two render items : shaded + wireframe
+    ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
+
+    // Make sure that the render items was correctly added to the container (shaded / wireframe)
+
+    // Shaded item...
+    auto& shadedRenderItem = renderItems.At(0);
+    ASSERT_EQ(
+        MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Shaded,
+        shadedRenderItem.GetVisibilityGroup());
+
+    auto shadedGeometry = GetRenderItemGeometry(shadedRenderItem, true);
+    ASSERT_EQ(
+        shadedGeometry,
+        renderDelegate->GetBasisCurvesRenderData(it->second)
+            .shadedCurve.geometry->GetSimpleRenderGeometry());
+
+    ASSERT_NE(nullptr, shadedGeometry);
+    ASSERT_EQ(MaxSDK::Graphics::PrimitiveLineList, shadedGeometry->GetPrimitiveType());
+    // Curves have 2 vertex buffers: points and selection
+    ASSERT_EQ(2, shadedGeometry->GetVertexBufferCount());
+    ASSERT_TRUE(shadedGeometry->GetIndexBuffer().IsValid());
+
+    // Check that points are OK.
+    auto pointsBuffer = shadedGeometry->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    EXPECT_EQ(3, pointsBuffer.GetNumberOfVertices());
+    std::array<Point3, 3> expectedPoints
+        = { Point3(-18.95, 6.75, 0.0), Point3(19.29, 6.96, 0.0), Point3(-0.34, -13.72, 0.0) };
+
+    const auto pointsData
+        = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedPoints.begin(), expectedPoints.end(), pointsData));
+
+    // Check that indices are OK.
+    auto linesIndexBuffer = shadedGeometry->GetIndexBuffer();
+    EXPECT_EQ(6, linesIndexBuffer.GetNumberOfIndices());
+    std::array<int, 6> expectedIndices = { 0, 1, 1, 2, 2, 0 };
+    const auto         indicesData
+        = reinterpret_cast<int*>(linesIndexBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices.begin(), expectedIndices.end(), indicesData));
+
+    // Wireframe item...
+    auto& wireframeRenderItem = renderItems.At(1);
+    EXPECT_EQ(
+        MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Wireframe,
+        wireframeRenderItem.GetVisibilityGroup());
+
+    const auto wireframeGeometry = GetRenderItemGeometry(wireframeRenderItem, true);
+    ASSERT_EQ(
+        wireframeGeometry,
+        renderDelegate->GetBasisCurvesRenderData(it->second)
+            .wireframeCurve.geometry->GetSimpleRenderGeometry());
+
+    ASSERT_NE(nullptr, wireframeGeometry);
+    ASSERT_EQ(MaxSDK::Graphics::PrimitiveLineList, wireframeGeometry->GetPrimitiveType());
+    ASSERT_EQ(2, wireframeGeometry->GetVertexBufferCount());
+    ASSERT_TRUE(wireframeGeometry->GetIndexBuffer().IsValid());
+
+    // Check that indices for the wire edges are OK. They should be the same as for shaded geometry
+    auto edgeIndexBuffer = wireframeGeometry->GetIndexBuffer();
+    EXPECT_EQ(6, edgeIndexBuffer.GetNumberOfIndices());
+    const auto wireframeIndicesData
+        = reinterpret_cast<int*>(edgeIndexBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices.begin(), expectedIndices.end(), wireframeIndicesData));
+}
+
+// Tests rendering animated basiscurves geometry to a nitrous render items.
+// Points and topology change over time.
+TEST(USDRenderDelegateGeneralTest, AnimatedCurveGeometry)
+{
+    const auto stage = pxr::UsdStage::CreateInMemory();
+    auto       basisCurve = pxr::UsdGeomBasisCurves(
+        stage->DefinePrim(pxr::SdfPath("/curve"), pxr::TfToken("BasisCurves")));
+
+    // Setup a quad - topology and vertices will both change over time.
+    pxr::VtVec3fArray points0;
+    points0.reserve(4);
+    points0.push_back({ 0, 2, 2 });
+    points0.push_back({ 0, 2, -2 });
+    points0.push_back({ 0, -2, -2 });
+    points0.push_back({ 0, -2, 2 });
+
+    pxr::VtVec3fArray points1;
+    points1.reserve(4);
+    points1.push_back({ 2, 2, 0 });
+    points1.push_back({ -2, 2, 0 });
+    points1.push_back({ -2, -2, 0 });
+    points1.push_back({ 2, -2, 0 });
+
+    auto pointsAttr = basisCurve.CreatePointsAttr();
+    pointsAttr.Set(points0, 0);
+    pointsAttr.Set(points1, 1);
+
+    // At timecode 0, single 4 point curve
+    pxr::VtIntArray curveVertexCount0 { 4 };
+    // At timecode 1, two 2 point curves
+    pxr::VtIntArray curveVertexCount1 { 2, 2 };
+
+    auto vertexCountAttr = basisCurve.CreateCurveVertexCountsAttr();
+    vertexCountAttr.Set(curveVertexCount0, 0);
+    vertexCountAttr.Set(curveVertexCount1, 1);
+
+    HdMaxEngine                      testEngine;
+    MockRenderItemDecoratorContainer renderItems;
+    TestRender(stage, testEngine, renderItems, 0);
+
+    auto& renderDelegate = testEngine.GetRenderDelegate();
+    auto  renderData = renderDelegate->GetBasisCurvesRenderDataIdMap();
+
+    ASSERT_EQ(1, renderData.size());
+    auto it0 = renderData.find(pxr::SdfPath("/curve"));
+    ASSERT_TRUE(it0 != renderData.end());
+
+    // Make sure that the render item was correctly added to the container.
+    auto& usdRenderItem = renderItems.At(0);
+    auto  simpleRenderGeometry0 = GetRenderItemGeometry(usdRenderItem, true);
+
+    ASSERT_EQ(
+        simpleRenderGeometry0,
+        renderDelegate->GetBasisCurvesRenderData(it0->second)
+            .shadedCurve.geometry->GetSimpleRenderGeometry());
+
+    // Check that points are ok at timecode 0.
+    auto pointsBuffer = simpleRenderGeometry0->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    EXPECT_EQ(4, pointsBuffer.GetNumberOfVertices());
+    std::array<Point3, 4> expectedPoints = { MaxUsd::ToMax(points0[0]),
+                                             MaxUsd::ToMax(points0[1]),
+                                             MaxUsd::ToMax(points0[2]),
+                                             MaxUsd::ToMax(points0[3]) };
+    auto                  pointsData
+        = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedPoints.begin(), expectedPoints.end(), pointsData));
+    pointsBuffer.Unlock();
+
+    // Check that indices are OK at timecode 0.
+    auto indicesBuffer = simpleRenderGeometry0->GetIndexBuffer();
+    EXPECT_EQ(6, indicesBuffer.GetNumberOfIndices());
+    std::array<int, 6> expectedIndices = { 0, 1, 1, 2, 2, 3 };
+    indicesBuffer.Unlock();
+
+    auto indicesData
+        = reinterpret_cast<int*>(indicesBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices.begin(), expectedIndices.end(), indicesData));
+
+    // Render again, this time at timecode 1.
+    renderItems.ClearAllRenderItems();
+    TestRender(stage, testEngine, renderItems, 1);
+
+    auto renderData1 = renderDelegate->GetBasisCurvesRenderDataIdMap();
+
+    ASSERT_EQ(1, renderData.size());
+    auto it1 = renderData.find(pxr::SdfPath("/curve"));
+    ASSERT_TRUE(it1 != renderData.end());
+
+    // Should have updated the same render item.
+    ASSERT_EQ(
+        renderDelegate->GetBasisCurvesRenderData(it0->second).shadedCurve.renderItem,
+        renderDelegate->GetBasisCurvesRenderData(it1->second).shadedCurve.renderItem);
+
+    // Make sure that the render item was correctly added to the container.
+    auto& usdRenderItem1 = renderItems.At(0);
+    auto  simpleRenderGeometry1 = GetRenderItemGeometry(usdRenderItem1, true);
+    ASSERT_EQ(
+        simpleRenderGeometry1,
+        renderDelegate->GetBasisCurvesRenderData(it1->second)
+            .shadedCurve.geometry->GetSimpleRenderGeometry());
+
+    // Check that points are ok at timecode 1.
+    pointsBuffer = simpleRenderGeometry1->GetVertexBuffer(HdMaxMeshRenderData::PointsBuffer);
+    EXPECT_EQ(4, pointsBuffer.GetNumberOfVertices());
+    expectedPoints = { MaxUsd::ToMax(points1[0]),
+                       MaxUsd::ToMax(points1[1]),
+                       MaxUsd::ToMax(points1[2]),
+                       MaxUsd::ToMax(points1[3]) };
+    pointsData = reinterpret_cast<Point3*>(pointsBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedPoints.begin(), expectedPoints.end(), pointsData));
+    pointsBuffer.Unlock();
+
+    indicesBuffer = simpleRenderGeometry1->GetIndexBuffer();
+    EXPECT_EQ(4, indicesBuffer.GetNumberOfIndices());
+    std::array<int, 4> expectedIndices1 = { 0, 1, 2, 3 };
+    indicesBuffer.Unlock();
+
+    indicesData = reinterpret_cast<int*>(indicesBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
+    EXPECT_TRUE(std::equal(expectedIndices1.begin(), expectedIndices1.end(), indicesData));
 }

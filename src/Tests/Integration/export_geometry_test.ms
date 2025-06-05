@@ -34,7 +34,7 @@ struct export_geometry_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
         exportOptions.UsdStagesAsReferences = false

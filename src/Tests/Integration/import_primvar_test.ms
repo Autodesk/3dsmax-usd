@@ -38,7 +38,7 @@ struct import_primvar_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),
@@ -205,7 +205,7 @@ struct import_primvar_test
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
         -- Now reset the max scene and try to reimport the primvar to channel 2.
-        resetMaxFile #noprompt
+        quickReset()
         importOptions.ClearMappedPrimvars()
         importOptions.SetPrimvarChannelMapping primvarName channelId
         USDImporter.ImportFile exportPath importOptions:importOptions
@@ -216,7 +216,7 @@ struct import_primvar_test
         assert_equal numMapVerts (polyop.getNumMapVerts reimportedBox channelId)
         
         -- Now disable the primvar and make sure it is no longer imported.
-        resetMaxFile #noprompt
+        quickReset()
         importOptions.SetPrimvarChannelMapping primvarName undefined
         USDImporter.ImportFile exportPath importOptions:importOptions
         local reimportedBox = getNodeByName primName
@@ -241,7 +241,7 @@ struct import_primvar_test
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
         -- Now reset the max scene and try to reimport.
-        resetMaxFile #noprompt
+        quickReset()
         importOptions.Reset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         local reimportedBox = getNodeByName primName
@@ -277,19 +277,19 @@ struct import_primvar_test
         USDExporter.ExportFile exportPathBar exportOptions:exportOptions
 
         -- A float3Array primvar will not be used as fallback for UVs.
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPathFloatPrimvar importOptions:importOptions
         local reimportedBox = getNodeByName nodeName
         assert_false (polyop.getMapsupport reimportedBox 1)
         
         -- A Texcoord2fArray primvar will be used as fallback for UVs.
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPathFoo importOptions:importOptions
         local reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapsupport reimportedBox 1)
         
         -- A Texcoord3fArray primvar will be used as fallback for UVs.
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPathBar importOptions:importOptions
         local reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapsupport reimportedBox 1)
@@ -313,7 +313,7 @@ struct import_primvar_test
 
         -- Primvar is valid... it should reimport.
         importOptions.SetPrimvarChannelMapping primvarName 2
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         
         local reimportedBox = getNodeByName nodeName
@@ -332,7 +332,7 @@ struct import_primvar_test
         
         -- Primvar is now invalid... it should no longer import.
         importOptions.SetPrimvarChannelMapping primvarName 2
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_false (polyop.getMapsupport reimportedBox 1)
@@ -360,7 +360,7 @@ struct import_primvar_test
         -- Reimport, make sure the XYZ values are still imported.
         local targetChannel = 2
         importOptions.SetPrimvarChannelMapping primvarName targetChannel
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_point3_equal (point3 1.f 2.f 3.f) (polyop.getMapVert reimportedBox targetChannel 1)
@@ -385,7 +385,7 @@ struct import_primvar_test
         local foo = primvarApi.CreatePrimvar primvarName pySdf.ValueTypeNames.Float2Array pyUsdGeom.Tokens.constant
         foo.Set((pyVt.Vec2fArray (pyGf.Vec2f 1 2)))
         stage.Save()
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapSupport reimportedBox 1) message:"The main UV primvar should have been inferred."
@@ -393,7 +393,7 @@ struct import_primvar_test
         
         -- Test with the option turned off.
         importOptions.ImportUnmappedPrimvars = false
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_false (polyop.getMapSupport reimportedBox 1) message:"The main UV primvar should not have been inferred with the option turned off."
@@ -406,7 +406,7 @@ struct import_primvar_test
         local foo = primvarApi.CreatePrimvar primvarName pySdf.ValueTypeNames.Double2Array pyUsdGeom.Tokens.constant
         foo.Set((pyVt.Vec2dArray (pyGf.Vec2d 3 4)))
         stage.Save()
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapSupport reimportedBox 1) message:"The main UV primvar should have been inferred."
@@ -419,7 +419,7 @@ struct import_primvar_test
         local foo = primvarApi.CreatePrimvar primvarName pySdf.ValueTypeNames.TexCoord2fArray pyUsdGeom.Tokens.constant
         foo.Set((pyVt.Vec2fArray (pyGf.Vec2f 5 6)))
         stage.Save()
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapSupport reimportedBox 1) message:"The main UV primvar should have been inferred."
@@ -434,7 +434,7 @@ struct import_primvar_test
         importOptions.ImportUnmappedPrimvars = true
         -- Explicit mapping for the other texcoord primvar to avoid it being picked up first.
         importOptions.SetPrimvarChannelMapping "zzz" 10
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         assert_true (polyop.getMapSupport reimportedBox 1) message:"The main UV primvar should have been inferred."
@@ -442,7 +442,7 @@ struct import_primvar_test
             
         -- Make sure all the unmapped primvars are imported
         importOptions.ClearMappedPrimvars()
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         reimportedBox = getNodeByName nodeName
         -- Inferred from type as main uv : TexCoord2fArray
@@ -474,7 +474,7 @@ struct import_primvar_test
         local exportPath = output_prefix + "test_channel_info_setup.usda"
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
-        resetMaxFile #noprompt
+        quickReset()
         USDImporter.ImportFile exportPath importOptions:importOptions
         
         local reimportedBox = getNodeByName nodeName

@@ -155,6 +155,18 @@ inline bool selectionsAreEquivalent(const Ufe::Selection& a, const Ufe::Selectio
     return true;
 }
 
+/**
+ * \brief Set a callback function that will be called when errors occur.
+ * @param errorFn Function pointer that will be called when errors occur.
+ */
+UFEUIAPI void SetErrorFunction(const std::function<void(std::string)>& errorFn);
+
+/**
+ * \brief Call the callback function set from "SetErrorFunction" in order to report an error.
+ * @param error Error string to report.
+ */
+void ReportError(const std::string& error);
+
 } // namespace Utils
 } // namespace UfeUi
 

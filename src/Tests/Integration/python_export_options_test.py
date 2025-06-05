@@ -205,6 +205,10 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertTrue(options.GetUseLastResortUSDPreviewSurfaceWriter())
         options.SetUseLastResortUSDPreviewSurfaceWriter(False)
         self.assertFalse(options.GetUseLastResortUSDPreviewSurfaceWriter())
+
+        self.assertFalse(options.GetUseWorldspaceRoot())
+        options.SetUseWorldspaceRoot(True)
+        self.assertTrue(options.GetUseWorldspaceRoot())
         
         # Test setting defaults.
         options.SetDefaults()
@@ -248,6 +252,7 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertFalse(options.GetUseSeparateMaterialLayer())
         self.assertEqual("mtl", options.GetMaterialPrimPath())
         self.assertTrue(options.GetUseLastResortUSDPreviewSurfaceWriter())
+        self.assertFalse(options.GetUseWorldspaceRoot())
         
         # Test copy construction
         options.SetRootPrimPath("/foo")

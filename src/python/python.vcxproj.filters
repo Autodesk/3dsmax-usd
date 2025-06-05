@@ -72,6 +72,9 @@
     <ClCompile Include="wrapPickItems.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="python_pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pythonObjectRegistry.h">
@@ -87,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="wrapReadJobContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="python_pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -27,7 +27,7 @@ struct import_texture_transform_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
 
         thisFileName = getSourceFileName()
         test_python_path = pathConfig.removePathLeaf thisFileName

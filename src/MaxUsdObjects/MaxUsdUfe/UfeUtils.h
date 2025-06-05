@@ -45,12 +45,18 @@ MaxUSDObjectsAPI pxr::UsdPrim ufePathToPrim(const Ufe::Path& path);
 //! Get the UFE path from a USD stage object.
 MaxUSDObjectsAPI Ufe::Path getUsdStageObjectPath(const USDStageObject* object);
 
+//! Get the UFE path of the stage object associated with the given ufe path.
+Ufe::Path getUsdStageObjectPath(const Ufe::Path& path);
+
 //! Get the USD Stage object hosting the item at a path.
 MaxUSDObjectsAPI USDStageObject* getUsdStageObjectFromPath(const Ufe::Path& path);
 
 //! Get the UFE path associated with a USD prim or point instance in a given USDStageObject.
 MaxUSDObjectsAPI Ufe::Path
 getUsdPrimUfePath(USDStageObject* object, const pxr::SdfPath& primPath, int instanceIdx = -1);
+
+//! Get the UFE path associated with a USD prim or point instance.
+MaxUSDObjectsAPI Ufe::Path getUfePath(const pxr::UsdPrim& prim, int instanceIdx = -1);
 
 //! Returns true if the path points to a point instance
 MaxUSDObjectsAPI bool isPointInstance(const Ufe::SceneItem::Ptr& path);

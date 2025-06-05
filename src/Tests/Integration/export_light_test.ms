@@ -38,7 +38,7 @@ struct export_light_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
 
@@ -352,7 +352,7 @@ struct export_light_test
         local rangeEnd = 8
         
         animationRange = interval rangeStart rangeEnd
-        local exportPath = output_prefix + "test_photometric_sphere_light_animationrange_export.usda"
+        local exportPath = output_prefix + "photometric_sphere_light_attributes_animation_export_test.usda"
         exportOptions.TimeMode = #animationRange
         
         USDExporter.ExportFile exportPath exportOptions:exportOptions
@@ -923,7 +923,7 @@ struct export_light_test
             
         -- note: unable to create a default environment map thru scripting
         -- using a pre-configured file to have a proper test environment
-        resetmaxfile #noprompt
+        quickReset()
         loadmaxfile ((getFilenamePath (getSourceFileName())) + "data\\" + "light-sun-envmap.max") useFileUnits:true
         -- sun positioner entity name
         light_name = "MySun"

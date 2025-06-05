@@ -36,7 +36,7 @@ struct import_options_test
     
     function resetMaxFileAndSetupUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
         initialUnits = units.SystemType
         initialScale = units.SystemScale
         units.SystemType = #Centimeters

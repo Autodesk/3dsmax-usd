@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UsdStageToolsRollup</class>
+ <widget class="QWidget" name="UsdStageToolsRollup">
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Tools</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QPushButton" name="ExploreButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Opens USD Explorer to view the stage's prim hierarchy. This button is disabled by default and enabled automatically when the stage object has a valid root layer.</string>
+     </property>
+     <property name="text">
+      <string>USD Explorer</string>
+     </property>
+    </widget>
+   </item>
+    <item>
+    <widget class="QPushButton" name="LayerEditorButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Opens the USD Layer Editor to view the stage's layer stack. This button is disabled by default and enabled automatically when the stage object has a valid root layer.</string>
+     </property>
+     <property name="text">
+      <string>USD Layer Editor</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

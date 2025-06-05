@@ -45,7 +45,7 @@ public:
         size_t operator()(PrimSubsetKey key) const
         {
             std::size_t hash = pxr::SdfPath::Hash {}(key.first);
-            HASH_COMBINE(hash, key.second);
+            MaxUsd::HashCombine(hash, std::hash<int> {}(key.second));
             return hash;
         }
     };

@@ -34,7 +34,7 @@ struct export_usdz_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function test_usdz_exported_stages_as_references = (

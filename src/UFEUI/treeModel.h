@@ -56,6 +56,9 @@ public:
     UFEUIAPI QModelIndex parent(const QModelIndex& index) const override;
     UFEUIAPI int         rowCount(const QModelIndex& parent = QModelIndex()) const override;
     UFEUIAPI int         columnCount(const QModelIndex& parent = QModelIndex()) const override;
+    UFEUIAPI bool        hasChildren(const QModelIndex& parent = QModelIndex()) const override;
+    UFEUIAPI bool        canFetchMore(const QModelIndex& parent) const override;
+    UFEUIAPI void        fetchMore(const QModelIndex& parent) override;
 
     /**
      * \brief Returns the root TreeItem of this model.
@@ -67,9 +70,10 @@ public:
      * \brief Get the model index, in this model, of a given UFE path. If it doesnt exist in the model,
      * return an invalid index.
      * \param path The ufe path to get the index for.
+     * \param forceFetchMore If true, will force the model to fetch more data if the item is not found.
      * \return The index.
      */
-    UFEUIAPI QModelIndex getIndexFromPath(const Ufe::Path& path) const;
+    UFEUIAPI QModelIndex getIndexFromPath(const Ufe::Path& path, bool forceFetchMore = false);
 
     /**
      * \brief Retrieve the TreeItem stored in the data of the given index.
@@ -86,7 +90,7 @@ public:
     UFEUIAPI void update(const Ufe::Path& path);
 
     /**
-     * \brief Builds an emptry TreeModel.
+     * \brief Builds an empty TreeModel.
      * \param columns Definitions of columns that should appear in the tree.
      * we want executed when some data is set on the model.
      * \param parent Parent QT object.
@@ -102,7 +106,7 @@ public:
      * \param typeFilter Type filtering configuration (to include or exclude certain types)
      * \param childFilter Ufe Hierarchy child filter, filters item when traversing the
      * hierarchy. Used by the runtime hierarchy implementation.
-     * \param includeRoot Whether or not the root item should be included in the model.
+     * \param includeRoot Whether the root item should be included in the model.
      * \return The created TreeModel.
      */
     UFEUIAPI void buildTreeFrom(
@@ -123,28 +127,28 @@ public:
         bool useItemList = false;
         // Allowed UFE paths.
         std::unordered_set<Ufe::Path> itemPaths;
-        /// How many items do we still have to insert in the tree, vs what we expect.
-        size_t insertionsRemaining = 0;
     };
 
 private:
     /**
-     * \brief Builds a subtree. Called recursively. Generally speaking, the given item is added,
-     * and buildTree() called on its children.
-     * \param model The tree model to build into
+     * \brief Builds a subtree.
+     * The tree has its elements lazy loaded; meaning that it may be required to call the model's
+     * `fetchMore` to load the missing child elements.
      * \param sceneItem The top level item of the subtree.
      * \param parentItem The parent item.
      * \param includes Items includes config. Can be used to exclude some items from the tree.
      */
-    void buildTree(
-        const Ufe::SceneItem::Ptr&         sceneItem,
-        TreeItem*                          parentItem,
-        ItemIncludes&                      includes,
-        const Ufe::Hierarchy::ChildFilter& childFilter);
+    void
+    buildTree(const Ufe::SceneItem::Ptr& sceneItem, TreeItem* parentItem, ItemIncludes& includes);
 
     TreeItem*                                    _rootItem;
     TreeColumns                                  _columns;
     QHash<size_t, QPair<QModelIndex, TreeItem*>> _treeItemMap;
+    Ufe::Hierarchy::ChildFilter                  _childFilter;
+
+    // During tree building, we keep track of the paths that are part of the search filter
+    bool                          _useSearchItems;
+    std::unordered_set<Ufe::Path> _searchItemsPaths;
 };
 
 } // namespace UfeUi

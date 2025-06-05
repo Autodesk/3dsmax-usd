@@ -280,6 +280,9 @@
     <ClCompile Include="Utilities\HydraUtils.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="maxusd_pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="USDSceneController.h">
@@ -587,6 +590,9 @@
     </ClInclude>
     <ClInclude Include="Utilities\HydraUtils.h">
       <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="maxusd_pch.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

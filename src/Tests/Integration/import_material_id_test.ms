@@ -24,6 +24,7 @@ pyUsdGeom = python.import("pxr.UsdGeom")
 pyGf = python.import("pxr.Gf")
 pyShade = python.import("pxr.UsdShade")
 pyVt = python.import("pxr.Vt")
+pyUsdUtils = python.import("pxr.UsdUtils")
 
 input_prefix = pathConfig.appendPath (getDir #temp) "/IMPORT_MATERIAL_ID_TEST_"
 deleteTestFiles(input_prefix + "*.*")
@@ -36,7 +37,7 @@ struct import_material_id_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function add_pyramid_to_stage &stage addMaterialIdData displayColor = (
@@ -64,19 +65,20 @@ struct import_material_id_test
         )
     ),
     
-    function create_usd_pyramid_file filePath addMaterialIdData color:undefined = (
-        local stage = pyUsd.Stage.CreateNew(filePath)
+    function create_usd_pyramid_stage addMaterialIdData color:undefined = (
+        local stage = pyUsd.Stage.CreateInMemory()
         add_pyramid_to_stage &stage addMaterialIdData color
-        (stage.GetRootLayer()).Save()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
     ),
     
     function test_import_material_id = (
-        -- Populate usd scene file
-        local importPath = input_prefix + "import_material_id_test.usda"
-        create_usd_pyramid_file importPath true
+        -- Populate usd stage
+        local stageId = create_usd_pyramid_stage true
             
-        -- Import file
-        USDImporter.ImportFile importPath
+        -- Import stage
+        USDImporter.ImportFromCache stageId
 
         local prim001 = $prim001
         
@@ -103,11 +105,10 @@ struct import_material_id_test
     ),
     
     function test_import_file_with_no_material_id = (
-        local importPath = input_prefix + "import_file_with_no_material_id_test.usda"
-        -- Populate usd scene file
-        create_usd_pyramid_file importPath false
-        -- Import file
-        USDImporter.ImportFile importPath
+        -- Populate usd stage
+        local stageId = create_usd_pyramid_stage false
+        -- Import stage
+        USDImporter.ImportFromCache stageId
 
         local prim001 = $prim001
         for i = 1 to 5 do (
@@ -121,29 +122,26 @@ struct import_material_id_test
     ),
     
     function test_subset_material_default_color = (
-        local importPath = input_prefix + "subset_material_default_color_test.usda"
         -- displayColor attribute is not authored, fallback material color should be gray : Color(127.5 127.5 127.5)
-        create_usd_pyramid_file importPath true
-        USDImporter.ImportFile importPath
+        local cacheId = create_usd_pyramid_stage true
+        USDImporter.ImportFromCache cacheId
         local prim001 = $prim001
         local mat = prim001.material.materialList[1]
         assert_point3_equal (Point3 127.5 127.5 127.5) (mat.Base_Color as Point3) message:"Incorrect color found on the default material."
         
-        resetMaxFile #noprompt
+        quickReset()
         -- displayColor attribute is now authored, fallback material color be that same color.
         local displayColorValue = (Color 255 0 0)
-        local importPath = input_prefix + "subset_material_default_color_test.usda"
-        create_usd_pyramid_file importPath true color:displayColorValue
-        USDImporter.ImportFile importPath
+        local cacheId = create_usd_pyramid_stage true color:displayColorValue
+        USDImporter.ImportFromCache cacheId
         prim001 = $prim001
         mat = prim001.material.materialList[1]
         assert_point3_equal (mat.Base_Color as Point3) displayColorValue message:"Incorrect color found on the default material."
     ),
 
     function test_import_material_id_from_custom_data = (
-        local importPath = input_prefix + "import_material_id_from_custom_data_test.usda"
         -- displayColor attribute is not authored, fallback material color should be gray : Color(127.5 127.5 127.5)
-        local stage = pyUsd.Stage.CreateNew(importPath)
+        local stage = pyUsd.Stage.CreateInMemory()
         
         add_pyramid_to_stage &stage false undefined
         
@@ -174,11 +172,13 @@ struct import_material_id_test
         
         -- Leave subset 4 with no custom data
         
-        (stage.GetRootLayer()).Save()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         
         -- Validate the expected behavior
         -- Invalid and missing material id in usd should have been assigned an id from 1 to X on import
-        USDImporter.ImportFile importPath
+        USDImporter.ImportFromCache stageId
         local prim001 = $prim001
  
         local matId1 = polyop.getFaceMatID prim001 1
@@ -196,7 +196,7 @@ struct import_material_id_test
     
     function test_subset_material_invalid_face_indice = (
         local importPath = input_prefix + "subset_material_invalid_face_indice_test.usda"
-        local stage = pyUsd.Stage.CreateNew(importPath)
+        local stage = pyUsd.Stage.CreateInMemory()
         
         add_pyramid_to_stage &stage false undefined
         
@@ -210,9 +210,11 @@ struct import_material_id_test
             subset = bindingAPI.CreateMaterialBindSubset subsetName indices
             append subsets subset
         )
-        (stage.GetRootLayer()).Save()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         
-        USDImporter.ImportFile importPath   
+        USDImporter.ImportFromCache stageId
         
         local prim001 = $prim001
         
@@ -225,16 +227,20 @@ struct import_material_id_test
     function test_import_file_with_only_one_mat_id = (
         local importPath = input_prefix + "test_import_file_with_only_one_mat_id_test.usda"
         -- Populate usd scene file
-        local stage = pyUsd.Stage.CreateNew(importPath)
+        local stage = pyUsd.Stage.CreateInMemory()
         
         add_pyramid_to_stage &stage false undefined
         
         local pyramidPrim = stage.GetPrimAtPath(pyramidPrimPath)
         pyramidPrim.SetCustomDataByKey "3dsmax:matId" 12
         
-        -- Import file
-        USDImporter.ImportFile importPath
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
 
+        -- Import stage
+        USDImporter.ImportFromCache stageId
+            
         local prim001 = $prim001
         for i = 1 to 5 do (
             mtlId = polyop.getFaceMatID prim001 i

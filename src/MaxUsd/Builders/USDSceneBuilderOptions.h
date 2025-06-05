@@ -39,6 +39,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 	(translateMaterials) \
 	(translateHidden) \
 	(translateSkin) \
+	(useWorldspaceRoot) \
 	(translateMorpher) \
 	(useUSDVisibility) \
 	(allowNestedGprims) \
@@ -261,6 +262,20 @@ public:
      * \return "true" if morphers modifiers should be translated as USD Blendshapes
      */
     MaxUSDAPI bool GetTranslateMorpher() const;
+
+    /**
+     * \brief Exports the root prims with their worldspace transform instead of local transform.
+     * This feature is useful for exporting specific parts without needing to export the entire hierarchy.
+     * \param useWorldspaceRoot "true" to export the root prims with their worldspace transform
+     */
+    MaxUSDAPI void SetUseWorldspaceRoot(bool useWorldspaceRoot);
+
+    /**
+     * \brief Check if the root prims should be exported with their worldspace transform instead of local transform.
+     * This feature is useful for exporting specific parts without needing to export the entire hierarchy.
+     * \return "true" if the root prims should be exported with their worldspace transform
+     */
+    MaxUSDAPI bool GetUseWorldspaceRoot() const;
 
     /**
      * \brief Sets the shading schema (mode) to use for material export

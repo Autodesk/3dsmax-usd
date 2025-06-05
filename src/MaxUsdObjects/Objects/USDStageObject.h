@@ -19,6 +19,7 @@
 #include <MaxUsdObjects/USDPickingRenderer.h>
 
 #include <RenderDelegate/HdMaxEngine.h>
+#include <RenderDelegate/HdMaxTriMesh.h>
 
 #include <MaxUsd/Interfaces/IUSDStageProvider.h>
 #include <MaxUsd/Utilities/ProgressReporter.h>
@@ -92,7 +93,9 @@ enum ParamMapID
     UsdStageViewportDisplay,
     UsdStageViewportPerformance,
     UsdStageAnimation,
-    UsdStageSelection
+    UsdStageSelection,
+    UsdStageTools,
+    UsdStageMetadata
 };
 
 enum AnimationMode
@@ -264,6 +267,8 @@ public:
         override;
     void TransformStart(TimeValue t) override;
     void TransformFinish(TimeValue t) override;
+    void TransformHoldingFinish(TimeValue t) override;
+    void TransformCancel(TimeValue t) override;
 
     /**
      * \brief Returns the world bounding box of this USD stage.
@@ -465,42 +470,6 @@ public:
     Mesh* GetRenderMesh(TimeValue t, INode* inode, View& view, BOOL& needDelete) override;
 
     /**
-     * \brief Returns the number of render meshes. Typically there is one render mesh per USD render prim.
-     * \return The number of render meshes.
-     */
-    int NumberOfRenderMeshes() override;
-
-    /**
-     * \brief Returns the requested render mesh.
-     * \param t The time at which to get the render mesh.
-     * \param inode The 3dsMax Node
-     * \param view View information, not used currently.
-     * \param needDelete Whether or not the called should delete the mesh, always false in out case.
-     * \param meshNumber The requested mesh's number.
-     * \return The render mesh.
-     */
-    Mesh*
-    GetMultipleRenderMesh(TimeValue t, INode* inode, View& view, BOOL& needDelete, int meshNumber)
-        override;
-
-    /**
-     * \brief Returns the offset transform for the N'th render mesh.
-     * \param t The time at which to get the meshes render offset transform,
-     * \param inode The 3dsMax node.
-     * \param view View information, not used currently.
-     * \param meshNumber The number of the mesh for which we are requesting the transform.
-     * \param meshTM The mesh transform, returned by reference.
-     * \param meshTMValid The validity interval for the transform.
-     */
-    void GetMultipleRenderMeshTM(
-        TimeValue t,
-        INode*    inode,
-        View&     view,
-        int       meshNumber,
-        Matrix3&  meshTM,
-        Interval& meshTMValid) override;
-
-    /**
      * \brief Flag the object for redraw, and trigger redraw.
      * \param completeRedraw optionally, force a complete redraw (calls GetCOREInterface()->ForceCompleteRedraw())
      */
@@ -572,6 +541,11 @@ public:
      * \return Save Save result.
      */
     IOResult Save(ISave* isave) override;
+
+    /**
+     * \brief Set if the stage is being loaded from a 3ds Max load operation
+     */
+    void SetLoadingMaxFile(bool loading);
 
     /**
      * \brief Does a full stage reset on a particular interval.
@@ -801,7 +775,7 @@ public:
      * Whether the stage is currently in create mode.
      * @return True if in create mode.
      */
-    bool IsInCreateMode();
+    bool IsInCreateMode() const;
 
     /**
      * Sets the currently locked layers identifiers on the object. These will be
@@ -830,6 +804,67 @@ public:
 
     // Helper function to check if we are in edit mode currently...
     inline bool IsInEditParams() const { return ip != nullptr; }
+
+    /**
+     * Promotes a USD prim and its descendants to a USDGeomObject, and create a new node
+     * referencing it.
+     * @param primPath The subtree root prim.
+     * @param select Whether to automatically select the node.
+     * @return The newly create geom object node.
+     */
+    INode* PromoteTo3dsMaxObject(const pxr::SdfPath& primPath, bool select);
+    // Mxs interface overload for the above.
+    INode* PromoteTo3dsMaxObject(const wchar_t* primPath, bool select) override;
+
+    /**
+     * Simple struct to represent a subset of the USD Stage currently used as
+     * source for a USDGeomObject.
+     */
+    struct GeomObjectSource
+    {
+        // Subtree root.
+        pxr::SdfPath path;
+        // Either using the render tags currently active in the VP, or an explicit list.
+        bool               useCustomRenderTags = false;
+        pxr::TfTokenVector customRenderTags;
+    };
+
+    /**
+     * Register a USD prim subtree displayed externally from a USDGeomObject
+     * and that should not be displayed by the USDStageObject.
+     * @param objectId ID of the USDGeomObject to register.
+     * @param source The object's source (root Prim and include info).
+     */
+    void RegisterGeomObjectSource(const std::string& objectId, const GeomObjectSource& source);
+
+    /**
+     * Unregister a USD prim tree previously displayed externally from a USDGeomObject
+     * and that should now be displayed by the USDStageObject.
+     * @param objectId ID of the USDGeomObject to unregister.
+     */
+    void UnRegisterGeomObjectSource(const std::string& objectId);
+
+    /**
+     * Updates the overriden render purposes in the USD stage used to hide
+     * prims displayed externally via USDGeomObjects (registered from
+     * RegisterGeomObjectSource()).
+     */
+    void UpdateGeomObjectPurposesLayer();
+
+    /**
+     * Builds a triangular 3dsMax Mesh, from the subtree rooted at "path".
+     * @param path The subtree root to build the mesh from.
+     * @param t The time at which to build the mesh.
+     * @param mesh The output mesh.
+     * @param includeInvisible Whether to include currently invisible prims.
+     * @param includeGeomObjectSrc Whether to include prims used as USDGeomObjects' sources.
+     */
+    void BuildPrimTriMesh(
+        const pxr::SdfPath& path,
+        TimeValue           t,
+        HdMaxTriMesh&       mesh,
+        bool                includeInvisible = false,
+        bool                includeGeomObjectSrc = false);
 
 private:
     class NodeEventCallback : public INodeEventCallback
@@ -867,7 +902,7 @@ private:
      * \param time The time to check.
      * \param renderTags The render tags.
      */
-    void CheckRenderCache(TimeValue time, const pxr::TfTokenVector& renderTags);
+    void CheckFlushRenderCache(TimeValue time, const pxr::TfTokenVector& renderTags);
 
     /**
      * \brief Clears all caches held by the UsdStageObject.
@@ -923,6 +958,14 @@ private:
      * the USD stage object. */
     void AdjustRollupsForSelection();
 
+    /**
+     * Checks if anything needs to be adjusted with regards to the render purposes
+     * setup to hide prims handled by external USDGeomObjects following a change to the
+     * stage.
+     * @param notice USD change notice.
+     */
+    void CheckUpdateGeomObjectPurposes(pxr::UsdNotice::ObjectsChanged const& notice);
+
     /// Paramblock holding the Stage object's data.
     IParamBlock2* pb;
     /// The stage. Should not be used directly, instead use GetUSDStage(), which will load the stage
@@ -947,17 +990,12 @@ private:
     /// MaxUsdPreviewSurface materials converted from USD. Gets populated by HdmaxEngine::Render().
     MaxUsd::MaterialRef usdMaterials;
     bool                buildOfflineRenderMaterial = false;
-    /// Cached offline render data.
-    struct RenderCache
-    {
-        std::vector<std::shared_ptr<Mesh>> meshes;
-        std::vector<Matrix3>               transforms;
-        std::unique_ptr<Mesh>              fullMesh = nullptr;
 
-        // Info on the cached data, only reuse if matching these..
-        TimeValue          time = INT_MAX;
-        pxr::TfTokenVector renderTags;
-        Mtl*               material = nullptr;
+    /// Cached offline render data.
+    class RenderCache
+    {
+    public:
+        HdMaxTriMesh& GetData() { return meshData; }
 
         /**
          * \brief Check if the render cache is valid for the given input.
@@ -970,15 +1008,27 @@ private:
             return this->time == time && this->renderTags == renderTags;
         }
 
-        void SetValidity(TimeValue time, const pxr::TfTokenVector& renderTags, Mtl* material)
+        void SetValidity(TimeValue time, const pxr::TfTokenVector& renderTags)
         {
             this->time = time;
             this->renderTags = renderTags;
-            this->material = material;
         }
+
+        bool IsEmpty() const
+        {
+            const auto mesh = meshData.GetMesh();
+            return !mesh ? true : mesh->getNumFaces() < 1;
+        }
+
+    private:
+        HdMaxTriMesh meshData;
+
+        // Info on the cached data, only reuse if matching these..
+        TimeValue          time = INT_MAX;
+        pxr::TfTokenVector renderTags;
     };
 
-    RenderCache renderCache;
+    std::unique_ptr<RenderCache> renderCache = std::make_unique<RenderCache>();
 
     // Simple struct to hold cached hit testing information.
     struct HitTestCacheData
@@ -998,7 +1048,7 @@ private:
     size_t numVerts = 0;
 
     // Viewport Stage icon
-    SplineShape shapeIcon;
+    TypedSingleRefMaker<SplineShape> shapeIcon = new SplineShape();
 
     // Bounding box cache. The boundingBox cache must be carefully maintained,
     // it should be cleared whenever anything might change the bounding box at a
@@ -1018,6 +1068,8 @@ private:
     /// The payload rules applied by the USD Explorer
     std::string savedPayloadRules;
 
+    /// True if the stage is currently being loaded from a 3ds Max load operation
+    bool isLoadingMaxFile = false;
     /// True if a usd object is currently in create mode, in the command panel.
     bool isInCreateMode = false;
     /// The current sub object level for the object. We need to know if this specific object
@@ -1093,4 +1145,27 @@ private:
     /// when the 3dsmax scenes are reloaded.
     std::vector<std::string> lockedLayers;
     std::vector<std::string> mutedLayers;
+
+    // A registry of USD subtree roots for which the display is handled externally.
+    // When a prim (and its descendants) are promoted to 3dsMax data and represented in
+    // USDGeomObjects external to the USDStageObject, it will be found in this set. The stage object
+    // must be made aware, so that it can adjust its display of the stage. Prims (and generally,
+    // descendants) in this vector will be assigned the "geomObjectSource" purpose.
+    std::unordered_map<std::string, GeomObjectSource> geomObjectSources;
+
+    class UsdNoticePauseGuard
+    {
+    public:
+        UsdNoticePauseGuard(USDStageObject* object)
+            : object(object)
+        {
+            object->pauseUsdNotices = true;
+        }
+        ~UsdNoticePauseGuard() { object->pauseUsdNotices = false; }
+
+    private:
+        USDStageObject* object = nullptr;
+    };
+    // Flag indicating we are currently ignoring usd notices.
+    bool pauseUsdNotices = false;
 };

@@ -813,5 +813,19 @@ void wrapUsdSceneBuilderOptions()
             "Serialize",
             &USDSceneBuilderOptionsWrapper::Serialize,
             pyboost::arg("self"),
-            "Serialize the options to JSON format");
+            "Serialize the options to JSON format")
+        .def(
+            "GetUseWorldspaceRoot",
+            &MaxUsd::USDSceneBuilderOptions::GetUseWorldspaceRoot,
+            (pyboost::arg("self")),
+            "Check if the root prims should be exported with their worldspace transform instead of "
+            "local transform. This feature is useful for exporting specific parts without needing "
+            "to export the entire hierarchy.")
+        .def(
+            "SetUseWorldspaceRoot",
+            &MaxUsd::USDSceneBuilderOptions::SetUseWorldspaceRoot,
+            (pyboost::args("self", "useWorldspaceRoot")),
+            "Exports the root prims with their worldspace transform instead of local transform. "
+            "This feature is useful for exporting specific parts without needing to export the "
+            "entire hierarchy.");
 }

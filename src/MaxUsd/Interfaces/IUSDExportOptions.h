@@ -302,6 +302,7 @@ public:
         fnIdGetUseProgressBar, fnIdSetUseProgressBar,
         fnIdGetUseLastResortUSDPreviewSurfaceWriter, fnIdSetUseLastResortUSDPreviewSurfaceWriter,
         fidSerialize,
+        fnIdGetUseWorldspaceRoot, fnIdSetUseWorldspaceRoot
     };
 
     enum
@@ -358,6 +359,7 @@ public:
         PROP_FNS(fnIdGetMaterialPrimPath, GetMaterialPrimPath, fnIdSetMaterialPrimPath, SetMaterialPrimPath, TYPE_STRING);
         PROP_FNS(fnIdGetUseSeparateMaterialLayer, GetUseSeparateMaterialLayer, fnIdSetUseSeparateMaterialLayer, SetUseSeparateMaterialLayer, TYPE_BOOL);
         PROP_FNS(fnIdGetUseLastResortUSDPreviewSurfaceWriter, GetUseLastResortUSDPreviewSurfaceWriter, fnIdSetUseLastResortUSDPreviewSurfaceWriter, SetUseLastResortUSDPreviewSurfaceWriter, TYPE_BOOL);
+        PROP_FNS(fnIdGetUseWorldspaceRoot, GetUseWorldspaceRoot, fnIdSetUseWorldspaceRoot, SetUseWorldspaceRoot, TYPE_BOOL);
         VFN_0(fnIdReset, SetDefaults);
         VFN_0(fnIdSetChannelPrimvarMappingDefaults, SetChannelPrimvarMappingDefaults);
         VFN_4(fnIdSetChannelPrimvarMapping, SetChannelPrimvarMapping, TYPE_INT, TYPE_VALUE, TYPE_ENUM, TYPE_BOOL);

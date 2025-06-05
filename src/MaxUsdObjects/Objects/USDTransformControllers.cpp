@@ -71,8 +71,7 @@ void USDXformableController::GetValue(TimeValue t, void* val, Interval& valid, G
 
 void USDXformableController::GetClassName(MSTR& className, bool localized) const
 {
-    className
-        = localized ? GetString(IDS_USDXFORMCONTROLLER_CLASS_NAME) : _T("USD Xformable Controller");
+    className = localized ? GetString(IDS_USDXFORMCONTROLLER_CLASS_NAME) : _T("USD Xformable");
 }
 
 RefTargetHandle USDXformableController::Clone(RemapDir& remap)

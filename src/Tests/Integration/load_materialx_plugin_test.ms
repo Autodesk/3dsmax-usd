@@ -21,7 +21,7 @@ struct load_materialx_plugin_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_material_x_plugin_loaded = (

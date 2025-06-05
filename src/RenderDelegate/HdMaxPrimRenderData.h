@@ -47,6 +47,7 @@ struct RenderDelegateAPI HdMaxPrimRenderData
     pxr::SdfPath rPrimPath;
     bool         visible = true;
     bool         renderTagActive = true;
+    pxr::TfToken renderTag;
 
     // Considering UsdGeomSubsets, a prim may have multiple different materials bound
     // to parts of the mesh. Nitrous allows a single material per mesh. Therefor,
@@ -74,6 +75,9 @@ struct RenderDelegateAPI HdMaxPrimRenderData
         pxr::VtVec3iArray indices;
         // Wireframe indices belonging to this subset.
         pxr::VtIntArray wireIndices;
+        // Edge visibility - generally speaking, source poly edges are visible (1), and edges added
+        // from triangulation are invisible (0).
+        pxr::VtVec3iArray edgeVis;
         // Dirty state. Allows us to know what needs to be update in the nitrous representation of
         // the prim (either in it's own render item, or within a consolidated mesh)
         pxr::HdDirtyBits dirtyBits = HdMaxChangeTracker::Clean;

@@ -16,6 +16,8 @@
 #pragma once
 #include "QmaxUsdPythonWidget.h"
 
+#include <BoostPythonWrapper.h>
+
 #include <autodecref.h>
 #include <pybind11/pybind11.h>
 #include <sbkconverter.h>
@@ -27,7 +29,6 @@
 #include <pyside2_qtwidgets_python.h>
 #endif
 
-#include <boost/python.hpp>
 #include <qfileinfo.h>
 #include <string>
 
@@ -47,7 +48,12 @@ public:
     ~QmaxUsdPythonWidgetPrivate()
     {
         if (_pythonWidget) {
-            QMetaObject::invokeMethod(_pythonWidget, "cleanup");
+            if (const auto mo = _pythonWidget->metaObject()) {
+                int idx = mo->indexOfMethod(QMetaObject::normalizedSignature("cleanup()"));
+                if (idx != -1) {
+                    mo->method(idx).invoke(_pythonWidget, Qt::AutoConnection);
+                }
+            }
             _pythonWidget->setParent(nullptr);
         }
         Shiboken::GilState gilState;
@@ -58,19 +64,15 @@ public:
     QPointer<QWidget>    _pythonWidget;
 
 private:
-    // these are needed for the conversion between QWidget pointers and Python
-    // objects
+    // needed for the conversion between QWidget pointers and Python objects
     static PyTypeObject** SbkPySide_QtWidgetsTypes;
-    static SbkConverter** SbkPySide_QtWidgetsTypeConverters;
-
-    static bool initTypes();
+    static bool           initTypes();
 
     QmaxUsdPythonWidget* q_ptr = nullptr;
     Q_DECLARE_PUBLIC(QmaxUsdPythonWidget);
 };
 
 PyTypeObject** QmaxUsdPythonWidgetPrivate::SbkPySide_QtWidgetsTypes = nullptr;
-SbkConverter** QmaxUsdPythonWidgetPrivate::SbkPySide_QtWidgetsTypeConverters = nullptr;
 
 bool QmaxUsdPythonWidgetPrivate::initTypes()
 {
@@ -84,7 +86,6 @@ bool QmaxUsdPythonWidgetPrivate::initTypes()
 
         if (!requiredModule.isNull()) {
             SbkPySide_QtWidgetsTypes = Shiboken::Module::getTypes(requiredModule);
-            SbkPySide_QtWidgetsTypeConverters = Shiboken::Module::getTypeConverters(requiredModule);
         }
     }
     return SbkPySide_QtWidgetsTypes != nullptr;
@@ -175,15 +176,31 @@ QmaxUsdPythonWidget* QmaxUsdPythonWidget::create(
     auto args = pybind11::make_tuple(pySelection, pyCollectionName);
 
     Shiboken::AutoDecRef pValue(PyObject_CallObject(pFunc, args.ptr()));
+
     if (pValue.isNull()) {
         PyErr_Print();
         return nullptr;
     }
 
-    // for some reason we loose a ref with 'pValue' in the conversion below
-    Py_INCREF(pValue.object());
+    return embed(pValue);
+}
 
-    if (Shiboken::Object::isValid(pValue)) {
+QmaxUsdPythonWidget* QmaxUsdPythonWidget::embed(PyObject* pySideWidget, QWidget* parent)
+{
+    if (!Py_IsInitialized()) {
+        Py_Initialize();
+    }
+
+    Shiboken::GilState gilState;
+
+    // Wrapping the PyObject* in a pybind11 object that increases and decreases
+    // the reference automatically
+    auto pySideWidgetObj = pybind11::reinterpret_borrow<pybind11::object>(pySideWidget);
+    if (!pySideWidgetObj || pySideWidgetObj.is_none()) {
+        return nullptr;
+    }
+
+    if (Shiboken::Object::isValid(pySideWidget)) {
 
         auto result = new QmaxUsdPythonWidget();
 
@@ -192,25 +209,24 @@ QmaxUsdPythonWidget* QmaxUsdPythonWidget::create(
 #ifdef USE_PYSIDE_6
             Shiboken::Conversions::pythonToCppPointer(
                 QmaxUsdPythonWidgetPrivate::SbkPySide_QtWidgetsTypes[SBK_QWIDGET_IDX],
-                pValue,
+                pySideWidget,
                 &pythonWidget);
 #else
             Shiboken::Conversions::pythonToCppPointer(
                 reinterpret_cast<SbkObjectType*>(
                     QmaxUsdPythonWidgetPrivate::SbkPySide_QtWidgetsTypes[SBK_QWIDGET_IDX]),
-                pValue,
+                pySideWidget,
                 &pythonWidget);
 #endif
             if (pythonWidget) {
                 auto d = result->d_func();
-#ifdef USE_PYSIDE_6
-                d->_pythonObject.reset(pValue.release());
-#else
-                d->_pythonObject.reset(pValue);
-                pValue.reset(nullptr);
-#endif
+                d->_pythonObject.reset(pySideWidgetObj.release().ptr());
                 d->_pythonWidget = pythonWidget;
                 result->layout()->addWidget(pythonWidget);
+
+                // pass the object name of the embedded widget to the parent
+                // widget.
+                result->setObjectName(pythonWidget->objectName());
                 return result;
             }
         }

@@ -60,7 +60,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
@@ -353,7 +353,7 @@ TEST_F(LightGizmosTest, LightGizmoInstanced)
         instancedGizmos.GetVisibilityGroup());
     auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     auto it
         = renderData.find(pxr::SdfPath("/root/PhotometricLight001/proto_PhotometricLight001_id0"));
 #else

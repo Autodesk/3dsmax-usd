@@ -39,7 +39,7 @@ struct generate_draw_modes_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale
-        resetMaxFile #noprompt
+        quickReset()
         units.SystemType = #inches
         units.SystemScale = 1
     ),

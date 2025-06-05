@@ -22,8 +22,8 @@ goto :ParseArgs
     echo Usage:
     echo   %~nx0 ^<vs_version^> [winsdk_version]
     echo. 
-    echo   vs_version       Visual Studio version ^<2012^|2015^|2017^|2019^|latest^>
-    echo                    latest: Selects the latest available VS 2017 or greater
+    echo   vs_version       Visual Studio version ^<2019^|2022^|latest^>
+    echo                    latest: Selects the latest available VS 2019 or greater
     echo. 
     echo   winsdk_version   ^(optional^) The Windows SDK version to use
     echo                    If unspecified, let Visual Studio configure the default version.
@@ -49,7 +49,7 @@ goto :ParseArgs
 :ParseArgs
 
 set VS_VERSION=%~1
-for %%v in ("" "2017" "2019" "2022" "latest") do (
+for %%v in ("" "2019" "2022" "latest") do (
     if /I "%VS_VERSION%"=="%%~v" goto :Continue
 )
 echo ERROR: vs_version '%VS_VERSION%' is not supported
@@ -63,11 +63,11 @@ if "%VS_VERSION%" == "" (
 
 set WINSDK_VERSION=%~2
 
-REM Additional setup for VS 2017 or greater
+REM Additional setup for VS 2019 or greater
 set "VSWHERE_LATEST_CMD="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -prerelease -latest"
 
 REM Select Visual Studio version
-if "%VS_VERSION%" GEQ "2015" goto :BuildToolsLatest
+if "%VS_VERSION%" GEQ "2019" goto :BuildToolsLatest
 goto :%VS_VERSION%
 
 :BuildToolsLatest
@@ -112,11 +112,6 @@ goto :vswhere_vcvarsall
 :2019
 set VS_VERSION_RANGELO=16.0
 set VS_VERSION_RANGEHI=17.0
-goto :vswhere_vcvarsall
-
-:2017
-set VS_VERSION_RANGELO=15.0
-set VS_VERSION_RANGEHI=16.0
 goto :vswhere_vcvarsall
 
 :vswhere_vcvarsall

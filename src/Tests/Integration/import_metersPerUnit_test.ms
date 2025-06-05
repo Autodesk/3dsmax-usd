@@ -46,7 +46,7 @@ struct import_metersPerUnit_test
         pyUsdGeom.SetStageMetersPerUnit refStage 0.001
         (refStage.GetRootLayer()).Save()
         
-        resetmaxfile #noprompt
+        quickReset()
         
         Box pos:[0,0,0] width:2 length:3 height:1 name:"Box001"
         Box pos:[0.5,1,1] width:1 length:1 height:1 name:"Box002"
@@ -65,7 +65,7 @@ struct import_metersPerUnit_test
         local scaleOp = refXform.AddScaleOp()
         scaleOp.Set (pyGf.Vec3f 1000 1000 1000)
         (stage.GetRootLayer()).Save()
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function setup =
@@ -73,7 +73,7 @@ struct import_metersPerUnit_test
         initialUnits = units.SystemType
         initialScale = units.SystemScale
         
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_millimeter_units  = (
@@ -336,7 +336,7 @@ struct import_metersPerUnit_test
         pyUsdGeom.SetStageMetersPerUnit stage 100
         (stage.GetRootLayer()).Save()
 
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Kilometers
         units.SystemScale = 1
         USDImporter.ImportFile stageFileName
@@ -351,7 +351,7 @@ struct import_metersPerUnit_test
         assert_point3_equal [0.15,-0.0353553,0.388909] $Box004.vertices[7].pos
         assert_point3_equal [0.25,-0.0353553,0.388909] $Box004.vertices[8].pos
 
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Meters
         units.SystemScale = 2
         USDImporter.ImportFile stageFileName
@@ -386,7 +386,7 @@ struct import_metersPerUnit_test
         USDExporter.ExportFile stageFileName exportOptions:exportOptions
 
         -- Import in a scene in centimeters.
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Centimeters
         units.SystemScale = 1
         USDImporter.ImportFile stageFileName
@@ -415,7 +415,7 @@ struct import_metersPerUnit_test
         assert_point3_equal [1050,50,100] box2Import.vertices[8].pos
         
         -- Import in a scene in meters.
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Meters
         units.SystemScale = 1
         USDImporter.ImportFile stageFileName

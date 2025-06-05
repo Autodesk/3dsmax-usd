@@ -15,6 +15,10 @@
 //
 #include "MaxUsdContextOps.h"
 
+#include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
+
+#include <MaxUsd.h>
+
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/ufe/UsdSceneItem.h>
 
@@ -22,11 +26,11 @@
 #include <ufe/observableSelection.h>
 #include <ufe/undoableCommand.h>
 
-#include <MaxUsd.h>
 #include <vector>
 
 // Using QT to access the clipboard.
 #include "MaxUsdObject3d.h"
+#include "StageObjectMap.h"
 
 #include <QtGui/QClipboard>
 #include <QtWidgets/QApplication>
@@ -39,6 +43,9 @@ static constexpr char USDCopyPrimPathItem[] = "Copy Prim Path";
 static constexpr char USDCopyPrimPathLabel[] = "Copy Prim Path";
 static constexpr char USDSetAsDefaultPrim[] = "Set as Default Prim";
 static constexpr char USDClearDefaultPrim[] = "Clear Default Prim";
+
+static constexpr char PromoteTo3dsMaxObjectItem[] = "Promote to 3ds Max Object";
+static constexpr char PromoteTo3dsMaxObjectLabel[] = "Promote to 3ds Max Object";
 
 MaxUsdContextOps::MaxUsdContextOps(const UsdUfe::UsdSceneItem::Ptr& item)
     : UsdUfe::UsdContextOps(item)
@@ -90,8 +97,12 @@ Ufe::ContextOps::Items MaxUsdContextOps::getItems(const ItemPath& itemPath) cons
 
     // only add copy prim path to the root menu context option
     if (itemPath.empty()) {
-        // 3dsMax specific context op : copy prim path.
+        // 3dsMax specific context ops :
         items.insert(items.begin(), { USDCopyPrimPathItem, USDCopyPrimPathLabel });
+        items.insert(items.begin(), Ufe::ContextItem::kSeparator);
+        if (prim().IsA<pxr::UsdGeomImageable>()) {
+            items.insert(items.begin(), { PromoteTo3dsMaxObjectItem, PromoteTo3dsMaxObjectLabel });
+        }
     }
 
     return items;
@@ -102,6 +113,15 @@ Ufe::UndoableCommand::Ptr MaxUsdContextOps::doOpCmd(const ItemPath& itemPath)
     if (itemPath[0] == USDCopyPrimPathItem) {
         // Adding the prim path to the clipboard is not an undoable command, just do it right away.
         QApplication::clipboard()->setText(QString::fromStdString(prim().GetPath().GetString()));
+        return nullptr;
+    }
+
+    if (itemPath[0] == PromoteTo3dsMaxObjectItem) {
+        const auto objectPath = getUsdStageObjectPath(_item->path());
+        const auto usdStageObject = StageObjectMap::GetInstance()->Get(objectPath);
+        if (usdStageObject) {
+            usdStageObject->PromoteTo3dsMaxObject(prim().GetPath(), true /*auto select*/);
+        }
         return nullptr;
     }
 

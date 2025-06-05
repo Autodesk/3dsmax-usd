@@ -33,7 +33,7 @@ struct io_callback_logging_test
     function setup =
     (
         -- Basic setup
-        resetmaxfile #noprompt
+        quickReset()
         
         -- Populate basic 3ds Max scene with a simple sphere
         Sphere()

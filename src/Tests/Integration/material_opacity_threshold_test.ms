@@ -38,7 +38,7 @@ struct material_opacity_threshold_test
     (
         exportOptions.FileFormat = #ascii
         exportOptions.Materials = true
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     -- This function validates that opacity threshold value is saved at export
@@ -60,7 +60,7 @@ struct material_opacity_threshold_test
         -- Export file
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
-        resetMaxFile #noprompt 
+        quickReset() 
 
         -- Import file
         USDImporter.ImportFile exportPath importOptions:importOptions

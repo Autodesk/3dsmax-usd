@@ -201,9 +201,9 @@ bool MaxUsdShapeWriter::Write(
             TF_WARN(
                 InconsistentSplineTypesAndOrWarps,
                 "Inconsistent wraps and/or types cannot be represented under a single BasisCurves "
-                "prim. Multiple BasisCurves prims will created under a parent Xform prim, in order "
-                "to accurately represent all combinations of type+wrap present in the exported "
-                "SplineShape.");
+                "prim. Multiple BasisCurves prims will be created under a parent Xform prim, in "
+                "order to accurately represent all combinations of type+wrap present in "
+                "the exported SplineShape.");
 
             SplineShape* splineShape = dynamic_cast<SplineShape*>(
                 sourceNode->EvalWorldState(timeConfig.GetStartTime()).obj);
@@ -379,17 +379,18 @@ bool MaxUsdShapeWriter::Write(
         if (numSplines > 0) {
             // special case of inconsistent basis and/or wrap data on the SplineShape
             if (dataInconsistency) {
-                auto processShapes = [](const auto&      shapes,
-                                        auto&            prim,
-                                        auto             processShapeFunc,
-                                        pxr::UsdTimeCode usdTimeCode) {
+                auto processShapes = [](const auto&         shapes,
+                                        auto&               curve,
+                                        auto                processShapeFunc,
+                                        pxr::UsdTimeCode    usdTimeCode,
+                                        pxr::UsdGeomXformOp transformOp) {
                     if (shapes.empty())
                         return;
 
                     pxr::VtIntArray   vertexCounts;
                     pxr::VtVec3fArray points;
-                    const auto        vertexCountsAttr = prim.CreateCurveVertexCountsAttr();
-                    const auto        pointsAttr = prim.CreatePointsAttr();
+                    const auto        vertexCountsAttr = curve.CreateCurveVertexCountsAttr();
+                    const auto        pointsAttr = curve.CreatePointsAttr();
 
                     for (const auto& shape : shapes) {
                         processShapeFunc(shape, vertexCounts, points);
@@ -397,13 +398,77 @@ bool MaxUsdShapeWriter::Write(
 
                     vertexCountsAttr.Set(vertexCounts, usdTimeCode);
                     pointsAttr.Set(points, usdTimeCode);
+
+                    if (transformOp
+                        && !curve.GetPrim().GetAttribute(UsdGeomXformOp::GetOpName(
+                            UsdGeomXformOp::TypeTransform, TfToken(), false))) {
+                        UsdGeomXformOp opForPrim = curve.AddXformOp(
+                            pxr::UsdGeomXformOp::TypeTransform,
+                            pxr::UsdGeomXformOp::PrecisionDouble,
+                            TfToken(),
+                            false);
+                        opForPrim.Set(transformOp.GetOpTransform(usdTimeCode));
+                    }
                 };
 
-                processShapes(openLinearShapes, openLinearPrim, processLinearShape, usdTimeCode);
+                // One of these prim categories may have a transform OP if there is an object offset
+                // (the USDSceneBuilder sets up the object offset before the prim writer's write is
+                // called). We will copy it over to the other prim categories.
+                UsdGeomXformOp xformOpFromInconsistantCase;
+#if PXR_VERSION >= 2311
+                if (auto op = openLinearPrim.GetTransformOp()) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = closedLinearPrim.GetTransformOp()) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = openCubicPrim.GetTransformOp()) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = closedCubicPrim.GetTransformOp()) {
+                    xformOpFromInconsistantCase = op;
+                }
+#else
+                auto getTransformOpAttr = [](pxr::UsdGeomBasisCurves curve) {
+                    TfToken const& xformOpAttrName = UsdGeomXformOp::GetOpName(
+                        UsdGeomXformOp::TypeTransform, TfToken(), false);
+                    UsdAttribute xformOpAttr = curve.GetPrim().GetAttribute(xformOpAttrName);
+                    return UsdGeomXformOp(xformOpAttr);
+                };
+
+                if (auto op = getTransformOpAttr(openLinearPrim)) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = getTransformOpAttr(closedLinearPrim)) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = getTransformOpAttr(openCubicPrim)) {
+                    xformOpFromInconsistantCase = op;
+                } else if (auto op = getTransformOpAttr(closedCubicPrim)) {
+                    xformOpFromInconsistantCase = op;
+                }
+#endif
+
                 processShapes(
-                    closedLinearShapes, closedLinearPrim, processLinearShape, usdTimeCode);
-                processShapes(openCubicShapes, openCubicPrim, processCubicShape, usdTimeCode);
-                processShapes(closedCubicShapes, closedCubicPrim, processCubicShape, usdTimeCode);
+                    openLinearShapes,
+                    openLinearPrim,
+                    processLinearShape,
+                    usdTimeCode,
+                    xformOpFromInconsistantCase);
+                processShapes(
+                    closedLinearShapes,
+                    closedLinearPrim,
+                    processLinearShape,
+                    usdTimeCode,
+                    xformOpFromInconsistantCase);
+                processShapes(
+                    openCubicShapes,
+                    openCubicPrim,
+                    processCubicShape,
+                    usdTimeCode,
+                    xformOpFromInconsistantCase);
+                processShapes(
+                    closedCubicShapes,
+                    closedCubicPrim,
+                    processCubicShape,
+                    usdTimeCode,
+                    xformOpFromInconsistantCase);
+
             } else {
                 pxr::VtIntArray   vertexCounts;
                 pxr::VtVec3fArray points;

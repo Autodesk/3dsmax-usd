@@ -44,6 +44,7 @@ UsdExportAdvancedRollup::UsdExportAdvancedRollup(
     ui->LogFilePathLineEdit->setToolTip(logPath);
 
     ui->AllowNestedGprimsCheckBox->setChecked(buildOptions.GetAllowNestedGprims());
+    ui->WorldSpaceRootsCheckBox->setChecked(buildOptions.GetUseWorldspaceRoot());
 
     // filter tootips for the following ui elements
     auto tooltipFilterFunction = [this](QObject* o) { QToolTip::hideText(); };
@@ -104,4 +105,9 @@ void UsdExportAdvancedRollup::on_LogFilePathToolButton_clicked()
 void UsdExportAdvancedRollup::on_AllowNestedGprimsCheckBox_stateChanged(int state)
 {
     buildOptions.SetAllowNestedGprims(state == Qt::Checked);
+}
+
+void UsdExportAdvancedRollup::on_WorldSpaceRootsCheckBox_stateChanged(int state)
+{
+    buildOptions.SetUseWorldspaceRoot(state == Qt::Checked);
 }
