@@ -19,13 +19,13 @@ The plugin comes with a complete API to allow extending the default import and e
 - MaterialX Material
 
 # Additional Information
-- [Building](#doc/build.md)
+- [Building](doc/build.md)
 - [Coding Standards](doc/CodingGuidelines.md)
-- [Contributing](#doc/CONTRIBUTING.md)
+- [Contributing](doc/CONTRIBUTING.md)
 - [Developer Documentation](#developer-documentation)
 - [Security](#security)
 - [Supported Versions](#versions)
-- [Changelog] (#doc/changelog.md)
+- [Changelog](doc/changelog.md)
 
 
 
