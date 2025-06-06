@@ -44,7 +44,7 @@ TEST(ViewportInstancing, SceneGraphInstances)
     auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
     // Box001 and Box003 share the same prototype.
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto box1Path = pxr::SdfPath("/scene_graph_instances/Box001/proto_Box001_id0");
 #else
     const auto box1Path = pxr::SdfPath("/scene_graph_instances/Box001.proto_Box001_id0");
@@ -66,7 +66,7 @@ TEST(ViewportInstancing, SceneGraphInstances)
 
     // Box002 and Box004 share the same prototype.
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto box2Path = pxr::SdfPath("/scene_graph_instances/Box002/proto_Box001_id0");
 #else
     const auto box2Path = pxr::SdfPath("/scene_graph_instances/Box002.proto_Box001_id0");
@@ -87,6 +87,52 @@ TEST(ViewportInstancing, SceneGraphInstances)
     EXPECT_TRUE(expectedTransformBox004.Equals(transforms2[1]));
 }
 
+TEST(ViewportInstancing, SceneGraphCurveInstances)
+{
+    auto       testDataPath = GetTestDataPath();
+    const auto filePath = testDataPath.append("curve_instanced.usda");
+    const auto stage = pxr::UsdStage::Open(MaxUsd::MaxStringToUsdString(filePath.c_str()));
+
+    HdMaxEngine             testEngine;
+    MockRenderItemContainer renderItems;
+
+    TestRender(stage, testEngine, renderItems, 0);
+
+    // File contains a curve, instanced 2 times.
+    ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
+    ASSERT_EQ(
+        MaxSDK::Graphics::RenderItemVisibilityGroup::RenderItemVisible_Shaded,
+        renderItems.GetRenderItem(0).GetVisibilityGroup());
+
+    auto renderData = testEngine.GetRenderDelegate()->GetBasisCurvesRenderDataIdMap();
+
+    // Line001, Line002 and Line003 share the same prototype.
+#ifdef IS_MAX_BETA
+    const auto line1Path = pxr::SdfPath("/root/Line001/proto_Line001_id0");
+#else
+    const auto line1Path = pxr::SdfPath("/root/Line001.proto_Line001_id0");
+#endif
+
+    auto it1 = renderData.find(line1Path);
+    ASSERT_TRUE(it1 != renderData.end());
+    auto& prototype1RenderData
+        = testEngine.GetRenderDelegate()->GetBasisCurvesRenderData(it1->second);
+    auto transforms1 = prototype1RenderData.instancer->GetTransforms();
+    EXPECT_EQ(3, transforms1.size());
+    const auto expectedTransformLine001 = MaxUsd::ToMaxMatrix3(
+        pxr::UsdGeomImageable(stage->GetPrimAtPath(pxr::SdfPath("/root/Line001")))
+            .ComputeLocalToWorldTransform(0));
+    EXPECT_TRUE(expectedTransformLine001.Equals(transforms1[0]));
+    const auto expectedTransformLine002 = MaxUsd::ToMaxMatrix3(
+        pxr::UsdGeomImageable(stage->GetPrimAtPath(pxr::SdfPath("/root/Line002")))
+            .ComputeLocalToWorldTransform(0));
+    EXPECT_TRUE(expectedTransformLine002.Equals(transforms1[1]));
+    const auto expectedTransformLine003 = MaxUsd::ToMaxMatrix3(
+        pxr::UsdGeomImageable(stage->GetPrimAtPath(pxr::SdfPath("/root/Line003")))
+            .ComputeLocalToWorldTransform(0));
+    EXPECT_TRUE(expectedTransformLine003.Equals(transforms1[2]));
+}
+
 TEST(ViewportInstancing, SceneGraphInstancesWithSubsets)
 {
     auto       testDataPath = GetTestDataPath();
@@ -104,7 +150,7 @@ TEST(ViewportInstancing, SceneGraphInstancesWithSubsets)
 
     auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto box1Path
         = pxr::SdfPath("/instances_with_material_bound_subsets/Box001/proto_Box001_id0");
 #else
@@ -152,7 +198,7 @@ TEST(ViewportInstancing, PointInstances)
 
     // First prototype, 1 instance.
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto cube0Path = pxr::SdfPath("/Instancer/proto0_cube_id0");
 #else
     const auto cube0Path = pxr::SdfPath("/Instancer.proto0_cube_id0");
@@ -168,7 +214,7 @@ TEST(ViewportInstancing, PointInstances)
 
     // Second prototype, 2 instances.
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto cube1Path = pxr::SdfPath("/Instancer/proto1_cube_id0");
 #else
     const auto cube1Path = pxr::SdfPath("/Instancer.proto1_cube_id0");
@@ -222,7 +268,7 @@ TEST(ViewportInstancing, InstancesAnimatedTransform)
     auto renderData = testEngine.GetRenderDelegate()->GetMeshRenderDataIdMap();
     // Box001 and Box002 share the same prototype.
 
-#ifdef IS_MAX_BETA
+#ifdef IS_MAX2026_OR_GREATER
     const auto box1Path = pxr::SdfPath("/scene_graph_instances_animated/Box001/proto_Box001_id0");
 #else
     const auto box1Path = pxr::SdfPath("/scene_graph_instances_animated/Box001.proto_Box001_id0");

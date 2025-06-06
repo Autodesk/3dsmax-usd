@@ -45,7 +45,7 @@
       <PreprocessorDefinitions>_USRDLL;QT_NO_SIGNALS_SLOTS_KEYWORDS;USDCORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(GoogleTestInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <ForcedIncludeFiles>$(ProjectDir)/usd_system_tests_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>systemtests_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
@@ -81,6 +81,8 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>systemtests_pch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">
@@ -90,6 +92,8 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     </Link>
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>systemtests_pch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -97,10 +101,14 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClCompile Include="MaxScriptInterface.cpp" />
     <ClCompile Include="MaxUsdObjects.Camera.test.cpp" />
     <ClCompile Include="RenderDelegate.LightGizmos.cpp" />
+    <ClCompile Include="systemtests_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="TestGUP.cpp" />
     <ClCompile Include="USDCore.max.test.cpp" />
     <ClCompile Include="MaxIntegrationTestListener.cpp" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="systemtests_pch.h" />
     <ClInclude Include="TestGUP.h" />
     <ClInclude Include="TestHelpers.h" />
     <ClInclude Include="MaxIntegrationTestListener.h" />

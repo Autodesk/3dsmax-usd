@@ -29,10 +29,7 @@ const TCHAR* USDFloatControllerClassDesc::ClassName()
     return GetString(IDS_USDFLOATCONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDFloatControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDFloatController");
-}
+const TCHAR* USDFloatControllerClassDesc::NonLocalizedClassName() { return _T("USD Float"); }
 
 SClass_ID USDFloatControllerClassDesc::SuperClassID() { return CTRL_FLOAT_CLASS_ID; }
 
@@ -53,10 +50,7 @@ const TCHAR* USDPoint3ControllerClassDesc::ClassName()
     return GetString(IDS_USDPOINT3CONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDPoint3ControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDPoint3Controller");
-}
+const TCHAR* USDPoint3ControllerClassDesc::NonLocalizedClassName() { return _T("USD Point3"); }
 
 SClass_ID USDPoint3ControllerClassDesc::SuperClassID() { return CTRL_POINT3_CLASS_ID; }
 
@@ -77,10 +71,7 @@ const TCHAR* USDPoint4ControllerClassDesc::ClassName()
     return GetString(IDS_USDPOINT4CONTROLLER_CLASS_NAME);
 }
 
-const TCHAR* USDPoint4ControllerClassDesc::NonLocalizedClassName()
-{
-    return _T("USDPoint4Controller");
-}
+const TCHAR* USDPoint4ControllerClassDesc::NonLocalizedClassName() { return _T("USD Point4"); }
 
 SClass_ID USDPoint4ControllerClassDesc::SuperClassID() { return CTRL_POINT4_CLASS_ID; }
 

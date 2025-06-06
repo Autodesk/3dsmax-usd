@@ -1048,11 +1048,17 @@ ResolveToken(const std::string& str, const std::string& token, const std::string
     return result;
 }
 
-INodeTab GetReferencingNodes(Object* object)
+INode* GetFirstReferencingNode(Object* object)
 {
     ULONG handle = 0;
     object->NotifyDependents(FOREVER, (PartID)&handle, REFMSG_GET_NODE_HANDLE);
     INode* firstNode = GetCOREInterface()->GetINodeByHandle(handle);
+    return firstNode;
+}
+
+INodeTab GetReferencingNodes(Object* object)
+{
+    INode* firstNode = GetFirstReferencingNode(object);
     if (!firstNode) {
         return {};
     }

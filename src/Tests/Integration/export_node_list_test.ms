@@ -35,7 +35,7 @@ struct export_node_list_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/foo"
         exportOptions.AllowNestedGprims = true

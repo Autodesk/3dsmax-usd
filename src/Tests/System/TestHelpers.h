@@ -23,6 +23,8 @@
 #include <Graphics/RenderItemHandleDecorator.h>
 #include <Graphics/SimpleRenderGeometry.h>
 
+#include <gtest/gtest.h>
+
 class HdMaxEngine;
 
 const Class_ID STAGE_CLASS_ID(0x24ce4724, 0x14d2486b);
@@ -157,3 +159,8 @@ Box3 GetBoundingBox(
     Matrix3*                                  tm = nullptr);
 
 bool BoundingBoxesAreEquivalent(const Box3& box1, const Box3& box2);
+
+// Faster alternative to GetCoreInterface()->FileReset(...)
+// Deletes all nodes and flushes the undo cache. Does not reset all the other things
+// that FileReset() resets.
+void QuickReset();

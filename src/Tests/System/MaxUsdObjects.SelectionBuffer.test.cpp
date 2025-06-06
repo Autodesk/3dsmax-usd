@@ -59,8 +59,7 @@ void TestSelectionBufferState(
 TEST(SelectionBuffer, SelectDisplay)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_geometry.usda");
@@ -163,13 +162,119 @@ TEST(SelectionBuffer, SelectDisplay)
     TestSelectionBufferState(renderItems.GetRenderItem(0), false);
 }
 
+// Testing basic selection display, looking at the selection buffer for curves.
+TEST(SelectionBuffer, SelectDisplayCurves)
+{
+    // Reset scene after test.
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
+
+    auto       testDataPath = GetTestDataPath();
+    const auto filePath = testDataPath.append("3pointlinenonperiodic.usda");
+    const auto stageObject = static_cast<USDStageObject*>(
+        GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, STAGE_CLASS_ID));
+    const auto node = GetCOREInterface()->CreateObjectNode(stageObject);
+    stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
+
+    HdMaxEngine             testEngine;
+    MockRenderItemContainer renderItems;
+
+    pxr::HdChangeTracker dummyTracker;
+    auto&                displaySettings = testEngine.GetRenderDelegate()->GetDisplaySettings();
+    displaySettings.SetDisplayMode(HdMaxDisplaySettings::WireColor, dummyTracker);
+
+    // The scene is composed of a single basis curve.
+
+    // Render, nothing is selected.
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
+    TestSelectionBufferState(renderItems.GetRenderItem(0), false);
+
+    // Select the curve.
+    const auto     globalUfeSel = Ufe::GlobalSelection::get();
+    Ufe::Selection newSelection;
+    auto           ufeItem = Ufe::Hierarchy::createItem(
+        MaxUsd::ufe::getUsdPrimUfePath(stageObject, pxr::SdfPath("/root/Line001")));
+    newSelection.append(ufeItem);
+    globalUfeSel->replaceWith(newSelection);
+
+    // Render, the curve is now selected - but we are not in the prim sub object mode, so
+    // the selection should not be displayed.
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    TestSelectionBufferState(renderItems.GetRenderItem(0), false);
+
+    // Switch to Prim sub-object mode -> now showing selection.
+    GetCOREInterface()->SelectNode(node);
+    GetCOREInterface()->SetCommandPanelTaskMode(TASK_MODE_MODIFY);
+    GetCOREInterface()->SetSubObjectLevel(1);
+
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    TestSelectionBufferState(renderItems.GetRenderItem(0), true);
+
+    // Switch back to object level -> no longer display selection.
+    GetCOREInterface()->SetSubObjectLevel(0);
+
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    TestSelectionBufferState(renderItems.GetRenderItem(0), false);
+
+    // Toggle back to sub-object -> display selection again...
+    GetCOREInterface()->SetSubObjectLevel(1);
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    TestSelectionBufferState(renderItems.GetRenderItem(0), true);
+
+    // Clear the UFE selection -> selection is cleared in the buffer.
+    globalUfeSel->replaceWith({});
+
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull });
+    TestSelectionBufferState(renderItems.GetRenderItem(0), false);
+}
+
 // Testing selection within a consolidated mesh (selected prims will have corresponding parts of the
 // selection buffer filled with ones).
 TEST(SelectionBuffer, ConsolidatedMeshSelection)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_consolidated_geometry.usda");
@@ -271,8 +376,7 @@ TEST(SelectionBuffer, ConsolidatedMeshSelection)
 TEST(SelectionBuffer, ConsolidatedInstancedGeometry)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_instanced_geometry.usda");
@@ -377,8 +481,7 @@ TEST(SelectionBuffer, ConsolidatedInstancedGeometry)
 TEST(SelectionBuffer, InstancedGeometry)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_instanced_geometry.usda");
@@ -437,7 +540,7 @@ TEST(SelectionBuffer, InstancedGeometry)
     ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
 
     // Selecting another box doesn't add a new render item, both selected boxes will display
-    // their selection from the same same instance render item.
+    // their selection from the same instance render item.
     const auto ufeItemBBox003 = Ufe::Hierarchy::createItem(
         MaxUsd::ufe::getUsdPrimUfePath(stageObject, pxr::SdfPath("/root/Box003")));
 
@@ -471,12 +574,109 @@ TEST(SelectionBuffer, InstancedGeometry)
     ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
 }
 
+// Testing selection of basis curves instances.
+TEST(SelectionBuffer, InstancedGeometryCurves)
+{
+    // Reset scene after test.
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
+
+    auto       testDataPath = GetTestDataPath();
+    const auto filePath = testDataPath.append("curve_instanced.usda");
+    const auto stageObject = static_cast<USDStageObject*>(
+        GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, STAGE_CLASS_ID));
+    const auto node = GetCOREInterface()->CreateObjectNode(stageObject);
+    stageObject->SetRootLayer(filePath.generic_wstring().c_str(), L"/");
+
+    HdMaxEngine             testEngine;
+    MockRenderItemContainer renderItems;
+
+    // The scene is composed a 3 instanced curves
+
+    // Disable consolidation explicitly to make sure instancing is used.
+    HdMaxConsolidator::Config consolidationConfig;
+    consolidationConfig.strategy = HdMaxConsolidator::Strategy::Off;
+
+    // Render, nothing is selected.
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull },
+        consolidationConfig);
+
+    // Single instanced render item carrying all 3 instances.
+    ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
+
+    // Select the 2nd curve and switch to prim sub-object.
+    const auto&    globalUfeSel = Ufe::GlobalSelection::get();
+    Ufe::Selection newSelection;
+    const auto     ufeItemBBox002 = Ufe::Hierarchy::createItem(
+        MaxUsd::ufe::getUsdPrimUfePath(stageObject, pxr::SdfPath("/root/Line002")));
+    newSelection.append(ufeItemBBox002);
+    globalUfeSel->replaceWith(newSelection);
+    stageObject->UpdatePrimSelectionDisplay();
+    GetCOREInterface()->SelectNode(node);
+    GetCOREInterface()->SetCommandPanelTaskMode(TASK_MODE_MODIFY);
+    GetCOREInterface()->SetSubObjectLevel(1);
+
+    // Render now with an updated selection
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull },
+        consolidationConfig);
+
+    // Instance selection display is implemented using a different instance render item. So we now
+    // expect 2 items.
+    ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
+
+    // Selecting another curve doesn't add a new render item, both selected curves will display
+    // their selection from the same instance render item.
+    const auto ufeItemLine003 = Ufe::Hierarchy::createItem(
+        MaxUsd::ufe::getUsdPrimUfePath(stageObject, pxr::SdfPath("/root/Line003")));
+
+    newSelection.append(ufeItemLine003);
+    globalUfeSel->replaceWith(newSelection);
+
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull },
+        consolidationConfig);
+
+    ASSERT_EQ(2, renderItems.GetNumberOfRenderItems());
+
+    // Clear the UFE selection -> back to a single instancing render item.
+    globalUfeSel->replaceWith({});
+    stageObject->UpdatePrimSelectionDisplay();
+    TestRender(
+        stageObject->GetUSDStage(),
+        *(stageObject->GetHydraEngine()),
+        renderItems,
+        0,
+        nullptr,
+        { pxr::HdReprTokens->smoothHull },
+        consolidationConfig);
+
+    ASSERT_EQ(1, renderItems.GetNumberOfRenderItems());
+}
+
 // Testing that selecting a parent prim displays children as selected.
 TEST(SelectionBuffer, SelectHierarchy)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_hierarchy.usda");
@@ -588,8 +788,7 @@ TEST(SelectionBuffer, SelectHierarchy)
 TEST(SelectionBuffer, SelectedPrimAddRemove)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_hierarchy.usda");
@@ -687,8 +886,7 @@ TEST(SelectionBuffer, SelectedPrimAddRemove)
 TEST(SelectionBuffer, InstancesIndexChange)
 {
     // Reset scene after test.
-    const auto resetGuard
-        = MaxUsd::MakeScopeGuard([]() {}, []() { GetCOREInterface()->FileReset(TRUE); });
+    const auto resetGuard = MaxUsd::MakeScopeGuard([]() {}, []() { QuickReset(); });
 
     auto       testDataPath = GetTestDataPath();
     const auto filePath = testDataPath.append("selection_instanced_geometry.usda");
@@ -763,9 +961,8 @@ TEST(SelectionBuffer, InstancesIndexChange)
     auto selData = reinterpret_cast<Point3*>(selBuffer.Lock(0, 0, MaxSDK::Graphics::ReadAcess));
 
     // First 24 verts are those of the first box, selected
-    EXPECT_TRUE(std::all_of(selData, selData + 24, [](const Point3& p) {
-        return p.Equals(Point3 { 1.f, 1.f, 1.f });
-    }));
+    EXPECT_TRUE(std::all_of(
+        selData, selData + 24, [](const Point3& p) { return p.Equals(Point3 { 1.f, 1.f, 1.f }); }));
     // The next 24 verts are those of the second box, unselected
     EXPECT_TRUE(std::all_of(
         selData + 24, selData + 48, [](const Point3& p) { return p.Equals(Point3 {}); }));

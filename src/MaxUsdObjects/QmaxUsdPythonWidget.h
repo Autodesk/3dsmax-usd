@@ -39,6 +39,16 @@ public:
         // TODO: passing additional parameters
         std::set<std::string>& handledAttributeNames);
 
+    /* Embeds a given PySide widget into a QmaxUsdPythonWidget. The PySide
+     * widget needs to be a PySide QWidget or a subclass of QWidget. The widget
+     * will be added to the layout of the resulting widget and the objectName of
+     * the PySide widget will be assigned to the parent widget.
+     * \param pySideWidget PySide widget to embed.
+     * \param parent optional parent widget.
+     * \return A new QmaxUsdPythonWidget, if the given pysideWidget was valid
+     *         and could be unwrapped, a nullptr otherwise. */
+    static QmaxUsdPythonWidget* embed(PyObject* pySideWidget, QWidget* parent = nullptr);
+
 protected:
     QmaxUsdPythonWidget(QWidget* parent = nullptr);
 

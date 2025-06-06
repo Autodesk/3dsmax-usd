@@ -33,7 +33,7 @@ struct export_animation_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_animation_metadata_export = (

@@ -21,6 +21,7 @@
 #include "HdMaxMaterial.h"
 #include "HdMaxMesh.h"
 #include "HdMaxRenderPass.h"
+#include "MaxUsd/MaxTokens.h"
 
 #include <pxr/imaging/hd/extComputation.h>
 
@@ -127,15 +128,31 @@ std::vector<HdMaxMeshRenderData>& HdMaxRenderDelegate::GetAllMeshRenderData()
     return meshRenderDataVector;
 }
 
-void HdMaxRenderDelegate::GetVisibleMeshRenderData(
-    const TfTokenVector&               renderTags,
-    std::vector<HdMaxMeshRenderData*>& data)
+void HdMaxRenderDelegate::GetMeshRenderData(
+    std::vector<HdMaxMeshRenderData*>& data,
+    bool                               includeInvisible,
+    bool                               includeGeomObjectSource)
 {
     for (auto& primRenderData : meshRenderDataVector) {
-        // Only display the prim if visible and if its render tag is selected.
-        if (!primRenderData.visible || !primRenderData.renderTagActive) {
+
+        // Skip prims with inactive render tags.
+        if (!primRenderData.renderTagActive) {
             continue;
         }
+
+        // Skip invisible prims unless they were explicitly requested.
+        if (!includeInvisible && !primRenderData.visible) {
+            continue;
+        }
+
+        // Check if we should include prims used as USdGeomObject sources.
+        // I.e. prims that were "promoted" to 3dsMax.
+        if (!includeGeomObjectSource) {
+            if (primRenderData.renderTag == MaxUsdPurposeTokens->geomObjectSource) {
+                continue;
+            }
+        }
+
         // If using instancing, make sure we have at least one instance visible.
         if (primRenderData.shadedSubsets.empty()
             || (primRenderData.shadedSubsets[0].IsInstanced()
@@ -200,15 +217,22 @@ std::vector<HdMaxBasisCurvesRenderData>& HdMaxRenderDelegate::GetAllBasisCurvesR
     return basisCurvesRenderDataVector;
 }
 
-void HdMaxRenderDelegate::GetVisibleBasisCurvesRenderData(
-    const TfTokenVector&                      renderTags,
-    std::vector<HdMaxBasisCurvesRenderData*>& data)
+void HdMaxRenderDelegate::GetBasisCurvesRenderData(
+    std::vector<HdMaxBasisCurvesRenderData*>& data,
+    bool                                      includeInvisible)
 {
     for (auto& primRenderData : basisCurvesRenderDataVector) {
-        // Only display the prim if visible and if its render tag is selected.
-        if (!primRenderData.visible || !primRenderData.renderTagActive) {
+
+        // Skip prims with inactive render tags.
+        if (!primRenderData.renderTagActive) {
             continue;
         }
+
+        // Skip invisible prims unless they were explicitly requested.
+        if (!includeInvisible && !primRenderData.visible) {
+            continue;
+        }
+
         // If using instancing, make sure we have at least one instance visible.
         if (primRenderData.shadedCurve.wireIndices.empty()
             || (primRenderData.shadedCurve.IsInstanced()

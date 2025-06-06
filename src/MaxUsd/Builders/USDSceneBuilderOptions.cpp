@@ -114,6 +114,7 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->translateMorpher] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useUSDVisibility] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useProgressBar] = true;
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useWorldspaceRoot] = false;
 
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->timeMode]
             = static_cast<int>(TimeMode::CurrentFrame);
@@ -322,6 +323,16 @@ void USDSceneBuilderOptions::SetTranslateMorpher(bool translateMorpher)
 bool USDSceneBuilderOptions::GetTranslateMorpher() const
 {
     return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->translateMorpher);
+}
+
+void USDSceneBuilderOptions::SetUseWorldspaceRoot(bool useWorldspaceRoot)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->useWorldspaceRoot] = useWorldspaceRoot;
+}
+
+bool USDSceneBuilderOptions::GetUseWorldspaceRoot() const
+{
+    return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->useWorldspaceRoot);
 }
 
 void USDSceneBuilderOptions::SetShadingMode(const pxr::TfToken& shadingMode)

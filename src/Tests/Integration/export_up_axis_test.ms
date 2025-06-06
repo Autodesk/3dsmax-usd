@@ -33,7 +33,7 @@ struct export_up_axis_test
     
     function resetMaxFileAndSetupUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     public

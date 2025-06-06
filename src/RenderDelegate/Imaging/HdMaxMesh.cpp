@@ -52,6 +52,7 @@
 #include <pxr/imaging/hd/extCompCpuComputation.h>
 #include <pxr/imaging/hd/extCompPrimvarBufferSource.h>
 #endif
+#include "MaxUsd/MaxTokens.h"
 #include "RenderDelegate/HdMaxMeshRenderData.h"
 
 #include <pxr/imaging/hd/extComputation.h>
@@ -77,18 +78,7 @@ HdMaxMesh::HdMaxMesh(HdMaxRenderDelegate* delegate, SdfPath const& rPrimId, size
 {
 }
 
-HdDirtyBits HdMaxMesh::GetInitialDirtyBitsMask() const
-{
-    return HdChangeTracker::InitRepr | HdChangeTracker::DirtyCullStyle
-        | HdChangeTracker::DirtyDoubleSided | HdChangeTracker::DirtyExtent
-        | HdChangeTracker::DirtyNormals | HdChangeTracker::DirtyPoints
-        | HdChangeTracker::DirtyPrimID | HdChangeTracker::DirtyPrimvar
-        | HdChangeTracker::DirtyDisplayStyle | HdChangeTracker::DirtyRepr
-        | HdChangeTracker::DirtyMaterialId | HdChangeTracker::DirtyTopology
-        | HdChangeTracker::DirtyTransform | HdChangeTracker::DirtyVisibility
-        | HdChangeTracker::DirtyInstancer | HdChangeTracker::DirtyInstanceIndex
-        | HdChangeTracker::CustomBitsBegin;
-}
+HdDirtyBits HdMaxMesh::GetInitialDirtyBitsMask() const { return GetInitialDirtyBits(); }
 
 PrimvarInfo* _GetPrimvarInfo(const PrimvarInfoMap& infoMap, const TfToken& token)
 {
@@ -538,7 +528,7 @@ void HdMaxMesh::_LoadUvs(
             } else if (info->source.data.CanCast<pxr::VtVec3fArray>()) {
                 uvs = info->source.data.UncheckedGet<pxr::VtVec3fArray>();
                 std::transform(uvs.begin(), uvs.end(), uvs.begin(), [](GfVec3f in) {
-                    return GfVec3f(in[0], -in[1], in[2]);
+                    return GfVec3f(in[0], 1 - in[1], in[2]);
                 });
             } else if (info->source.data.CanCast<pxr::VtFloatArray>()) {
                 const auto val = info->source.data.UncheckedGet<pxr::VtFloatArray>();
@@ -850,9 +840,16 @@ void HdMaxMesh::Sync(
     auto&       displaySettings = renderDelegate->GetDisplaySettings();
 
     auto& renderData = _GetRenderData();
+
     if (!renderData.renderTagActive) {
         return;
     }
+
+#if PXR_VERSION < 2211
+    renderData.renderTag = GetRenderTag(delegate);
+#else
+    renderData.renderTag = GetRenderTag();
+#endif
 
     // Look for our "isGizmo" custom primvar. We set this up, for example, in the
     // HdLightGizmoSceneIndexFilter.
@@ -901,6 +898,11 @@ void HdMaxMesh::Sync(
         }
     }
 
+    const bool isGeomObjectSource = renderData.renderTag == MaxUsdPurposeTokens->geomObjectSource;
+    bool       needUvsAndColors
+        = displaySettings.GetDisplayMode() == HdMaxDisplaySettings::USDPreviewSurface
+        || isGeomObjectSource;
+
     // If the material assignment has changed, or at least some primvars are dirty. Need to
     // update/figure out what primvars we need to use for UVs.
     auto materialIdDirty = bool(*dirtyBits & HdChangeTracker::DirtyMaterialId);
@@ -941,21 +943,25 @@ void HdMaxMesh::Sync(
         const auto matId = delegate->GetMaterialId(id);
         addMaterialUvs(matId);
 
-        // Also get the primvars which are explicitly mapped to a map channel, if requested.
-        pxr::VtValue loadAllVal = renderDelegate->GetRenderSetting(
-            pxr::TfToken("loadAllMappedPrimvars"), pxr::VtValue(false));
-        if (loadAllVal.IsHolding<bool>()) {
-            if (loadAllVal.Get<bool>()) {
-                const auto& primvarOptions = renderDelegate->GetPrimvarMappingOptions();
-                for (size_t i = 0; i < HdInterpolationCount; i++) {
-                    const HdInterpolation           interp = static_cast<HdInterpolation>(i);
-                    const HdPrimvarDescriptorVector primvars
-                        = GetPrimvarDescriptors(delegate, interp);
-                    for (const auto& pv : primvars) {
-                        if (MaxUsd::PrimvarMappingOptions::invalidChannel
-                            != primvarOptions.GetPrimvarChannelMapping(pv.name.GetString())) {
-                            addPrimvar(pv.name);
-                        }
+        // Also get the primvars which are explicitely mapped to a map channel, if requested.
+        bool needUnusedPrimvars = isGeomObjectSource;
+        if (!needUnusedPrimvars) {
+            pxr::VtValue loadAllVal = renderDelegate->GetRenderSetting(
+                pxr::TfToken("loadAllMappedPrimvars"), pxr::VtValue(false));
+            if (loadAllVal.IsHolding<bool>()) {
+                needUnusedPrimvars = loadAllVal.Get<bool>();
+            }
+        }
+
+        if (needUnusedPrimvars) {
+            const auto& primvarOptions = renderDelegate->GetPrimvarMappingOptions();
+            for (size_t i = 0; i < HdInterpolationCount; i++) {
+                const HdInterpolation           interp = static_cast<HdInterpolation>(i);
+                const HdPrimvarDescriptorVector primvars = GetPrimvarDescriptors(delegate, interp);
+                for (const auto& pv : primvars) {
+                    if (MaxUsd::PrimvarMappingOptions::invalidChannel
+                        != primvarOptions.GetPrimvarChannelMapping(pv.name.GetString())) {
+                        addPrimvar(pv.name);
                     }
                 }
             }
@@ -990,18 +996,12 @@ void HdMaxMesh::Sync(
 
     for (const auto uvPrimvar : allUvPrimvars) {
         bool isDirty = false;
-        checkPrimvar(
-            uvPrimvar,
-            isDirty,
-            displaySettings.GetDisplayMode() == HdMaxDisplaySettings::USDPreviewSurface);
+        checkPrimvar(uvPrimvar, isDirty, needUvsAndColors);
         uvsDirty |= isDirty;
     }
 
     bool displayColorDirty = false;
-    checkPrimvar(
-        HdTokens->displayColor,
-        displayColorDirty,
-        displaySettings.GetDisplayMode() == HdMaxDisplaySettings::USDPreviewSurface);
+    checkPrimvar(HdTokens->displayColor, displayColorDirty, needUvsAndColors);
     auto pointsDirty = HdChangeTracker::IsPrimvarDirty(*dirtyBits, id, HdTokens->points);
     checkPrimvar(HdTokens->points, pointsDirty, true);
 
@@ -1079,12 +1079,42 @@ void HdMaxMesh::Sync(
         pxr::TfHashMap<pxr::SdfPath, int, pxr::SdfPath::Hash> materialToSubsetIndex;
         // Shaded (one subset/render item per material)
         for (int i = 0; i < renderData.shadedSubsets.size(); ++i) {
-            auto&        subsetItem = renderData.shadedSubsets[i];
-            VtVec3iArray trianglesFaceVertexIndices; // for this item only!
+            auto&         subsetItem = renderData.shadedSubsets[i];
+            VtVec3iArray  trianglesFaceVertexIndices; // for this item only!
+            VtVec3iArray& edgeVis = subsetItem.edgeVis;
+
+            auto decodeEdgeVis = [&edgeVis, &trianglePrimitiveParams](size_t triangleId) {
+                size_t edgeFlag = HdMeshUtil::DecodeEdgeFlagFromCoarseFaceParam(
+                    trianglePrimitiveParams[triangleId]);
+                switch (edgeFlag) {
+                case 0:
+                    // All edges visible
+                    edgeVis.push_back({ 1, 1, 1 });
+                    break;
+                case 1:
+                    // hide [2-0]
+                    edgeVis.push_back({ 1, 1, 0 });
+                    break;
+                case 2:
+                    // hide[0 - 1]
+                    edgeVis.push_back({ 0, 1, 1 });
+                    break;
+                case 3:
+                    // hide[0 - 1] and [2 - 0]
+                    edgeVis.push_back({ 0, 1, 0 });
+                    break;
+                }
+            };
+
             if (faceIdToMaterialSubset.size() == 0) {
                 // If there is no mapping from face to render item then all the faces are on this
                 // render item. VtArray has copy-on-write semantics so this is fast.
                 trianglesFaceVertexIndices = triangulatedIndices;
+                edgeVis.reserve(triangulatedIndices.size());
+                for (size_t triangleId = 0; triangleId < triangulatedIndices.size(); ++triangleId) {
+                    decodeEdgeVis(triangleId);
+                }
+
             } else {
                 for (size_t triangleId = 0; triangleId < triangulatedIndices.size(); ++triangleId) {
                     size_t faceId = HdMeshUtil::DecodeFaceIndexFromCoarseFaceParam(
@@ -1092,6 +1122,7 @@ void HdMaxMesh::Sync(
 
                     if (faceIdToMaterialSubset[faceId] == subsetItem.materiaId) {
                         trianglesFaceVertexIndices.push_back(triangulatedIndices[triangleId]);
+                        decodeEdgeVis(triangleId);
                     }
                 }
             }
@@ -1120,37 +1151,41 @@ void HdMaxMesh::Sync(
             const VtIntArray& faceVertexIndices = renderingTopology.GetFaceVertexIndices();
             const VtIntArray& faceVertexCounts = renderingTopology.GetFaceVertexCounts();
 
-            // Keep track of the current size of the index buffers. If they change, we must dirty
-            // the render data appropriately.
-            std::vector<size_t> previousWireIndicesSize;
-            previousWireIndicesSize.reserve(renderData.shadedSubsets.size());
-            for (auto& subset : renderData.shadedSubsets) {
-                previousWireIndicesSize.push_back(subset.wireIndices.size());
-                subset.wireIndices.clear();
-            }
+            if (!faceVertexIndices.empty() && !faceVertexCounts.empty()) {
 
-            // Build the segment indices from each face.
-            int currIdx = 0;
-            for (int i = 0; i < renderingTopology.GetNumFaces(); ++i) {
-                auto& wireframeIndices
-                    = renderData.shadedSubsets[materialToSubsetIndex[faceIdToMaterialSubset[i]]]
-                          .wireIndices;
-                auto faceVertexCount = faceVertexCounts[i];
-                for (int j = 0; j < faceVertexCount; ++j) {
-                    auto index = currIdx + j;
-                    wireframeIndices.push_back(faceVertexIndices[index]);
-                    wireframeIndices.push_back(
-                        faceVertexIndices[((j + 1) % faceVertexCount) + currIdx]);
+                // Keep track of the current size of the index buffers. If they change, we must
+                // dirty the render data appropriately.
+                std::vector<size_t> previousWireIndicesSize;
+                previousWireIndicesSize.reserve(renderData.shadedSubsets.size());
+                for (auto& subset : renderData.shadedSubsets) {
+                    previousWireIndicesSize.push_back(subset.wireIndices.size());
+                    subset.wireIndices.clear();
                 }
-                currIdx += faceVertexCount;
-            }
 
-            for (int i = 0; i < renderData.shadedSubsets.size(); ++i) {
-                if (previousWireIndicesSize[i] != renderData.shadedSubsets[i].wireIndices.size()) {
-                    HdMaxChangeTracker::SetDirty(
-                        renderData.shadedSubsets[i].dirtyBits,
-                        HdMaxChangeTracker::DirtyIndicesSize);
-                    break;
+                // Build the segment indices from each face.
+                int currIdx = 0;
+                for (int i = 0; i < renderingTopology.GetNumFaces(); ++i) {
+                    auto& wireframeIndices
+                        = renderData.shadedSubsets[materialToSubsetIndex[faceIdToMaterialSubset[i]]]
+                              .wireIndices;
+                    auto faceVertexCount = faceVertexCounts[i];
+                    for (int j = 0; j < faceVertexCount; ++j) {
+                        auto index = currIdx + j;
+                        wireframeIndices.push_back(faceVertexIndices[index]);
+                        wireframeIndices.push_back(
+                            faceVertexIndices[((j + 1) % faceVertexCount) + currIdx]);
+                    }
+                    currIdx += faceVertexCount;
+                }
+
+                for (int i = 0; i < renderData.shadedSubsets.size(); ++i) {
+                    if (previousWireIndicesSize[i]
+                        != renderData.shadedSubsets[i].wireIndices.size()) {
+                        HdMaxChangeTracker::SetDirty(
+                            renderData.shadedSubsets[i].dirtyBits,
+                            HdMaxChangeTracker::DirtyIndicesSize);
+                        break;
+                    }
                 }
             }
         }
@@ -1195,7 +1230,7 @@ void HdMaxMesh::Sync(
 
     if (uvsDirty) {
         const auto previousUvsSize = renderData.uvs.size();
-        if (displaySettings.GetDisplayMode() == HdMaxDisplaySettings::USDPreviewSurface) {
+        if (needUvsAndColors) {
             _LoadUvs(id, delegate, allUvPrimvars);
         } else {
             renderData.uvs.clear();
@@ -1222,7 +1257,7 @@ void HdMaxMesh::Sync(
     // Handle changes to the display color. Create a 3dsmax material handle accordingly.
     if (displayColorDirty) {
         const auto previousDisplayColorSize = renderData.colors.size();
-        if (displaySettings.GetDisplayMode() == HdMaxDisplaySettings::USDPreviewSurface) {
+        if (needUvsAndColors) {
             _LoadDisplayColor(id, delegate);
         } else {
             renderData.colors.clear();
@@ -1443,6 +1478,19 @@ void HdMaxMesh::_InitRepr(TfToken const& reprToken, HdDirtyBits* dirtyBits)
 }
 
 void HdMaxMesh::Finalize(HdRenderParam* renderParam) { }
+
+HdDirtyBits HdMaxMesh::GetInitialDirtyBits()
+{
+    return HdChangeTracker::InitRepr | HdChangeTracker::DirtyCullStyle
+        | HdChangeTracker::DirtyDoubleSided | HdChangeTracker::DirtyExtent
+        | HdChangeTracker::DirtyNormals | HdChangeTracker::DirtyPoints
+        | HdChangeTracker::DirtyPrimID | HdChangeTracker::DirtyPrimvar
+        | HdChangeTracker::DirtyDisplayStyle | HdChangeTracker::DirtyRepr
+        | HdChangeTracker::DirtyMaterialId | HdChangeTracker::DirtyTopology
+        | HdChangeTracker::DirtyTransform | HdChangeTracker::DirtyVisibility
+        | HdChangeTracker::DirtyInstancer | HdChangeTracker::DirtyInstanceIndex
+        | HdChangeTracker::CustomBitsBegin;
+}
 
 PXR_NAMESPACE_CLOSE_SCOPE
 

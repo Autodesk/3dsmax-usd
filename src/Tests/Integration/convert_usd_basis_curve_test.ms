@@ -32,7 +32,7 @@ struct convert_usd_basis_curve_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt    
+        quickReset()    
     ),
     
     function test = (

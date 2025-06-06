@@ -23,7 +23,7 @@ struct usd_layer_editor_test
 (  
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function findUsdLayerEditor = (

@@ -36,7 +36,7 @@ struct export_options_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function test_ui_options_accessors = (
@@ -91,6 +91,7 @@ struct export_options_test
         )
         assert_true uiExportOptions.UseProgressBar message:"UseProgressBar property was not properly initialized to defaults (true)."
         assert_true uiExportOptions.UseLastResortUSDPreviewSurfaceWriter message:"UseLastResortUSDPreviewSurfaceWriter property was not properly initialized to defaults (true)."
+        assert_false uiExportOptions.UseWorldspaceRoot message:"UseWorldspaceRoot property was not properly initialized to defaults (false)"
 
         -- Create new options and set them all to non-default values
         local exportOptions = USDExporter.CreateOptions()
@@ -132,6 +133,7 @@ struct export_options_test
         )
         exportOptions.UseProgressBar = false
         exportOptions.UseLastResortUSDPreviewSurfaceWriter = false
+        exportOptions.UseWorldspaceRoot = true
         
         -- Test the UI options setter
         USDExporter.UIOptions = exportOptions
@@ -183,7 +185,7 @@ struct export_options_test
         )
         assert_false uiExportOptions.UseProgressBar message:"UseProgressBar property was not properly set to false."
         assert_false uiExportOptions.UseLastResortUSDPreviewSurfaceWriter message:"UseLastResortUSDPreviewSurfaceWriter property was not properly set to false."
-
+        assert_true uiExportOptions.UseWorldspaceRoot message:"UseWorldspaceRoot property was not properly set to true."
         -- Reset & test
 
         uiExportOptions.Reset()
@@ -231,6 +233,7 @@ struct export_options_test
         )
         assert_true uiExportOptions.UseProgressBar message:"UseProgressBar property was not properly reset to defaults (true)."
         assert_true uiExportOptions.UseLastResortUSDPreviewSurfaceWriter message:"UseLastResortUSDPreviewSurfaceWriter property was not properly reset to default (true)."
+        assert_false uiExportOptions.UseWorldspaceRoot message:"UseWorldspaceRoot property was not properly reset to defaults (false)"
     ),
     
     -- on top of the classic material option settings
@@ -271,19 +274,19 @@ struct export_options_test
         assert_true exportOptions.Meshes message:"Meshes property could not be set to true."
         teapot()    
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
 
         -- Reimport to make sure we get a teapot.
         USDImporter.ImportFile exportPath
         assert_equal 1 $objects.count message:"Unexpected object count with Meshes = true"
         
         -- Now with Meshes off...
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.Meshes = false
         assert_false exportOptions.Meshes message:"Meshes property could not be set to false."
         teapot()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
         
         USDImporter.ImportFile exportPath
         assert_equal 0 $objects.count message:"Unexpected object count with Meshes = false"
@@ -346,19 +349,19 @@ struct export_options_test
         assert_true exportOptions.Lights message:"Lights property could not be set to true."
         free_light()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
 
         -- Reimport to make sure we get a teapot.
         USDImporter.ImportFile exportPath
         assert_equal 1 $lights.count message:"Unexpected lights count with Lights = true"
         
         -- Now with Lights off...
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.Lights = false
         assert_false exportOptions.Lights message:"Lights property could not be set to false."
         free_light()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
         
         USDImporter.ImportFile exportPath
         assert_equal 0 $lights.count message:"Unexpected object count with Lights = false"
@@ -374,19 +377,19 @@ struct export_options_test
         assert_true exportOptions.Cameras message:"Cameras property could not be set to true."
         freecamera()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
         
         -- Reimport to make sure we get a camera.
         USDImporter.ImportFile exportPath
         assert_equal 1 $cameras.count message:"Unexpected camera count with Cameras = true"
         
         -- Now with Cameras off...
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.Cameras = false
         assert_false exportOptions.Cameras message:"Cameras property could not be set to false."
         freecamera()
         USDExporter.ExportFile exportPath exportOptions:exportOptions
-        resetmaxfile #noprompt
+        quickReset()
         
         USDImporter.ImportFile exportPath
         assert_equal 0 $cameras.count message:"Unexpected camera count with Cameras = false"
@@ -425,7 +428,7 @@ struct export_options_test
         assert_true (skelPrim.IsA(pyUsdSkel.Skeleton)) message:"The bones were not exported to a skeleton prim as expected."
         assert_true (animPrim.IsA(pyUsdSkel.Animation)) message:"The animations were not exported to a SkelAnimtion prim as expected."
         
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.Skin = false
         bonesys.createbone [0,0,0] [0,1,0] [0,0,1]
         USDExporter.ExportFile noExportPath exportOptions:exportOptions
@@ -440,7 +443,7 @@ struct export_options_test
         assert_false (pyUsd.Prim.IsValid(animPrim)) message:"The SkelAnimation prim was created when it shouldn't have"
 
         -- Skins shouldn't be exported if the export meshes option is disabled
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.Skin = true
         exportOptions.Meshes = false
         bonesys.createbone [0,0,0] [0,1,0] [0,0,1]
@@ -534,7 +537,7 @@ struct export_options_test
         -- The following tests are for the interaction between AllowNestedGprims and the BakeObjectOffset options. We test all 4 combinations.
         -- I.e. Test that the offset baking option is respected whether or not nested prims are allowed.
             
-        resetMaxFile #noPrompt    
+        quickReset()    
             
         local teapot1 = teapot name:"teapot1"
         teapot1.pos = [0,0,10] 
@@ -675,7 +678,7 @@ struct export_options_test
         assert_false exportOptions.PreserveEdgeOrientation message:"PreserveEdgeOrientation property could not be set to false."
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
-        resetmaxfile #noprompt
+        quickReset()
 
         -- Reimport to make sure we get a plane with the same number of faces
         USDImporter.ImportFile exportPath
@@ -687,7 +690,7 @@ struct export_options_test
         assert_true exportOptions.PreserveEdgeOrientation message:"PreserveEdgeOrientation property could not be set to true."
         USDExporter.ExportFile exportPath exportOptions:exportOptions
 
-        resetmaxfile #noprompt
+        quickReset()
 
         -- Reimport to make sure we get a plane with more faces (some triangulation occurred)
         USDImporter.ImportFile exportPath
@@ -1798,7 +1801,7 @@ struct export_options_test
             -- usdchecker should flag this file valid
             assert_true (check_usd_file_valid exportPath)
             
-            resetMaxFile #noprompt
+            quickReset()
         )
         
         -- UsdGeomCurves
@@ -1855,7 +1858,7 @@ struct export_options_test
             -- usdchecker should flag this file valid
             assert_true (check_usd_file_valid exportPath)
             
-            resetMaxFile #noprompt
+            quickReset()
         )
     ),
 

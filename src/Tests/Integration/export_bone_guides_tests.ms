@@ -32,7 +32,7 @@ struct export_bones_as_guides_test
     
     public
     function setup = (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
     ),
     

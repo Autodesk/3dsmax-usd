@@ -37,7 +37,7 @@ struct import_export_non_renderable_test
     function setup =
     (
         deleteTestFiles(output_prefix + "*.*")
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
         exportOptions.UsdStagesAsReferences = false

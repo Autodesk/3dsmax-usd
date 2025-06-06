@@ -34,7 +34,7 @@ struct io_point_helpers_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),
@@ -72,7 +72,7 @@ struct io_point_helpers_test
         assert_true (sphere1Prim.IsA(pyUsdGeom.Mesh)) message:("Wrong prim type for Sphere001, it should have been a Mesh.")
         
         -- Clean 3ds max scene and reimport USD stage
-        resetmaxfile #noprompt
+        quickReset()
         USDImporter.ImportFile stagePath
 
         -- Make sure Xform were imported as Point Helpers

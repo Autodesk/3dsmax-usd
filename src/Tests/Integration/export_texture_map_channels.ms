@@ -40,7 +40,7 @@ struct export_texture_map_channels_test
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         maxver = maxversion()
         if maxver[1] >= 26000 then (  -- 3ds Max 2024 and up
             _oslbitmapfile = "OSLBitmap2.osl"
@@ -171,7 +171,7 @@ struct export_texture_map_channels_test
         importOptions.SetPrimvarChannelMapping map_primvar_name map_channel
 
         -- test import uberbitmap
-        resetmaxfile #noprompt
+        quickReset()
         -- Use caps to make sure the osl name is not case sensitive.
         pyShaderReader._material_import_options["texture_target_id"] = _uberbitmapfile
 
@@ -182,7 +182,7 @@ struct export_texture_map_channels_test
         assert_equal map_channel imp_texture.sourceMap.UVSet
 
         -- test import with standard bitmaps
-        resetmaxfile #noprompt
+        quickReset()
         pyShaderReader._material_import_options["texture_target_id"] = "Bitmaptexture"
 
         USDImporter.ImportFile export_path importOptions:importOptions
@@ -192,7 +192,7 @@ struct export_texture_map_channels_test
         assert_equal map_channel imp_texture.coordinates.mapChannel
 
         -- test import with oslbitmap
-        resetmaxfile #noprompt
+        quickReset()
         pyShaderReader._material_import_options["texture_target_id"] = _oslbitmapfile
 
         USDImporter.ImportFile export_path importOptions:importOptions
@@ -278,7 +278,7 @@ struct export_texture_map_channels_test
         assert_true (usd_bitmap.IsValid())
 
         -- test import
-        resetmaxfile #noprompt
+        quickReset()
         local importOptions = USDImporter.CreateOptions()
         importOptions.ClearMappedPrimvars() -- now no primvars are mapped
         importOptions.ImportUnmappedPrimvars = False

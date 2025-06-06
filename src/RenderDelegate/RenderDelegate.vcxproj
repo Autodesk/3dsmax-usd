@@ -32,9 +32,11 @@
       <PreprocessorDefinitions>RENDERDELEGATE_EXPORTS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UfeInc);$(UfeUsdInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <ForcedIncludeFiles>$(ProjectDir)/renderdelegate_banned.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>renderdelegate_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>renderdelegate_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -69,6 +71,7 @@ exit /b 0</Command>
     <ClInclude Include="HdMaxMaterialCollection.h" />
     <ClInclude Include="MaxRenderGeometryFacade.h" />
     <ClInclude Include="HdMaxColorMaterial.h" />
+    <ClInclude Include="renderdelegate_pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Sampler.h" />
     <ClInclude Include="HdMaxPrimRenderData.h" />
@@ -80,6 +83,7 @@ exit /b 0</Command>
     <ClInclude Include="HdMaxChangeTracker.h" />
     <ClInclude Include="HdMaxConsolidator.h" />
     <ClInclude Include="SelectionRenderItem.h" />
+    <ClInclude Include="HdMaxTriMesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DebugCodes.cpp" />
@@ -90,6 +94,7 @@ exit /b 0</Command>
     <ClCompile Include="HdMaxDisplayPreferences.cpp" />
     <ClCompile Include="HdMaxEngine.cpp" />
     <ClCompile Include="HdMaxMeshRenderData.cpp" />
+    <ClCompile Include="HdMaxTriMesh.cpp" />
     <ClCompile Include="Imaging\HdMaxBasisCurves.cpp" />
     <ClCompile Include="Imaging\HdMaxMesh.cpp" />
     <ClCompile Include="Imaging\HdMaxRenderDelegate.cpp" />
@@ -105,6 +110,9 @@ exit /b 0</Command>
     <ClCompile Include="ConsolidatedGizmoRenderItem.cpp" />
     <ClCompile Include="MaxRenderGeometryFacade.cpp" />
     <ClCompile Include="HdMaxColorMaterial.cpp" />
+    <ClCompile Include="renderdelegate_pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Sampler.cpp" />
     <ClCompile Include="HdMaxInstanceGen.cpp" />
     <ClCompile Include="HdMaxConsolidator.cpp" />

@@ -60,6 +60,9 @@
     <ClCompile Include="RenderDelegate.LightGizmos.cpp">
       <Filter>source\Tests</Filter>
     </ClCompile>
+    <ClCompile Include="systemtests_pch.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -72,6 +75,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="MaxIntegrationTestListener.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="systemtests_pch.h">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

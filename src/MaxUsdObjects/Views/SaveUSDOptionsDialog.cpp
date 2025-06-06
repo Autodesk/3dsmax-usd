@@ -17,6 +17,8 @@
 
 #include "ui_SaveUSDOptionsDialog.h"
 
+#include <MaxUsdObjects/LayerEditor/USDLayerManager.h>
+
 #include <max.h>
 
 SaveUSDOptionsDialog::SaveUSDOptionsDialog(QWidget* parent)
@@ -26,16 +28,33 @@ SaveUSDOptionsDialog::SaveUSDOptionsDialog(QWidget* parent)
 
     buttonGroup = new QButtonGroup(this);
     buttonGroup->addButton(ui->saveAllButton);
+    buttonGroup->addButton(ui->saveAllEditsMaxFileButton);
     buttonGroup->addButton(ui->saveMaxOnlyButton);
+
+    SaveMode currentSaveMode = USDLayerManager::Instance()->GetSaveMode();
+    if (currentSaveMode == SaveMode::SaveAll) {
+        ui->saveAllButton->setChecked(true);
+    } else if (currentSaveMode == SaveMode::SaveAllEditsMax) {
+        ui->saveAllEditsMaxFileButton->setChecked(true);
+        ui->importantlabel->setHidden(false);
+    } else if (currentSaveMode == SaveMode::Save3dsMaxOnly) {
+        ui->saveMaxOnlyButton->setChecked(true);
+    }
 
     connect(ui->saveAllButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked) {
-            saveMode = SaveMode::SaveAll;
+            USDLayerManager::Instance()->SetSaveMode(SaveMode::SaveAll);
         }
+    });
+    connect(ui->saveAllEditsMaxFileButton, &QRadioButton::toggled, [this](bool checked) {
+        if (checked) {
+            USDLayerManager::Instance()->SetSaveMode(SaveMode::SaveAllEditsMax);
+        }
+        ui->importantlabel->setHidden(!checked);
     });
     connect(ui->saveMaxOnlyButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked) {
-            saveMode = SaveMode::Save3dsMaxOnly;
+            USDLayerManager::Instance()->SetSaveMode(SaveMode::Save3dsMaxOnly);
         }
     });
 

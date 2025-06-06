@@ -36,7 +36,7 @@ Struct usd_export_xref_material_test
     public
     function setup =
     (
-        resetMaxFile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
         exportOptions.Materials = true

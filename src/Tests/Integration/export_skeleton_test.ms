@@ -33,7 +33,7 @@ struct export_skin_test
 
     function resetMaxFileAndSetupUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #Centimeters
         units.SystemScale = 1
 

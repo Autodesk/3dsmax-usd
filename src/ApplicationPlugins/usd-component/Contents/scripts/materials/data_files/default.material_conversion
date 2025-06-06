@@ -427,5 +427,43 @@
                 }
             }
         }
+    },
+    "max_open_pbr_to_usd_preview_surface": {
+        "source_material": {
+            "id": "OpenPBR_Material",
+            "domain": "3dsmax"
+        },
+        "target_material": {
+            "id": "UsdPreviewSurface",
+            "domain": "usd"
+        },
+        "parameter_mapping": {
+            "mappings": {
+                "diffuseColor": {
+                    "value_parameter": "base_color",
+                    "map_parameter": "base_color_map",
+                    "use_map_parameter": "base_color_map_on"
+                },
+                "metallic": {
+                    "value_parameter": "base_metalness",
+                    "map_parameter": "base_metalness_map",
+                    "use_map_parameter": "base_metalness_map_on"
+                },
+                "roughness": {
+                    "value_parameter": "base_diffuse_roughness",
+                    "map_parameter": "base_diffuse_roughness_map",
+                    "use_map_parameter": "base_diffuse_roughness_map_on"
+                },
+                "specularColor": {
+                    "value_parameter": "specular_color",
+                    "map_parameter": "specular_color_map",
+                    "use_map_parameter": "specular_color_map_on"
+                },
+                "opacity": {
+                    "map_parameter": "geometry_opacity_map",
+                    "use_map_parameter": "geometry_opacity_map_on"
+                }
+            }
+        }
     }
 }

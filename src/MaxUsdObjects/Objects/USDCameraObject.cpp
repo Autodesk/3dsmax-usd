@@ -572,7 +572,7 @@ void USDCameraObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice
     // also objects with their own paths).
     auto propertiesChanged = [&notice, &cameraPrim]() {
         for (const auto& path : notice.GetChangedInfoOnlyPaths()) {
-            if (path.IsPropertyPath() || path.HasPrefix(cameraPrim.GetPath())) {
+            if (path.IsPropertyPath() && path.HasPrefix(cameraPrim.GetPath())) {
                 return true;
             }
         }

@@ -65,6 +65,11 @@ UsdPrim _getUsdPrim(PyObject* ufePath)
     return MaxUsd::ufe::ufePathToPrim(*cUfePath);
 }
 
+std::string _getUsdStageUfePath(UsdStageWeakPtr stage)
+{
+    return Ufe::PathString::string(MaxUsd::ufe::getStagePath(stage));
+}
+
 void wrapUtilities()
 {
     pyboost::def(
@@ -78,6 +83,11 @@ void wrapUtilities()
         pyboost::args("usdFilePath", "outputPath"),
         "Runs the usdchecker tool which will validate a usd file at usdFilePath and output all "
         "errors at outputPath");
+    pyboost::def(
+        "GetUsdStageUfePath",
+        _getUsdStageUfePath,
+        pyboost::args("usdStage"),
+        "Returns the UFE Path, associated with the given USD Stage.");
     pyboost::def(
         "GetUsdPrimUfePath",
         _getUsdPrimUfePath,

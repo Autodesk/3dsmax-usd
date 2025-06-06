@@ -65,6 +65,9 @@
     <ClCompile Include="Views\UsdExportIncludeRollup.cpp">
       <Filter>Source Files\Views</Filter>
     </ClCompile>
+    <ClCompile Include="usdexport_pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -92,6 +95,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="usdexport_pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

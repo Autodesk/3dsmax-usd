@@ -1,5 +1,90 @@
 ## Changelog
 
+### v0.11.0
+
+#### Fixes:
+- Fixed incorrect transform of subsplines when exporting to USD shapes.
+- Fixed crashes related to SHIFT+Clicking prims in the USD Explorer.
+- Fixed freezing when deactivating parent and child USD prims then hitting undo.
+- Fixed a crash when adding a Prim from the USD Explorer with an active search filter.
+
+### v0.10.6
+
+#### Fixes:
+- Fixed an issue where Undoing 'Remove All' function from the Collection menu would not restore all list items that were removed.
+- Fixed some issues with the refresh function of the USD Geometry Object not always working.
+- Prevent crash when loading a 3ds Max file containing a USD stage object with an invalid stage file (missing/renamed file).
+- Improved the UI of the USD Collection Widget type-ahead to be more readable.
+- Fixed an issue where the USD Explorer hierarchy could collapse at the root level after some undo operations.
+- Fixed an issue where changing the Root Layer while in Prim Sub-object mode would prevent the expected rollouts from being displayed.
+- Fixed defect related to deactivating then reactivating a prim in USD.
+- Fixed an unexpected doubling of entries in the Undo Stack when a USD Camera is generated from a USD Stage Object.
+- Fixed the USD Layer Editor pin setting not being respected in some cases of add/removing USD stages in the scene.
+
+### v0.10.5
+
+#### What's New:
+- Updated the label for Push to 3ds Max in the USD Explorer to Promote to 3ds Max.
+- Updated the Promote to 3ds Max function to apply the XForm Controller to a Transform List Controller with another PRS Controller so that USD Geom Objects can be moved by the user.
+- Added MAXScript exposure to the Stage and Prim Path properties of a USD Geometry Object.
+- Updated and cleaned up the USD Geom Object UI in the modify tab.
+- Added support for the OpenPBR Material in the USD Exporter.
+- Added a help link in the USD Collection widget.
+- Added new optional boolean parameter hideClassPrims to maxUsd.PickItems(). This option is true by default. When turned off, the USD Picker will not filter out class prims.
+- Refreshed the USD Stage UI with some improved organization and addition of a button to launch the USD Layer Editor.
+
+#### Fixes:
+- Fixed a crash when undoing actions related to the new USD Geometry Object.
+- Fixed the USD Selection getting lost when using the Promote to 3ds Max function.
+- Fixed an issue where Collection rollouts could modify the Command Panel layout.
+- Fixed error messages related to the USD Collection widget to appear red in the MAXScript Listener.
+- Adding and removing items to collections is now properly respecting edit restrictions and prints information when some attempt to edit is not possible.
+- Fixed an issue where Collections for some Prims were not being populated in the Rollouts.
+- Fixed an issue where Light Linking Rollout wouldn't load in older versions of 3ds Max.
+- Fixed a problem where the USD Collection widget could sometimes become unresponsive when the rollout had been resized.
+
+### v0.10.4
+
+#### What's New:
+- Added redo support in the USD Geom Object purpose radio options.
+- Added a refresh button to update the current mesh data on a USD Geom Object that isn't set to receive live updates.
+- Added a warning to the USD Geom Object when there are settings that have possible conflicts with other USD Geom Objects derived from the same prim.
+- Added new method to get/set selected layers in the USD Layer Editor. Python example:
+```
+python import UsdLayerEditor
+layerIdList = UsdLayerEditor.getSelectedLayers()
+UsdLayerEditor.setSelectLayers([layerIdList[0]])
+```
+
+#### Fixes:
+- Fixed a defect that caused an error when passing a lambda function to usdUfe.registerUICallback().
+- Fixed the Auto-Expand function not working in the USD Explorer.
+
+### v0.10.3
+
+#### What's New:
+- Added new option to include/exclude prims by visibility in the Push to Max workflow in USD.
+- Added option to choose what purposes are used with the Push to Max workflow from USD.
+- Added lazy loading to the USD Explorer to increase performance of loading a stage into the explorer.
+- Added option to serialize USD changes into the Max file for layer edits that haven't been saved to disk.
+
+### v0.10.2
+
+#### What's New:
+- Added menu to the USD Collection Widget to copy the path to the collection.
+- Added new menu in USD Explorer to Push a prim mesh to a geometry object in Max.
+- Added undo support to the USD Collection Widget used in Light Linking.
+- Added the ability to select prims in a scene from the USD collection widget (like light linking).
+
+#### Fixes:
+- Fixed an issue where some rollups for Prim Sub-object mode were not being loaded during selection.
+- Fixed the Include All not getting toggled off when adding prims to an include list for a USD Collection.
+- Fixed an error when selecting the Root prim when appending to Include/Exclude lists using the Picker.
+- Fixed USD Export of camera lens and filmback properties to be measured in tenths of a scene unit rather than in millimeter units to comply to UsdGeomCamera units.
+- Fixed problem where deactivating both parent and child prims could lead to a state where not all the selected prims were deactivated.
+- Cleaned up some USD Attribute tooltips.
+- Fixed an issue where deactivating then re-activating prims could change the USD Explorer to show unexpected prototype prims.
+
 ### v0.10.0
 
 #### What's New:

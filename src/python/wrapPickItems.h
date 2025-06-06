@@ -19,6 +19,7 @@
 #include <ufe/selection.h>
 
 #include <memory.h>
+#include <qdialog.h>
 #include <qobject.h>
 
 class WrappingPickModeCallback
@@ -47,4 +48,19 @@ Q_SIGNALS:
 private:
     const UfeUi::Explorer::PickMode* _pickMode = nullptr;
     Ufe::Selection                   _selection;
+};
+
+class QGeometryChangedDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    QGeometryChangedDialog(QWidget* parent = nullptr);
+
+Q_SIGNALS:
+    void geometryChanged(const QRect& geometry);
+
+protected:
+    void moveEvent(QMoveEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 };

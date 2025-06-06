@@ -1,0 +1,52 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.10.1.0"
+    }
+    defaultPrim = "root"
+    metersPerUnit = 0.0254
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Xform "Line001" (
+        prepend inherits = </root/_class_Line001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0.0807254, 6.75808, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    class "_class_Line001"
+    {
+        def BasisCurves "Line001"
+        {
+            int[] curveVertexCounts = [3]
+            float3[] extent = [(-20.329319, -6.855893, 0), (20.247929, 13.397701, 0)]
+            point3f[] points = [(-20.329319, -6.855893, 0), (0.081392154, 13.397701, 0), (20.247929, -6.541808, 0)]
+            color3f[] primvars:displayColor = [(0.5254902, 0.8352941, 0.4)]
+            uniform token type = "linear"
+        }
+    }
+
+    def Xform "Line002" (
+        prepend inherits = </root/_class_Line001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-1.75543, -24.3311, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Xform "Line003" (
+        prepend inherits = </root/_class_Line001>
+        instanceable = true
+    )
+    {
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (-3.59158, -55.4203, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}
+

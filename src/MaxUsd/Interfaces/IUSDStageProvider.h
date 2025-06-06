@@ -33,7 +33,8 @@ enum
     fnIdOpenInUsdExplorer,
     fnIdCloseInUsdExplorer,
     fnIdOpenInUsdLayerEditor,
-    fnIdGenerateDrawModes
+    fnIdGenerateDrawModes,
+    fnIdPromoteTo3dsMaxObject
 };
 
 namespace MAXUSD_NS_DEF {
@@ -69,6 +70,7 @@ public:
     FN_1(fnIdIsMappedPrimvar, TYPE_BOOL, IsMappedPrimvar, TYPE_STRING);
     VFN_0(fnIdClearMappedPrimvars, ClearMappedPrimvars);
     VFN_0(fnIdGenerateDrawModes, GenerateDrawModes);
+    FN_2(fnIdPromoteTo3dsMaxObject, TYPE_INODE, PromoteTo3dsMaxObject, TYPE_STRING, TYPE_BOOL);
     END_FUNCTION_MAP
 
     /// Return a weak pointer to the stage held by this provider.
@@ -122,6 +124,9 @@ public:
 
     // Generate USD Draw modes as configured.
     virtual void GenerateDrawModes() = 0;
+
+    // Promote a subtree from the stage, to a USDGeomObject object.
+    virtual INode* PromoteTo3dsMaxObject(const wchar_t* primvarName, bool select) = 0;
 };
 
 } // namespace MAXUSD_NS_DEF

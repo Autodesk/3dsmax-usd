@@ -22,6 +22,7 @@
 #include <UFEUI/Views/explorer.h>
 
 #include <BoostPythonWrapper.h>
+#include <MaxUsd/Utilities/OptionUtils.h>
 
 #include <usdUfe/ufe/Global.h>
 
@@ -64,9 +65,30 @@ void WrappingPickModeCallback::deSelected(const Ufe::Path& path)
 
 void WrappingPickModeCallback::exited(bool userCancelled) { Q_EMIT exitedSignal(userCancelled); }
 
+QGeometryChangedDialog::QGeometryChangedDialog(QWidget* parent)
+    : QDialog(parent)
+{
+}
+
+void QGeometryChangedDialog::moveEvent(QMoveEvent* event)
+{
+    QDialog::moveEvent(event);
+    Q_EMIT geometryChanged(geometry());
+}
+
+void QGeometryChangedDialog::resizeEvent(QResizeEvent* event)
+{
+    QDialog::resizeEvent(event);
+    Q_EMIT geometryChanged(geometry());
+}
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
-PyObject* _pickItems(pxr::UsdStagePtr stage, const std::string& dialogTitle = "")
+PyObject* _pickItems(
+    pxr::UsdStagePtr   stage,
+    const std::string& dialogTitle = "",
+    bool               hideRoot = false,
+    bool               hideClassPrims = true)
 {
     if (!stage) {
         return nullptr;
@@ -76,7 +98,8 @@ PyObject* _pickItems(pxr::UsdStagePtr stage, const std::string& dialogTitle = ""
         return nullptr;
     }
 
-    QPointer<QDialog> dialog = new QDialog(GetCOREInterface()->GetQmaxMainWindow());
+    QPointer<QGeometryChangedDialog> dialog
+        = new QGeometryChangedDialog(GetCOREInterface()->GetQmaxMainWindow());
     if (dialogTitle.empty()) {
         const auto        layerNameWithExt = stage->GetRootLayer()->GetDisplayName();
         const size_t      lastIndex = layerNameWithExt.find_last_of(".");
@@ -137,6 +160,16 @@ PyObject* _pickItems(pxr::UsdStagePtr stage, const std::string& dialogTitle = ""
     const auto handler = Ufe::RunTimeMgr::instance().hierarchyHandler(UsdUfe::getUsdRunTimeId());
     Ufe::Hierarchy::ChildFilter childFilter = handler->childFilter();
 
+    const auto classPrimFilter = std::find_if(
+        childFilter.begin(), childFilter.end(), [](const Ufe::ChildFilterFlag& filter) {
+            return filter.name == "ClassPrims";
+        });
+    if (classPrimFilter == childFilter.end()) {
+        DbgAssert(0 && _T("Usd Ufe ClassPrims child filter is not initalized."));
+    } else {
+        classPrimFilter->value = !hideClassPrims;
+    }
+
     auto explorer = new UfeUi::Explorer(
         rootSceneItem,
         columns,
@@ -163,6 +196,13 @@ PyObject* _pickItems(pxr::UsdStagePtr stage, const std::string& dialogTitle = ""
     auto cb = std::make_shared<WrappingPickModeCallback>(pickmode.get());
     pickmode->addCallback(cb);
 
+    if (hideRoot) {
+        auto rootIndex = explorer->treeView()->model()->index(0, 0);
+        if (rootIndex.isValid() && rootIndex.data() == "root") {
+            explorer->treeView()->setRootIndex(rootIndex);
+        }
+    }
+
     QObject::connect(
         cb.get(),
         &WrappingPickModeCallback::selectionChanged,
@@ -175,6 +215,48 @@ PyObject* _pickItems(pxr::UsdStagePtr stage, const std::string& dialogTitle = ""
                 }
             }
         });
+
+    QRect savedGeometry = QRect(-1, -1, -1, -1);
+    {
+        VtDictionary dict;
+        MaxUsd::OptionUtils::LoadUiOptions("USD PickItems", dict);
+        auto           it = dict.find("Dialog Geometry");
+        VtArray<float> val = { -1.0, -1.0, -1.0, -1.0 };
+        if (it != dict.end()) {
+            if (it->second.IsHolding<VtArray<float>>()) {
+                val = it->second.GetWithDefault<VtArray<float>>(val);
+            } else if (it->second.CanCast<VtArray<float>>()) {
+                val = it->second.Cast<VtArray<float>>().GetWithDefault<VtArray<float>>(val);
+            }
+        }
+        if (val.size() == 4 && val[2] >= 0.0f) {
+            savedGeometry = QRect(
+                MaxSDK::UIScaled(val[0]),
+                MaxSDK::UIScaled(val[1]),
+                MaxSDK::UIScaled(val[2]),
+                MaxSDK::UIScaled(val[3]));
+            dialog->setGeometry(savedGeometry);
+        }
+    }
+
+    QRect dialogGeometry = savedGeometry;
+    QObject::connect(
+        dialog, &QGeometryChangedDialog::geometryChanged, [&dialogGeometry](const QRect& geometry) {
+            dialogGeometry = geometry;
+        });
+
+    QObject::connect(dialog, &QDialog::finished, [&dialogGeometry, &savedGeometry]() {
+        if (dialogGeometry != savedGeometry) {
+            VtDictionary   dict;
+            VtArray<float> val
+                = { MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.left())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.top())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.width())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.height())) };
+            dict["Dialog Geometry"] = val;
+            MaxUsd::OptionUtils::SaveUiOptions("USD PickItems", dict);
+        }
+    });
 
     if (dialog->exec() == QDialog::Accepted) {
         auto selection = cb->selectedPrims();
@@ -189,6 +271,9 @@ void wrapPickItems()
     pyboost::def(
         "PickItems",
         _pickItems,
-        (pyboost::arg("stage"), pyboost::arg("dialogTitle") = ""),
+        (pyboost::arg("stage"),
+         pyboost::arg("dialogTitle") = "",
+         pyboost::arg("hideRoot") = true,
+         pyboost::arg("hideClassPrims") = true),
         "Picks one or more items from the stage object");
 }

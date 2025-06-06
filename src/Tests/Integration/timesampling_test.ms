@@ -40,7 +40,7 @@ struct timesampling_test
     (
         initialUnits = units.SystemType
         initialScale = units.SystemScale
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     -- We test the conversion of time-sampled data in depth in the C++ tests. 

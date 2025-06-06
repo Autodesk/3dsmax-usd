@@ -35,7 +35,7 @@ struct io_color_n_visibility_test
     (
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_io_display_color = (
@@ -55,7 +55,7 @@ struct io_color_n_visibility_test
         assert_equal 0 dispColor[2] message:"Unexpected displayColor, should be from the wire color."
         assert_equal 0 dispColor[3] message:"Unexpected displayColor, should be from the wire color."
         
-        resetMaxFile #noprompt
+        quickReset()
         -- Reimport the file, now we should get back the right wire color.
         USDImporter.ImportFile testFilePath
         b = $box    
@@ -86,7 +86,7 @@ struct io_color_n_visibility_test
         assert_equal 1 dispColor[2] message:"Unexpected displayColor, should be from the vertex color."
         assert_equal 0 dispColor[3] message:"Unexpected displayColor, should be from the vertex color."
             
-        resetMaxFile #noprompt
+        quickReset()
         -- Reimport the file, now we should get back green as the wire color...
         USDImporter.ImportFile testFilePath
         b = $box    
@@ -124,7 +124,7 @@ struct io_color_n_visibility_test
         visibility = (visibilityAttr.Get())
         assert_equal "invisible" visibility message:"Unexpected hiddenBox.visibility, should be invisible."
             
-        resetMaxFile #noprompt
+        quickReset()
 
         USDImporter.ImportFile testFilePath
         b = $box   

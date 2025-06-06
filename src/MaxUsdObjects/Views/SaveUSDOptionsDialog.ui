@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>387</width>
-    <height>140</height>
+    <width>413</width>
+    <height>190</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,7 +21,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0">
      <item>
       <widget class="QLabel" name="label">
        <property name="sizePolicy">
@@ -49,8 +49,15 @@
           <property name="text">
            <string>Save the 3ds Max scene file and USD files.</string>
           </property>
-          <property name="checked">
-           <bool>true</bool>
+          <property name="name" stdset="0">
+           <cstring>radioForward</cstring>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="saveAllEditsMaxFileButton">
+          <property name="text">
+           <string>Save all edits (including USD) to the Max scene file.</string>
           </property>
           <property name="name" stdset="0">
            <cstring>radioForward</cstring>
@@ -70,15 +77,31 @@
        </layout>
       </widget>
      </item>
-     <item>
+    </layout>
+   </item>
+        <item row="1" column="0">
+      <widget class="QLabel" name="importantlabel">
+       <property name="hidden">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Important: per layer, any data exceeding the limit of 2GB will not be saved.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
       <widget class="QDialogButtonBox" name="saveCancel">
        <property name="standardButtons">
         <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
   </layout>
  </widget>
  <resources/>

@@ -35,7 +35,7 @@ struct export_metersPerUnit_test
     
     public
     function setup = (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
 
         initialUnits = units.SystemType

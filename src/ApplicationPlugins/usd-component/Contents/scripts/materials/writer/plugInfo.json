@@ -9,7 +9,8 @@
                      "PBR Material (Metal/Rough)",
                      "PBR Material (Spec/Gloss)",
                      "USD Preview Surface",
-                     "Standard Surface"
+                     "Standard Surface",
+                     "OpenPBR Material"
                   ]
                }
             }

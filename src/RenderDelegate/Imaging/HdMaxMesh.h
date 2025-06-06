@@ -81,6 +81,13 @@ public:
      */
     void Finalize(HdRenderParam* renderParam) override;
 
+    /**
+     * Returns the intial dirty bits. Static access to the bits returned from
+     * GetInitialDirtyBitsMask().
+     * @return The initial dirty bits.
+     */
+    RenderDelegateAPI static HdDirtyBits GetInitialDirtyBits();
+
 protected:
     HdDirtyBits _PropagateDirtyBits(HdDirtyBits bits) const override;
     void        _InitRepr(TfToken const& reprToken, HdDirtyBits* dirtyBits) override;

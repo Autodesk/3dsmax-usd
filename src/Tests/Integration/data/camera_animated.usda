@@ -19,8 +19,8 @@ def Camera "Camera001"
 		10: 12,
 	}
 	float focalLength.timeSamples = {
-		0: 40.322582,
-		10: 45.82485,
+		0: 403.22582,
+		10: 458.2485,
 	}
 	float focusDistance.timeSamples = {
 		0: 5000,
@@ -31,8 +31,8 @@ def Camera "Camera001"
 		10: 16,
 	}
 	float horizontalAperture.timeSamples = {
-		0: 35.999996,
-		10: 34.999996,
+		0: 359.99996,
+		10: 349.99996,
 	}
 	token projection = "perspective"
 	double shutter:close.timeSamples = {
@@ -44,8 +44,8 @@ def Camera "Camera001"
 		10: 89.9999966472389,
 	}
 	float verticalAperture.timeSamples = {
-		0: 20.249998,
-		10: 19.687498,
+		0: 202.49998,
+		10: 196.87498,
 	}
 }
 

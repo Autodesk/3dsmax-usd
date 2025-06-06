@@ -1836,6 +1836,11 @@ public:
 
     void SetSceneFileComputerName(const MSTR&, bool) override { }
 
+#if MAX_RELEASE >= 28900
+    Bitmap* LoadMaxThumbnail(const MCHAR* filename) { return nullptr; };
+    bool DisplayObjectPropertiesDialog(const INodeTab& nodeTab) {return false;}
+#endif
+
 #else
     virtual void DoUICustomization(int startPage) override { }
 #endif

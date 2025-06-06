@@ -32,12 +32,6 @@ protected:
         TfTokenVector const&              renderTags) override;
 
     void _MarkCollectionDirty() override { }
-
-    /// Keep track of used render tags, to react to changes.
-    TfTokenVector prevRenderTags;
-    /// Keep track of the versioning for authored render tags so
-    /// that we can react to changes.
-    unsigned authoredTagsVer = 1;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

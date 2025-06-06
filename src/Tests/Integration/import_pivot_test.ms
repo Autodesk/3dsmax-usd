@@ -33,7 +33,7 @@ struct import_pivot_test
     public
     
     function reset = (
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #meters
         units.SystemScale = 1
     ),    

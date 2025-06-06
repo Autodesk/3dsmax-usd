@@ -23,6 +23,8 @@
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/base/tf/stackTrace.h>
 
+#include <Rendering/IRenderMessageManager.h>
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_ENV_SETTING(
@@ -156,6 +158,39 @@ void ListenerDelegate::WriteWarning(const std::string& message)
 void ListenerDelegate::WriteInfo(const std::string& message)
 {
     Listener::Write(UsdStringToMaxString(message).data(), false);
+}
+
+void RenderMessageDelegate::WriteError(const std::string& message)
+{
+    IRenderMessageManager* pRenderMessageManager = GetRenderMessageManager();
+    const auto             messageWStr = MaxUsd::UsdStringToMaxString(message);
+    pRenderMessageManager->LogMessage(
+        IRenderMessageManager::kSource_ProductionRenderer,
+        IRenderMessageManager::kType_Error,
+        0,
+        messageWStr.data());
+}
+
+void RenderMessageDelegate::WriteWarning(const std::string& message)
+{
+    IRenderMessageManager* pRenderMessageManager = GetRenderMessageManager();
+    const auto             messageWStr = MaxUsd::UsdStringToMaxString(message);
+    pRenderMessageManager->LogMessage(
+        IRenderMessageManager::kSource_ProductionRenderer,
+        IRenderMessageManager::kType_Warning,
+        0,
+        messageWStr.data());
+}
+
+void RenderMessageDelegate::WriteInfo(const std::string& message)
+{
+    IRenderMessageManager* pRenderMessageManager = GetRenderMessageManager();
+    const auto             messageWStr = MaxUsd::UsdStringToMaxString(message);
+    pRenderMessageManager->LogMessage(
+        IRenderMessageManager::kSource_ProductionRenderer,
+        IRenderMessageManager::kType_Info,
+        0,
+        messageWStr.data());
 }
 
 } // namespace Diagnostics

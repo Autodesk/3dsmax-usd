@@ -28,7 +28,7 @@ struct usd_explorer_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function findUsdExplorer = (

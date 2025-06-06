@@ -364,3 +364,10 @@ function check_usd_file_valid usdFile = (
     deleteFile outputLog
     return success
 )
+
+function quickReset = 
+(
+	delete $objects
+	clearUndoBuffer()
+	sliderTime = 0	
+)

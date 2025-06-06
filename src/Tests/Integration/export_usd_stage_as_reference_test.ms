@@ -38,7 +38,7 @@ struct export_usd_stage_as_reference_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         
         initialUnits = units.SystemType
@@ -235,7 +235,7 @@ struct export_usd_stage_as_reference_test
         exportOptions.RootPrimPath = "/foo" -- For simplicity.
         exportOptions.UsdStagesAsReferences = true    
             
-        local exportPath = output_prefix + "export_stage_object_offset.usd"
+        local exportPath = output_prefix + "export_stage_with_different_units_and_axis.usd"
         USDExporter.ExportFile exportPath exportOptions:exportOptions
             
         -- Validate that the USD Stage was split into an xform and the reference, because the transform required

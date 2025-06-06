@@ -24,6 +24,7 @@ pyUsd = python.import("pxr.Usd")
 pyUsdGeom = python.import("pxr.UsdGeom")
 pyUsdLux = python.import("pxr.UsdLux")
 pyGf = python.import("pxr.Gf")
+pyUsdUtils = python.import("pxr.UsdUtils")
 
 input_prefix = pathConfig.appendPath (getDir #temp) "/IMPORT_LIGHT_TEST_"
 deleteTestFiles(input_prefix + "*.*")
@@ -38,7 +39,7 @@ struct import_light_test
     
     function resetSceneAndUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
         units.SystemType = #inches
         units.SystemScale = 1.0        
     ),
@@ -68,8 +69,12 @@ struct import_light_test
     ----------------------------------------------------------------------------------------------------   
     function usd_lux_light_general_attributes_import_test = (
         -- USD Lux Disk light will be imported back as a Photometric Disk light using a uniform distribution
-        local filepath = input_prefix + "test_lux_disk_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
+        
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "DiskLightPrim"
         local lightPrim = pyUsdLux.DiskLight.Define stage ("/" + lightName)
@@ -89,9 +94,8 @@ struct import_light_test
         lightShadowAPI.CreateShadowEnableAttr(True)
         lightShadowColor = color 0 255 0
         lightShadowAPI.CreateShadowColorAttr((pyGf.Vec3f (lightShadowColor.r/255.0) (lightShadowColor.g/255.0) (lightShadowColor.b/255.0)))
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -117,8 +121,10 @@ struct import_light_test
         --  - turn off shadows
         --  - turn off specular effect
         --  - turn off diffuse effect
-        local filepath = input_prefix + "test_lux_disk_second_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "DiskLightSecondPrim"
         local lightPrim = pyUsdLux.DiskLight.Define stage ("/" + lightName)
@@ -136,9 +142,8 @@ struct import_light_test
         lightShadowAPI.CreateShadowColorAttr((pyGf.Vec3f (lightShadowColor.r/255.0) (lightShadowColor.g/255.0) (lightShadowColor.b/255.0)))
         lightPrim.CreateSpecularAttr(0.0)
         lightPrim.CreateDiffuseAttr(0.0)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -157,16 +162,17 @@ struct import_light_test
 
     function usd_lux_disk_light_import_test = (
         -- USD Lux Disk light will be imported back as a Photometric Disk light using a uniform distribution
-        local filepath = input_prefix + "test_lux_disk_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "DiskLightPrim"
         local lightPrim = pyUsdLux.DiskLight.Define stage ("/" + lightName)
         local lightRadius = 2.8
         lightPrim.CreateRadiusAttr(lightRadius)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -177,16 +183,17 @@ struct import_light_test
 
     function usd_lux_sphere_light_import_test = (
         -- USD Lux Sphere light will be imported back as a Photometric Sphere light using a spherical distribution
-        local filepath = input_prefix + "test_lux_sphere_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "SphereLightPrim"
         local lightPrim = pyUsdLux.SphereLight.Define stage ("/" + lightName)
         local lightRadius = 15.5
         lightPrim.CreateRadiusAttr(lightRadius)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -199,13 +206,15 @@ struct import_light_test
         -- USD Lux Sphere light using a 'treat as point' attribute
         -- will be imported back as a Photometric Point light using a spherical distribution
         local filepath = input_prefix + "test_lux_sphere_treat_as_point_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         local lightName = "SpherePointLightPrim"
         local lightPrim = pyUsdLux.SphereLight.Define stage ("/" + lightName)
         lightPrim.CreateTreatAsPointAttr(True)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -215,8 +224,10 @@ struct import_light_test
 
     function usd_lux_rect_light_import_test = (
         -- USD Lux Rect light will be imported back as a Photometric Rectangle light using a uniform distribution
-        local filepath = input_prefix + "test_lux_rect_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "RectLightPrim"
         local lightPrim = pyUsdLux.RectLight.Define stage ("/" + lightName)
@@ -224,9 +235,8 @@ struct import_light_test
         lightPrim.CreateWidthAttr(lightWidth)
         local lightHeight = 2.4
         lightPrim.CreateHeightAttr(lightHeight)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -238,8 +248,10 @@ struct import_light_test
 
     function usd_lux_cylinder_light_import_test = (
         -- USD Lux Cylinder light will be imported back as a Photometric Cylinder light using a spherical distribution
-        local filepath = input_prefix + "test_lux_cylinder_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "CylinderLightPrim"
         local lightPrim = pyUsdLux.CylinderLight.Define stage ("/" + lightName)
@@ -247,9 +259,8 @@ struct import_light_test
         local lightLength = 30.0
         lightPrim.CreateRadiusAttr(lightRadius)
         lightPrim.CreateLengthAttr(lightLength)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")
@@ -263,16 +274,18 @@ struct import_light_test
         -- USD Lux Cylinder light using a 'treat as line' attribute
         -- will be imported back as a Photometric Line light using a spherical distribution
         local filepath = input_prefix + "test_lux_cylinder_treat_as_line_import.usda"
-        local stage = pyUsd.Stage.CreateNew(filepath)
+        local stage = pyUsd.Stage.CreateInMemory()
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
         pyUsdGeom.SetStageMetersPerUnit stage 0.0254  -- default 3ds Max units are in inches
         local lightName = "CylinderLineLightPrim"
         local lightPrim = pyUsdLux.CylinderLight.Define stage ("/" + lightName)
         local lightLength = 22.5
         lightPrim.CreateTreatAsLineAttr(True)
         lightPrim.CreateLengthAttr(lightLength)
-        (stage.GetRootLayer()).Save()
         
-        USDImporter.ImportFile filepath
+        USDImporter.ImportFromCache stageId
         importedLight = objects[1]
         
         assert_equal lightName importedLight.name  message:(importedLight.name + " light should be named '" + lightName + "'")

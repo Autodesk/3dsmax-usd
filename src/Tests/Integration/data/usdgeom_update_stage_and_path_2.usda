@@ -1,0 +1,14 @@
+#usda 1.0
+
+def Xform "root"
+{
+    def Cone "A" (
+    )
+    {
+    }
+    
+    def Capsule "B" (
+    )
+    {
+    }
+}

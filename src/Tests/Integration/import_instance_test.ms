@@ -35,7 +35,7 @@ struct import_instance_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function import_ref_instance_test = (

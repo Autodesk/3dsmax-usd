@@ -30,7 +30,7 @@ struct system_tests
     public
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function test_system = (

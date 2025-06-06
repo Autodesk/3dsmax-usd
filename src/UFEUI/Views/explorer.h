@@ -383,6 +383,10 @@ private:
     bool _inSelectionExpansion = false;
     bool _ignoreUfeNotifications = false;
 
+    /// Flag to ignore treeview selection changes that we trigger. So to not update the
+    /// ufe selection.
+    bool _ignoreTreeSelectionChanged = false;
+
     std::weak_ptr<PickMode> _pickMode;
     Ufe::Selection          _pickModeSelection;
 };

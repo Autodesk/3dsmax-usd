@@ -123,7 +123,7 @@ def _gather_data(data_files):
                     with open(data_file) as f:
                         json_data = json.load(f)
                 except:
-                    print("Bad json data file: {data_file}")
+                    print("Bad json data file: {0}".format(data_file))
                 data.update(json_data)
     return conversion_data
 

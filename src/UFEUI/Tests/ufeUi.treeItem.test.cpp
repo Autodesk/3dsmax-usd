@@ -17,11 +17,11 @@
 #include "ufeUiTestBase.h"
 #include "utils.h"
 
+#include <UFEUI/Views/explorer.h>
 #include <UFEUI/treeItem.h>
 #include <UFEUI/treeModel.h>
 
 #include <ufe/hierarchy.h>
-#include <ufe/subject.h>
 
 #include <gtest/gtest.h>
 
@@ -172,16 +172,22 @@ TEST_F(TreeItemTest, TreeItem_disabled)
 }
 TEST_F(TreeItemTest, TreeItem_findDescendants)
 {
-    const auto                  model = UfeUi::TreeModel::create({}, nullptr);
+    UfeUi::TreeColumns columns;
+    columns.push_back(std::make_shared<UfeUiTest::TestColumn>(0));
+    const UfeUi::TypeFilter     typeFilter;
     Ufe::Hierarchy::ChildFilter childFilter;
-    model->buildTreeFrom(
-        model->root(),
+
+    auto testExplorer = std::unique_ptr<UfeUi::Explorer>(new UfeUi::Explorer(
         Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::root),
-        "",
-        {},
+        columns,
+        typeFilter,
         childFilter,
-        false);
-    const auto root = model->root();
+        false,
+        "",
+        {}));
+
+    const auto root = testExplorer->treeModel()->root()->child(0);
+    testExplorer->treeView()->expandAll();
 
     const auto none = root->findDescendants([](const UfeUi::TreeItem* item) { return false; });
     EXPECT_TRUE(none.empty());

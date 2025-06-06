@@ -35,6 +35,7 @@ MaxUSDAPI void
 UpdateInstanceData(InstanceDisplayGeometry* instanceGeometry, const InstanceData& data);
 MaxUSDAPI void SetInstanceDataMatrices(InstanceData& data, std::vector<Matrix3>& matrices);
 MaxUSDAPI void ClearInstanceData(InstanceData& data);
+
 } // namespace ViewportInstancing
 } // namespace Graphics
 } // namespace MaxRestrictedSDKSupport

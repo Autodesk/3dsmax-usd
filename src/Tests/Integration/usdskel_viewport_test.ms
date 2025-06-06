@@ -39,7 +39,7 @@ struct usdskel_viewport_test
         initialUnits = units.SystemType
         initialScale = units.SystemScale
         
-        resetmaxfile #noprompt
+        quickReset()
         
         -- Maximize the Viewport 
         actionMan.executeAction 0 "50026"

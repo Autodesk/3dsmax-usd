@@ -47,7 +47,7 @@ struct export_material_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportMaterialTestOptions.FileFormat = #ascii
         exportMaterialTestOptions.RootPrimPath = "/"
         exportMaterialTestOptions.Materials = true

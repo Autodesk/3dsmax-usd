@@ -36,7 +36,7 @@ struct export_transforms_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
     ),
@@ -127,7 +127,7 @@ struct export_transforms_test
         local boxNode = Box Name:"box" pos:[10,10,10]
         append tapeNode.children boxNode
         
-        local exportPath = output_prefix + "test_object_offset_transforms_identity.usd"
+        local exportPath = output_prefix + "test_object_without_prim_creator.usd"
         USDExporter.ExportFile exportPath exportOptions:exportOptions
         local stage = pyUsd.Stage.Open(exportPath)
         local tapePrim = stage.GetPrimAtPath("/tape")
@@ -244,13 +244,95 @@ struct export_transforms_test
         local pointsWithoutWSM = (pyVt.Vec3fArray #((pyGf.Vec3f -2.5 6.368498 29.041412), (pyGf.Vec3f 22.5 6.368498 29.041412), (pyGf.Vec3f -2.5 23.631502 10.958587), (pyGf.Vec3f 22.5 23.631502 10.958587), (pyGf.Vec3f -2.5 24.451324 46.304417), (pyGf.Vec3f 22.5 24.451324 46.304417), (pyGf.Vec3f -2.5 41.71433 28.221592), (pyGf.Vec3f 22.5 41.71433 28.221592)))
         assert_true (compareVec3fArrays pointsWithoutWSM boxPrimPoints) message:"The exported vertices with the noise WSM disabled are not correct."
     ),
+
+    function setup_worldspaceroot_tests = (
+        -- Create a hierarchy with transforms and object offsets.
+        local parent = PointHelperObj name:"parent"
+        parent.position = [10, 10, 25]
+        
+        local boxNode = box name:"box"
+        boxNode.parent = parent
+        boxNode.position = [40, 40, 25]
+
+        local boxNode2 = box name:"box2"
+        boxNode2.parent = boxNode
+        boxNode2.position = [40, 40, 50]
+
+        select #(boxNode, boxNode2)  
+    ),
+
+    function test_worldspaceroot_on = (
+        
+        setup_worldspaceroot_tests()
+
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.UseWorldspaceRoot = true
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+    
+        local exportPath = output_prefix + "test_worldspaceRoot_ON.usda"
+        
+        assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        -- Validate "box" transform
+        local boxPrim = stage.GetPrimAtPath("/box")
+        assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
+        local boxXformable = pyUsdGeom.Xformable(boxPrim)
+        local boxTransform = boxXformable.GetLocalTransformation()
+        local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 40 40 25 1)
+        assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+
+        -- Validate "box2" transform
+        local box2Prim = stage.GetPrimAtPath("/box/box2")
+        assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
+        local box2Xformable = pyUsdGeom.Xformable(box2Prim)
+        local box2Transform = box2Xformable.GetLocalTransformation()
+        local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
+        assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+    ),
+
+    function test_worldspaceroot_off = (
+          
+        setup_worldspaceroot_tests()
+
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.UseWorldspaceRoot = false
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+    
+        local exportPath = output_prefix + "test_worldspaceRoot_OFF.usda"
+        
+        assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        stage.Reload()
+        -- Validate "box" transform
+        local boxPrim = stage.GetPrimAtPath("/box")
+        assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
+        local boxXformable = pyUsdGeom.Xformable(boxPrim)
+        local boxTransform = boxXformable.GetLocalTransformation()
+        local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 30 30 0 1)
+        assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+
+        -- Validate "box2" transform
+        local box2Prim = stage.GetPrimAtPath("/box/box2")
+        assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
+        local box2Xformable = pyUsdGeom.Xformable(box2Prim)
+        local box2Transform = box2Xformable.GetLocalTransformation()
+        local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
+        assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+    ),
         
     function teardown = (
     ),
 
     Tests = #(test_object_offset_transforms,
         test_object_without_prim_creator,
-        export_object_with_wsm_test)
+        export_object_with_wsm_test,
+        test_worldspaceroot_on,
+        test_worldspaceroot_off
+    )
 )
 
 runUsdTestFixture export_transforms_test (getThisScriptFilename())

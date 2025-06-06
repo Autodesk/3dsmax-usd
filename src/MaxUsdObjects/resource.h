@@ -35,7 +35,7 @@
 #define IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_TRIANGLES      16
 #define IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_CELL_SIZE      17
 #define IDS_USDSTAGEOBJECT_ROLL_OUT_CONSOLIDATION_MAX_INSTANCE_COUNT 18
-#define IDS_USDSTAGEOBJECT_ROLLUP_PARAMETERS_TITLE                   19
+#define IDS_USDSTAGEOBJECT_ROLLUP_STAGE_TITLE                        19
 #define IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_DISPLAY_TITLE             20
 #define IDS_USDSTAGEOBJECT_ROLLUP_VIEWPORT_PERFORMANCE_TITLE         21
 #define IDS_USDSTAGEOBJECT_ROLLUP_ANIMATION_TITLE                    22
@@ -96,6 +96,8 @@
 #define IDS_USDSNAPS_EDGE                                            77
 #define IDS_USDSNAPS_FACE                                            78
 #define IDS_PARAMS                                                   79
+#define IDS_USDSTAGEOBJECT_ROLLUP_TOOLS_TITLE                        80
+#define IDS_USDSTAGEOBJECT_ROLLUP_METADATA_TITLE                     81
 
 // Next default values for new objects
 //

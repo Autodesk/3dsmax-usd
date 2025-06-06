@@ -27,7 +27,7 @@ struct python_bindings_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
 
     ),
     

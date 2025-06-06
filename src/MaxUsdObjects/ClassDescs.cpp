@@ -16,6 +16,7 @@
 #include "ClassDescs.h"
 
 #include "Objects/USDAttrControllerClassDescs.h"
+#include "Objects/USDGeomObject.h"
 #include "Objects/USDSnaps.h"
 #include "Objects/USDStageObjectclassDesc.h"
 #include "Objects/USDTransformControllersClassDesc.h"
@@ -32,6 +33,7 @@ void           CreateClassList()
 {
     std::vector<ClassDesc2*> classDescs;
     classDescs.push_back(GetUSDStageObjectClassDesc());
+    classDescs.push_back(GetUSDGeomObjectDesc());
     classDescs.push_back(GetUSDCameraObjectClassDesc());
     classDescs.push_back(GetUSDXformableControllerClassDesc());
     classDescs.push_back(GetUSDPositionControllerClassDesc());

@@ -851,7 +851,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                 // same objects multiple times at the same time values.
                 auto node = context.node;
                 animExportTask.AddTransformExportOp(
-                    [&buildOptions, node, xFormPrim](
+                    [&buildOptions, node, xFormPrim, this](
                         const MaxUsd::ExportTime& time, pxr::UsdGeomXformOp& usdGeomXFormOp) {
                         pxr::GfMatrix4d maxTransformMatrix
                             = MaxUsd::ToUsd(node->GetNodeTM(time.GetMaxTime()));
@@ -868,7 +868,23 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                         parentWorldTransform.SetIdentity();
 
                         const auto parentNode = node->GetParentNode();
-                        if (parentNode && !parentNode->IsRootNode()) {
+                        bool       parentIsRootNode = parentNode && parentNode->IsRootNode();
+                        bool       exportingParent
+                            = nodesToExportSet.find(parentNode) != nodesToExportSet.end();
+                        // If the parent node is not being exported and the WorldspaceRoot option is
+                        // on, Keep the parent's world transform as part of this node transform.
+                        bool keepWorldTransform
+                            = !exportingParent && buildOptions.GetUseWorldspaceRoot();
+
+                        // Transform the Node's transform to local space :
+                        // If it's parent node is being exported.
+                        // If the parent is not being exported but the WorldspaceRoot option is
+                        // off.
+                        // If nodesToExportSet is empty, the entire scene is being exported.
+                        bool inverseTransform
+                            = exportingParent || !keepWorldTransform || nodesToExportSet.empty();
+
+                        if (!parentIsRootNode && inverseTransform) {
                             parentWorldTransform = MaxUsd::GetNodeTransform(
                                 parentNode,
                                 time.GetMaxTime(),

@@ -21,6 +21,8 @@
 
 #include <Graphics/GeometryRenderItemHandle.h>
 
+#include <gtest/gtest.h>
+
 TEST(PrimvarsToNitrous, NormalsFaceVaryingInterp)
 {
     auto testDataPath = GetTestDataPath();

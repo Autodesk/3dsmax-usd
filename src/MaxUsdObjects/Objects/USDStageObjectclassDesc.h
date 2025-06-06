@@ -45,8 +45,11 @@ public:
     SClass_ID    SuperClassID() override;
     const MCHAR* Category() override;
 
-    bool RemoveParamMap(IParamMap2* pParamMap);
-    void AddParamMap(IParamMap2* pParamMap);
+    bool     RemoveParamMap(IParamMap2* pParamMap);
+    void     AddParamMap(IParamMap2* pParamMap);
+    BOOL     NeedsToSave() override;
+    IOResult Save(ISave* isave) override;
+    IOResult Load(ILoad* iload) override;
 };
 
 ClassDesc2* GetUSDStageObjectClassDesc();

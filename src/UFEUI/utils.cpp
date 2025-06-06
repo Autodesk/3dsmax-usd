@@ -78,9 +78,15 @@ void expandPaths(
     QSortFilterProxyModel*  proxyModel,
     std::vector<Ufe::Path>& expandedPaths)
 {
-    for (const auto& path : expandedPaths) {
-        const auto proxyIdx = proxyModel->mapFromSource(model->getIndexFromPath(path));
-        treeView->setExpanded(proxyIdx, true);
+    // Expand from the bottom up, got into a strange issue where expanding the first child of the
+    // root messed with the expand stage of its parent... reversing the order works around the
+    // issue.
+    for (int i = int(expandedPaths.size() - 1); i >= 0; --i) {
+        const auto& path = expandedPaths[i];
+        const auto  proxyIdx = proxyModel->mapFromSource(model->getIndexFromPath(path, true));
+        if (proxyIdx.isValid() && treeView->rootIndex() != proxyIdx) {
+            treeView->setExpanded(proxyIdx, true);
+        }
     }
 }
 
@@ -120,6 +126,19 @@ bool filtersAreEqual(
         ++it2;
     }
     return true;
+}
+
+namespace {
+std::function<void(std::string)> errorFunction;
+}
+
+void SetErrorFunction(const std::function<void(std::string)>& errorFn) { errorFunction = errorFn; }
+
+void ReportError(const std::string& error)
+{
+    if (errorFunction) {
+        errorFunction(error);
+    }
 }
 
 } // namespace Utils

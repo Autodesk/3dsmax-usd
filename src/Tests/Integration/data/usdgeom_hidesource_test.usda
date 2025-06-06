@@ -1,0 +1,257 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "USD for Autodesk 3ds Max: v0.10.1.0"
+    }
+    defaultPrim = "root"
+    endTimeCode = 1
+    framesPerSecond = 30
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Z"
+)
+
+def Xform "root"
+{
+    def Xform "A"
+    {
+        uniform token purpose = "default"
+        token visibility = "inherited"
+        matrix4d xformOp:transform.timeSamples = {
+            0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1) ),
+            1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 100, 1) ),
+        }
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+
+        def Mesh "A_Shape" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            float3[] extent.timeSamples = {
+                0: [(-5, -5, 0), (5, 5, 0.0001)],
+            }
+            int[] faceVertexCounts.timeSamples = {
+                0: [4],
+            }
+            int[] faceVertexIndices.timeSamples = {
+                0: [2, 3, 0, 1],
+            }
+            point3f[] points.timeSamples = {
+                0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+            }
+            color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+            float3[] primvars:normals (
+                interpolation = "faceVarying"
+            )
+            float3[] primvars:normals.timeSamples = {
+                0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+            }
+            int[] primvars:normals:indices.timeSamples = {
+                0: [0, 1, 2, 3],
+            }
+            uniform token subdivisionScheme = "none"
+        }
+
+        def Xform "B"
+        {
+            uniform token purpose = "guide"
+            matrix4d xformOp:transform.timeSamples = {
+                0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 20, 0, 1) ),
+                1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 20, 0, 1) ),
+            }
+            uniform token[] xformOpOrder = ["xformOp:transform"]
+
+            def Mesh "B_Shape" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                float3[] extent.timeSamples = {
+                    0: [(-5, -5, 0), (5, 5, 0.0001)],
+                }
+                int[] faceVertexCounts.timeSamples = {
+                    0: [4],
+                }
+                int[] faceVertexIndices.timeSamples = {
+                    0: [2, 3, 0, 1],
+                }
+                point3f[] points.timeSamples = {
+                    0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+                }
+                color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+                float3[] primvars:normals (
+                    interpolation = "faceVarying"
+                )
+                float3[] primvars:normals.timeSamples = {
+                    0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+                }
+                int[] primvars:normals:indices.timeSamples = {
+                    0: [0, 1, 2, 3],
+                }
+                uniform token subdivisionScheme = "none"
+            }
+
+            def Mesh "D" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                float3[] extent.timeSamples = {
+                    0: [(-5, -5, 0), (5, 5, 0.0001)],
+                }
+                int[] faceVertexCounts.timeSamples = {
+                    0: [4],
+                }
+                int[] faceVertexIndices.timeSamples = {
+                    0: [2, 3, 0, 1],
+                }
+                point3f[] points.timeSamples = {
+                    0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+                }
+                color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+                float3[] primvars:normals (
+                    interpolation = "faceVarying"
+                )
+                float3[] primvars:normals.timeSamples = {
+                    0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+                }
+                int[] primvars:normals:indices.timeSamples = {
+                    0: [0, 1, 2, 3],
+                }
+                uniform token subdivisionScheme = "none"
+                matrix4d xformOp:transform.timeSamples = {
+                    0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 20, 0, 1) ),
+                    1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 20, 0, 1) ),
+                }
+                uniform token[] xformOpOrder = ["xformOp:transform"]
+            }
+
+            def Mesh "F" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                float3[] extent.timeSamples = {
+                    0: [(-5, -5, 0), (5, 5, 0.0001)],
+                }
+                int[] faceVertexCounts.timeSamples = {
+                    0: [4],
+                }
+                int[] faceVertexIndices.timeSamples = {
+                    0: [2, 3, 0, 1],
+                }
+                point3f[] points.timeSamples = {
+                    0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+                }
+                color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+                float3[] primvars:normals (
+                    interpolation = "faceVarying"
+                )
+                float3[] primvars:normals.timeSamples = {
+                    0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+                }
+                int[] primvars:normals:indices.timeSamples = {
+                    0: [0, 1, 2, 3],
+                }
+                uniform token subdivisionScheme = "none"
+                matrix4d xformOp:transform.timeSamples = {
+                    0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (20, 20, 0, 1) ),
+                    1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (20, 20, 0, 1) ),
+                }
+                uniform token[] xformOpOrder = ["xformOp:transform"]
+            }
+
+            def Mesh "E" (
+                customData = {
+                    dictionary "3dsmax" = {
+                        int matId = 1
+                    }
+                }
+            )
+            {
+                float3[] extent.timeSamples = {
+                    0: [(-5, -5, 0), (5, 5, 0.0001)],
+                }
+                int[] faceVertexCounts.timeSamples = {
+                    0: [4],
+                }
+                int[] faceVertexIndices.timeSamples = {
+                    0: [2, 3, 0, 1],
+                }
+                point3f[] points.timeSamples = {
+                    0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+                }
+                color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+                float3[] primvars:normals (
+                    interpolation = "faceVarying"
+                )
+                float3[] primvars:normals.timeSamples = {
+                    0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+                }
+                int[] primvars:normals:indices.timeSamples = {
+                    0: [0, 1, 2, 3],
+                }
+                uniform token purpose = "guide"
+                uniform token subdivisionScheme = "none"
+                matrix4d xformOp:transform.timeSamples = {
+                    0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (40, 20, 0, 1) ),
+                    1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (40, 20, 0, 1) ),
+                }
+                uniform token[] xformOpOrder = ["xformOp:transform"]
+            }
+        }
+
+        def Mesh "C" (
+            customData = {
+                dictionary "3dsmax" = {
+                    int matId = 1
+                }
+            }
+        )
+        {
+            float3[] extent.timeSamples = {
+                0: [(-5, -5, 0), (5, 5, 0.0001)],
+            }
+            int[] faceVertexCounts.timeSamples = {
+                0: [4],
+            }
+            int[] faceVertexIndices.timeSamples = {
+                0: [2, 3, 0, 1],
+            }
+            point3f[] points.timeSamples = {
+                0: [(5, 5, 0), (-5, 5, 0), (-5, -5, 0), (5, -5, 0)],
+            }
+            color3f[] primvars:displayColor = [(0.13725491, 0.11764706, 0.61960787)]
+            float3[] primvars:normals (
+                interpolation = "faceVarying"
+            )
+            float3[] primvars:normals.timeSamples = {
+                0: [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
+            }
+            int[] primvars:normals:indices.timeSamples = {
+                0: [0, 1, 2, 3],
+            }
+            uniform token subdivisionScheme = "none"
+            matrix4d xformOp:transform.timeSamples = {
+                0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (20, 20, 0, 1) ),
+                1: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (20, 20, 0, 1) ),
+            }
+            uniform token[] xformOpOrder = ["xformOp:transform"]
+        }
+    }
+}
+

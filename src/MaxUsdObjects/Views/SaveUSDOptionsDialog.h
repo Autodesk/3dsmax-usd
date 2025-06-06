@@ -27,23 +27,13 @@ class SaveUSDOptionsDialog : public QDialog
     Q_OBJECT
 
 public:
-    enum class SaveMode
-    {
-        SaveAll,
-        Save3dsMaxOnly
-    };
-
     explicit SaveUSDOptionsDialog(QWidget* parent = nullptr);
 
     ~SaveUSDOptionsDialog() = default;
-
-    SaveMode GetSaveMode() const { return saveMode; }
 
 private:
     /// Reference to the Qt UI View of the dialog
     std::unique_ptr<Ui::SaveUSDOptionsDialog> ui { std::make_unique<Ui::SaveUSDOptionsDialog>() };
 
     QButtonGroup* buttonGroup = nullptr;
-
-    SaveMode saveMode = SaveMode::SaveAll;
 };

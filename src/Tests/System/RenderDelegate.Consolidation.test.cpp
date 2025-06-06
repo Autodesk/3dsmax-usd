@@ -22,6 +22,7 @@
 #include <pxr/usd/usdGeom/cone.h>
 
 #include <Windows.h>
+#include <gtest/gtest.h>
 
 // Test that a single box is not consolidated.
 TEST(Consolidation, Consolidate1Box)

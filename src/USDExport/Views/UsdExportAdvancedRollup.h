@@ -43,6 +43,8 @@ public Q_SLOTS:
     void on_LogOutputTypeComboBox_currentIndexChanged(int index);
     void on_LogFilePathToolButton_clicked();
     void on_AllowNestedGprimsCheckBox_stateChanged(int state);
+    void on_WorldSpaceRootsCheckBox_stateChanged(int state);
+
 
 private:
     /// Reference to the Qt UI View of the rollup

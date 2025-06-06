@@ -165,7 +165,7 @@ class TestStageGeneral(unittest.TestCase):
         stage.SetEditTarget(stage.GetSessionLayer())
         visAttr = UsdGeom.Imageable(boxPrim).GetVisibilityAttr()
         visAttr.Set(UsdGeom.Tokens.invisible)
-        maxSceneSavePath = self.output_prefix + "test_save_load_of_primvar_mapping.max"
+        maxSceneSavePath = self.output_prefix + "test_save_load_of_session_layer.max"
         mxs.saveMaxFile(maxSceneSavePath, quiet=True)
                     
         # Load the scene from disk, make sure the prim is hidden, 
@@ -191,6 +191,169 @@ class TestStageGeneral(unittest.TestCase):
         mxs.loadMaxFile(maxSceneSavePath)
         loadedStageObject = mxs.getNodeByName(stageName)
         self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.inherited)
+
+    # Test the save & load of dirty layers to the .max scene.
+    def test_save_load_dirty_layer(self):
+        # Create a simple stage.
+        stageName = "stage"
+        maxUsdObj = mxs.USDStageObject(name=stageName)
+        test_file_path = os.path.join(os.path.join(os.path.dirname(__file__), "data"), "dirty_layers.usda")
+        maxUsdObj.SetRootLayer(test_file_path, stageMask='/')
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+        
+        # Hide a prim on the root layer, and save the max scene to disk.
+        primPath = "/box_sample/Box001"
+        boxPrim = stage.GetPrimAtPath(primPath)
+        stage.SetEditTarget(stage.GetRootLayer())
+        visAttr = UsdGeom.Imageable(boxPrim).GetVisibilityAttr()
+        visAttr.Set(UsdGeom.Tokens.invisible)
+
+        # 1
+        # Set to save dirty layers to max scene
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        maxSceneSavePath = self.output_prefix + "test_save_load_of_dirty_layer.max"
+
+        # Save the data
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)            
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # Make sure no layers with same id/path exists in memeory for whatever reason
+        self.assertEqual(Sdf.Layer.Find(maxSceneSavePath), None)
+
+        # Load the scene from disk, make sure the prim is hidden, 
+        # meaning the dirty layer was properly loaded & applied.
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is invisible
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the root layer is dirty
+        self.assertEqual(stage.GetRootLayer().dirty, True)
+
+        # Save the root layer identifier for the next test
+        saved_root_layer_id = stage.GetRootLayer().identifier
+
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # 2 
+        # Test loading max file with dirty layer data, while layer with same identifier exists
+        dummy_layer_with_same_id = Sdf.Layer.CreateAnonymous()
+        dummy_layer_with_same_id.identifier = saved_root_layer_id
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is invisible
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the root layer is dirty
+        self.assertEqual(stage.GetRootLayer().dirty, True)
+
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # 3
+        # Test loading max file with dirty layer data, while layer with same identifier exists
+        # but define the anonymous layer with ".usda" format
+        dummy_layer_with_same_id = Sdf.Layer.CreateAnonymous(".usda")
+        dummy_layer_with_same_id.identifier = saved_root_layer_id
+
+        # Load the scene from disk, make sure the prim is hidden, 
+        # meaning the dirty layer was properly loaded & applied).
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is invisible
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the root layer is dirty
+        self.assertEqual(stage.GetRootLayer().dirty, True)
+
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # 4
+        # Test loading max file with dirty layer data, while layer with same identifier
+        # but define the anonymous layer with ".usdc" format
+        dummy_layer_with_same_id = Sdf.Layer.CreateAnonymous(".usdc")
+        dummy_layer_with_same_id.identifier = saved_root_layer_id
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is invisible
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the root layer is dirty
+        self.assertEqual(stage.GetRootLayer().dirty, True)
+
+        # 5 Now add a sublayer and edit it as well as a test
+        new_layer_name = os.path.join(os.path.join(os.path.dirname(__file__), "data"), "box_no_uvs.usda")
+        new_sublayer = Sdf.Layer.OpenAsAnonymous(new_layer_name)
+        new_sublayer.identifier = new_layer_name
+
+        # sublayer the new layer to the root layer
+        stage.GetRootLayer().subLayerPaths.append(new_layer_name)
+        boxPrimInSublayer = stage.GetPrimAtPath("/box_no_uvs/Box001")
+        stage.SetEditTarget(new_sublayer)
+
+        # edit the visibility in the sublayer
+        visAttrBoxSubLayer = UsdGeom.Imageable(boxPrimInSublayer).GetVisibilityAttr()
+        visAttrBoxSubLayer.Set(UsdGeom.Tokens.invisible)
+        # Save the data
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)            
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # Get rid of the handle to the anonymous stage with the same id
+        # otherwise it gets picked up when the stage is reloaded again
+        dummy_layer_with_same_id = None
+        # also the new sublayer
+        new_sublayer = None
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is in the "invisible" state
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the root layer is dirty
+        self.assertEqual(stage.GetRootLayer().dirty, True)   
+
+        # make sure the sublayer is actually present
+        saved_sublayer = Sdf.Layer.Find(new_layer_name)
+        self.assertNotEqual(saved_sublayer, None)
+
+        containsSublayer = False
+        for sublayerPath in stage.GetRootLayer().subLayerPaths:
+            if sublayerPath == new_layer_name:
+                containsSublayer = True
+                break
+        # Check if the sublayer is part of the stage's layers
+        self.assertEqual(containsSublayer, True)   
+        # Check that the prim of the sublayer is in the "invisible" state
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.invisible)
+
+        # Check if the sublayer is dirty
+        self.assertEqual(saved_sublayer.dirty, True)   
+
+        # 6
+        # Now save with save3dsMaxOnly option
+        mxs.USDStageObject.SetDefaultSaveMode("save3dsMaxOnly")
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)            
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        # Check that the prim is in the default "inherited" state
+        self.check_prim_vis(loadedStageObject.CacheId, primPath, UsdGeom.Tokens.inherited)
+
+        # Check if the root layer is dirty -- it shouldn't be
+        self.assertEqual(stage.GetRootLayer().dirty, False)   
+
+        # Reset the default save mode
+        mxs.USDStageObject.SetDefaultSaveMode("saveAll")
 
     def test_get_ufe_prim_path(self):
         

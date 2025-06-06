@@ -37,7 +37,7 @@ struct import_animation_test
     
     function resetMaxFileAndSetupUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
         initialUnits = units.SystemType
         initialScale = units.SystemScale
         units.SystemType = #Centimeters

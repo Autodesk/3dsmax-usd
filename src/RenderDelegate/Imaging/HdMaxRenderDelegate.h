@@ -86,14 +86,17 @@ public:
     std::vector<HdMaxMeshRenderData>& GetAllMeshRenderData();
 
     /**
-     * \brief Returns the render data associated with visible prims only, given their visibility and
-     * the specified render tags.
-     * \param renderTags The render tags to consider.
+     * \brief Returns the render data associated with currently active render tags.
      * \param data The visible prims' render data.
+     * \param includeInvisible Whether to include invisible prims.
+     * \param includeGeomObjectSource Wether to include prims flagged with the "geomObjectSource" purpose.
+     * Prims tagged with "geomObjectSource" are used as source for UsdGeomObject (I.e. object
+     * created from the "Promote to 3ds Max" feature.
      */
-    void GetVisibleMeshRenderData(
-        const TfTokenVector&               renderTags,
-        std::vector<HdMaxMeshRenderData*>& data);
+    void GetMeshRenderData(
+        std::vector<HdMaxMeshRenderData*>& data,
+        bool                               includeInvisible = false,
+        bool                               includeGeomObjectSource = false);
 
     /**
      * \brief Returns a reference to the Max viewport display settings used by this render delegate.
@@ -157,9 +160,9 @@ public:
     const std::unordered_map<pxr::SdfPath, size_t, pxr::SdfPath::Hash>&
                                              GetBasisCurvesRenderDataIdMap() const;
     std::vector<HdMaxBasisCurvesRenderData>& GetAllBasisCurvesRenderData();
-    void                                     GetVisibleBasisCurvesRenderData(
-                                            const TfTokenVector&                      renderTags,
-                                            std::vector<HdMaxBasisCurvesRenderData*>& data);
+    void                                     GetBasisCurvesRenderData(
+                                            std::vector<HdMaxBasisCurvesRenderData*>& data,
+                                            bool                                      includeInvisible = false);
 
     // HdRenderDelegate overrides.
     const pxr::TfTokenVector&        GetSupportedRprimTypes() const override;

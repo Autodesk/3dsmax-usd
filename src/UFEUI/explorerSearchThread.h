@@ -38,7 +38,7 @@ public:
      * \param rootItem The root Ufe scene item we are searching from.
      * \param columns Columns in for the explorer.
      * \param searchFilter The search filter against which to try and match UFE item in the Scene.
-     * \param TypeFilter The Type filtering config. Include or exclude item types by name.
+     * \param typeFilter The Type filtering config. Include or exclude item types by name.
      * \param childFilter Ufe Hierarchy child filter, filters item when traversing the
      * hierarchy. Used by the runtime hierarchy implementation.
      * \param parent A reference to the parent of the thread.

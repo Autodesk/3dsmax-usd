@@ -99,6 +99,16 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QCheckBox" name="WorldSpaceRootsCheckBox">
+     <property name="toolTip">
+      <string>Exports the root prims with their worldspace transform instead of local transform. This feature is useful for exporting specific parts without needing to export the entire hierarchy.</string>
+     </property>
+     <property name="text">
+      <string>Worldspace Roots</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

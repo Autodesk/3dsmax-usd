@@ -33,7 +33,7 @@ struct export_instance_test
     public 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function test_copy_types = (
@@ -175,7 +175,7 @@ struct export_instance_test
     function test_helpers_without_geometry_are_not_instanced = (
         -- Test that helpers with geometry can be instanced.        
         test_helper_instancing true
-        resetMaxFile #noprompt
+        quickReset()
         -- Test that helpers without geometry (they are basically exported to Xform prims) are NOT instanced.
         test_helper_instancing false 
     ),

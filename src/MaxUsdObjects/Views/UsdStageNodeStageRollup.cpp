@@ -1,0 +1,245 @@
+//
+// Copyright 2025 Autodesk
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+#include "UsdStageNodeStageRollup.h"
+
+#include "QtWidgets/QDialog"
+#include "UsdStageNodePrimSelectionDialog.h"
+#include "ui_UsdStageNodeStageRollup.h"
+
+#include <MaxUsdObjects/Objects/USDStageObject.h>
+
+#include <MaxUsd/Utilities/MathUtils.h>
+#include <MaxUsd/Utilities/OptionUtils.h>
+
+// max sdk
+#include <Qt/QmaxToolClips.h>
+
+#include <GetCOREInterface.h>
+#include <IPathConfigMgr.h>
+#include <iparamb2.h>
+#include <maxapi.h>
+#include <maxicon.h>
+
+using namespace MaxSDK;
+
+UsdStageNodeStageRollup::UsdStageNodeStageRollup(ReferenceMaker& owner, IParamBlock2& paramBlock)
+    : ui(new Ui::UsdStageNodeStageRollup)
+{
+    SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
+
+    ui->setupUi(this);
+
+    QSizePolicy sp = this->ui->progressBar->sizePolicy();
+
+    // Use the global progress bar, instead of the embedded progress bar
+    sp.setRetainSizeWhenHidden(false);
+
+    this->ui->progressBar->setSizePolicy(sp);
+    this->ui->progressBar->setVisible(false);
+
+    modelObj = static_cast<USDStageObject*>(&owner);
+    RegisterProgressReporter();
+
+    // Disable Max tooltips as they do not handle long strings well.
+    MaxSDK::QmaxToolClips::disableToolClip(ui->FilePath);
+
+    ui->ReloadLayersButton->setIcon(
+        MaxSDK::LoadMaxMultiResIcon("CommandPanel/Motion/BipedRollout/MotionMixer/ReloadFiles"));
+
+    const int iconSize = MaxSDK::UIScaled(16);
+    ui->ReloadLayersButton->setIconSize(QSize(iconSize, iconSize));
+    const int reloadBtnWidth = MaxSDK::UIScaled(24);
+    ui->ReloadLayersButton->setMinimumSize(QSize(reloadBtnWidth, iconSize));
+
+    const int dotdotdotButtonWidth = MaxSDK::UIScaled(36);
+    ui->RootLayerPathButton->setMinimumSize(QSize(dotdotdotButtonWidth, iconSize));
+    ui->StageMaskButton->setMinimumSize(QSize(dotdotdotButtonWidth, iconSize));
+
+    ui->horizontalSpacer->changeSize(reloadBtnWidth, 0);
+}
+
+UsdStageNodeStageRollup::~UsdStageNodeStageRollup()
+{
+    modelObj->UnregisterProgressReporter();
+    pxr::TfNotice::Revoke(onStageChangeNotice);
+}
+
+void UsdStageNodeStageRollup::RegisterProgressReporter()
+{
+    if (!modelObj) {
+        return;
+    }
+
+    // The global progress bar is configured to disable cancellation,
+    // and avoid suspending object edition
+    auto start = [this](const std::wstring& title) {
+        GetCOREInterface()->ProgressStart(title.c_str(), false);
+        GetCOREInterface()->ProgressUpdate(0);
+    };
+    auto update = [this](int progress) {
+        const auto value = std::min(100, std::max(0, progress));
+        GetCOREInterface()->ProgressUpdate(value);
+    };
+    auto end = [this]() {
+        GetCOREInterface()->ProgressUpdate(100);
+        GetCOREInterface()->ProgressEnd();
+    };
+
+    const MaxUsd::ProgressReporter progressReporter { start, update, end };
+    modelObj->RegisterProgressReporter(progressReporter);
+}
+
+void UsdStageNodeStageRollup::SetParamBlock(ReferenceMaker* owner, IParamBlock2* const paramBlock)
+{
+    this->paramBlock = paramBlock;
+    modelObj = static_cast<USDStageObject*>(owner);
+    RegisterProgressReporter();
+}
+
+void UsdStageNodeStageRollup::UpdateUI(const TimeValue t)
+{
+    auto stage = modelObj->GetUSDStage();
+    if (stage) {
+        Interval valid = FOREVER;
+
+        const MCHAR* stageMaskValue = nullptr;
+        paramBlock->GetValue(StageMask, GetCOREInterface()->GetTime(), stageMaskValue, valid);
+
+        const MCHAR* rootLayerFilename = nullptr;
+        paramBlock->GetValue(StageFile, GetCOREInterface()->GetTime(), rootLayerFilename, valid);
+
+        ui->StageMaskValue->setText(QString::fromWCharArray(stageMaskValue));
+
+        ui->FilePath->setToolTip(QString::fromWCharArray(rootLayerFilename));
+
+    } else {
+        ui->StageMaskValue->setText("/");
+        ui->FilePath->setToolTip("");
+    }
+}
+void UsdStageNodeStageRollup::on_StageMaskButton_clicked() { SelectLayerAndPrim(false); }
+
+void UsdStageNodeStageRollup::on_RootLayerPathButton_clicked() { SelectLayerAndPrim(true); }
+
+void UsdStageNodeStageRollup::on_ReloadLayersButton_clicked() { modelObj->Reload(false); }
+
+void UsdStageNodeStageRollup::on_StageMaskValue_editingFinished()
+{
+    Interval     valid = FOREVER;
+    const MCHAR* stageMaskValue = nullptr;
+    paramBlock->GetValue(StageMask, GetCOREInterface()->GetTime(), stageMaskValue, valid);
+
+    if (ui->StageMaskValue->text().isEmpty()) {
+        ui->StageMaskValue->setText("/");
+    }
+    const auto newStageMask = ui->StageMaskValue->text();
+    const int  changed = wcscmp(stageMaskValue, newStageMask.toStdWString().c_str());
+    if (changed != 0) {
+        Interval     valid = FOREVER;
+        const MCHAR* rootLayer = nullptr;
+        paramBlock->GetValue(
+            PBParameterIds::StageFile, GetCOREInterface()->GetTime(), rootLayer, valid);
+        BOOL payloadsLoaded = false;
+        paramBlock->GetValue(
+            PBParameterIds::LoadPayloads, GetCOREInterface()->GetTime(), payloadsLoaded, valid);
+
+        // Use SetRootLayer() as it takes care of everything VS undo redo etc.
+        modelObj->SetRootLayer(rootLayer, newStageMask.toStdWString().c_str(), payloadsLoaded);
+    }
+}
+namespace {
+pxr::VtDictionary options;
+const std::string optionsCategoryKey = "PrimSelectionDialogPreferences";
+} // namespace
+
+void UsdStageNodeStageRollup::SelectLayerAndPrim(bool forceFileSelection)
+{
+    QString rootLayerPath = ui->FilePath->text();
+    QString stageMask = ui->StageMaskValue->text();
+
+    // If the root layer path is empty - the first thing we want to do is pop-up the file selection
+    // dialog.
+    if (rootLayerPath.isEmpty() || forceFileSelection) {
+        QFileInfo file = UsdStageNodePrimSelectionDialog::SelectFile(rootLayerPath);
+        rootLayerPath = file.absoluteFilePath();
+    }
+
+    // If still empty (user did not select a file / cancelled), exit.
+    if (rootLayerPath.isEmpty()) {
+        return;
+    }
+
+    // Load the options from disk only once per session.
+    static auto loadOptions = []() {
+        MaxUsd::OptionUtils::LoadUiOptions(optionsCategoryKey, options);
+        if (!options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads].IsHolding<bool>()) {
+            options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads] = true;
+        }
+        if (!options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer].IsHolding<bool>()) {
+            options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer] = true;
+        }
+        return true;
+    };
+    static bool optionLoaded = loadOptions();
+
+    std::unique_ptr<UsdStageNodePrimSelectionDialog> primSelectionDialog
+        = std::make_unique<UsdStageNodePrimSelectionDialog>(
+            rootLayerPath,
+            stageMask,
+            MaxUsd::TreeModelFactory::TypeFilteringMode::Exclude,
+            std::vector<std::string> { "Material", "Shader", "GeomSubset" },
+            options);
+
+    // Finally, open the dialog.
+    if (primSelectionDialog->exec() == QDialog::Accepted) {
+        // user hit OK
+        QString rootLayerPath = primSelectionDialog->GetRootLayerPath();
+        QString selectedPrim = primSelectionDialog->GetMaskPath();
+        options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads]
+            = primSelectionDialog->GetPayloadsLoaded();
+
+        // Start by closing the current stage in the explorer. Depending on the option selected from
+        // the UI, we may or may not want to reopen the new stage in the explorer.
+        modelObj->CloseInUsdExplorer();
+
+        // SetRootLayer() may indirecly trigger a selection change, that will
+        // cause the UI to be deleted and recreated (using a different context).
+        // To avoid a crash, we need to keep an eye on our own existence.
+        QPointer<QWidget> stillAlive = this;
+        USDStageObject*   thisModelObj = modelObj;
+
+        modelObj->SetRootLayer(
+            TSTR(rootLayerPath.toStdString().c_str()).data(),
+            TSTR(selectedPrim.toStdString().c_str()).data(),
+            options[pxr::MaxUsdPrimSelectionDialogTokens->loadPayloads].UncheckedGet<bool>());
+
+        if (stillAlive) {
+            // Trigger a UI refresh.
+            UpdateUI(0);
+        }
+
+        // Remember user choice, per session.
+        options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer]
+            = primSelectionDialog->GetOpenInUsdExplorer();
+        if (options[pxr::MaxUsdPrimSelectionDialogTokens->openInExplorer].UncheckedGet<bool>()) {
+
+            // this->modelObj may not be around any more as this rollup may have
+            // been freed already, so use the copy of the pointer on the stack.
+            thisModelObj->OpenInUsdExplorer();
+        }
+        MaxUsd::OptionUtils::SaveUiOptions(optionsCategoryKey, options);
+    }
+}

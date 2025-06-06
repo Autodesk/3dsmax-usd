@@ -38,6 +38,7 @@
 #include <ufe/selectionNotification.h>
 #include <ufe/undoableCommandMgr.h>
 
+#include <QStack>
 #include <QtWidgets/QActionGroup.h>
 #include <QtWidgets/QHeaderView.h>
 #include <QtWidgets/QMenu.h>
@@ -141,6 +142,27 @@ Explorer::Explorer(
         // Use the guard to avoid triggering costly updates for every expand, do it all at once.
         const auto expandGuard = ExpansionGuard { this };
         if (QApplication::keyboardModifiers().testFlag(Qt::ControlModifier)) {
+
+            // First, fetch items all the way down manually.
+            // expandRecursively() doc specifies it will not attempt to "fetch more".
+            QStack<QModelIndex> parents;
+            parents.push(index);
+            while (!parents.isEmpty()) {
+                const QModelIndex parent = parents.pop();
+                const int         rowCount = _proxyModel->rowCount(parent);
+                for (int row = 0; row < rowCount; ++row) {
+                    const QModelIndex child = _proxyModel->index(row, 0, parent);
+                    if (!child.isValid()) {
+                        break;
+                    }
+                    const auto sourceIdx = _proxyModel->mapToSource(child);
+                    if (treeModel()->canFetchMore(sourceIdx)) {
+                        treeModel()->fetchMore(sourceIdx);
+                    }
+                    parents.push(child);
+                }
+            }
+            // Now we can expand...
             _ui->treeView->expandRecursively(index);
         }
     });
@@ -371,7 +393,7 @@ void Explorer::updateSelectionAncestors()
         return;
     }
 
-    _ui->treeView->viewport()->repaint();
+    _ui->treeView->viewport()->update();
 }
 
 bool Explorer::isRelevantToExplorer(const Ufe::Path& path) const
@@ -381,6 +403,10 @@ bool Explorer::isRelevantToExplorer(const Ufe::Path& path) const
 
 void Explorer::updateTreeSelection()
 {
+    // Clear the current index as we will update the selection.
+    // QT sometimes hold on to indices longer than it should in the current index as
+    // the model indices get destroyed.
+    _ui->treeView->selectionModel()->clearCurrentIndex();
 
     auto currentHighlightExtend = _parentHighlightExtend;
     _parentHighlightExtend.clear();
@@ -423,7 +449,7 @@ void Explorer::updateTreeSelection()
         // same time and QT is able to deal with that a bit better.
         std::set<QModelIndex> toSelect;
         for (const auto& path : newPaths) {
-            const auto modelIdx = treeModel()->getIndexFromPath(path);
+            const auto modelIdx = treeModel()->getIndexFromPath(path, true);
             if (!modelIdx.isValid()) {
                 // "Parent-Highlight" parent if it is in the tree.
                 const auto parentPath = path.pop();
@@ -577,6 +603,8 @@ const TypeFilter& Explorer::typeFilter() { return _typeFilter; }
 
 void Explorer::onSearchFilterChanged(const QString& searchFilter)
 {
+    bool rootWasHidden = _ui->treeView->rootIndex().isValid();
+
     // Stop any search that was already ongoing but that has not yet completed:
     if (_searchThread != nullptr && !_searchThread->isFinished()) {
         _searchThread->quit();
@@ -629,11 +657,14 @@ void Explorer::onSearchFilterChanged(const QString& searchFilter)
             // searching.
             if (!_previousSearchFilter.isEmpty() && searchFilter.isEmpty()) {
                 if (!_preSearchExpandedPaths.empty()) {
-                    // Expand the pseudo-root, not tied to a path. We know we need to do this, as we
-                    // have at least one UFE path expanded.
-                    const auto rootIdxInProxy
-                        = _proxyModel->mapFromSource(_treeModel->index(0, 0, QModelIndex {}));
-                    _ui->treeView->setExpanded(rootIdxInProxy, true);
+                    // Expand the pseudo-root, not tied to a path. We know we
+                    // need to do this, as we have at least one UFE path
+                    // expanded.
+                    const auto rootIdxInProxy = _proxyModel->mapFromSource(_treeModel->index(0, 0));
+                    // only expand the pseudo-root if it is not hidden.
+                    if (!rootWasHidden) {
+                        _ui->treeView->setExpanded(rootIdxInProxy, true);
+                    }
 
                     Utils::expandPaths(
                         _ui->treeView,
@@ -647,6 +678,11 @@ void Explorer::onSearchFilterChanged(const QString& searchFilter)
                 _ui->treeView->expandAll();
             }
 
+            if (rootWasHidden) {
+                const auto rootIdxInProxy = _proxyModel->mapFromSource(_treeModel->index(0, 0));
+                _ui->treeView->setRootIndex(rootIdxInProxy);
+            }
+
             _previousSearchFilter = searchFilter;
 
             _ui->treeView->selectionModel()->clearSelection();
@@ -657,6 +693,8 @@ void Explorer::onSearchFilterChanged(const QString& searchFilter)
             } else {
                 _overlay->showInformationMessage(QObject::tr("No results found."));
             }
+
+            updateTreeSelection();
         });
 
     _searchThread->start(QThread::Priority::TimeCriticalPriority);
@@ -666,36 +704,84 @@ void Explorer::onTreeViewSelectionChanged(
     const QItemSelection& selectedItems,
     const QItemSelection& deselectedItems)
 {
+    if (_ignoreTreeSelectionChanged) {
+        return;
+    }
+
     const Ufe::Selection& currentSelection
         = _pickMode.expired() ? *Ufe::GlobalSelection::get() : _pickModeSelection;
 
     Ufe::Selection newSelection = currentSelection;
 
-    auto processItems = [this, &newSelection](const QItemSelection& items, bool select) {
-        for (const auto& index : _proxyModel->mapSelectionToSource(items).indexes()) {
-            if (index.column() != 0) {
-                continue;
-            }
+    auto processItemSelectionByDepth
+        = [this, &newSelection](const QItemSelection& items, bool select) {
+              auto selectedSceneItemList = std::vector<Ufe::SceneItemPtr>();
 
-            const auto treeItem = _treeModel->treeItem(index);
-            if (!treeItem) {
-                continue;
-            }
-            const auto ufeSceneItem = treeItem->sceneItem();
-            if (!ufeSceneItem) {
-                continue;
-            }
-            if (select) {
-                newSelection.append(ufeSceneItem);
-                continue;
-            }
-            newSelection.remove(ufeSceneItem);
-        }
-    };
+              // prepare vector
+              for (const auto& index : _proxyModel->mapSelectionToSource(items).indexes()) {
+                  if (index.column() != 0) {
+                      continue;
+                  }
+                  const auto treeItem = _treeModel->treeItem(index);
+                  if (!treeItem || !treeItem->sceneItem()) {
+                      continue;
+                  }
+                  selectedSceneItemList.push_back(treeItem->sceneItem());
+              }
+
+              // This is to handle the click, and then shift-click case: need to
+              // combine the current selection with the new selection
+              if (select) {
+                  for (auto currentlySelectedItem : newSelection) {
+                      selectedSceneItemList.emplace_back(currentlySelectedItem);
+                  }
+
+                  // clear it as we will reconstruct this later
+                  newSelection.clear();
+              }
+
+              // lambda to find the depth of a TreeItem based on the number of components in all
+              // segments of the UFE path associated to the TreeItem
+              auto treeItemDepth = [](const Ufe::SceneItemPtr ufeSceneItem) -> size_t {
+                  if (!ufeSceneItem) {
+                      return 0;
+                  }
+                  const auto& segs = ufeSceneItem->path().getSegments();
+                  size_t      numTotalComponents = 0;
+                  for (int i = 0; i < segs.size(); ++i) {
+                      numTotalComponents += segs[i].components().size();
+                  }
+                  return numTotalComponents;
+              };
+
+              // sort the selected items by depth based on how many parents the TreeItem has
+              std::sort(
+                  selectedSceneItemList.begin(),
+                  selectedSceneItemList.end(),
+                  [treeItemDepth, select](const Ufe::SceneItemPtr a, const Ufe::SceneItemPtr b) {
+                      // in selection, depth first
+                      if (select) {
+                          return treeItemDepth(a) > treeItemDepth(b);
+                      }
+
+                      return treeItemDepth(a) < treeItemDepth(b);
+                  });
+
+              for (const auto& ufeSceneItem : selectedSceneItemList) {
+                  if (!ufeSceneItem) {
+                      continue;
+                  }
+                  if (select) {
+                      newSelection.append(ufeSceneItem);
+                      continue;
+                  }
+                  newSelection.remove(ufeSceneItem);
+              }
+          };
 
     // Reflect deselected and selected items in the UFE selection.
-    processItems(deselectedItems, false);
-    processItems(selectedItems, true);
+    processItemSelectionByDepth(deselectedItems, false);
+    processItemSelectionByDepth(selectedItems, true);
 
     // If the new selection is equivalent the current selection, it means the
     // selection was changed from outside of the explorer, only need to update
@@ -762,9 +848,9 @@ void Explorer::onTreeViewSelectionChanged(
 
 void Explorer::rebuildSubtree(const TreeItem* item)
 {
-    // Save and restore the tree expand state as much as possible.
-    auto expandGuard
-        = Utils::ExpandStateGuard { _ui->treeView, item, _treeModel.get(), _proxyModel.get() };
+    if (!item) {
+        return;
+    }
 
     // Rebuild the tree from that item.
     const auto model = treeModel();
@@ -772,14 +858,27 @@ void Explorer::rebuildSubtree(const TreeItem* item)
     if (!treeItem) {
         return;
     }
-    model->buildTreeFrom(
-        treeItem,
-        item->sceneItem(),
-        searchFilter().toStdString(),
-        typeFilter(),
-        _childFilter,
-        false);
-    return;
+
+    {
+        // Save and restore the tree expand state as much as possible.
+        auto expandGuard
+            = Utils::ExpandStateGuard { _ui->treeView, item, _treeModel.get(), _proxyModel.get() };
+
+        // As are rebuilding a subtree, selected indices may get removed, affecting the selection. We do not want to
+        // react and unselect ufe items. Tree item selection is refreshed bellow after the rebuild.
+        _ignoreTreeSelectionChanged = true;
+        model->buildTreeFrom(
+            treeItem,
+            item->sceneItem(),
+            searchFilter().toStdString(),
+            typeFilter(),
+            _childFilter,
+            false);
+        _ignoreTreeSelectionChanged = false;
+    }
+
+    // Update the selection, indices may have changed following the rebuild.
+    updateTreeSelection();
 }
 
 void Explorer::buildContextMenu(
@@ -838,14 +937,43 @@ void Explorer::buildContextMenu(
                     try {
                         const auto cmd = contextOps->doOpCmd(fullItemPath);
                         if (cmd) {
-                            const auto editCmd = UfeUi::EditCommand::create(
-                                contextOps->sceneItem()->path(), cmd, "USD Stage Edit");
+                            UfeUi::EditCommand::Ptr editCmd;
+                            // HACK: Because of the way we support deactivation of prims across
+                            // parent/child boundaries we need to ensure that when we deactivate, we
+                            // deactivate using the top-level parent of the selection, otherwise
+                            // when we undo and then redo, we redo from a prim that does not exist
+                            // anymore which causes problems with the undo stack subsequently.
+                            // Hardcoding the string of the "Deactivate Prim" isn't ideal, but the
+                            // UFEUI project doesn't expose the variable that defines the
+                            // "Deactivate Prim" string.
+                            if (fullItemPath[0] == "Deactivate Prim") {
+                                if (const auto& globalSelection = Ufe::GlobalSelection::get()) {
+
+                                    // The global selection can hold selection for different stages.
+                                    // Use the current context to grab the top most prim of the
+                                    // selection that is in the same stage as the context.
+                                    auto contextPath = contextOps->sceneItem()->path();
+                                    auto it = std::find_if(
+                                        globalSelection->rbegin(),
+                                        globalSelection->rend(),
+                                        [&contextPath](const Ufe::SceneItem::Ptr& item) {
+                                            return item->path().head(1) == contextPath.head(1);
+                                        });
+
+                                    auto topLevelPath = (*it)->path();
+                                    editCmd = UfeUi::EditCommand::create(
+                                        topLevelPath, cmd, "USD Stage Edit");
+                                }
+                            } else {
+                                editCmd = UfeUi::EditCommand::create(
+                                    contextOps->sceneItem()->path(), cmd, "USD Stage Edit");
+                            }
                             // Execute via the UndoableCommandManager - this way, execution can be
                             // extended by the DCC via a derived UndoableCommandMgr.
                             Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
                         }
-                    } catch (std::exception&) {
-                        // UsdExpiredPrimAccessError exception thrown (from pxr/usd/usd/errors.h)
+                    } catch (std::exception& ex) {
+                        Utils::ReportError(ex.what());
                     }
 
                     // Hack / Workaround :
@@ -964,7 +1092,6 @@ void Explorer::Observer::operator()(const Ufe::Notification& notification)
             return;
         }
 
-        const auto model = _explorer->treeModel();
         const auto addedPath = oa->changedPath();
 
         // It's possible to already have the tree item. For example if an item is inactive,
@@ -983,19 +1110,22 @@ void Explorer::Observer::operator()(const Ufe::Notification& notification)
             if (!parentItem) {
                 return;
             }
-            sceneItem = Ufe::Hierarchy::createItem(addedPath);
-            model->layoutAboutToBeChanged();
-            treeItem = parentItem->appendChild(sceneItem);
-            model->layoutChanged();
+
+            // Make sure the added item should be displayed, i.e. belongs to the parent's
+            // filtered children.
+            const auto parentHierarchy = Ufe::Hierarchy::hierarchy(parentItem->sceneItem());
+            const auto children = parentHierarchy->filteredChildren(_explorer->_childFilter);
+            const auto it = std::find_if(
+                children.begin(), children.end(), [&addedPath](const Ufe::SceneItemPtr& si) {
+                    return si->path() == addedPath;
+                });
+            if (it == children.end()) {
+                return;
+            }
+
+            treeItem = parentItem;
         }
-        // There could be items below the added one, that we dont get a notification for...
-        model->buildTreeFrom(
-            treeItem,
-            sceneItem,
-            _explorer->searchFilter().toStdString(),
-            _explorer->typeFilter(),
-            _explorer->_childFilter,
-            false);
+        _explorer->rebuildSubtree(treeItem);
         return;
     }
     if (const auto od = dynamic_cast<const Ufe::ObjectDelete*>(&notification)) {
@@ -1007,29 +1137,12 @@ void Explorer::Observer::operator()(const Ufe::Notification& notification)
         if (!item) {
             return;
         }
-
-        // There are cases (for example inactivation of a prim in the USD ufe runtime,
-        // without filtering of inactive prims), where object delete notifications are
-        // sent out, but we still need to display the prim in question, probably in a
-        // different style. To achieve this, when an object delete is received, look at
-        // whether the item is actually still present given the hierarchy child filter
-        // in use.
-        const auto ufeParentSceneItem = item->parentItem()->sceneItem();
-        if (ufeParentSceneItem) {
-            const auto ufeHier = Ufe::Hierarchy::hierarchy(ufeParentSceneItem);
-            const auto children = ufeHier->filteredChildren(_explorer->_childFilter);
-            for (const auto& child : children) {
-                if (child->path() == item->sceneItem()->path()) {
-                    // Keep the item, but display/subtree may have changed.
-                    _explorer->rebuildSubtree(item);
-                    return;
-                }
-            }
+        const auto parent = item->parentItem();
+        if (!parent) {
+            return;
         }
 
-        model->layoutAboutToBeChanged();
-        item->parentItem()->removeChild(item);
-        model->layoutChanged();
+        _explorer->rebuildSubtree(parent);
         return;
     }
     if (const auto si = dynamic_cast<const Ufe::SubtreeInvalidate*>(&notification)) {

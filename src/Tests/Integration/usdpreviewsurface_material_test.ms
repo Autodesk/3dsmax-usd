@@ -19,7 +19,7 @@ struct usdpreviewsurface_material_test
 (
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
 
     function to_dict obj prop_names = (

@@ -35,7 +35,7 @@ struct import_metadata_test
 
     function resetMaxFileAndSetupUnits = 
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     public
@@ -234,7 +234,7 @@ struct import_metadata_test
         assert_true importedPrim.usd_hidden
 
         -- when
-        resetmaxfile #noprompt
+        quickReset()
         importOptions.MetaData = #(#kind)
         USDImporter.ImportFile testUsdFile importOptions:importOptions
 
@@ -247,7 +247,7 @@ struct import_metadata_test
         assert_false (isProperty importedPrim #usd_purpose) message:"usd_purpose should not be defined"
 
         -- when
-        resetmaxfile #noprompt
+        quickReset()
         importOptions.MetaData = #(#kind, #purpose, #kind, #kind, #purpose)
         USDImporter.ImportFile testUsdFile importOptions:importOptions
 
@@ -263,7 +263,7 @@ struct import_metadata_test
         assert_false (isProperty groupPrim #usd_purpose) message:"usd_purpose should not be defined"
 
         -- when
-        resetmaxfile #noprompt
+        quickReset()
         importOptions.MetaData = #(#hidden)
         USDImporter.ImportFile testUsdFile importOptions:importOptions
 
@@ -277,7 +277,7 @@ struct import_metadata_test
         assert_false (isProperty hiddenPrim #usd_kind) message:"usd_kind should not be defined"
 
         -- when
-        resetmaxfile #noprompt
+        quickReset()
         importOptions.MetaData = #()
         USDImporter.ImportFile testUsdFile importOptions:importOptions
 

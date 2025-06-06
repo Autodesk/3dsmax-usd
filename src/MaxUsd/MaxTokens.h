@@ -88,4 +88,16 @@ TF_DECLARE_PUBLIC_TOKENS(MaxUsdPrimTypeTokens, MaxUSDAPI, MAX_USD_PRIM_TYPE_TOKE
 
 TF_DECLARE_PUBLIC_TOKENS(MaxUsdUsdPreviewSurfaceTokens, MaxUSDAPI, MAX_USDPREVIEWSURFACE_TOKENS);
 
+// Prims tagged with "geomObjectSource" are used as source for UsdGeomObjects.
+// These are prims that were "Promoted to 3dsMax". This custom purpose allows us to avoid
+// duplicating the display of these prims in the viewport, and in offline rendering (e.g.: Arnold),
+// as the geometry is already being displayed via the UsdGeomObject.
+// clang-format off
+#define MAX_USD_PURPOSE_TOKENS \
+    (geomObjectSource) \
+    (geomObjectSkip)
+// clang-format on
+
+TF_DECLARE_PUBLIC_TOKENS(MaxUsdPurposeTokens, MaxUSDAPI, MAX_USD_PURPOSE_TOKENS);
+
 PXR_NAMESPACE_CLOSE_SCOPE

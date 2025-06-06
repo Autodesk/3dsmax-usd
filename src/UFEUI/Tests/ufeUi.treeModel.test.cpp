@@ -51,11 +51,18 @@ TEST_F(TreeModelTest, TreeModel_createFromRoot)
     EXPECT_EQ(treeItemRoot->childCount(), 1);
     EXPECT_EQ(treeItemRoot->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::root);
 
+    // Forcing fetchMore here to so that the model can build the tree.
+    // This operation is usually done by the view.
+
+    modelWithRoot->fetchMore(
+        modelWithRoot->getIndexFromPath(treeItemRoot->child(0)->sceneItem()->path()));
     EXPECT_EQ(treeItemRoot->child(0)->childCount(), 3);
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::A1);
     EXPECT_EQ(treeItemRoot->child(0)->child(1)->sceneItem()->path(), UfeUiTest::TestHierarchy::A2);
     EXPECT_EQ(treeItemRoot->child(0)->child(2)->sceneItem()->path(), UfeUiTest::TestHierarchy::A3);
 
+    modelWithRoot->fetchMore(
+        modelWithRoot->getIndexFromPath(treeItemRoot->child(0)->child(0)->sceneItem()->path()));
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->childCount(), 2);
     EXPECT_EQ(
         treeItemRoot->child(0)->child(0)->child(0)->sceneItem()->path(),
@@ -66,6 +73,8 @@ TEST_F(TreeModelTest, TreeModel_createFromRoot)
     EXPECT_EQ(treeItemRoot->child(0)->child(1)->childCount(), 0);
     EXPECT_EQ(treeItemRoot->child(0)->child(2)->childCount(), 0);
 
+    modelWithRoot->fetchMore(modelWithRoot->getIndexFromPath(
+        treeItemRoot->child(0)->child(0)->child(1)->sceneItem()->path()));
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->child(0)->childCount(), 0);
     EXPECT_EQ(treeItemRoot->child(0)->child(0)->child(1)->childCount(), 2);
     EXPECT_EQ(
@@ -84,7 +93,21 @@ TEST_F(TreeModelTest, TreeModel_createFromRoot)
         typeFilter,
         childFilter,
         includeRoot);
+
+    // From here on out, we are building the tree manually. This is necessary because now the model
+    // is being lazy loaded. The loading of the other elements in the models are done by the view,
+    // through the fetchMore method.
+
     treeItemRoot = modelWithoutRoot->root();
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A2));
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A3));
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B1));
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B2));
+    treeItemRoot->child(0)->child(1)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C1));
+    treeItemRoot->child(0)->child(1)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C2));
 
     EXPECT_EQ(modelWithoutRoot->root()->sceneItem(), nullptr);
     EXPECT_EQ(modelWithoutRoot->root()->childCount(), 3);
@@ -130,9 +153,17 @@ TEST_F(TreeModelTest, TreeModel_createFromSearch)
         typeFilter,
         childFilter,
         false);
-    auto rootItem = model->root();
 
-    EXPECT_EQ(rootItem->childCount(), 1);
+    model->root()->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::root));
+    auto rootItem = model->root()->child(0);
+
+    rootItem->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
+    rootItem->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B1));
+    rootItem->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B2));
+    rootItem->child(0)->child(1)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C1));
+
+    EXPECT_EQ(model->root()->childCount(), 1);
     EXPECT_EQ(rootItem->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::A1);
     EXPECT_EQ(rootItem->child(0)->childCount(), 2);
     EXPECT_EQ(rootItem->child(0)->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::B1);
@@ -154,6 +185,10 @@ TEST_F(TreeModelTest, TreeModel_createFromSearch)
         childFilter,
         false);
     rootItem = model->root();
+    rootItem->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
+    rootItem->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B2));
+    rootItem->child(0)->child(0)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C2));
 
     EXPECT_EQ(rootItem->childCount(), 1);
     EXPECT_EQ(rootItem->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::A1);
@@ -175,6 +210,7 @@ TEST_F(TreeModelTest, TreeModel_createFromSearch)
         childFilter,
         false);
     rootItem = model->root();
+    rootItem->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
     EXPECT_EQ(rootItem->childCount(), 1);
     EXPECT_EQ(rootItem->child(0)->sceneItem()->path(), UfeUiTest::TestHierarchy::A1);
     EXPECT_EQ(rootItem->child(0)->childCount(), 0);
@@ -196,6 +232,18 @@ std::unique_ptr<UfeUi::TreeModel> buildSimpleModel()
         typeFilter,
         childFilter,
         false);
+
+    auto treeItemRoot = model->root();
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A2));
+    treeItemRoot->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A3));
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B1));
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B2));
+    treeItemRoot->child(0)->child(1)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C1));
+    treeItemRoot->child(0)->child(1)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::C2));
+
     return model;
 }
 TEST_F(TreeModelTest, TreeModel_getIndex)
@@ -371,7 +419,7 @@ TEST_F(TreeModelTest, TreeModel_roRowColCount)
     EXPECT_EQ(2, model->columnCount(C1Idx.parent())); // Constant
 
     // Invalid parent passed (at the root)
-    EXPECT_EQ(3, model->rowCount(QModelIndex {}));
+    EXPECT_EQ(1, model->rowCount(QModelIndex {}));
     EXPECT_EQ(2, model->columnCount(QModelIndex {})); // Constant
 
     // Non-zero column...invalid request.
@@ -449,6 +497,10 @@ TEST_F(TreeModelTest, TreeModel_childFilter)
         includeRoot);
 
     auto treeItemRoot = model->root();
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A1));
+    treeItemRoot->child(0)->appendChild(Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::A3));
+    treeItemRoot->child(0)->child(0)->appendChild(
+        Ufe::Hierarchy::createItem(UfeUiTest::TestHierarchy::B1));
 
     EXPECT_EQ(treeItemRoot->sceneItem(), nullptr);
     EXPECT_EQ(treeItemRoot->childCount(), 1);

@@ -36,7 +36,7 @@ struct materialX_shader_writer_test
 ( 
     function setup =
     (
-        resetmaxfile #noprompt
+        quickReset()
     ),
     
     function validateUsdMtlx stage = (

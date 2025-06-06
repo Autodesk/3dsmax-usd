@@ -63,7 +63,7 @@ void IterateOverChildrenRecursively(
 
 void DisableMaxAcceleratorsOnFocus(QWidget* widget, bool disableMaxAccelerators)
 {
-    QtHelpers::DisableMaxAcceleratorsOnFocus(QWidget * widget, bool disableMaxAccelerators);
+    QtHelpers::DisableMaxAcceleratorsOnFocus(widget, disableMaxAccelerators);
 }
 
 namespace {

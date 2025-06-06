@@ -100,7 +100,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
@@ -110,6 +110,35 @@ public:
     INode*          node;
     USDStageObject* stageObject;
 };
+
+TEST_F(SubObjectTransformTest, Cancel)
+{
+    // Simulate a sub-object move/cancel operation initiated from the UI. The default coord system will
+    // make it move in world space, so we compare the start/end world space transforms and expect
+    // they will be the same after moving and canceling it.
+
+    const TimeValue time = 0;
+    stageObject->TransformStart(time);
+
+    const auto prim = stageObject->GetUSDStage()->GetPrimAtPath(primPath);
+    const auto primPreTransform = USDStageObject::GetMaxScenePrimTransform(node, prim, time, false);
+    EXPECT_TRUE(primPreTransform.GetTrans().Equals(
+        { 66.0295792f, 18.3343010f, -26.6595020f }, MAX_FLOAT_EPSILON));
+
+    Matrix3 tmAxis = Matrix3::Identity;
+    tmAxis.SetTranslate(primPreTransform.GetTrans());
+
+    Point3 translation = { 0.f, 0.f, 10.f };
+    auto   parentTm = node->GetNodeTM(time);
+
+    stageObject->Move(time, parentTm, tmAxis, translation, FALSE);
+    stageObject->TransformCancel(time);
+
+    const auto primPostMoveCancel
+        = USDStageObject::GetMaxScenePrimTransform(node, prim, time, false);
+    EXPECT_TRUE(primPreTransform.Equals(primPostMoveCancel, MAX_FLOAT_EPSILON));
+
+}
 
 TEST_F(SubObjectTransformTest, Move)
 {
@@ -392,7 +421,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
@@ -619,7 +648,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
@@ -922,7 +951,7 @@ public:
 
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
 
@@ -1068,7 +1097,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
@@ -1520,7 +1549,7 @@ public:
     }
     void TearDown() override
     {
-        GetCOREInterface()->FileReset(TRUE);
+        QuickReset();
         SetSystemUnitInfo(unitType, unitScale);
     }
     int   unitType;
