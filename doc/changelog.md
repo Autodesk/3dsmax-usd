@@ -1,5 +1,32 @@
 ## Changelog
 
+### v0.12.0
+
+#### What's New:
+- New public release - version 0.12.0
+
+### v0.11.4
+
+#### What's New:
+- Compatibility release for 3ds Max Beta N1548-69.11 release.
+
+### v0.11.3
+
+#### Fixes:
+- Fixed an issue where 3ds Max could crash during USD Export of animated content with Splines present.
+- Fixed missing root in the USD Explorer after some search operations.
+- Fixed crash when toggling between prim subobject mode and object mode after deactivating prims in the USD Explorer.
+
+### v0.11.2
+
+#### What's New:
+- Added new right-click quad menus for Duplicate as USD as well as options for the duplication.
+
+### v0.11.1
+
+#### What's New:
+- Exposed functions to the new Export To USD api to send Max data directly to a stage object.
+  
 ### v0.11.0
 
 #### Fixes:
