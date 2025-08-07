@@ -182,8 +182,10 @@ Headers should be included in the following order, with each section separated b
 
 #include <string>
 
+#ifdef IS_MAX2023_OR_GREATER
 #include <Graphics/UpdateDisplayContext.h>
 #include <Graphics/InstanceDisplayGeometry.h>
+#endif
 ```
 
 ### Conditional compilation (3ds Max, USD, UFE version)

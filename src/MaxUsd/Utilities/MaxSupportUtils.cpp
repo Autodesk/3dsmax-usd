@@ -168,7 +168,7 @@ void DeletedModifierNotifyHandler(void* param, NotifyInfo* info)
 #else
         NotifyModAddDelParam* data = static_cast<NotifyModAddDelParam*>(info->callParam);
 #endif
-        if (data->mod) {
+        if (data && data->mod) {
             IDerivedObject* obj = nullptr;
             int             idx = 0;
             data->mod->GetIDerivedObject(data->mc, obj, idx);
@@ -189,7 +189,7 @@ void DeletedModifierNotifyHandler(void* param, NotifyInfo* info)
 #else
         NotifyModAddDelParam* data = static_cast<NotifyModAddDelParam*>(info->callParam);
 #endif
-        if (data->mod) {
+        if (data && data->mod) {
             auto it = deletedModifiers.find(data->mod);
             if (it != deletedModifiers.end()) {
                 it->second.postDelete = true;

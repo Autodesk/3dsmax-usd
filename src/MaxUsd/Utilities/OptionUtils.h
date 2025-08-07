@@ -15,6 +15,7 @@
 //
 #pragma once
 #include <MaxUsd.h>
+#include <MaxUsd/Builders/USDSceneBuilderOptions.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
 #include <Path.h>
@@ -25,7 +26,6 @@ class pxr::VtDictionary;
 namespace MAXUSD_NS_DEF {
 
 class DictionaryOptionProvider;
-class USDSceneBuilderOptions;
 class MaxSceneBuilderOptions;
 
 namespace OptionUtils {
@@ -33,7 +33,9 @@ namespace OptionUtils {
 // Get path to the MaxUsd settings folder
 MaxUSDAPI MaxSDK::Util::Path GetPathToUSDSettings();
 // Get path to the MaxUsd export settings file
-MaxUSDAPI MaxSDK::Util::Path GetPathToUsdExportSettings();
+MaxUSDAPI MaxSDK::Util::Path GetPathToUsdExportSettings(const USDSceneBuilderOptions::Type& type);
+// Get path to the MaxUsd export to stage extra options file
+MaxUSDAPI MaxSDK::Util::Path GetPathToUsdExportToStageExtraSettings();
 // Get path to the MaxUsd import settings file
 MaxUSDAPI MaxSDK::Util::Path GetPathToUsdImportSettings();
 // Get path to the MaxUsd general settings file
@@ -89,14 +91,28 @@ MaxUSDAPI void LoadUiOptions(
 /**
  * \brief Serialize and save the export options to disc.
  * \param options The USDSceneBuilderOptions object to save.
+ * \param type The type of export, to file or to a live stage.
  */
-MaxUSDAPI void SaveExportOptions(const USDSceneBuilderOptions& options);
+MaxUSDAPI void
+SaveExportOptions(const USDSceneBuilderOptions& options, const USDSceneBuilderOptions::Type& type);
 
 /**
- * \brief Load and deserialize the export options from disc.
+ * Save the extra options used only when exporting to live stages.
+ * @param options Option dictionary to be saved.
+ */
+MaxUSDAPI void SaveExportToStageExtraOptions(pxr::VtDictionary& options);
+
+/**
+ * \brief Load and deserialize the export options from disk.
+ * \param type The type of export, to file or to a live stage.
  * \return A USDSceneBuilderOptions object with the loaded options.
  */
-MaxUSDAPI USDSceneBuilderOptions LoadExportOptions();
+MaxUSDAPI USDSceneBuilderOptions LoadExportOptions(const USDSceneBuilderOptions::Type& type);
+
+/**
+ * \brief Load and deserialize export to stage extra options from disk.
+ */
+MaxUSDAPI pxr::VtDictionary LoadExportToStageExtraOptions();
 
 /**
  * \brief Serialize and save the import options to disc.
@@ -105,7 +121,7 @@ MaxUSDAPI USDSceneBuilderOptions LoadExportOptions();
 MaxUSDAPI void SaveImportOptions(const MaxSceneBuilderOptions& options);
 
 /**
- * \brief Load and deserialize the import options from disc.
+ * \brief Load and deserialize the import options from disk.
  * @return A MaxSceneBuilderOptions object with the loaded options.
  */
 MaxUSDAPI MaxSceneBuilderOptions LoadImportOptions();

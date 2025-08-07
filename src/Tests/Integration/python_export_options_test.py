@@ -151,6 +151,12 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         rootPrim = "/foo/bar"
         options.SetRootPrimPath(rootPrim)
         self.assertEqual(rootPrim, str(options.GetRootPrimPath()))
+        self.assertEqual(rootPrim, str(options.GetRootPrimPath(True)))
+        self.assertEqual(rootPrim, str(options.GetRootPrimPath(False)))
+        rootPrimWithVarSelect = "/foo/bar{test=foo}"
+        options.SetRootPrimPath(rootPrimWithVarSelect)
+        self.assertEqual(rootPrim, str(options.GetRootPrimPath(True)))
+        self.assertEqual(rootPrimWithVarSelect, str(options.GetRootPrimPath(False)))
         
         self.assertTrue("MaxUsdExport.log" in options.GetLogPath())
         logPath = "C:\\foo\\bar.log"

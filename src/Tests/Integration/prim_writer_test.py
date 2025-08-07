@@ -175,7 +175,8 @@ class DummyExportArgsWriter(maxUsd.PrimWriter):
             rt.assert_equal(False, options.GetUseUSDVisibility())
             rt.assert_equal(str({'UsdPreviewSurface'}), str(options.GetAllMaterialConversions()))
             #The token in the default option value should be resolved at this point.
-            rt.assert_equal("EXPORT_PRIM_WRITER_TEST_test_export_args_exposure_in_writer_mtl.usda", options.GetMaterialLayerPath())
+            mtlLayerPath = os.path.join(os.getcwd(), "EXPORT_PRIM_WRITER_TEST_test_export_args_exposure_in_writer_mtl.usda")
+            rt.assert_equal(mtlLayerPath, options.GetMaterialLayerPath())
         except Exception as e:
             # Quite useful to debug errors in a Python callback
             print('Write() - Error: %s' % str(e))

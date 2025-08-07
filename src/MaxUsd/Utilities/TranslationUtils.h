@@ -211,6 +211,7 @@ class UniqueNameGenerator
 public:
     MaxUSDAPI std::string GetName(const std::string& name);
     MaxUSDAPI void        Reset();
+    MaxUSDAPI void        AddExistingName(const std::string& name);
 
 private:
     std::unordered_set<std::string> existingNames;
@@ -680,8 +681,10 @@ enum class InstancingRequirement
  * \param sourceNode max node to get the transform from.
  * \param time the time to evaluate the sourceNode transform at.
  * \param YUp converts the sourceNode transform to use YUp axis.
+ * \param offset An additional transform to be applied when building the transform.
  */
-MaxUSDAPI pxr::GfMatrix4d GetNodeTransform(INode* sourceNode, TimeValue time, bool YUp);
+MaxUSDAPI pxr::GfMatrix4d
+          GetNodeTransform(INode* sourceNode, TimeValue time, bool YUp, const Matrix3& offset = {});
 
 /**
  * \brief Gets the mesh or bone transform used when bound to a skin modifier.

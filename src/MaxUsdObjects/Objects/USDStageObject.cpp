@@ -581,6 +581,9 @@ inline std::string GetCommonSchemas(
     bool firstOne = true;
     for (const auto& item : selection) {
         auto usdPrim = MaxUsd::ufe::ufePathToPrim(item->path());
+        if (!usdPrim) {
+            continue;
+        }
         auto schemaTypes = GetAllAncestorSchemaTypes(usdPrim);
         auto appliedschemas = usdPrim.GetAppliedSchemas();
         if (firstOne) {
@@ -663,7 +666,11 @@ static void NotifyPostOpenProcess(void* param, NotifyInfo* /*info*/)
     usdStageObject->SetLoadingMaxFile(false);
     // properly remove and replace the camera nodes if required
     usdStageObject->BuildCameraNodes();
+#ifdef IS_MAX2025_OR_GREATER
+    BroadcastNotification<NOTIFY_STAGE_LOAD_STATE_CHANGED>(usdStageObject);
+#else
     BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, usdStageObject);
+#endif
 }
 
 static void NotifyTimeRangeChanged(void* param, NotifyInfo* /*info*/)
@@ -696,9 +703,13 @@ static void NotifyNodePreDeleted(void* param, NotifyInfo* info)
     if (!info->callParam) {
         return;
     }
+#ifdef IS_MAX2025_OR_GREATER
+    INode* deletedNode = GetNotifyParam<NOTIFY_SCENE_PRE_DELETED_NODE>(info);
+#else
     const auto deletedNode = static_cast<INode*>(info->callParam);
+#endif
     const auto usdStageObject = static_cast<USDStageObject*>(param);
-    if (!usdStageObject || deletedNode->GetObjectRef() != usdStageObject) {
+    if (!usdStageObject || !deletedNode || deletedNode->GetObjectRef() != usdStageObject) {
         return;
     }
 
@@ -721,9 +732,13 @@ static void NotifyNodeCreated(void* param, NotifyInfo* info)
     if (!info->callParam) {
         return;
     }
+#ifdef IS_MAX2025_OR_GREATER
+    INode* addedNode = GetNotifyParam<NOTIFY_NODE_CREATED>(info);
+#else
     const auto addedNode = static_cast<INode*>(info->callParam);
+#endif
     const auto usdStageObject = static_cast<USDStageObject*>(param);
-    if (!usdStageObject || addedNode->GetObjectRef() != usdStageObject) {
+    if (!usdStageObject || !addedNode || addedNode->GetObjectRef() != usdStageObject) {
         return;
     }
 
@@ -742,9 +757,13 @@ static void NotifyNodeAdded(void* param, NotifyInfo* info)
     if (!info->callParam) {
         return;
     }
+#ifdef IS_MAX2025_OR_GREATER
+    INode* addedNode = GetNotifyParam<NOTIFY_SCENE_ADDED_NODE>(info);
+#else
     const auto addedNode = static_cast<INode*>(info->callParam);
+#endif
     const auto usdStageObject = static_cast<USDStageObject*>(param);
-    if (!usdStageObject || addedNode->GetObjectRef() != usdStageObject) {
+    if (!usdStageObject || !addedNode || addedNode->GetObjectRef() != usdStageObject) {
         return;
     }
 
@@ -781,7 +800,11 @@ static void NotifyNodePostClone(void* param, NotifyInfo* info)
     }
     usdStageObject->inCloneOperation = false;
 
+#ifdef IS_MAX2025_OR_GREATER
+    NotifyPostNodesCloned* cloneInfo = GetNotifyParam<NOTIFY_POST_NODES_CLONED>(info);
+#else
     const auto cloneInfo = static_cast<MaxSDKSupport::NotifyPostNodesCloned*>(info->callParam);
+#endif
     if (!cloneInfo) {
         return;
     }
@@ -1572,8 +1595,11 @@ USDStageObject::~USDStageObject()
 
         StageObjectMap::GetInstance()->Remove(this);
         stage = pxr::TfNullPtr;
-
+#ifdef IS_MAX2025_OR_GREATER
+        BroadcastNotification<NOTIFY_STAGE_LOAD_STATE_CHANGED>(this);
+#else
         BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
+#endif
     }
 
     pxr::TfNotice::Revoke(onStageChangeNotice);
@@ -2100,7 +2126,11 @@ RefResult USDStageObject::NotifyRefChanged(
             // changed, clear the bounding box cache.
             ClearBoundingBoxCache();
             Redraw();
+#ifdef IS_MAX2025_OR_GREATER
+            BroadcastNotification<NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED>(this);
+#else
             BroadcastNotification(NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED, this);
+#endif
             break;
         }
         case MeshMergeMode:
@@ -2813,10 +2843,33 @@ void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
     // added, or removed, or some instance indices changed.
     DirtySelectionDisplay();
 
-    // If we have resync'ed paths, there were structural changes to the stage, and we may have
-    // deleted or added cameras.
+    // If we have resync'ed paths, there were structural changes to the stage.
     if (!notice.GetResyncedPaths().empty()) {
+
+        // We may have deleted or added cameras.
         BuildCameraNodes();
+
+        // We might need to update out selection, to avoid holding on to now expired prims.
+        const auto& globalSelection = Ufe::GlobalSelection::get();
+        if (globalSelection && !globalSelection->empty()) {
+            std::vector<Ufe::SceneItemPtr> toRemove;
+            const auto                     objectPath = MaxUsd::ufe::getUsdStageObjectPath(this);
+            for (const auto& item : *globalSelection) {
+                if (!item) {
+                    continue;
+                }
+                const auto& path = item->path();
+                if (path.startsWith(objectPath)) {
+                    auto usdPrim = MaxUsd::ufe::ufePathToPrim(item->path());
+                    if (!usdPrim) {
+                        toRemove.push_back(item);
+                    }
+                }
+            }
+            for (const auto& item : toRemove) {
+                globalSelection->remove(item);
+            }
+        }
     }
 
     CheckUpdateGeomObjectPurposes(notice);
@@ -2907,7 +2960,11 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
         [this]() {
             if (!isLoadingMaxFile) {
                 BuildCameraNodes();
+#ifdef IS_MAX2025_OR_GREATER
+                BroadcastNotification<NOTIFY_STAGE_LOAD_STATE_CHANGED>(this);
+#else
                 BroadcastNotification(NOTIFY_STAGE_LOAD_STATE_CHANGED, this);
+#endif
             }
         });
 

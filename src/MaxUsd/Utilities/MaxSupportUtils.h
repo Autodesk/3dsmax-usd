@@ -15,6 +15,8 @@
 //
 #pragma once
 
+#include <plugapi.h> // for MAX_RELEASE
+
 #if MAX_RELEASE >= 28000
 #define IS_MAX_BETA
 #endif

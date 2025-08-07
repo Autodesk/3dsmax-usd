@@ -86,7 +86,14 @@ void MaxUsdShadingModeExporter::DoExport(
 
     if (nbMaterials > 0) {
         pxr::SdfPath rootPath(exportArgs.GetRootPrimPath());
-        pxr::UsdGeomScope::Define(stage, rootPath.AppendPath(exportArgs.GetMaterialPrimPath()));
+        SdfPath      resolvedMatPath;
+        const auto   matPath = exportArgs.GetMaterialPrimPath();
+        if (matPath.IsAbsolutePath()) {
+            resolvedMatPath = matPath;
+        } else {
+            resolvedMatPath = rootPath.AppendPath(exportArgs.GetMaterialPrimPath());
+        }
+        pxr::UsdGeomScope::Define(stage, resolvedMatPath);
     }
 
     // iterate over the exported 3ds Max nodes with materials

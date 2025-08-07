@@ -33,7 +33,7 @@ class ExportDialog;
 /**
  * \brief USD file export dialog.
  */
-class USDExportDialog
+class MaxUSDAPI USDExportDialog
     : public QDialog
     , public IUSDExportView
 {
@@ -42,7 +42,7 @@ public:
      * \brief Constructor.
      * \param buildOptions Initial build options to use to initialize the UI.
      */
-    USDExportDialog(const fs::path& filePath, const MaxUsd::IUSDExportOptions& buildOptions);
+    USDExportDialog(const MaxUsd::IUSDExportOptions& buildOptions);
 
     ~USDExportDialog() override;
 
@@ -59,6 +59,8 @@ public:
     const MaxUsd::USDSceneBuilderOptions& GetBuildOptions() const override;
 
 protected:
+    virtual void setupRollups() = 0;
+
     /**
      * \brief Callback function that is called on platform/OS native events.
      *	See https://doc.qt.io/qt-5/qwidget.html#nativeEvent4 for more information.
@@ -98,10 +100,7 @@ protected:
      */
     bool eventFilter(QObject* object, QEvent* event) override;
 
-    /*
-     * \brief The dialog's accept behavior
-     */
-    void accept() override;
+    virtual const QString& GetRollupCategory() = 0;
 
     /**
      * \brief Get the state (open/close) of all the rollups.
@@ -109,14 +108,85 @@ protected:
      */
     std::map<QString, bool> GetRollupState() const;
 
+    /**
+     * Create and adds a new rollup to the dialog.
+     * @param w Widget contained by the rollup.
+     * @param open True if the rollup initializes open.
+     */
+    void addRollup(QWidget* w, bool open = true);
+
+    /**
+     * Add a rollup containing UI to configure custom plugin contexts.
+     */
+    void addContextsRollup();
+
+    /*
+     * \brief The dialog's accept behavior
+     */
+    void accept() override;
+
     /// Reference to the Qt UI View of the dialog:
     std::unique_ptr<Ui::ExportDialog> ui;
     UsdExportAnimationRollup*         animationRollup;
 
     /// USD Scene build configuration options:
     MaxUsd::USDSceneBuilderOptions buildOptions;
+
+    std::map<QString, bool> loadedRollupState;
+
+    // Default size of the dialog, needs to be overriden in derived classes.
+    int dialogHeight = 0;
+    int dialogWidth = 0;
+};
+
+/**
+ * \brief USD file export dialog.
+ */
+class MaxUSDAPI USDExportToFileDialog : public USDExportDialog
+{
+public:
+    /**
+     * \brief Constructor.
+     * \param buildOptions Initial build options to use to initialize the UI.
+     */
+    USDExportToFileDialog(const fs::path& filePath, const MaxUsd::IUSDExportOptions& buildOptions);
+
+protected:
+    // From USDExportDialog
+    void           accept() override;
+    void           setupRollups() override;
+    const QString& GetRollupCategory() override;
+
     /// The full path where the USD file will be exported:
     fs::path exportPath;
+};
 
-    const QString rollupCategory = "ExportDialogRollups";
+/**
+ * \brief USD file export dialog when writing to an existing stage.
+ */
+class MaxUSDAPI USDExportToStageDialog : public USDExportDialog
+{
+public:
+    /**
+     * \brief Constructor.
+     * \param buildOptions Initial build options to use to initialize the UI.
+     */
+    USDExportToStageDialog(
+        const MaxUsd::IUSDExportOptions& buildOptions,
+        const pxr::VtDictionary&         extraOptions);
+
+    /**
+     * Returns the extra options configured (those are options that only apply when exporting to
+     * live stages, and are therefor not part of the regular export options).
+     * @return
+     */
+    const pxr::VtDictionary& GetExtraOptions() const;
+
+protected:
+    // From USDExportDialog
+    void           setupRollups() override;
+    const QString& GetRollupCategory() override;
+    void           accept() override;
+
+    pxr::VtDictionary extraOptions;
 };

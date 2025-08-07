@@ -19,7 +19,7 @@
 #include "Views/USDImportDialog.h"
 
 #include <MaxUsd/USDCore.h>
-#include <MaxUsd/USDSceneController.h>
+#include <MaxUsd/USDIOController.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/ScopeGuard.h>
 #include <MaxUsd/Utilities/UiUtils.h>
@@ -149,7 +149,7 @@ int USDImporter::ImportFile(
             return IMPEXP_FAIL;
         }
 
-        int result = MaxUsd::GetUSDSceneController()->Import(
+        int result = MaxUsd::GetUSDIOController()->Import(
             MaxUsd::UsdStageSource { filePath }, importOptions, filePath);
 
         return result;
@@ -165,7 +165,7 @@ int USDImporter::ImportFile(
     if (usdImportDialog->Execute()) {
         const auto optionFromUI = usdImportDialog->GetBuildOptions();
         SetUIOptions(optionFromUI);
-        const int result = MaxUsd::GetUSDSceneController()->Import(
+        const int result = MaxUsd::GetUSDIOController()->Import(
             MaxUsd::UsdStageSource { filePath }, optionFromUI, filePath);
         MaxUsd::OptionUtils::SaveImportOptions(uiImportOptions);
         return result;

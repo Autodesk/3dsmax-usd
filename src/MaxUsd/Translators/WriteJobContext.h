@@ -57,7 +57,9 @@ public:
         UsdStageRefPtr                        stage,
         const std::string&                    filename,
         const MaxUsd::USDSceneBuilderOptions& args,
-        bool                                  isUSDZ);
+        bool                                  isUSDZ = false,
+        bool                                  allowPrimOverwrite = true,
+        const Matrix3&                        rootTransform = {});
 
     /**
      * \brief Destructor.
@@ -121,6 +123,19 @@ public:
     MaxUSDAPI bool IsUSDZFile() const { return isUSDZ; }
 
     /**
+     * \brief Check if the export is allowed to overwrite prims on name conflicts.
+     * \return "true" if the export can overwrite existing prims.
+     */
+    MaxUSDAPI bool IsAllowPrimOverwrites() const { return allPrimOverwrites; }
+
+    /**
+     * \brief An additional root transform to apply to prims in the output stage.
+     * When exporting to a USDStageObject, this corresponds to the transform of the node referencing it.
+     * \return The root transform.
+     */
+    MaxUSDAPI Matrix3 GetRootTranform() const { return rootTransform; }
+
+    /**
      * \brief Returns the layers we've discovered while exporting.
      * \return The map matching the layer identifier and their pointer.
      */
@@ -176,6 +191,10 @@ protected:
     std::map<Mtl*, SdfPath> materialToPrims;
     // Whether or not the exported file should be of type USDZ
     bool isUSDZ;
+    // Whether the export is allowed to overwrite existing prims.
+    bool allPrimOverwrites;
+    // Additional transform to be applied on exported prims.
+    Matrix3 rootTransform;
     // The layers discovered while exporting. The key is the identifier for the layer used in the
     // UI.
     std::map<std::string, SdfLayerRefPtr> usdLayersMap;

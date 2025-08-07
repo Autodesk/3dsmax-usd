@@ -15,9 +15,9 @@
 //
 #pragma once
 
+#include <MaxUsd.h>
 #include <MaxUsd/Builders/USDSceneBuilderOptions.h>
 
-#include <MaxUsd.h>
 #include <QtWidgets/QWidget>
 
 namespace Ui {

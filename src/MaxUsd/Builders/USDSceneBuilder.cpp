@@ -15,6 +15,8 @@
 //
 #include "USDSceneBuilder.h"
 
+#include "MaxUsdObjects/Objects/USDStageObject.h"
+
 #include <MaxUsd/MaxTokens.h>
 #include <MaxUsd/Translators/AnimExportTask.h>
 #include <MaxUsd/Translators/PrimWriterRegistry.h>
@@ -32,6 +34,7 @@
 #include <MaxUsd/Utilities/TypeUtils.h>
 #include <MaxUsd/resource.h>
 
+#include <pxr/base/tf/diagnostic.h>
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usd/inherits.h>
@@ -57,6 +60,31 @@ namespace MAXUSD_NS_DEF {
 
 USDSceneBuilder::USDSceneBuilder() = default;
 
+void USDSceneBuilder::Build(
+    const USDSceneBuilderOptions&               buildOptions,
+    bool&                                       cancelled,
+    const pxr::UsdStageRefPtr&                  stage,
+    std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
+    bool                                        allowOverwrite,
+    const Matrix3&                              rootTransform)
+{
+    fs::path   filename;
+    const auto rootLayer = stage->GetRootLayer();
+    if (!rootLayer->IsAnonymous()) {
+        filename = stage->GetRootLayer()->GetRealPath();
+    }
+    Build(
+        buildOptions,
+        cancelled,
+        stage,
+        filename,
+        editedLayers,
+        false,
+        allowOverwrite,
+        rootTransform,
+        false /*isNewStage*/);
+}
+
 pxr::UsdStageRefPtr USDSceneBuilder::Build(
     const USDSceneBuilderOptions&               buildOptions,
     bool&                                       cancelled,
@@ -64,30 +92,121 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
     std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
     bool                                        isUSDZ = false)
 {
-    pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateInMemory();
+    auto stage = pxr::UsdStage::CreateInMemory();
+    Build(
+        buildOptions,
+        cancelled,
+        stage,
+        filename,
+        editedLayers,
+        isUSDZ,
+        false,
+        Matrix3 {},
+        true /*isNewStage*/);
+    return stage;
+}
 
-    auto& exportOptions = const_cast<USDSceneBuilderOptions&>(buildOptions);
+void USDSceneBuilder::Build(
+    const USDSceneBuilderOptions&               buildOptions,
+    bool&                                       cancelled,
+    const pxr::UsdStageRefPtr&                  stage,
+    const fs::path&                             filename,
+    std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
+    bool                                        isUSDZ = false,
+    bool                                        allowPrimOverwrite = false,
+    const Matrix3&                              rootTransform,
+    bool                                        isNewStage)
+{
+    INode* rootNode = coreInterface->GetRootNode();
+    if (rootNode == nullptr) {
+        return;
+    }
+
+    // Copy the options, as we will need to make some edits.
+    auto exportOptions = buildOptions;
+
+    fs::path oldPath;
+    fs::path exportFolderPath;
+    if (!filename.empty()) {
+        exportFolderPath = filename.parent_path();
+        oldPath = fs::current_path();
+        // Make sure to create this working directory. Otherwise current_path() below will fail.
+        fs::create_directories(exportFolderPath);
+    }
+    // Suspend problematic activities (scene editing and scene redraw) while exporting. Also suspend
+    // the hold (undo/redo system). Some modifiers may create temporary nodes while they are being
+    // edited, these should not be considered.
+    const auto exportScopeGuard = MaxUsd::MakeScopeGuard(
+        [&exportFolderPath]() {
+            GetCOREInterface17()->SuspendEditing();
+            GetCOREInterface17()->DisableSceneRedraw();
+            theHold.Suspend();
+            if (!exportFolderPath.empty()) {
+                fs::current_path(exportFolderPath);
+            }
+        },
+        [&oldPath]() {
+            GetCOREInterface17()->ResumeEditing();
+            GetCOREInterface17()->EnableSceneRedraw();
+            theHold.Resume();
+            if (!oldPath.empty()) {
+                fs::current_path(oldPath);
+            }
+        });
+
+    auto       rootPath = exportOptions.GetRootPrimPath(false);
+    const auto variantSelection = rootPath.GetVariantSelection();
+    rootPath = rootPath.StripAllVariantSelections();
+
+    auto editTarget = stage->GetEditTarget();
+    auto editGuard = MaxUsd::MakeScopeGuard(
+        []() {}, [&stage, &editTarget] { stage->SetEditTarget(editTarget); });
+
+    // Variant selection on the root path... make sure the variant set is created / selected.
+    if (!variantSelection.first.empty() && !variantSelection.second.empty()) {
+        auto prim = stage->GetPrimAtPath(rootPath);
+        if (!prim) {
+            prim = stage->DefinePrim(rootPath, pxr::TfToken("Xform"));
+        }
+        auto variantSet = prim.GetVariantSet(variantSelection.first);
+        if (!variantSet) {
+            variantSet = prim.GetVariantSets().AddVariantSet(variantSelection.first);
+        }
+        if (!variantSet.HasAuthoredVariant(variantSelection.second)) {
+            variantSet.AddVariant(variantSelection.second);
+        }
+        variantSet.SetVariantSelection(variantSelection.second);
+
+        const auto varEditTarget = variantSet.GetVariantEditTarget(editTarget.GetLayer());
+        stage->SetEditTarget(varEditTarget);
+    }
 
     // Create the write job context - used for shader and prim writers.
     // Also resolve the token that can be in the MaterialLayerPath, so that the full path can be
     // used by the writers through the context.
-    pxr::MaxUsdWriteJobContext writeJobContext { stage, filename.string(), exportOptions, isUSDZ };
-    exportOptions.SetMaterialLayerPath(
-        writeJobContext.ResolveString(buildOptions.GetMaterialLayerPath()));
+    pxr::MaxUsdWriteJobContext writeJobContext { stage,  filename.string(),  exportOptions,
+                                                 isUSDZ, allowPrimOverwrite, rootTransform };
 
-    if (buildOptions.GetUseSeparateMaterialLayer()) {
+    auto resolvedMaterialPath
+        = fs::path(writeJobContext.ResolveString(exportOptions.GetMaterialLayerPath()));
+    if (!resolvedMaterialPath.is_absolute()) {
+        resolvedMaterialPath = exportFolderPath / resolvedMaterialPath;
+    }
+    exportOptions.SetMaterialLayerPath(resolvedMaterialPath.u8string());
+
+    if (exportOptions.GetUseSeparateMaterialLayer()) {
         const auto matFilePath
-            = USDCore::sanitizedFilename(buildOptions.GetMaterialLayerPath(), ".usda");
+            = USDCore::sanitizedFilename(exportOptions.GetMaterialLayerPath(), ".usda");
         if (matFilePath.empty()) {
             MaxUsd::Log::Error(
-                "Invalid material layer path: {0}", buildOptions.GetMaterialLayerPath());
+                "Invalid material layer path: {0}", exportOptions.GetMaterialLayerPath());
         } else if (matFilePath.extension() == ".usdz") {
             MaxUsd::Log::Error(
                 "Invalid material layer path: {0}. USDZ is not a valid file format for material "
                 "layers.",
-                buildOptions.GetMaterialLayerPath());
+                exportOptions.GetMaterialLayerPath());
         } else {
-            auto ext = pxr::SdfFileFormat::FindByExtension(buildOptions.GetMaterialLayerPath());
+            auto ext = pxr::SdfFileFormat::FindByExtension(exportOptions.GetMaterialLayerPath());
             const auto identifier = matFilePath.string();
 
             // The layer could already be in memory...(previous version loaded in a stage)
@@ -102,55 +221,78 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
 
     // Insert the stage in the global cache for the time of the export. Useful so it can be accessed
     // from callbacks. Removed from the cache using RAII.
-    const MaxUsd::StageCacheScopeGuard stageCacheGuard { stage };
+    const StageCacheScopeGuard stageCacheGuard { stage };
 
-    pxr::TfToken upAxis;
-    if (buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y) {
-        upAxis = pxr::UsdGeomTokens->y;
+    const auto timeConfig = exportOptions.GetResolvedTimeConfig();
+    const auto maxFramePerSecond = (4800.0 / double(GetTicksPerFrame()));
+
+    // When creating a new stage, author stage metadata like the up-axis, units, frames per second.
+    // When exporting to an existing stage, we try instead to respect what is there.
+    if (isNewStage) {
+        pxr::TfToken upAxis;
+        if (exportOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y) {
+            upAxis = pxr::UsdGeomTokens->y;
+        } else {
+            upAxis = pxr::UsdGeomTokens->z;
+        }
+
+        pxr::UsdGeomSetStageUpAxis(stage, upAxis);
+
+        // Export units setup
+        double stageScale = GetSystemUnitScale(UNITS_METERS);
+        // round float imprecision
+        stageScale = MaxUsd::MathUtils::RoundToSignificantDigit(
+            stageScale, std::numeric_limits<float>::digits10);
+        pxr::UsdGeomSetStageMetersPerUnit(stage, stageScale);
+
+        if (timeConfig.IsAnimated()) {
+            // In 3dsMax, one tick is defined as 1/4800th of a second.
+            stage->SetTimeCodesPerSecond(maxFramePerSecond);
+            // Typically the FramePerSeconds and TimeCodePerSeconds are equal, although they
+            // don't need necessarily need to be. According to the docs, FramePerSecond
+            // "makes an advisory statement about how the contained data can be most usefully
+            // consumed and presented. It's primarily an indication of the expected playback rate
+            // for the data, but a timeline editing tool might also want to use this to decide
+            // how to scale and label its timeline."
+            stage->SetFramesPerSecond(maxFramePerSecond);
+        }
     } else {
-        upAxis = pxr::UsdGeomTokens->z;
+        // We do not yet support retiming animations if the frame per seconds in the max scene
+        // does not match the timecodes per seconds set in the stage. Warn about it.
+        const auto tps = stage->GetTimeCodesPerSecond();
+        if (tps != maxFramePerSecond) {
+            PXR_NAMESPACE_USING_DIRECTIVE
+            TF_WARN(TfStringPrintf(
+                "Inconsistent frames per second, 3ds Max scene is configured with "
+                "'%f' frames per second while the target stage has '%f' timecodes per second.",
+                maxFramePerSecond,
+                tps));
+        }
     }
 
-    pxr::UsdGeomSetStageUpAxis(stage, upAxis);
-
-    // Export units setup
-    double stageScale = GetSystemUnitScale(UNITS_METERS);
-    // round float imprecision
-    stageScale = MaxUsd::MathUtils::RoundToSignificantDigit(
-        stageScale, std::numeric_limits<float>::digits10);
-    pxr::UsdGeomSetStageMetersPerUnit(stage, stageScale);
-
-    INode* rootNode = coreInterface->GetRootNode();
-    if (rootNode == nullptr) {
-        return stage;
-    }
-
-    const auto timeConfig = buildOptions.GetResolvedTimeConfig();
     if (timeConfig.IsAnimated()) {
-        stage->SetStartTimeCode(timeConfig.GetStartFrame());
-        stage->SetEndTimeCode(timeConfig.GetEndFrame());
-        // In 3dsMax, one tick is defined as 1/4800th of a second.
-        const auto maxFramePerSecond = (4800.0 / double(GetTicksPerFrame()));
-        stage->SetTimeCodesPerSecond(maxFramePerSecond);
-        // Typically the FramePerSeconds and TimeCodePerSeconds are equal, although they
-        // don't need necessarily need to be. According to the docs, FramePerSecond
-        // "makes an advisory statement about how the contained data can be most usefully
-        // consumed and presented. It's primarily an indication of the expected playback rate
-        // for the data, but a timeline editing tool might also want to use this to decide
-        // how to scale and label its timeline."
-        stage->SetFramesPerSecond(maxFramePerSecond);
+        // Expand the timecode range if exporting an animation into a stage that already carries
+        // animation data.
+        if (stage->HasAuthoredTimeCodeRange()) {
+            stage->SetStartTimeCode(
+                std::min(timeConfig.GetStartFrame(), stage->GetStartTimeCode()));
+            stage->SetEndTimeCode(std::max(timeConfig.GetEndFrame(), stage->GetEndTimeCode()));
+        } else {
+            stage->SetStartTimeCode(timeConfig.GetStartFrame());
+            stage->SetEndTimeCode(timeConfig.GetEndFrame());
+        }
     }
 
     // If we are not exporting the whole scene, build the set of the nodes to export, for easy
     // access later.
     nodesToExportSet.clear();
-    if (buildOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::NodeList) {
-        const auto nodesToExport = buildOptions.GetNodesToExport();
+    if (exportOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::NodeList) {
+        const auto nodesToExport = exportOptions.GetNodesToExport();
         for (int i = 0; i < nodesToExport.Count(); ++i) {
             nodesToExportSet.emplace(nodesToExport[i]);
         }
     } else if (
-        buildOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::Selection) {
+        exportOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::Selection) {
         for (int i = 0; i < GetCOREInterface()->GetSelNodeCount(); ++i) {
             nodesToExportSet.emplace(GetCOREInterface()->GetSelNode(i));
         }
@@ -159,9 +301,9 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
     // If we are only exporting a set of nodes, and it is empty, we are done!
     // In practice, a user would most likely get stopped before reaching this point if trying to
     // export from an empty selection or an empty list of nodes.
-    if (buildOptions.GetContentSource() != USDSceneBuilderOptions::ContentSource::RootNode
+    if (exportOptions.GetContentSource() != USDSceneBuilderOptions::ContentSource::RootNode
         && nodesToExportSet.empty()) {
-        return stage;
+        return;
     }
 
     MaxUsd::UniqueNameGenerator primNameGenerator;
@@ -172,7 +314,7 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
 
     static const std::wstring progressBarTitle = GetString(IDS_EXPORT_PROGRESS_TITLE);
     MaxProgressBar            progressBar(progressBarTitle.c_str());
-    progressBar.SetEnabled(buildOptions.GetUseProgressBar());
+    progressBar.SetEnabled(exportOptions.GetUseProgressBar());
     static const std::wstring completionMsg = GetString(IDS_EXPORT_PROGRESS_COMPLETED_MESSAGE);
     const auto                progressScopeGuard = MaxUsd::MakeScopeGuard(
         [&progressBar]() { progressBar.Start(); },
@@ -181,8 +323,7 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
     if (!BuildStageFromMaxNodes(writeJobContext, primsToNodes, primsToMaterialBind, progressBar)) {
         // export was cancelled
         cancelled = true;
-        stage.Reset();
-        return stage;
+        return;
     }
 
     // Set the first valid prim as default prim.
@@ -201,7 +342,7 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
         }
     }
 
-    if (buildOptions.GetTranslateMaterials()) {
+    if (exportOptions.GetTranslateMaterials()) {
         pxr::MaxUsdTranslatorMaterial::ExportMaterials(
             writeJobContext, primsToMaterialBind, progressBar);
     }
@@ -214,10 +355,10 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
     // populate the chasers and run post export
     std::vector<std::pair<std::string, pxr::MaxUsdExportChaserRefPtr>> chasers;
     pxr::MaxUsdExportChaserRegistry::FactoryContext                    ctx(
-        stage, primsToNodes, buildOptions, filename);
+        stage, primsToNodes, exportOptions, filename);
     // for available chasers to load if not done already
     pxr::MaxUsdExportChaserRegistry::GetAllRegisteredChasers();
-    for (const std::string& chaserName : buildOptions.GetChaserNames()) {
+    for (const std::string& chaserName : exportOptions.GetChaserNames()) {
         if (pxr::MaxUsdExportChaserRefPtr fn
             = pxr::MaxUsdExportChaserRegistry::Create(chaserName, ctx)) {
             chasers.push_back(std::make_pair(chaserName, fn));
@@ -235,8 +376,6 @@ pxr::UsdStageRefPtr USDSceneBuilder::Build(
     }
 
     editedLayers = writeJobContext.GetLayerMap();
-
-    return stage;
 }
 
 struct NodeToExportStackItem
@@ -302,7 +441,7 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
 
     std::stack<NodeToExportStackItem> nodeToExportStack;
     auto                              pushNodeChildrensToExportStack =
-        [&nodeToExportStack, &buildOptions, this, &rootNamesGenerator](
+        [&nodeToExportStack, &writeJobContext, &buildOptions, this, &rootNamesGenerator](
             INode* node, const pxr::SdfPath& parentPrimPath, INode* parentHiddenAncestor) {
             // If exporting the selection or from a node list, nodes that don't have their parents
             // selected end up being exported at the root level. They use the same name generator to
@@ -313,6 +452,18 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
                 nameGenerator = rootNamesGenerator;
             } else {
                 nameGenerator = std::make_shared<MaxUsd::UniqueNameGenerator>();
+            }
+
+            if (!writeJobContext.IsAllowPrimOverwrites()) {
+                // In case we are exporting to a live stage, need to load all existing children at
+                // the parent path already existing in the stage.
+                const auto& stage = writeJobContext.GetUsdStage();
+                const auto  parentPrim = stage->GetPrimAtPath(parentPrimPath);
+                if (parentPrim) {
+                    for (const auto& child : parentPrim.GetAllChildrenNames()) {
+                        nameGenerator->AddExistingName(child.GetString());
+                    }
+                }
             }
 
             std::unordered_set<std::wstring> names;
@@ -381,20 +532,28 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
 
     const int numberOfItemToExport = GetNumberOfNodeToExport(buildOptions);
 
-    pxr::SdfPath rootPath(buildOptions.GetRootPrimPath());
-    auto         stage = writeJobContext.GetUsdStage();
+    pxr::SdfPath rootPathWithVariantSelection(buildOptions.GetRootPrimPath(false));
+    pxr::SdfPath rootPath(rootPathWithVariantSelection.StripAllVariantSelections());
 
-    // Unless the absolute root path is used ("/"), we want the root prim to be specified as a
-    // Scope.
+    auto stage = writeJobContext.GetUsdStage();
+
+    // Unless the absolute root path is used ("/"), we want the root prim to be specified as an
+    // Xform.
     if (!rootPath.IsAbsoluteRootPath()) {
-        MaxUsd::FetchOrCreatePrim<pxr::UsdGeomXformable>(
-            stage, rootPath, pxr::MaxUsdPrimTypeTokens->Xform);
-        // The top level primitive from that path should be our default prim.
-        auto path = rootPath;
-        while (path.GetParentPath() != pxr::SdfPath::AbsoluteRootPath()) {
-            path = path.GetParentPath();
+        // If there is already a prim at that path (exporting to a live stage), keep it.
+        if (!stage->GetPrimAtPath(rootPath)) {
+            MaxUsd::FetchOrCreatePrim<pxr::UsdGeomXformable>(
+                stage, rootPath, pxr::MaxUsdPrimTypeTokens->Xform);
         }
-        stage->SetDefaultPrim(stage->GetPrimAtPath(path));
+
+        if (!stage->HasDefaultPrim()) {
+            // The top level primitive from that path should be our default prim.
+            auto path = rootPath;
+            while (path.GetParentPath() != pxr::SdfPath::AbsoluteRootPath()) {
+                path = path.GetParentPath();
+            }
+            stage->SetDefaultPrim(stage->GetPrimAtPath(path));
+        }
     }
 
     const auto timeConfig = buildOptions.GetResolvedTimeConfig();
@@ -525,7 +684,14 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
             if (primSpec.path.IsEmpty()) {
                 continue;
             }
-            auto prim = pxr::SdfCreatePrimInLayer(stage->GetRootLayer(), primSpec.path);
+
+            // Most of the work of the exporter is done on a path stripped of any variant selection,
+            // working with USD apis. However, when we create prims here using SDF, we need any
+            // variant selection that was specified on the root, re-add the variant selection.
+            const auto pathWithVariantSelect
+                = primSpec.path.ReplacePrefix(rootPath, rootPathWithVariantSelection);
+            const auto layer = stage->GetEditTarget().GetLayer();
+            auto       prim = pxr::SdfCreatePrimInLayer(layer, pathWithVariantSelect);
             if (primSpec.type == pxr::MaxUsdPrimTypeTokens->Class) {
                 prim->SetSpecifier(pxr::SdfSpecifierClass);
                 // No type name for class prims.
@@ -800,7 +966,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
     // from the export), we might still need to export it as an Xform if it has children
     // so that any of its exported descendants will have the correct transforms.
     if (!translationHandled) {
-        if (HasExportableDescendants(context.node, buildOptions)) {
+        if (HasExportableDescendants(context.node, writeJobContext)) {
             MaxUsd::PrimDef primSpec
                 = { context.parentPrimPath.AppendChild(pxr::TfToken(context.primName)),
                     pxr::MaxUsdPrimTypeTokens->Xform };
@@ -845,16 +1011,38 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                     xFormPrim.MakeInvisible(pxr::UsdTimeCode::Default());
                 }
 
+                auto additionalRootTransform = writeJobContext.GetRootTranform();
+                // Consider unit conversion here. There is currently no option to control the output
+                // units. When writing to a new layer, we author the units as they are in the 3ds
+                // Max scene. However, when writing to an existing layer, we respect the units
+                // there, and so we need to scale everything.
+                const auto scalingFactor
+                    = static_cast<float>(GetUsdToMaxScaleFactor(writeJobContext.GetUsdStage()));
+                Matrix3 scalingMat;
+                scalingMat.Scale({ scalingFactor, scalingFactor, scalingFactor });
+                additionalRootTransform = scalingMat * additionalRootTransform;
+                additionalRootTransform.Invert();
+
+                // Clear the op order so that when we if overwrite a prim, we dont keep adding more
+                // ops.
+                xFormPrim.ClearXformOpOrder();
+
                 // Queue the work of writing the node's transform - it will be batched with other
                 // translation operations needing to be done at the same 3dsMax time values (we
                 // figure this out from the validity intervals). This prevents us re-evaluating the
                 // same objects multiple times at the same time values.
                 auto node = context.node;
                 animExportTask.AddTransformExportOp(
-                    [&buildOptions, node, xFormPrim, this](
+                    [&buildOptions, node, xFormPrim, additionalRootTransform, this](
                         const MaxUsd::ExportTime& time, pxr::UsdGeomXformOp& usdGeomXFormOp) {
                         pxr::GfMatrix4d maxTransformMatrix
                             = MaxUsd::ToUsd(node->GetNodeTM(time.GetMaxTime()));
+
+                        if (!additionalRootTransform.IsIdentity()) {
+                            maxTransformMatrix
+                                = maxTransformMatrix * MaxUsd::ToUsd(additionalRootTransform);
+                        }
+
                         MaxUsd::MathUtils::RoundMatrixValues(
                             maxTransformMatrix, std::numeric_limits<float>::digits10);
 
@@ -888,7 +1076,13 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                             parentWorldTransform = MaxUsd::GetNodeTransform(
                                 parentNode,
                                 time.GetMaxTime(),
-                                buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y);
+                                buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y,
+                                additionalRootTransform);
+                        } else if (
+                            xFormPrim.GetPath().GetParentPath() == buildOptions.GetRootPrimPath()) {
+                            const auto img = pxr::UsdGeomImageable(xFormPrim.GetPrim().GetParent());
+                            parentWorldTransform
+                                = img.ComputeLocalToWorldTransform(time.GetUsdTime());
                         }
 
                         // The parent transform must be invertible for us to be able to compute the
@@ -943,8 +1137,8 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
 }
 
 bool USDSceneBuilder::HasExportableDescendants(
-    INode*                        node,
-    const USDSceneBuilderOptions& buildOptions)
+    INode*                            node,
+    const pxr::MaxUsdWriteJobContext& jobCtx)
 {
     // Check if we already have the answer in the cache.
     const auto it = hasExportableDescendantsMap.find(node);
@@ -952,14 +1146,16 @@ bool USDSceneBuilder::HasExportableDescendants(
         return it->second;
     }
 
-    bool exportableHierarchy = false;
+    bool       exportableHierarchy = false;
+    const auto buildOptions = jobCtx.GetArgs();
+
     // If we are exporting from a node list, make sure the node should be considered.
     if (nodesToExportSet.empty() || nodesToExportSet.find(node) != nodesToExportSet.end()) {
         // Should the node be ignored because it is hidden?
         if (!node->IsNodeHidden() || buildOptions.GetTranslateHidden()) {
-            // Check if any of the translation operations apply to the node's object. If so, it is
-            // considered exportable.
-            exportableHierarchy = pxr::MaxUsdPrimWriterRegistry::CanBeExported(node, buildOptions);
+            // Check if any of the translation operations apply to the node's object. If so, it
+            // is considered exportable.
+            exportableHierarchy = pxr::MaxUsdPrimWriterRegistry::CanBeExported(node, jobCtx);
         }
     }
 
@@ -982,7 +1178,7 @@ bool USDSceneBuilder::HasExportableDescendants(
                 continue;
             }
 
-            if (HasExportableDescendants(childNode, buildOptions)) {
+            if (HasExportableDescendants(childNode, jobCtx)) {
                 exportableHierarchy = true;
                 break;
             }

@@ -630,7 +630,7 @@ void Explorer::onSearchFilterChanged(const QString& searchFilter)
         _searchThread.get(),
         &ExplorerSearchThread::finished,
         _searchThread.get(),
-        [&, searchFilter, this]() {
+        [rootWasHidden, searchFilter, this]() {
             // Since results have been received, discard the timer that was waiting for results so
             // that the Spinner Widget is not displayed:
             _searchTimer->stop();
@@ -864,8 +864,9 @@ void Explorer::rebuildSubtree(const TreeItem* item)
         auto expandGuard
             = Utils::ExpandStateGuard { _ui->treeView, item, _treeModel.get(), _proxyModel.get() };
 
-        // As are rebuilding a subtree, selected indices may get removed, affecting the selection. We do not want to
-        // react and unselect ufe items. Tree item selection is refreshed bellow after the rebuild.
+        // As are rebuilding a subtree, selected indices may get removed, affecting the selection.
+        // We do not want to react and unselect ufe items. Tree item selection is refreshed bellow
+        // after the rebuild.
         _ignoreTreeSelectionChanged = true;
         model->buildTreeFrom(
             treeItem,

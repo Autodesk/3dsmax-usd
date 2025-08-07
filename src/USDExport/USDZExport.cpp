@@ -16,11 +16,11 @@
 #include "USDZExport.h"
 
 #include "DLLEntry.h"
-#include "Views/USDExportDialog.h"
 
 #include <MaxUsd/Interfaces/IUSDExportOptions.h>
-#include <MaxUsd/USDSceneController.h>
+#include <MaxUsd/USDIOController.h>
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <MaxUsd/Views/USDExportDialog.h>
 
 #include <maxscript/maxscript.h>
 #include <maxscript/util/listener.h>
@@ -46,7 +46,8 @@ int USDZExporter::DoExport(
         = (optionFlags & SCENE_EXPORT_SELECTED) == SCENE_EXPORT_SELECTED
         ? MaxUsd::USDSceneBuilderOptions::ContentSource::Selection
         : MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode;
-    auto uiExportOptions = GetUIOptions();
+    auto uiExportOptions = MaxUsd::GetUSDIOController()->GetExportUIOptions(
+        MaxUsd::USDSceneBuilderOptions::Type::ToFile);
 
     uiExportOptions.SetContentSource(contentSource);
 

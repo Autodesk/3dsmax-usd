@@ -13,7 +13,7 @@
     <ClCompile Include="USDCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="USDSceneController.cpp">
+    <ClCompile Include="USDIOController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UsdStageSource.cpp">
@@ -283,9 +283,36 @@
     <ClCompile Include="maxusd_pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ExportToStageCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportAdvancedRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportAnimationRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\USDExportCustomChannelMappingsDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\USDExportDialog.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportFileRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportGeneralSettingsRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportIncludeRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdExportMaterialsRollup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="USDSceneController.h">
+    <ClInclude Include="USDIOController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="USDCore.h">
@@ -594,6 +621,36 @@
     <ClInclude Include="maxusd_pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ExportToStageCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\IUSDExportView.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportAdvancedRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportAnimationRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\USDExportDialog.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportFileRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportGeneralSettingsRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportIncludeRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdExportMaterialsRollup.h">
+      <Filter>Header Files\Views</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -673,6 +730,15 @@
     <Filter Include="Source Files\CurveConversion">
       <UniqueIdentifier>{07bf7a3a-5361-4ad2-92dc-8f86ca898e74}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Views">
+      <UniqueIdentifier>{3ca19a12-148c-4c88-bb80-dedce774a663}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Views">
+      <UniqueIdentifier>{442ef4b3-4c48-457d-b764-010e7ac96f2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{3e49fce6-e34c-4260-a85d-9300df4ee229}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -689,5 +755,28 @@
     <QtMoc Include="Widgets\ElidedLabel.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\UsdExportAdvancedRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportAnimationRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\USDExportDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportFileRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportGeneralSettingsRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportIncludeRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Views\UsdExportMaterialsRollup.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
 </Project>

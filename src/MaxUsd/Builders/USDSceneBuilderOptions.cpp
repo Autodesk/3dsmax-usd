@@ -157,9 +157,15 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
     });
     // Purposefully left out of the call_once, in order to always fetch the latest value for
     // "APP_TEMP_DIR".
-    defaultDict[MaxUsdSceneBuilderOptionsTokens->logPath]
-        = fs::path(std::wstring(MaxSDKSupport::GetString(GetCOREInterface()->GetDir(APP_TEMP_DIR)))
-                       .append(L"\\MaxUsdExport.log"));
+
+    // Null core interface can happen in unit tests - because of static initialization of options
+    // objects, which can happen before we set the mock interface. Leave the log path uninitialized
+    // in this case.
+    if (const auto coreInterface = GetCOREInterface()) {
+        defaultDict[MaxUsdSceneBuilderOptionsTokens->logPath] = fs::path(
+            std::wstring(MaxSDKSupport::GetString(GetCOREInterface()->GetDir(APP_TEMP_DIR)))
+                .append(L"\\MaxUsdExport.log"));
+    }
 
     return defaultDict;
 }
@@ -539,9 +545,13 @@ void USDSceneBuilderOptions::SetRootPrimPath(const SdfPath& rootPrimPath)
     options[MaxUsdUsdSceneBuilderOptionsTokens->rootPrimPath] = rootPrimPath;
 }
 
-const SdfPath& USDSceneBuilderOptions::GetRootPrimPath() const
+const SdfPath USDSceneBuilderOptions::GetRootPrimPath(bool stripVariantSelection) const
 {
-    return VtDictionaryGet<SdfPath>(options, MaxUsdUsdSceneBuilderOptionsTokens->rootPrimPath);
+    auto path = VtDictionaryGet<SdfPath>(options, MaxUsdUsdSceneBuilderOptionsTokens->rootPrimPath);
+    if (stripVariantSelection) {
+        path = path.StripAllVariantSelections();
+    }
+    return path;
 }
 
 const pxr::TfToken& USDSceneBuilderOptions::GetBonesPrimName() const

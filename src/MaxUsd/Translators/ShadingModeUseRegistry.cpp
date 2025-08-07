@@ -272,7 +272,7 @@ private:
     {
         UsdPrim materialPrim;
         auto    materialPath = SdfPath::EmptyPath();
-        auto    editTarget = UsdEditTarget(context.GetUsdStage()->GetRootLayer());
+        auto    editTarget = context.GetUsdStage()->GetEditTarget();
 
         if (targetPath.IsEmpty()) {
             materialPath = materialTargetPath(context, mat, editTarget);
@@ -363,8 +363,13 @@ private:
         // Otherwise, bind the material to the prims.
         else {
             // We want to have the material binding in the layer where the geometry is exported.
-            pxr::UsdEditContext materialBindingEditContext(
-                context.GetUsdStage(), context.GetUsdStage()->GetRootLayer());
+            // Generally that is the root layer. If exporting to a live stage, that is the current
+            // edit target, as we do not support seperate material layers in this scenario.
+            auto                target = context.GetExportArgs().GetUseSeparateMaterialLayer()
+                               ? context.GetUsdStage()->GetRootLayer()
+                               : context.GetUsdStage()->GetEditTarget();
+            pxr::UsdEditContext materialBindingEditContext(context.GetUsdStage(), target);
+
             context.GetWriteJobContext().AddExportedMaterial(
                 context.GetMaterial(), materialPrim.GetPath());
             context.BindStandardMaterialPrim(materialPrim);

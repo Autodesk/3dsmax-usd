@@ -114,11 +114,10 @@ struct MaxUsdPrimWriterRegistry
      * \brief Checks if a node can be exported by any of the available prim writers, considering
      * the given export options.
      * \param node The node to check for exportability.
-     * \param exportArgs Export options to consider.
+     * \param jobCtx The write job context (options, stage, etc.)
      * \return True, if the node can be exported by a prim writer.
      */
-    MaxUSDAPI static bool
-    CanBeExported(INode* node, const MaxUsd::USDSceneBuilderOptions& exportArgs);
+    MaxUSDAPI static bool CanBeExported(INode* node, const MaxUsdWriteJobContext& jobCtx);
 };
 
 #define PXR_MAXUSD_REGISTER_WRITER(writerClass)                                         \

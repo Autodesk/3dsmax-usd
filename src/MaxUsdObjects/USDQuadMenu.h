@@ -1,5 +1,5 @@
 //
-// Copyright 2023 Autodesk
+// Copyright 2025 Autodesk
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 #pragma once
 
-// Components of version number for the USD component
-#define COMPONENT_VERSION_MAJOR 0
-#define COMPONENT_VERSION_MINOR 12
-#define COMPONENT_VERSION_MICRO 0
+#include <MaxUsd/Utilities/MaxSupportUtils.h>
+
+// Modern menu system available in 2025+
+#ifdef IS_MAX2025_OR_GREATER
+
+struct NotifyInfo;
+
+void USDQuadMenuRegisterCallback(void* param, NotifyInfo* info);
+void RegisterUSDDynamicActionItem();
+
+#endif
