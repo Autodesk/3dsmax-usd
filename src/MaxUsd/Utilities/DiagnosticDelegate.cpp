@@ -114,26 +114,32 @@ const std::vector<Message>& DiagnosticDelegate::GetDiagnosticMessages() const
     return diagnosticMessages;
 }
 
-TfDiagnosticMgr::Delegate* ScopedDelegate::runningDelegate { nullptr };
+std::stack<pxr::TfDiagnosticMgr::Delegate*> ScopedDelegate::runningDelegates {};
 
 ScopedDelegate ::~ScopedDelegate()
 {
-    if (runningDelegate) {
-        delete runningDelegate;
-        runningDelegate = nullptr;
+    if (!runningDelegates.empty()) {
+        pxr::TfDiagnosticMgr::Delegate* current = runningDelegates.top();
+        delete current;
+        runningDelegates.pop();
     }
 }
 
 bool ScopedDelegate::HasMessages() const
 {
-    return runningDelegate ? static_cast<DiagnosticDelegate*>(runningDelegate)->HasMessages()
-                           : false;
+    if (runningDelegates.empty()) {
+        return false;
+    }
+    const auto& current = runningDelegates.top();
+
+    return current ? static_cast<DiagnosticDelegate*>(current)->HasMessages() : false;
 }
 
 const std::vector<Message>& ScopedDelegate::GetDiagnosticMessages() const
 {
-    if (runningDelegate) {
-        return static_cast<DiagnosticDelegate*>(runningDelegate)->GetDiagnosticMessages();
+    if (!runningDelegates.empty()) {
+        const auto& current = runningDelegates.top();
+        return static_cast<DiagnosticDelegate*>(current)->GetDiagnosticMessages();
     }
     static std::vector<Message> empty_vector {};
     return empty_vector;

@@ -16,6 +16,7 @@
 #pragma once
 
 #include <MaxUsdObjects/MaxUsdObjectsAPI.h>
+#include <MaxUsdObjects/Objects/MaxUsdNotify.h>
 #include <MaxUsdObjects/USDPickingRenderer.h>
 
 #include <RenderDelegate/HdMaxEngine.h>
@@ -33,11 +34,6 @@
 class SubObjectManip;
 
 extern Class_ID USDSTAGEOBJECT_CLASS_ID;
-
-// No way to ensure custom notification codes are unique...but with any luck, it will be!
-#define NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED REFMSG_USER + 0x29415134
-#define NOTIFY_STAGE_LOAD_STATE_CHANGED            REFMSG_USER + 0x29415135
-#define NOTIFY_STAGE_ANIM_PARAMETERS_CHANGED       REFMSG_USER + 0x29415136
 
 enum
 {

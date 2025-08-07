@@ -416,6 +416,8 @@ double GetUsdToMaxScaleFactor(const pxr::UsdStageWeakPtr& stage)
 
 void UniqueNameGenerator::Reset() { existingNames.clear(); }
 
+void UniqueNameGenerator::AddExistingName(const std::string& name) { existingNames.insert(name); }
+
 short FindParamId(IParamBlock2* pb2, const wchar_t* name)
 {
     ParamBlockDesc2* pbDesc = pb2->GetDesc();
@@ -835,10 +837,14 @@ std::vector<Modifier*> GetAllModifiers(INode* node, bool enabledOnly)
     return allModifiers;
 }
 
-pxr::GfMatrix4d GetNodeTransform(INode* sourceNode, TimeValue time, bool YUp)
+pxr::GfMatrix4d GetNodeTransform(INode* sourceNode, TimeValue time, bool YUp, const Matrix3& offset)
 {
     const auto      nodeTransform = sourceNode->GetNodeTM(time);
     pxr::GfMatrix4d objectTransformUsd = MaxUsd::ToUsd(nodeTransform);
+    if (!offset.IsIdentity()) {
+        objectTransformUsd = objectTransformUsd * MaxUsd::ToUsd(offset);
+    }
+
     MaxUsd::MathUtils::RoundMatrixValues(objectTransformUsd, std::numeric_limits<float>::digits10);
 
     if (YUp) {

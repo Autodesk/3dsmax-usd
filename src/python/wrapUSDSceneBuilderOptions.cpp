@@ -622,7 +622,7 @@ void wrapUsdSceneBuilderOptions()
             "GetRootPrimPath",
             &MaxUsd::USDSceneBuilderOptions::GetRootPrimPath,
             return_value_policy<return_by_value>(),
-            (pyboost::arg("self")),
+            (pyboost::arg("self"), pyboost::arg("stripVariantSelection") = true),
             "Gets the configured root prim path")
         .def(
             "SetRootPrimPath",

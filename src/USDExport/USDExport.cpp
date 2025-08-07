@@ -17,14 +17,14 @@
 #include "USDExport.h"
 
 #include "DLLEntry.h"
-#include "Views/USDExportDialog.h"
 
 #include <MaxUsd/Interfaces/IUSDExportOptions.h>
 #include <MaxUsd/USDCore.h>
-#include <MaxUsd/USDSceneController.h>
+#include <MaxUsd/USDIOController.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/ScopeGuard.h>
 #include <MaxUsd/Utilities/UiUtils.h>
+#include <MaxUsd/Views/USDExportDialog.h>
 
 #include <maxscript/maxscript.h>
 #include <maxscript/util/listener.h>
@@ -32,8 +32,6 @@
 #include <memory>
 
 #define ScriptPrint (the_listener->edit_stream->printf)
-
-MaxUsd::IUSDExportOptions USDExporter::uiExportOptions(MaxUsd::OptionUtils::LoadExportOptions());
 
 int USDExporter::ExtCount() { return 3; }
 
@@ -85,17 +83,13 @@ int USDExporter::DoExport(
         = (optionFlags & SCENE_EXPORT_SELECTED) == SCENE_EXPORT_SELECTED
         ? MaxUsd::USDSceneBuilderOptions::ContentSource::Selection
         : MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode;
+
+    auto& uiExportOptions = MaxUsd::GetUSDIOController()->GetExportUIOptions(
+        MaxUsd::USDSceneBuilderOptions::Type::ToFile);
     uiExportOptions.SetContentSource(contentSource);
 
     // Using the global options
     return ExportFile(filename, uiExportOptions, suppressPrompts);
-}
-
-MaxUsd::IUSDExportOptions& USDExporter::GetUIOptions() { return uiExportOptions; }
-
-void USDExporter::SetUIOptions(const MaxUsd::USDSceneBuilderOptions& newOptions)
-{
-    uiExportOptions.SetOptions(newOptions);
 }
 
 int USDExporter::ExportFile(
@@ -174,18 +168,20 @@ int USDExporter::ExportFile(
                 return IMPEXP_FAIL;
             }
 
-            int result = MaxUsd::GetUSDSceneController()->Export(exportFile, exportOptions);
+            int result = MaxUsd::GetUSDIOController()->Export(exportFile, exportOptions);
 
             return result;
         } else {
             std::unique_ptr<IUSDExportView> usdExportDialog
-                = std::make_unique<USDExportDialog>(exportFile, exportOptions);
+                = std::make_unique<USDExportToFileDialog>(exportFile, exportOptions);
             if (usdExportDialog->Execute()) {
                 const auto options = usdExportDialog->GetBuildOptions();
-                SetUIOptions(options);
+                auto       io = MaxUsd::GetUSDIOController();
+                io->SetExportUIOptions(options, MaxUsd::USDSceneBuilderOptions::Type::ToFile);
 
-                int result = MaxUsd::GetUSDSceneController()->Export(exportFile, options);
-                MaxUsd::OptionUtils::SaveExportOptions(uiExportOptions);
+                int result = io->Export(exportFile, options);
+                MaxUsd::OptionUtils::SaveExportOptions(
+                    options, MaxUsd::USDSceneBuilderOptions::Type::ToFile);
                 return result;
             }
             return IMPEXP_CANCEL;

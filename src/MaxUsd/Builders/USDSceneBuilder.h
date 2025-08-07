@@ -55,7 +55,7 @@ public:
     virtual ~USDSceneBuilder() = default;
 
     /**
-     * \brief Build a USD Stage from the given build options.
+     * \brief Build a new USD Stage using the given root file name, and options.
      * \param buildOptions Build configuration options to use during the translation process.
      * \param cancelled Flag that will be set to true if cancelled by user.
      * \param filename The filename of the USD file that is being built.
@@ -70,7 +70,37 @@ public:
         std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
         bool                                        isUSDZ);
 
+    /**
+     * \brief Build into an existing USD Stage using the given options.
+     * \param buildOptions Build configuration options to use during the translation process.
+     * \param cancelled Flag that will be set to true if cancelled by user.
+     * \param stage The stage to write to.
+     * \param editedLayers Identifiers of layers edited during the export. All these layers will be saved to disk at the end of the export process.
+     * \param allowOverwrite Whether to overwrite existing prims, or rename on name conflicts.
+     * \param rootTransform A transfom offset to give to the prims. When exporting to a USDStageObject, this is the transform
+     * of the USDStageObject's node.
+     */
+    void Build(
+        const USDSceneBuilderOptions&               buildOptions,
+        bool&                                       cancelled,
+        const pxr::UsdStageRefPtr&                  stage,
+        std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
+        bool                                        allowOverwrite,
+        const Matrix3&                              rootTransform);
+
 protected:
+    // Protected overload called internally by both Build() functions above.
+    void Build(
+        const USDSceneBuilderOptions&               buildOptions,
+        bool&                                       cancelled,
+        const pxr::UsdStageRefPtr&                  stage,
+        const fs::path&                             filename,
+        std::map<std::string, pxr::SdfLayerRefPtr>& editedLayers,
+        bool                                        isUSDZ,
+        bool                                        allowPrimOverwrite,
+        const Matrix3&                              rootTransform = {},
+        bool                                        isNewStage = true);
+
     /**
      * \brief Context for each translation operation to be performed as part of the USD Stage building process.
      */
@@ -205,10 +235,10 @@ protected:
      * \brief Checks if anything in the hierarchy starting at a given node should be exported.
      * \param node The top-most node of the hierarchy. The function is called recursively on the
      * node's children, and a cache is maintained to avoid unnecessary traversals.
-     * \param buildOptions The USD scene builder options.
+     * \param jobCtx The write job context (options,stage, etc.)
      * \return True if the hierarchy contains objects which should be exported, false otherwise.
      */
-    bool HasExportableDescendants(INode* node, const USDSceneBuilderOptions& buildOptions);
+    bool HasExportableDescendants(INode* node, const pxr::MaxUsdWriteJobContext& jobCtx);
 
     /**
      * \brief Writes all the prims required to translate a Max node to USD. If the node's object has an offset,

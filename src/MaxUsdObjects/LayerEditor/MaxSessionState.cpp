@@ -199,9 +199,12 @@ void MaxSessionState::onSceneNodesChanged(void* param, NotifyInfo* info)
     }
 
     const auto session = static_cast<MaxSessionState*>(param);
+#ifdef IS_MAX2025_OR_GREATER
+    INode* addedNode = GetNotifyParam<NOTIFY_SCENE_ADDED_NODE, NOTIFY_SCENE_PRE_DELETED_NODE>(info);
+#else
     const auto addedNode = static_cast<INode*>(info->callParam);
-
-    if (addedNode->GetObjectRef()->ClassID() == USDSTAGEOBJECT_CLASS_ID) {
+#endif
+    if (addedNode && addedNode->GetObjectRef()->ClassID() == USDSTAGEOBJECT_CLASS_ID) {
         QTimer::singleShot(0, [session]() { session->stageListChangedSignal(); });
     }
 }

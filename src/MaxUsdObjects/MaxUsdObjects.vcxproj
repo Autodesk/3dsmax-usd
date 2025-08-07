@@ -128,7 +128,9 @@ exit /b 0</Command>
   <ItemGroup>
     <ClInclude Include="ClassDescs.h" />
     <ClInclude Include="FindUSDGeomObjectsProc.h" />
+    <ClInclude Include="Objects\MaxUsdNotify.h" />
     <ClInclude Include="USDGeomObject.h" />
+    <ClInclude Include="USDQuadMenu.h" />
     <QtMoc Include="Views\UsdStageMetadataRollup.h" />
     <QtMoc Include="Views\UsdStageToolsRollup.h" />
     <QtMoc Include="Views\UsdGeomObjectIncludesRollup.h" />
@@ -223,6 +225,7 @@ exit /b 0</Command>
     <ClCompile Include="USDPickingRenderer.cpp" />
     <ClCompile Include="USDAssetAccessor.cpp" />
     <ClCompile Include="Objects\USDSnaps.cpp" />
+    <ClCompile Include="USDQuadMenu.cpp" />
     <ClCompile Include="Views\SaveUSDOptionsDialog.cpp" />
     <ClCompile Include="Views\UsdCameraObjectRollup.cpp" />
     <ClCompile Include="Views\UsdGeomObjectIncludesRollup.cpp" />

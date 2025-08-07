@@ -21,11 +21,15 @@ MaxUsdWriteJobContext::MaxUsdWriteJobContext(
     UsdStageRefPtr                        stage,
     const std::string&                    filename,
     const MaxUsd::USDSceneBuilderOptions& args,
-    bool                                  isUSDZ = false)
+    bool                                  isUSDZ,
+    bool                                  allowPrimOverwrite,
+    const Matrix3&                        rootTransform)
     : args(args)
     , stage(stage)
     , filename(filename)
     , isUSDZ(isUSDZ)
+    , allPrimOverwrites(allowPrimOverwrite)
+    , rootTransform(rootTransform)
 {
     const fs::path filePath(filename);
     tokensMap["<filename>"] = filePath.filename().replace_extension("").string();

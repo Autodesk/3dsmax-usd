@@ -19,6 +19,7 @@
 
 #include "RegistryHelper.h"
 
+#include <MaxUsd/Interfaces/IUSDStageProvider.h>
 #include <MaxUsd/debugCodes.h>
 
 #include <pxr/base/tf/debug.h>
@@ -74,11 +75,28 @@ void MaxUsdPrimWriterRegistry::RegisterBaseWriter(WriterFactoryFn fn, ContextPre
 
 void MaxUsdPrimWriterRegistry::Unregister(const std::string& key) { _reg.erase(key); }
 
+bool _IsOwnStage(INode* node, const MaxUsdWriteJobContext& jobCtx)
+{
+    // Detect (to avoid) a circular dependency. We cannot export a USDStageObject
+    // to its own stage.
+    if (auto usdProviderInterface = node->GetObjectRef()->GetInterface(IUSDStageProvider_ID)) {
+        auto stageProvider = static_cast<MaxUsd::IUSDStageProvider*>(usdProviderInterface);
+        if (jobCtx.GetUsdStage() == stageProvider->GetUSDStage()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 MaxUsdPrimWriterSharedPtr MaxUsdPrimWriterRegistry::FindWriter(
     const MaxUsdWriteJobContext& jobCtx,
     INode*                       node,
     size_t&                      numRegistered)
 {
+    if (_IsOwnStage(node, jobCtx)) {
+        return nullptr;
+    }
+
     TfRegistryManager::GetInstance().SubscribeTo<MaxUsdPrimWriterRegistry>();
 
     // Add prim writers via plugin load:
@@ -126,10 +144,14 @@ MaxUsdPrimWriterSharedPtr MaxUsdPrimWriterRegistry::FindWriter(
     return writers[0].factoryFunction(jobCtx, node);
 }
 
-bool MaxUsdPrimWriterRegistry::CanBeExported(
-    INode*                                node,
-    const MaxUsd::USDSceneBuilderOptions& exportArgs)
+bool MaxUsdPrimWriterRegistry::CanBeExported(INode* node, const MaxUsdWriteJobContext& jobCtx)
 {
+    if (_IsOwnStage(node, jobCtx)) {
+        return false;
+    }
+
+    const auto exportArgs = jobCtx.GetArgs();
+
     auto canBeExported = [&exportArgs, node](const PrimWriterRegistryEntry& writerBuilder) {
         if (writerBuilder.predicateFunction(node, exportArgs)
             != MaxUsdPrimWriter::ContextSupport::Unsupported) {

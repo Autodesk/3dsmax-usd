@@ -154,7 +154,11 @@ UsdStageViewportSelectionRollup::UsdStageViewportSelectionRollup(
         // Notify and complete redraw so that all usd stage objects get redrawn.
         // We need to notify, as internally we need to now use different render
         // items / update selection buffers.
+#ifdef IS_MAX2025_OR_GREATER
+        BroadcastNotification<NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED>();
+#else
         BroadcastNotification(NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED);
+#endif
         GetCOREInterface()->ForceCompleteRedraw();
     });
 

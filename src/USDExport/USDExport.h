@@ -123,19 +123,6 @@ public:
         DWORD         options = 0) override;
 
     /**
-     * \brief Returns the UI options for the USD exporter.
-     * These are available through Maxscript.
-     * \return The export options.
-     */
-    static MaxUsd::IUSDExportOptions& GetUIOptions();
-
-    /**
-     * \brief Sets the UI options for the USD exporter.
-     * \param newOptions The new export options.
-     */
-    static void SetUIOptions(const MaxUsd::USDSceneBuilderOptions& newOptions);
-
-    /**
      * \brief Perform the file export with custom options.
      * \param filePath File path of the exported file.
      * \param exportOptions Export options to be used during the export.
@@ -148,10 +135,6 @@ public:
         MaxUsd::IUSDExportOptions& exportOptions,
         bool                       suppressPrompts = true,
         std::string                defaultExt = "usd");
-
-private:
-    // Global options for export.
-    static MaxUsd::IUSDExportOptions uiExportOptions;
 };
 
 /**

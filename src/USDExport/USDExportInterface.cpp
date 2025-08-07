@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 // 3ds Max SDK
+#include "MaxUsd/USDIOController.h"
+#include "MaxUsdObjects/Objects/USDStageObject.h"
 #include "USDExport.h"
 
 #include <MaxUsd/Builders/USDSceneBuilderOptions.h>
@@ -37,11 +39,16 @@ public:
             if (!exportOptions) {
                 throw MAXException(L"Invalid export options object.");
             }
-            USDExporter::SetUIOptions((*exportOptions));
+            MaxUsd::GetUSDIOController()->SetExportUIOptions(
+                (*exportOptions), MaxUsd::USDSceneBuilderOptions::Type::ToFile);
         }
     }
 
-    FPInterface* GetUIOptions() { return &USDExporter::GetUIOptions(); }
+    FPInterface* GetUIOptions()
+    {
+        return &MaxUsd::GetUSDIOController()->GetExportUIOptions(
+            MaxUsd::USDSceneBuilderOptions::Type::ToFile);
+    }
 
     int ExportFile(
         const MCHAR*       filePath,
@@ -91,6 +98,102 @@ public:
         return res;
     }
 
+    int ExportToStage(
+        const pxr::UsdStageRefPtr& stage,
+        FPInterface*               usdExportOptions,
+        int                        contentSource,
+        const Tab<INode*>*         nodesToExport,
+        bool                       allowOverwrite,
+        const Matrix3&             rootTransform)
+    {
+        if (!stage) {
+            return IMPEXP_FAIL;
+        }
+
+        MaxUsd::IUSDExportOptions* exportOptions = nullptr;
+        int                        res = IMPEXP_FAIL;
+        bool                       toDelete = false;
+
+        // Get export options from argument, if no options were passed, then create a new temporary
+        // export options config
+        if (usdExportOptions && usdExportOptions->GetID() == IUSDExportOptions_INTERFACE_ID) {
+            exportOptions = dynamic_cast<MaxUsd::IUSDExportOptions*>(usdExportOptions);
+        } else if (!usdExportOptions) {
+            exportOptions = new MaxUsd::IUSDExportOptions;
+            toDelete = true;
+        }
+
+        // Export USD file
+        if (exportOptions) {
+            exportOptions->SetContentSource(
+                MaxUsd::USDSceneBuilderOptions::ContentSource(contentSource));
+
+            // if the nodes list wasn't passed in the argument, nodesToExport can reference a null
+            // value
+            if (exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
+                || (nodesToExport && nodesToExport->Count() > 0)) {
+                exportOptions->SetNodesToExport(*nodesToExport);
+            }
+            res = MaxUsd::GetUSDIOController()->Export(
+                stage, *exportOptions, allowOverwrite, rootTransform);
+        }
+
+        // Clean up if we used a new temporary default export options config
+        if (toDelete) {
+            delete exportOptions;
+            exportOptions = nullptr;
+        }
+
+        return res;
+    }
+
+    int ExportToStage(
+        INode*             stageNode,
+        FPInterface*       usdExportOptions,
+        int                contentSource,
+        const Tab<INode*>* nodesToExport,
+        bool               allowOverwrite,
+        bool               inheritStageObjectTransform)
+    {
+        // No filePath, can't export so return export failure
+        if (!stageNode) {
+            return IMPEXP_FAIL;
+        }
+
+        const auto stageObject = dynamic_cast<USDStageObject*>(stageNode->GetObjectRef());
+        if (!stageObject) {
+            return IMPEXP_FAIL;
+        }
+
+        Matrix3 rootTransform;
+        if (inheritStageObjectTransform) {
+            rootTransform = stageNode->GetObjectTM(GetCOREInterface()->GetTime());
+        }
+
+        const auto stage = stageObject->GetUSDStage();
+        if (!stage) {
+            return IMPEXP_FAIL;
+        }
+
+        return ExportToStage(
+            stage, usdExportOptions, contentSource, nodesToExport, allowOverwrite, rootTransform);
+    }
+
+    int ExportToStage(
+        INT64              cacheId,
+        FPInterface*       usdExportOptions,
+        int                contentSource,
+        const Tab<INode*>* nodesToExport,
+        bool               allowOverwrite,
+        const Matrix3&     rootTransform)
+    {
+        const auto stage = pxr::UsdUtilsStageCache::Get().Find(
+            pxr::UsdStageCache::Id::FromLongInt(static_cast<long>(cacheId)));
+        return ExportToStage(
+            stage, usdExportOptions, contentSource, nodesToExport, allowOverwrite, rootTransform);
+    }
+
     FPInterface* CreateOptions() { return new MaxUsd::IUSDExportOptions; }
 
     void Log(int messageType, const std::wstring& message)
@@ -119,15 +222,19 @@ public:
         fid_SetUIOptions,
         fid_GetUIOptions,
         fid_ExportFile,
+        fid_ExportToStage,
+        fid_ExportToCachedStage,
         fid_CreateOptions,
         fid_Log,
         fid_CreateOptionsFromJsonString
     };
 
-// clang-format off
+    // clang-format off
     BEGIN_FUNCTION_MAP
         PROP_FNS(fid_GetUIOptions, GetUIOptions, fid_SetUIOptions, SetUIOptions, TYPE_INTERFACE);
         FN_4(fid_ExportFile, TYPE_INT, ExportFile, TYPE_STRING, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB);
+        FN_6(fid_ExportToStage, TYPE_INT, ExportToStage, TYPE_INODE, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_BOOL)
+        FN_6(fid_ExportToCachedStage, TYPE_INT, ExportToStage, TYPE_INT64, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_MATRIX3);
         FN_0(fid_CreateOptions, TYPE_INTERFACE, CreateOptions);
         FN_1(fid_CreateOptionsFromJsonString, TYPE_INTERFACE, CreateOptionsFromJsonString, TYPE_STRING);
         VFN_2(fid_Log, Log, TYPE_ENUM, TYPE_STRING);
@@ -146,6 +253,20 @@ static USDExportInterface usdExportInterface(
         _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
         _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
         _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
+    USDExportInterface::fid_ExportToStage, _T("ExportToStage"), "Export to a USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 6,
+        _T("stageObject"), 0, TYPE_INODE,
+        _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
+        _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
+        _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
+        _T("allowOverwrite"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
+        _T("inheritStageObjectTransform"), 0, TYPE_BOOL, f_keyArgDefault, TRUE,
+   USDExportInterface::fid_ExportToCachedStage, _T("ExportToCachedStage"), "Export to a cached USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 6,
+        _T("stageId"), 0, TYPE_INT64,
+        _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
+        _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
+        _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
+        _T("allowOverwrite"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
+        _T("rootTransform"), 0, TYPE_MATRIX3_BV, f_keyArgDefault, Matrix3::Identity,
     USDExportInterface::fid_CreateOptions, _T("CreateOptions"), "Create a new set of export options filled with default values", TYPE_INTERFACE, FP_NO_REDRAW, 0,
     USDExportInterface::fid_CreateOptionsFromJsonString, _T("CreateOptionsFromJson"), "Creates export options from a JSON formatted string.", TYPE_INTERFACE, FP_NO_REDRAW, 1,
         _T("jsonString"), 0, TYPE_STRING,

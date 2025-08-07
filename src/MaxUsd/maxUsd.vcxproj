@@ -23,6 +23,8 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(SolutionDir)\3dsmax.component.settings.props" />
     <Import Project="$(SolutionDir)\USD.props" />
+    <Import Project="$(SolutionDir)\UFE.props" />
+    <Import Project="$(SolutionDir)\USDUFE.props" />
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
@@ -35,7 +37,7 @@
     <ClCompile>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <PreprocessorDefinitions>_USRDLL;MAXUSD_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UI_DIR);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(UI_DIR);$(UfeInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -129,6 +131,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClCompile Include="Chaser\ImportChaser.cpp" />
     <ClCompile Include="Chaser\ImportChaserRegistry.cpp" />
     <ClCompile Include="CurveConversion\CurveConverter.cpp" />
+    <ClCompile Include="ExportToStageCommand.cpp" />
     <ClCompile Include="Interfaces\IOLoggingMxsInterface.cpp" />
     <ClCompile Include="Interfaces\IUSDExportOptions.cpp" />
     <ClCompile Include="Interfaces\IUSDImportOptions.cpp" />
@@ -186,7 +189,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClCompile Include="DllEntry.cpp" />
     <ClCompile Include="USDCore.cpp" />
     <ClCompile Include="MeshConversion\PrimvarMappingOptions.cpp" />
-    <ClCompile Include="USDSceneController.cpp" />
+    <ClCompile Include="USDIOController.cpp" />
     <ClCompile Include="UsdStageSource.cpp" />
     <ClCompile Include="Utilities\Logging.cpp" />
     <ClCompile Include="Utilities\MaterialUtils.cpp" />
@@ -198,6 +201,14 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClCompile Include="Utilities\UiUtils.cpp" />
     <ClCompile Include="MeshConversion\MeshFacade.cpp" />
     <ClCompile Include="Utilities\UsdToolsUtils.cpp" />
+    <ClCompile Include="Views\UsdExportAdvancedRollup.cpp" />
+    <ClCompile Include="Views\UsdExportAnimationRollup.cpp" />
+    <ClCompile Include="Views\USDExportCustomChannelMappingsDialog.cpp" />
+    <ClCompile Include="Views\USDExportDialog.cpp" />
+    <ClCompile Include="Views\UsdExportFileRollup.cpp" />
+    <ClCompile Include="Views\UsdExportGeneralSettingsRollup.cpp" />
+    <ClCompile Include="Views\UsdExportIncludeRollup.cpp" />
+    <ClCompile Include="Views\UsdExportMaterialsRollup.cpp" />
     <ClCompile Include="Widgets\ElidedLabel.cpp" />
     <ClCompile Include="Widgets\QDiagnosticMessagesModel.cpp" />
     <ClCompile Include="Widgets\DiagnosticMessagesModelFactory.cpp" />
@@ -229,6 +240,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClInclude Include="DebugCodes.h" />
     <ClInclude Include="Chaser\ImportChaser.h" />
     <ClInclude Include="Chaser\ImportChaserRegistry.h" />
+    <ClInclude Include="ExportToStageCommand.h" />
     <ClInclude Include="Interfaces\IOLoggingMxsInterface.h" />
     <ClInclude Include="Interfaces\IUSDExportOptions.h" />
     <ClInclude Include="Interfaces\IUSDImportOptions.h" />
@@ -288,7 +300,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClInclude Include="MaxUSDAPI.h" />
     <ClInclude Include="maxusd_banned.h" />
     <ClInclude Include="MeshConversion\PrimvarMappingOptions.h" />
-    <ClInclude Include="USDSceneController.h" />
+    <ClInclude Include="USDIOController.h" />
     <ClInclude Include="UsdStageSource.h" />
     <ClInclude Include="Utilities\PluginUtils.h" />
     <ClInclude Include="Utilities\ScopeGuard.h" />
@@ -305,6 +317,15 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClInclude Include="VersionOverrides.h" />
     <ClInclude Include="MeshConversion\MeshFacade.h" />
     <QtMoc Include="Widgets\ElidedLabel.h" />
+    <ClInclude Include="Views\IUSDExportView.h" />
+    <QtMoc Include="Views\UsdExportAdvancedRollup.h" />
+    <QtMoc Include="Views\UsdExportAnimationRollup.h" />
+    <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h" />
+    <ClInclude Include="Views\USDExportDialog.h" />
+    <QtMoc Include="Views\UsdExportFileRollup.h" />
+    <QtMoc Include="Views\UsdExportGeneralSettingsRollup.h" />
+    <QtMoc Include="Views\UsdExportIncludeRollup.h" />
+    <QtMoc Include="Views\UsdExportMaterialsRollup.h" />
     <ClInclude Include="Widgets\QDiagnosticMessagesModel.h" />
     <ClInclude Include="Widgets\DiagnosticMessagesModelFactory.h" />
     <QtMoc Include="Widgets\QmaxUsdDoubleSpinBox.h" />
@@ -319,6 +340,15 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Views\UsdExportAdvancedRollup.ui" />
+    <QtUic Include="Views\UsdExportAnimationRollup.ui" />
+    <QtUic Include="Views\USDExportDialog.ui" />
+    <QtUic Include="Views\UsdExportFileRollup.ui" />
+    <QtUic Include="Views\UsdExportGeneralSettingsRollup.ui" />
+    <QtUic Include="Views\UsdExportIncludeRollup.ui" />
+    <QtUic Include="Views\UsdExportMaterialsRollup.ui" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

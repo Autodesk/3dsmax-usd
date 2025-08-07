@@ -18,6 +18,7 @@
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 
 #include <MaxUsd.h>
+#include <maxusd/Builders/USDSceneBuilderOptions.h>
 
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/ufe/UsdSceneItem.h>
@@ -29,8 +30,14 @@
 #include <vector>
 
 // Using QT to access the clipboard.
+#include "MaxUsd/Builders/USDSceneBuilder.h"
+#include "MaxUsd/ExportToStageCommand.h"
+#include "MaxUsd/USDIOController.h"
 #include "MaxUsdObject3d.h"
 #include "StageObjectMap.h"
+
+#include <maxscript/maxscript.h>
+#include <maxscript/protocols/primitives.inl>
 
 #include <QtGui/QClipboard>
 #include <QtWidgets/QApplication>
@@ -43,6 +50,14 @@ static constexpr char USDCopyPrimPathItem[] = "Copy Prim Path";
 static constexpr char USDCopyPrimPathLabel[] = "Copy Prim Path";
 static constexpr char USDSetAsDefaultPrim[] = "Set as Default Prim";
 static constexpr char USDClearDefaultPrim[] = "Clear Default Prim";
+
+static constexpr char AddNewPrimItem[] = "Add New Prim";
+static constexpr char AddPrimFromSelectionItem[] = "From 3ds Max Selection";
+static constexpr char AddPrimFromSelectionLabel[] = "From 3ds Max Selection";
+static constexpr char AddPrimFromListItem[] = "From 3ds Max Nodes";
+static constexpr char AddPrimFromListLabel[] = "From 3ds Max Nodes...";
+static constexpr char AddPrimFrom3dsMaxOptionsItem[] = "Add Prim From Max Options";
+static constexpr char AddPrimFrom3dsMaxOptionsLabel[] = "Options...";
 
 static constexpr char PromoteTo3dsMaxObjectItem[] = "Promote to 3ds Max Object";
 static constexpr char PromoteTo3dsMaxObjectLabel[] = "Promote to 3ds Max Object";
@@ -104,6 +119,18 @@ Ufe::ContextOps::Items MaxUsdContextOps::getItems(const ItemPath& itemPath) cons
             items.insert(items.begin(), { PromoteTo3dsMaxObjectItem, PromoteTo3dsMaxObjectLabel });
         }
     }
+    // Submenus (depth = 1)
+    else if (itemPath.size() == 1) {
+        // Look if we are in the "add prim" submenu.
+        const auto item = itemPath[0];
+        if (item == AddNewPrimItem) {
+            items.insert(items.begin(), Ufe::ContextItem::kSeparator);
+            items.insert(
+                items.begin(), { AddPrimFrom3dsMaxOptionsItem, AddPrimFrom3dsMaxOptionsLabel });
+            items.insert(items.begin(), { AddPrimFromListItem, AddPrimFromListLabel });
+            items.insert(items.begin(), { AddPrimFromSelectionItem, AddPrimFromSelectionLabel });
+        }
+    }
 
     return items;
 }
@@ -141,6 +168,69 @@ Ufe::UndoableCommand::Ptr MaxUsdContextOps::doOpCmd(const ItemPath& itemPath)
         const auto imageable = pxr::UsdGeomImageable(prim());
         const auto current = imageable.ComputeVisibility() != pxr::UsdGeomTokens->invisible;
         return object3d->makeVisibleCmd(!current);
+    }
+
+    // Submenus
+    if (itemPath.size() > 1) {
+
+        const auto io = GetUSDIOController();
+
+        // Check if we hit of the "add prim from 3dsmax" sub menu actions.
+        const bool fromSelection = itemPath[1] == AddPrimFromSelectionItem;
+        const bool fromList = itemPath[1] == AddPrimFromListItem;
+        if (fromSelection || fromList) {
+
+            const auto objectPath = getUsdStageObjectPath(_item->path());
+            const auto usdStageObject = StageObjectMap::GetInstance()->Get(objectPath);
+
+            auto nodes = GetReferencingNodes(usdStageObject);
+            if (nodes.size() == 0) {
+                return nullptr;
+            }
+
+            USDSceneBuilderOptions opts
+                = io->GetExportUIOptions(USDSceneBuilderOptions::Type::ToStage);
+
+            if (fromSelection) {
+                opts.SetContentSource(USDSceneBuilderOptions::ContentSource::Selection);
+            } else {
+                opts.SetContentSource(USDSceneBuilderOptions::ContentSource::NodeList);
+                const auto handle = nodes[0]->GetHandle();
+
+                // Call maxscript to pick the nodes to export. It has a neat handler with the rubber
+                // band. May revisit this if we want to customize this behavior further.
+                std::wstring mxsCmd(L"_stageNode = maxOps.getNodeByHandle ");
+                mxsCmd.append(std::to_wstring(handle));
+                mxsCmd.append(L";");
+                mxsCmd.append(L"pickObject count:#multiple select:true rubberBand:_stageNode.pos");
+                FPValue result;
+                if (!ExecuteMAXScriptScript(
+                        mxsCmd.c_str(), MAXScript::ScriptSource::Dynamic, false, &result)) {
+                    return nullptr;
+                }
+                if (result.type != TYPE_INODE_TAB) {
+                    return nullptr;
+                }
+                opts.SetNodesToExport(*result.n_tab);
+            }
+
+            opts.SetRootPrimPath(prim().GetPath());
+
+            // Export to stage specific options.
+            bool    allowOverwrite = false;
+            Matrix3 rootTransform;
+            io->GetUIExportToStageExtraOptions(nodes[0], allowOverwrite, rootTransform);
+
+            return ExportToStageCommand::create(
+                opts, usdStageObject->GetUSDStage(), allowOverwrite, rootTransform);
+        }
+
+        if (itemPath[1] == AddPrimFrom3dsMaxOptionsItem) {
+            // Show the UI to configure the export options.
+            io->ConfigureExportToStageOptions();
+            // No associated command - not undoable.
+            return nullptr;
+        }
     }
 
     // Call into base implementation.

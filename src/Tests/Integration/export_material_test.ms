@@ -26,6 +26,7 @@ pyUsdTf = python.import("pxr.Tf")
 pyShade = python.import("pxr.UsdShade")
 pysdf = python.import("pxr.Sdf")
 pyGf = python.import("pxr.Gf")
+pyUsdUtils = python.import("pxr.UsdUtils")
 
 -- Reload the material export module for convenience in development.
 python.Execute "from importlib import reload"
@@ -1524,6 +1525,32 @@ struct export_material_test
             assert_false (pyUsd.Prim.IsValid(mtlScopePrim))
     ),
     
+    function test_absolute_material_path = (
+        boxA = box()
+        boxA.name = "boxA"
+        local mtl = MaxUsdPreviewSurface()
+        mtl.name = "usdTestMtl"
+        boxA.material = mtl
+        
+        local stage = pyUsd.Stage.CreateInMemory()
+        stage.SetTimeCodesPerSecond(frameRate)
+        local stageCache = pyUsdUtils.StageCache.Get()
+        stageCache.Insert(stage)
+        local stageId = (stageCache.GetId(stage)).ToLongInt()
+        
+        opts = USDExporter.CreateOptions()    
+        opts.MaterialPrimPath = "/a/b/c"
+        
+        UsdExporter.ExportToCachedStage stageId exportOptions:opts contentSource:#nodeList nodeList:#(boxA)
+        
+        boxAPrim = stage.GetPrimAtPath("/root/boxA")
+        assert_true (boxAPrim.IsValid())
+        xformableA = pyUsdGeom.Xformable(boxAPrim)
+        
+        assert_true ((stage.GetPrimAtPath("/a/b/c")).IsA(pyUsdGeom.Scope))
+        matPrim = stage.GetPrimAtPath("/a/b/c/usdTestMtl")
+        assert_true (matPrim.IsValid())
+    ),    
     
     function teardown = (
         pyUsdMaterialWriter._material_export_options["relative_texture_paths"] = true
@@ -1560,7 +1587,8 @@ struct export_material_test
         test_export_material_separate_layers_already_loaded,
         test_export_material_custom_scope,
         test_export_material_scope_path,
-        test_export_material_no_scope
+        test_export_material_no_scope,
+        test_absolute_material_path
     )
 )
 

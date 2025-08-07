@@ -422,8 +422,12 @@ void USDGeomObject::NotifyNodeAdded(void* param, NotifyInfo* info)
         return;
     }
 
+#ifdef IS_MAX2025_OR_GREATER
+    INode* addedNode = GetNotifyParam<NOTIFY_SCENE_ADDED_NODE>(info);
+#else
     const auto addedNode = static_cast<INode*>(info->callParam);
-    if (addedNode->GetObjectRef()->FindBaseObject() != geomObject) {
+#endif
+    if (!addedNode || addedNode->GetObjectRef()->FindBaseObject() != geomObject) {
         return;
     }
     geomObject->creating = false;
@@ -444,8 +448,12 @@ void USDGeomObject::NotifyNodeDeleted(void* param, NotifyInfo* info)
         return;
     }
 
+#ifdef IS_MAX2025_OR_GREATER
+    INode* deletedNode = GetNotifyParam<NOTIFY_SCENE_PRE_DELETED_NODE>(info);
+#else
     const auto deletedNode = static_cast<INode*>(info->callParam);
-    if (deletedNode->GetObjectRef()->FindBaseObject() != geomObject) {
+#endif
+    if (!deletedNode || deletedNode->GetObjectRef()->FindBaseObject() != geomObject) {
         return;
     }
 

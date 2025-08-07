@@ -21,6 +21,8 @@
 #include <pxr/base/tf/diagnosticMgr.h>
 #include <pxr/pxr.h>
 
+#include <stack>
+
 namespace MAXUSD_NS_DEF {
 namespace Diagnostics {
 
@@ -47,7 +49,8 @@ struct MaxUSDAPI Message
 /// to application level messages (logging or otherwise, depending on the concrete
 ///	delegate used) It can be configured to keep a buffered list of Tf diagnostics message
 /// or simply output the messages to mxsUsd Log System (by default)
-///
+/// If a scoped delegate is defined within the scoped of another delegate, both are kept active.
+/// Static functions will operate on the inner-most scoped delegate, internally they are kept in a stack.
 /// One can use the environment variable 'MAXUSD_SHOW_FULL_DIAGNOSTICS' to control
 /// the granularity of TF error/warning/status messages being displayed in 3ds Max USD log files
 class MaxUSDAPI ScopedDelegate
@@ -65,17 +68,10 @@ public:
     }
 
 private:
-    template <class T> ScopedDelegate(T* diagDelegate)
-    {
-        // there should be only one instance of this object in the same scope
-        DbgAssert(!runningDelegate);
-        if (!runningDelegate) {
-            runningDelegate = diagDelegate;
-        }
-    }
+    template <class T> ScopedDelegate(T* diagDelegate) { runningDelegates.push(diagDelegate); }
 
     // the reference to the diagnostic delegate created for the original scope
-    static pxr::TfDiagnosticMgr::Delegate* runningDelegate;
+    static std::stack<pxr::TfDiagnosticMgr::Delegate*> runningDelegates;
 };
 
 //! Abstract delegate, can be derived to forward info/warn/err messages appropriately.

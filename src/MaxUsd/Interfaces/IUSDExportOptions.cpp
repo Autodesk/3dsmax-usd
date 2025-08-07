@@ -387,8 +387,10 @@ void IUSDExportOptions::SetAnimationsPrimName(const wchar_t* animationsPrim)
 void IUSDExportOptions::SetRootPrimPath(const wchar_t* rootPath)
 {
     const std::wstring rootPathString = rootPath;
-    const auto path = pxr::SdfPath(MaxUsd::MaxStringToUsdString(rootPathString.c_str()).c_str());
-    if (!rootPathString.empty() && (!path.IsAbsolutePath() || !path.IsAbsoluteRootOrPrimPath())) {
+    auto path = pxr::SdfPath(MaxUsd::MaxStringToUsdString(rootPathString.c_str()).c_str());
+    auto noVarSelect = path.StripAllVariantSelections();
+    if (!rootPathString.empty()
+        && (!noVarSelect.IsAbsolutePath() || !noVarSelect.IsAbsoluteRootOrPrimPath())) {
         const auto errorMsg = std::wstring(L"The root prim path could not be set. This is not a "
                                            L"valid absolute USD prim path : ")
                                   .append(rootPath);

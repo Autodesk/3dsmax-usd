@@ -30,8 +30,8 @@
 
 #include <MaxUsd/Builders/MaxSceneBuilderOptions.h>
 #include <MaxUsd/Builders/UsdSceneBuilderOptions.h>
+#include <MaxUsd/MaxTokens.h>
 
-// Pxr includes
 #include <pxr/base/tf/diagnostic.h>
 
 namespace MAXUSD_NS_DEF {
@@ -53,11 +53,26 @@ MaxSDK::Util::Path GetPathToUSDSettings()
     return maxUsdSettingsPath;
 }
 
-MaxSDK::Util::Path GetPathToUsdExportSettings()
+MaxSDK::Util::Path GetPathToUsdExportSettings(const USDSceneBuilderOptions::Type& type)
 {
     auto pathToUsdSettings = GetPathToUSDSettings();
-    pathToUsdSettings.Append(_T("\\usdExportSettings.json"));
+    switch (type) {
+    case USDSceneBuilderOptions::Type::ToFile:
+        pathToUsdSettings.Append(_T("\\usdExportSettings.json"));
+        break;
+    case USDSceneBuilderOptions::Type::ToStage:
+        pathToUsdSettings.Append(_T("\\usdExportToStageSettings.json"));
+        break;
+    default: DbgAssert("Unknown USD export type"); return {};
+    }
     return pathToUsdSettings.GetCStr();
+}
+
+MaxSDK::Util::Path GetPathToUsdExportToStageExtraSettings()
+{
+    auto pathToUsdSettings = GetPathToUSDSettings();
+    pathToUsdSettings.Append(_T("\\usdExportToStageExtraSettings.json"));
+    return pathToUsdSettings;
 }
 
 MaxSDK::Util::Path GetPathToUsdImportSettings()
@@ -239,9 +254,11 @@ void SaveToFile(const DictionaryOptionProvider& optionsProvider, const MaxSDK::U
     WriteJsonFile(file, json, filePath.GetString());
 }
 
-void SaveExportOptions(const USDSceneBuilderOptions& options)
+void SaveExportOptions(
+    const USDSceneBuilderOptions&       options,
+    const USDSceneBuilderOptions::Type& type)
 {
-    SaveToFile(options, GetPathToUsdExportSettings());
+    SaveToFile(options, GetPathToUsdExportSettings(type));
 }
 
 void SaveImportOptions(const MaxSceneBuilderOptions& options)
@@ -273,9 +290,53 @@ MaxSceneBuilderOptions LoadImportOptions()
     return LoadOptions<MaxSceneBuilderOptions>(GetPathToUsdImportSettings());
 }
 
-USDSceneBuilderOptions LoadExportOptions()
+USDSceneBuilderOptions LoadExportOptions(const USDSceneBuilderOptions::Type& type)
 {
-    return LoadOptions<USDSceneBuilderOptions>(GetPathToUsdExportSettings());
+    // Export to stage options should initialize to the current "regular" export options, with
+    // only a different value for UseWorldSpaceRoot.
+    if (type == USDSceneBuilderOptions::Type::ToStage) {
+        const auto exportSettingsPath = GetPathToUsdExportSettings(type);
+        QFile      file(exportSettingsPath.GetString());
+        if (!file.exists()) { // No saved options.
+            USDSceneBuilderOptions opts = LoadExportOptions(USDSceneBuilderOptions::Type::ToFile);
+            opts.SetUseWorldspaceRoot(true);
+            return opts;
+        }
+    }
+    return LoadOptions<USDSceneBuilderOptions>(GetPathToUsdExportSettings(type));
+}
+
+void SaveExportToStageExtraOptions(VtDictionary& options)
+{
+    QJsonObject json;
+    DictUtils::VtDictToJson(options, json);
+
+    QJsonDocument doc(json);
+    const auto    optsStr = doc.toJson().toStdString();
+    const auto    filePath = GetPathToUsdExportToStageExtraSettings().GetString();
+    QFile         file(filePath);
+    WriteJsonFile(file, doc.toJson().toStdString(), filePath);
+}
+
+pxr::VtDictionary LoadExportToStageExtraOptions()
+{
+    const auto filePath = GetPathToUsdExportToStageExtraSettings().GetString();
+    QFile      file(filePath);
+    if (file.exists()) {
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QByteArray data = file.readAll();
+            file.close();
+
+            return DeserializeOptionsFromJson(data);
+        } else {
+            TF_WARN("Failed to load options from : %s", MaxStringToUsdString(filePath));
+        }
+    }
+
+    VtDictionary extra;
+    extra.SetValueAtPath(MaxUsdExportTokens->allowPrimOverwrite, VtValue { true });
+    extra.SetValueAtPath(MaxUsdExportTokens->inheritStageObjectTransform, VtValue { true });
+    return extra;
 }
 
 } // namespace OptionUtils

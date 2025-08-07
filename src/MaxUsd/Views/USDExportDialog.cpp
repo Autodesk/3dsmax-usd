@@ -25,6 +25,7 @@
 #include "ui_USDExportDialog.h"
 
 #include <MaxUsd/Builders/JobContextRegistry.h>
+#include <MaxUsd/MaxTokens.h>
 #include <MaxUsd/Translators/ShadingModeRegistry.h>
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
@@ -55,33 +56,17 @@
 
 #define idh_usd_export _T("idh_usd_export")
 
-USDExportDialog::USDExportDialog(
-    const fs::path&                  filePath,
-    const MaxUsd::IUSDExportOptions& buildOptions)
+USDExportDialog::USDExportDialog(const MaxUsd::IUSDExportOptions& buildOptions)
     : ui { std::make_unique<Ui::ExportDialog>() }
     , buildOptions { buildOptions }
-    , exportPath { filePath }
 {
     setWindowFlags(windowFlags() | Qt::WindowContextHelpButtonHint);
     ui->setupUi(this);
     setParent(GetCOREInterface()->GetQmaxMainWindow(), windowFlags());
-    resize(MaxSDK::UIScaled(430), MaxSDK::UIScaled(850));
 
     const int smallPadding = MaxSDK::UIScaled(6);
     ui->footer->setContentsMargins(smallPadding, smallPadding, smallPadding, smallPadding);
     ui->footer->setSpacing(smallPadding);
-
-    ui->buttons->button(QDialogButtonBox::Ok)->setText(tr("Export"));
-
-    ui->openInUsdViewCheckbox->setChecked(buildOptions.GetOpenInUsdview());
-    connect(ui->openInUsdViewCheckbox, &QAbstractButton::clicked, this, [this](bool checked) {
-        this->buildOptions.SetOpenInUsdview(checked);
-    });
-
-    const auto pathQstr = QString::fromStdString(filePath.parent_path().u8string());
-    ui->ExportPathLineEdit->setText(pathQstr);
-    // Disable Max tooltips as they do not handle long strings well.
-    ui->ExportPathLineEdit->setToolTip(pathQstr);
 
     // The rollup container is a custom widget that does not play well with the
     // assumptions of the Qt Designer, so there is a dummy placeholder QWidget
@@ -90,30 +75,44 @@ USDExportDialog::USDExportDialog(
     layout()->replaceWidget(ui->rollupContainer, rollupContainer);
     ui->rollupContainer->deleteLater();
     ui->rollupContainer = rollupContainer;
-    auto rollupState = MaxUsd::OptionUtils::LoadRollupStates(rollupCategory);
-    auto addRollup = [rollupContainer, &rollupState](QWidget* w, bool open = true) {
-        MaxSDK::QmaxRollup* rollup = new MaxSDK::QmaxRollup(w->windowTitle());
-        rollup->setWidget(w);
-        rollup->setOptions(MaxSDK::QmaxRollup::FixedCat);
-        if (rollupState.find(w->windowTitle()) != rollupState.end()) {
-            open = rollupState[w->windowTitle()];
-        }
-        rollup->setOpen(open);
-        rollupContainer->addRollup(rollup);
-    };
-    addRollup(new UsdExportFileRollup(filePath, this->buildOptions));
 
-    // This needs to be done AFTER the file rollup is added - as the addRollup
-    // call creates the internal widget.
-    if (auto widget = rollupContainer->widget()) {
-        if (auto rollupContainterLayout = dynamic_cast<QVBoxLayout*>(widget->layout())) {
-            rollupContainterLayout->insertWidget(0, ui->ExportPathGroupBox);
+    QPixmap headerIcon = style()->standardPixmap(QStyle::SP_MessageBoxInformation);
+    ui->left_label->setPixmap(headerIcon);
+    ui->version_label->setText(QString::fromStdString(MaxUsd::GetPluginDisplayVersion()));
+
+    MaxUsd::Ui::IterateOverChildrenRecursively(this, [this](QObject* object) {
+        // 3dsMax ToolClips do not behave so well (linger and do not disappear
+        // or move with the dialog). Disable until these issues are fixed.
+        MaxSDK::QmaxToolClips::disableToolClip(object);
+
+        // The exporter dialog has a scroll area. As you are scrolling down, we
+        // do not want spin and combo boxes to grab focus and scroll through
+        // their values. Fix this with the "StrongFocus" policy and an event
+        // filter filtering out unwanted wheel events on those widgets.
+        if (QAbstractSpinBox::staticMetaObject.cast(object)
+            || QComboBox::staticMetaObject.cast(object)) {
+            object->installEventFilter(this);
+            qobject_cast<QWidget*>(object)->setFocusPolicy(Qt::StrongFocus);
         }
-        const int pixelPadding = MaxSDK::UIScaled(1);
-        const int tinyPadding = MaxSDK::UIScaled(3);
-        widget->setContentsMargins(tinyPadding, tinyPadding, pixelPadding, 0);
+    });
+}
+
+void USDExportDialog::addRollup(QWidget* w, bool open)
+{
+    MaxSDK::QmaxRollup* rollup = new MaxSDK::QmaxRollup(w->windowTitle());
+    rollup->setWidget(w);
+    rollup->setOptions(MaxSDK::QmaxRollup::FixedCat);
+    if (loadedRollupState.find(w->windowTitle()) != loadedRollupState.end()) {
+        open = loadedRollupState[w->windowTitle()];
     }
+    rollup->setOpen(open);
 
+    auto rollupContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+    rollupContainer->addRollup(rollup);
+}
+
+void USDExportDialog::addContextsRollup()
+{
     // -------------------------------------------------------------------------
     // Plug-in Configurations
     // -------------------------------------------------------------------------
@@ -224,41 +223,16 @@ USDExportDialog::USDExportDialog(
 
                 layout->addLayout(contextLayout);
             }
-            if (rollupState.find(rollup->title()) != rollupState.end()) {
-                rollup->setOpen(rollupState[rollup->title()]);
+            if (loadedRollupState.find(rollup->title()) != loadedRollupState.end()) {
+                rollup->setOpen(loadedRollupState[rollup->title()]);
             } else {
                 rollup->setOpen(true);
             }
-            rollupContainer->addRollup(rollup);
+            const auto maxRollUpContainer
+                = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+            maxRollUpContainer->addRollup(rollup);
         }
     }
-
-    addRollup(new UsdExportIncludeRollup(this->buildOptions));
-    addRollup(new UsdExportMaterialsRollup(this->buildOptions));
-    animationRollup = new UsdExportAnimationRollup(this->buildOptions);
-    addRollup(animationRollup, false);
-    addRollup(new UsdExportGeneralSettingsRollup(this->buildOptions), false);
-    addRollup(new UsdExportAdvancedRollup(this->buildOptions), false);
-
-    QPixmap headerIcon = style()->standardPixmap(QStyle::SP_MessageBoxInformation);
-    ui->left_label->setPixmap(headerIcon);
-    ui->version_label->setText(QString::fromStdString(MaxUsd::GetPluginDisplayVersion()));
-
-    MaxUsd::Ui::IterateOverChildrenRecursively(this, [this](QObject* object) {
-        // 3dsMax ToolClips do not behave so well (linger and do not disappear
-        // or move with the dialog). Disable until these issues are fixed.
-        MaxSDK::QmaxToolClips::disableToolClip(object);
-
-        // The exporter dialog has a scroll area. As you are scrolling down, we
-        // do not want spin and combo boxes to grab focus and scroll through
-        // their values. Fix this with the "StrongFocus" policy and an event
-        // filter filtering out unwanted wheel events on those widgets.
-        if (QAbstractSpinBox::staticMetaObject.cast(object)
-            || QComboBox::staticMetaObject.cast(object)) {
-            object->installEventFilter(this);
-            qobject_cast<QWidget*>(object)->setFocusPolicy(Qt::StrongFocus);
-        }
-    });
 }
 
 USDExportDialog::~USDExportDialog() = default;
@@ -293,6 +267,11 @@ bool USDExportDialog::event(QEvent* ev)
 
 void USDExportDialog::showEvent(QShowEvent* ev)
 {
+    resize(MaxSDK::UIScaled(dialogWidth), MaxSDK::UIScaled(dialogHeight));
+
+    loadedRollupState = MaxUsd::OptionUtils::LoadRollupStates(GetRollupCategory());
+    setupRollups();
+
     constexpr float maxHeightPercent = 0.85f;
     QDialog::showEvent(ev);
     QRect screenDim = QGuiApplication::screenAt(this->pos())->availableGeometry();
@@ -336,7 +315,58 @@ bool USDExportDialog::eventFilter(QObject* object, QEvent* event)
     return QWidget::eventFilter(object, event);
 }
 
+bool USDExportDialog::Execute() { return exec() == QDialog::Accepted; }
+
+const MaxUsd::USDSceneBuilderOptions& USDExportDialog::GetBuildOptions() const
+{
+    return buildOptions;
+}
+
+std::map<QString, bool> USDExportDialog::GetRollupState() const
+{
+    std::map<QString, bool> rollupState;
+    const auto maxRollUpContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+    for (int i = 0; i < maxRollUpContainer->numRollups(); ++i) {
+        if (const auto rollup = maxRollUpContainer->rollup(i)) {
+            rollupState[rollup->title()] = rollup->isOpen();
+        }
+    }
+    return rollupState;
+}
+
 void USDExportDialog::accept()
+{
+    if (animationRollup) {
+        animationRollup->SaveDialogState();
+    }
+    MaxUsd::OptionUtils::SaveRollupStates(GetRollupCategory(), GetRollupState());
+    QDialog::accept();
+}
+
+USDExportToFileDialog::USDExportToFileDialog(
+    const fs::path&                  filePath,
+    const MaxUsd::IUSDExportOptions& buildOptions)
+    : USDExportDialog(buildOptions)
+    , exportPath { filePath }
+{
+
+    ui->buttons->button(QDialogButtonBox::Ok)->setText(tr("Export"));
+
+    ui->openInUsdViewCheckbox->setChecked(buildOptions.GetOpenInUsdview());
+    connect(ui->openInUsdViewCheckbox, &QAbstractButton::clicked, this, [this](bool checked) {
+        this->buildOptions.SetOpenInUsdview(checked);
+    });
+
+    const auto pathQstr = QString::fromStdString(filePath.parent_path().u8string());
+    ui->ExportPathLineEdit->setText(pathQstr);
+    // Disable Max tooltips as they do not handle long strings well.
+    ui->ExportPathLineEdit->setToolTip(pathQstr);
+
+    dialogHeight = 850;
+    dialogWidth = 430;
+}
+
+void USDExportToFileDialog::accept()
 {
     if (buildOptions.GetUseSeparateMaterialLayer()) {
         auto fNameWithoutExt = exportPath.filename().replace_extension("").string();
@@ -372,27 +402,140 @@ void USDExportDialog::accept()
             _T("Unicode Error"),
             MB_ICONEXCLAMATION);
     } else {
-        animationRollup->SaveDialogState();
-        MaxUsd::OptionUtils::SaveRollupStates(rollupCategory, GetRollupState());
-        QDialog::accept();
+        USDExportDialog::accept();
     }
 }
 
-bool USDExportDialog::Execute() { return exec() == QDialog::Accepted; }
-
-const MaxUsd::USDSceneBuilderOptions& USDExportDialog::GetBuildOptions() const
+void USDExportToFileDialog::setupRollups()
 {
-    return buildOptions;
-}
+    addRollup(new UsdExportFileRollup(exportPath, this->buildOptions));
 
-std::map<QString, bool> USDExportDialog::GetRollupState() const
-{
-    std::map<QString, bool> rollupState;
-    const auto maxRollUpContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
-    for (int i = 0; i < maxRollUpContainer->numRollups(); ++i) {
-        if (const auto rollup = maxRollUpContainer->rollup(i)) {
-            rollupState[rollup->title()] = rollup->isOpen();
+    // This needs to be done AFTER the file rollup is added - as the addRollup
+    // call creates the internal widget.
+    auto rollupContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+    if (auto widget = rollupContainer->widget()) {
+        if (auto rollupContainterLayout = dynamic_cast<QVBoxLayout*>(widget->layout())) {
+            rollupContainterLayout->insertWidget(0, ui->ExportPathGroupBox);
         }
+        const int pixelPadding = MaxSDK::UIScaled(1);
+        const int tinyPadding = MaxSDK::UIScaled(3);
+        widget->setContentsMargins(tinyPadding, tinyPadding, pixelPadding, 0);
     }
-    return rollupState;
+
+    addContextsRollup();
+    addRollup(new UsdExportIncludeRollup(this->buildOptions));
+    addRollup(new UsdExportMaterialsRollup(this->buildOptions));
+    animationRollup = new UsdExportAnimationRollup(this->buildOptions);
+    addRollup(animationRollup, false);
+    addRollup(new UsdExportGeneralSettingsRollup(this->buildOptions), false);
+    addRollup(new UsdExportAdvancedRollup(this->buildOptions), false);
+}
+
+const QString& USDExportToFileDialog::GetRollupCategory()
+{
+    static const QString rollupCategory = "ExportDialogRollups";
+    return rollupCategory;
+}
+
+USDExportToStageDialog::USDExportToStageDialog(
+    const MaxUsd::IUSDExportOptions& buildOptions,
+    const pxr::VtDictionary&         extraOptions)
+    : USDExportDialog(buildOptions)
+    , extraOptions(extraOptions)
+{
+    setWindowTitle(tr("Duplicate to USD"));
+    ui->ExportPathGroupBox->setHidden(true);
+    ui->openInUsdViewCheckbox->setHidden(true);
+    ui->buttons->button(QDialogButtonBox::Ok)->setText(tr("Apply"));
+
+    dialogHeight = 585;
+    dialogWidth = 430;
+}
+
+const pxr::VtDictionary& USDExportToStageDialog::GetExtraOptions() const { return extraOptions; }
+
+void USDExportToStageDialog::setupRollups()
+{
+    // Add a rollup specific to exporting to stages.
+
+    auto rollup = new MaxSDK::QmaxRollup(tr("General Settings"));
+
+    rollup->setOptions(MaxSDK::QmaxRollup::FixedCat);
+
+    auto widget = new QWidget(rollup);
+    auto layout = new QVBoxLayout(widget);
+
+    int offset = MaxSDK::UIScaled(3);
+    int largeOffset = MaxSDK::UIScaled(6);
+    layout->setContentsMargins(largeOffset, offset, offset, MaxSDK::UIScaled(4));
+    layout->setSpacing(MaxSDK::UIScaled(2));
+
+    rollup->setWidget(widget);
+
+    auto inheritTransformCheckbox = new QCheckBox(tr("Inherit Stage Object Transform"), widget);
+    layout->addWidget(inheritTransformCheckbox);
+    bool inheritTransform = false;
+    if (auto inheritTransformVal
+        = extraOptions.GetValueAtPath(pxr::MaxUsdExportTokens->inheritStageObjectTransform)) {
+        inheritTransform = inheritTransformVal->Get<bool>();
+    }
+    inheritTransformCheckbox->setChecked(inheritTransform);
+    connect(inheritTransformCheckbox, &QCheckBox::clicked, this, [this](bool checked) {
+        extraOptions.SetValueAtPath(
+            pxr::MaxUsdExportTokens->inheritStageObjectTransform, pxr::VtValue { checked });
+    });
+
+    bool overwrite = false;
+    if (auto overwriteVal
+        = extraOptions.GetValueAtPath(pxr::MaxUsdExportTokens->allowPrimOverwrite)) {
+        overwrite = overwriteVal->Get<bool>();
+    }
+    auto overwritePrimCheckbox = new QCheckBox(QString { "Overwrite Existing Prims" }, widget);
+    layout->addWidget(overwritePrimCheckbox);
+    overwritePrimCheckbox->setChecked(overwrite);
+    connect(overwritePrimCheckbox, &QCheckBox::clicked, this, [this](bool checked) {
+        extraOptions.SetValueAtPath(
+            pxr::MaxUsdExportTokens->allowPrimOverwrite, pxr::VtValue { checked });
+    });
+
+    if (loadedRollupState.find(rollup->title()) != loadedRollupState.end()) {
+        rollup->setOpen(loadedRollupState[rollup->title()]);
+    } else {
+        rollup->setOpen(true);
+    }
+    const auto maxRollUpContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+    maxRollUpContainer->addRollup(rollup);
+
+    addContextsRollup();
+    addRollup(new UsdExportIncludeRollup(this->buildOptions));
+
+    const auto materialRollup = new UsdExportMaterialsRollup(this->buildOptions);
+
+    // Hide a few widgets in the material rollup - when exporting to a live stage,
+    // we do not support using a seperate layer for materials - hide widgets related
+    // to that option.
+    materialRollup->findChild<QWidget*>("layerPathLabel")->setHidden(true);
+    materialRollup->findChild<QWidget*>("materialLayerPath")->setHidden(true);
+    materialRollup->findChild<QWidget*>("materialLayerPicker")->setHidden(true);
+    materialRollup->findChild<QWidget*>("separateMaterialLayer")->setHidden(true);
+
+    addRollup(materialRollup, false);
+    animationRollup = new UsdExportAnimationRollup(this->buildOptions);
+    addRollup(animationRollup, false);
+    addRollup(new UsdExportAdvancedRollup(this->buildOptions), false);
+}
+
+const QString& USDExportToStageDialog::GetRollupCategory()
+{
+    static const QString rollupCategory = "ExportToStageDialogRollups";
+    return rollupCategory;
+}
+
+void USDExportToStageDialog::accept()
+{
+    MaxUsd::OptionUtils::SaveExportOptions(
+        buildOptions, MaxUsd::USDSceneBuilderOptions::Type::ToStage);
+    MaxUsd::OptionUtils::SaveExportToStageExtraOptions(extraOptions);
+
+    USDExportDialog::accept();
 }

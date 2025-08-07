@@ -116,9 +116,14 @@ void MtlSwitcherWriter::Write()
                 }
                 // This instance has a different material than its prototype, break it.
                 else {
-                    // Make sure the geom edit are done on the root layer.
-                    // Could be that the current target is a material sublayer.
-                    UsdEditContext editContext(GetUsdStage(), GetUsdStage()->GetRootLayer());
+                    // Make sure the geom edit are done on the root layer. Could be that the current
+                    // target is a material sublayer. If not using the option, we can safely use the
+                    // current edit target.
+                    auto target = writeJobCtx.GetArgs().GetUseSeparateMaterialLayer()
+                        ? GetUsdStage()->GetRootLayer()
+                        : GetUsdStage()->GetEditTarget();
+
+                    UsdEditContext             editContext(GetUsdStage(), target);
                     UsdShadeMaterialBindingAPI bindingAPI(protoPrim);
                     auto                       subsetToCopy = bindingAPI.GetMaterialBindSubsets();
                     if (!subsetToCopy.empty()) {

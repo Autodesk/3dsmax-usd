@@ -52,15 +52,7 @@
     <ClCompile Include="usdexport_pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Views\UsdExportAdvancedRollup.cpp" />
-    <ClCompile Include="Views\UsdExportAnimationRollup.cpp" />
     <ClCompile Include="USDZExport.cpp" />
-    <ClCompile Include="Views\USDExportDialog.cpp" />
-    <ClCompile Include="Views\USDExportCustomChannelMappingsDialog.cpp" />
-    <ClCompile Include="Views\UsdExportFileRollup.cpp" />
-    <ClCompile Include="Views\UsdExportGeneralSettingsRollup.cpp" />
-    <ClCompile Include="Views\UsdExportIncludeRollup.cpp" />
-    <ClCompile Include="Views\UsdExportMaterialsRollup.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DLLEntry.h" />
@@ -71,29 +63,14 @@
     <ClInclude Include="USDZExport.h" />
     <ClInclude Include="VersionOverrides.h" />
     <ClInclude Include="Views\IUSDExportView.h" />
-    <QtMoc Include="Views\UsdExportIncludeRollup.h" />
-    <QtMoc Include="Views\UsdExportGeneralSettingsRollup.h" />
-    <QtMoc Include="Views\UsdExportMaterialsRollup.h" />
-    <QtMoc Include="Views\UsdExportAdvancedRollup.h" />
-    <QtMoc Include="Views\UsdExportAnimationRollup.h" />
     <ClInclude Include="Views\USDExportDialog.h" />
     <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h" />
-    <QtMoc Include="Views\UsdExportFileRollup.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="USDExport.def" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtUic Include="Views\UsdExportAdvancedRollup.ui" />
-    <QtUic Include="Views\UsdExportAnimationRollup.ui" />
-    <QtUic Include="Views\USDExportDialog.ui" />
-    <QtUic Include="Views\UsdExportFileRollup.ui" />
-    <QtUic Include="Views\UsdExportGeneralSettingsRollup.ui" />
-    <QtUic Include="Views\UsdExportIncludeRollup.ui" />
-    <QtUic Include="Views\UsdExportMaterialsRollup.ui" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\maxUsd\maxUsd.vcxproj">

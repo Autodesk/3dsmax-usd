@@ -124,6 +124,15 @@ public:
         FrameRange
     };
 
+    /**
+     * \brief Type of export, either to a file, or to a live stage.
+     */
+    enum class MaxUSDAPI Type
+    {
+        ToFile,
+        ToStage
+    };
+
     static MaxUSDAPI const double MIN_SAMPLES_PER_FRAME;
     static MaxUSDAPI const double MAX_SAMPLES_PER_FRAME;
 
@@ -265,14 +274,16 @@ public:
 
     /**
      * \brief Exports the root prims with their worldspace transform instead of local transform.
-     * This feature is useful for exporting specific parts without needing to export the entire hierarchy.
+     * This feature is useful for exporting specific parts without needing to export the entire
+     * hierarchy.
      * \param useWorldspaceRoot "true" to export the root prims with their worldspace transform
      */
     MaxUSDAPI void SetUseWorldspaceRoot(bool useWorldspaceRoot);
 
     /**
      * \brief Check if the root prims should be exported with their worldspace transform instead of local transform.
-     * This feature is useful for exporting specific parts without needing to export the entire hierarchy.
+     * This feature is useful for exporting specific parts without needing to export the entire
+     * hierarchy.
      * \return "true" if the root prims should be exported with their worldspace transform
      */
     MaxUSDAPI bool GetUseWorldspaceRoot() const;
@@ -496,9 +507,10 @@ public:
 
     /**
      * \brief Gets the configured root prim path.
+     * \param stripVariantSelection The root prim can have a variant selection. If true, it is stripped.
      * \return The configured root prim path.
      */
-    MaxUSDAPI const pxr::SdfPath& GetRootPrimPath() const;
+    MaxUSDAPI const pxr::SdfPath GetRootPrimPath(bool stripVariantSelection = true) const;
 
     /**
      * \brief Gets the configured bone prim name.

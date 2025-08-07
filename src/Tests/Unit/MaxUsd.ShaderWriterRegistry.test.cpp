@@ -80,7 +80,7 @@ TEST(ShaderWriteRegistryTest, NoRegisteredShaderWriterDummyFallback)
 
 	auto dummyName = std::string{};
 	MockStdMat mtl;
-	MaxUsdWriteJobContext ctx{ pxr::UsdStage::CreateInMemory(), dummyName, exportArgs, false };
+	MaxUsdWriteJobContext ctx{ pxr::UsdStage::CreateInMemory(), dummyName, exportArgs, false, false };
 	auto writer = writerFn(&mtl, pxr::SdfPath{ "/mtl" }, ctx);
 	auto dummyWriter = dynamic_cast<LastResortUSDPreviewSurfaceWriter*>(writer.get());
 

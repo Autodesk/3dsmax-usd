@@ -225,6 +225,9 @@
     <ClCompile Include="Views\UsdStageMetadataRollup.cpp">
       <Filter>Source Files\Views</Filter>
     </ClCompile>
+    <ClCompile Include="USDQuadMenu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -349,6 +352,12 @@
     </ClInclude>
     <ClInclude Include="FindUSDGeomObjectsProc.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USDQuadMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects\MaxUsdNotify.h">
+      <Filter>Header Files\Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

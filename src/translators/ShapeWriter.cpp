@@ -76,10 +76,10 @@ bool MaxUsdShapeWriter::Write(
     bool                      applyOffsetTransform,
     const MaxUsd::ExportTime& time)
 {
-    INode* sourceNode = GetNode();
+    INode*  sourceNode = GetNode();
+    Object* evaluatedObj = sourceNode->EvalWorldState(time.GetMaxTime()).obj;
 
-    ShapeObject* shapeObject
-        = dynamic_cast<ShapeObject*>(sourceNode->EvalWorldState(time.GetMaxTime()).obj);
+    ShapeObject* shapeObject = dynamic_cast<ShapeObject*>(evaluatedObj);
 
     // First make sure that we can indeed export this shape.
     if (!shapeObject) {
@@ -120,7 +120,7 @@ bool MaxUsdShapeWriter::Write(
     auto processLinearShape
         = [this](Spline3D* spline, pxr::VtIntArray& vertexCounts, pxr::VtVec3fArray& points) {
               int splKnotCount = spline->KnotCount();
-              if (splKnotCount == 0) {
+              if (splKnotCount <= 0) {
                   return;
               }
 
@@ -140,7 +140,7 @@ bool MaxUsdShapeWriter::Write(
               int idxP = 0;
               int splKnotCount = spline->KnotCount();
               int isClosed = spline->Closed();
-              if (splKnotCount == 0) {
+              if (splKnotCount <= 0) {
                   return;
               }
 
@@ -185,110 +185,15 @@ bool MaxUsdShapeWriter::Write(
 
     pxr::UsdGeomBasisCurves usdCurve(targetPrim);
 
-    // Setup some non-animatable attributes (only do it once, when we export the first frame).
-    if (time.IsFirstFrame()) {
-        // Use the wire color as USD display color.
-        Color             wireColor(sourceNode->GetWireColor());
-        pxr::VtVec3fArray usdDisplayColor = { pxr::GfVec3f(wireColor.r, wireColor.g, wireColor.b) };
+    // Use the wire color as USD display color.
+    Color             wireColor(sourceNode->GetWireColor());
+    pxr::VtVec3fArray usdDisplayColor = { pxr::GfVec3f(wireColor.r, wireColor.g, wireColor.b) };
 
-        // default is to export "linear" type curves (i.e. cubic splines get interpolated as linear)
+    if (time.IsFirstFrame()) {
+        // Currently exported "linear" type curves, as we export the interpolated
+        // splines.
         usdCurve.CreateTypeAttr().Set(pxr::TfToken("linear"));
         usdCurve.CreateDisplayColorAttr().Set(usdDisplayColor);
-
-        // In the case we have a data inconsistency when creating BasisCurves, preprocess the data
-        // into the logical categories that we will export into due to BasisCurves limitations.
-        if (dataInconsistency) {
-            TF_WARN(
-                InconsistentSplineTypesAndOrWarps,
-                "Inconsistent wraps and/or types cannot be represented under a single BasisCurves "
-                "prim. Multiple BasisCurves prims will be created under a parent Xform prim, in "
-                "order to accurately represent all combinations of type+wrap present in "
-                "the exported SplineShape.");
-
-            SplineShape* splineShape = dynamic_cast<SplineShape*>(
-                sourceNode->EvalWorldState(timeConfig.GetStartTime()).obj);
-
-            if (splineShape) {
-                BezierShape* bezierShape = &splineShape->shape;
-                int          numSplines = bezierShape->splineCount;
-
-                if (numSplines > 0) {
-                    // preprocess the splines into the categories that we will export into
-                    for (int i = 0; i < numSplines; ++i) {
-                        Spline3D* spl = bezierShape->splines[i];
-                        bool      linearStatus = isSplineLinear(spl);
-                        bool      closedStatus = spl->Closed() > 0;
-                        if (linearStatus && closedStatus) {
-                            closedLinearShapes.push_back(spl);
-                        } else if (linearStatus && !closedStatus) {
-                            openLinearShapes.push_back(spl);
-                        } else if (!linearStatus && closedStatus) {
-                            closedCubicShapes.push_back(spl);
-                        } else if (!linearStatus && !closedStatus) {
-                            openCubicShapes.push_back(spl);
-                        }
-                    }
-
-                    // int to track the number of new prims created for the categories, used for
-                    // naming
-                    int numNewPrim = 1;
-
-                    if (!openLinearShapes.empty()) {
-                        // use the targetPrim as the container for this category
-                        usdCurve.CreateTypeAttr().Set(pxr::TfToken("linear"));
-                        usdCurve.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
-                        openLinearPrim = usdCurve;
-                        numNewPrim++;
-                    }
-                    if (!closedLinearShapes.empty()) {
-                        // use the targetPrim as the container for this category if this is the
-                        // first category processed
-                        if (numNewPrim == 1) {
-                            usdCurve.CreateTypeAttr().Set(pxr::TfToken("linear"));
-                            usdCurve.CreateWrapAttr().Set(pxr::TfToken("periodic"));
-                            closedLinearPrim = usdCurve;
-                        } else {
-                            closedLinearPrim
-                                = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
-                                    SdfPath(
-                                        primPath.GetString() + "_" + std::to_string(numNewPrim)),
-                                    pxr::TfToken("BasisCurves")));
-                            closedLinearPrim.CreateTypeAttr().Set(pxr::TfToken("linear"));
-                            closedLinearPrim.CreateWrapAttr().Set(pxr::TfToken("periodic"));
-                            closedLinearPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
-                        }
-                        numNewPrim++;
-                    }
-                    if (!openCubicShapes.empty()) {
-                        // use the targetPrim as the container for this category if this is the
-                        // first category processed
-                        if (numNewPrim == 1) {
-                            usdCurve.CreateTypeAttr().Set(pxr::TfToken("cubic"));
-                            usdCurve.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
-                            openCubicPrim = usdCurve;
-                        } else {
-                            openCubicPrim
-                                = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
-                                    SdfPath(
-                                        primPath.GetString() + "_" + std::to_string(numNewPrim)),
-                                    pxr::TfToken("BasisCurves")));
-                            openCubicPrim.CreateTypeAttr().Set(pxr::TfToken("cubic"));
-                            openCubicPrim.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
-                            openCubicPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
-                        }
-                        numNewPrim++;
-                    }
-                    if (!closedCubicShapes.empty()) {
-                        closedCubicPrim = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
-                            SdfPath(primPath.GetString() + "_" + std::to_string(numNewPrim)),
-                            pxr::TfToken("BasisCurves")));
-                        closedCubicPrim.CreateTypeAttr().Set(pxr::TfToken("cubic"));
-                        closedCubicPrim.CreateWrapAttr().Set(pxr::TfToken("periodic"));
-                        closedCubicPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
-                    }
-                }
-            }
-        }
     }
 
     const auto& timeVal = time.GetMaxTime();
@@ -371,14 +276,24 @@ bool MaxUsdShapeWriter::Write(
     // Flag used to make sure we only raise warnings once, and not for every frame.
     const bool displayTimeDependantWarnings = time.IsFirstFrame();
 
-    SplineShape* splineShape = dynamic_cast<SplineShape*>(shapeObject);
+    SplineShape* splineShape = dynamic_cast<SplineShape*>(evaluatedObj);
     if (splineShape) {
         BezierShape* bezierShape = &splineShape->shape;
         int          numSplines = bezierShape->splineCount;
 
         if (numSplines > 0) {
-            // special case of inconsistent basis and/or wrap data on the SplineShape
+            // In the case we have a data inconsistency when creating BasisCurves, preprocess the
+            // data into the logical categories that we will export into due to BasisCurves
+            // limitations.
             if (dataInconsistency) {
+                TF_WARN(
+                    InconsistentSplineTypesAndOrWarps,
+                    "Inconsistent wraps and/or types cannot be represented under a single "
+                    "BasisCurves prim. Multiple BasisCurves prims will be created "
+                    "under a parent Xform prim, in order to accurately represent all "
+                    "combinations of type+wrap present in the exported SplineShape.");
+
+                // processShapes Lambda
                 auto processShapes = [](const auto&         shapes,
                                         auto&               curve,
                                         auto                processShapeFunc,
@@ -410,6 +325,92 @@ bool MaxUsdShapeWriter::Write(
                         opForPrim.Set(transformOp.GetOpTransform(usdTimeCode));
                     }
                 };
+                // end of processShapes lambda
+
+                // Spline3D shapes category containers
+                std::vector<Spline3D*> closedLinearShapes;
+                std::vector<Spline3D*> openLinearShapes;
+                std::vector<Spline3D*> closedCubicShapes;
+                std::vector<Spline3D*> openCubicShapes;
+
+                // preprocess the splines into the categories that we will export into
+                for (int i = 0; i < numSplines; ++i) {
+                    Spline3D* spl = bezierShape->splines[i];
+                    bool      linearStatus = isSplineLinear(spl);
+                    bool      closedStatus = spl->Closed() > 0;
+                    if (linearStatus && closedStatus) {
+                        closedLinearShapes.push_back(spl);
+                    } else if (linearStatus && !closedStatus) {
+                        openLinearShapes.push_back(spl);
+                    } else if (!linearStatus && closedStatus) {
+                        closedCubicShapes.push_back(spl);
+                    } else if (!linearStatus && !closedStatus) {
+                        openCubicShapes.push_back(spl);
+                    }
+                }
+
+                // NOTE: the tested assumption here is that new categories cannot be created
+                // under a spline over time. so we only create these category prims on
+                // first frame, as they will stay the same across the animation.
+                if (time.IsFirstFrame()) {
+                    // int to track the number of new prims created for the categories, used for
+                    // naming
+                    int numNewPrim = 1;
+
+                    if (!openLinearShapes.empty()) {
+                        // use the targetPrim as the container for this category
+                        usdCurve.CreateTypeAttr().Set(pxr::TfToken("linear"));
+                        usdCurve.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
+                        openLinearPrim = usdCurve;
+                        numNewPrim++;
+                    }
+                    if (!closedLinearShapes.empty()) {
+                        // use the targetPrim as the container for this category if this is the
+                        // first category processed
+                        if (numNewPrim == 1) {
+                            usdCurve.CreateTypeAttr().Set(pxr::TfToken("linear"));
+                            usdCurve.CreateWrapAttr().Set(pxr::TfToken("periodic"));
+                            closedLinearPrim = usdCurve;
+                        } else {
+                            closedLinearPrim
+                                = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
+                                    SdfPath(
+                                        primPath.GetString() + "_" + std::to_string(numNewPrim)),
+                                    pxr::TfToken("BasisCurves")));
+                            closedLinearPrim.CreateTypeAttr().Set(pxr::TfToken("linear"));
+                            closedLinearPrim.CreateWrapAttr().Set(pxr::TfToken("periodic"));
+                            closedLinearPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
+                        }
+                        numNewPrim++;
+                    }
+                    if (!openCubicShapes.empty()) {
+                        // use the targetPrim as the container for this category if this is the
+                        // first category processed
+                        if (numNewPrim == 1) {
+                            usdCurve.CreateTypeAttr().Set(pxr::TfToken("cubic"));
+                            usdCurve.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
+                            openCubicPrim = usdCurve;
+                        } else {
+                            openCubicPrim
+                                = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
+                                    SdfPath(
+                                        primPath.GetString() + "_" + std::to_string(numNewPrim)),
+                                    pxr::TfToken("BasisCurves")));
+                            openCubicPrim.CreateTypeAttr().Set(pxr::TfToken("cubic"));
+                            openCubicPrim.CreateWrapAttr().Set(pxr::TfToken("nonperiodic"));
+                            openCubicPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
+                        }
+                        numNewPrim++;
+                    }
+                    if (!closedCubicShapes.empty()) {
+                        closedCubicPrim = pxr::UsdGeomBasisCurves(targetPrim.GetStage()->DefinePrim(
+                            SdfPath(primPath.GetString() + "_" + std::to_string(numNewPrim)),
+                            pxr::TfToken("BasisCurves")));
+                        closedCubicPrim.CreateTypeAttr().Set(pxr::TfToken("cubic"));
+                        closedCubicPrim.CreateWrapAttr().Set(pxr::TfToken("periodic"));
+                        closedCubicPrim.CreateDisplayColorAttr().Set(usdDisplayColor);
+                    }
+                }
 
                 // One of these prim categories may have a transform OP if there is an object offset
                 // (the USDSceneBuilder sets up the object offset before the prim writer's write is

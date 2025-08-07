@@ -45,7 +45,7 @@ pxr::UsdShadeMaterial MaterialConverter::ConvertToUSDMaterial(
     const auto exporter = exporterCreator();
 
     // Setup the write job context and shading mode context for the export.
-    MaxUsdWriteJobContext          writeJobCtx { stage, fileName, options, isUSDZ };
+    MaxUsdWriteJobContext          writeJobCtx { stage, fileName, options, isUSDZ, true };
     MaxUsdShadingModeExportContext shadingModeCtx(writeJobCtx);
     shadingModeCtx.SetMaterialAndBindings(material, &bindings);
 

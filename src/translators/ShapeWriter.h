@@ -56,12 +56,6 @@ private:
     pxr::UsdGeomBasisCurves closedLinearPrim;
     pxr::UsdGeomBasisCurves openCubicPrim;
     pxr::UsdGeomBasisCurves closedCubicPrim;
-
-    // Spline3D shapes category containers
-    std::vector<Spline3D*> closedLinearShapes;
-    std::vector<Spline3D*> openLinearShapes;
-    std::vector<Spline3D*> closedCubicShapes;
-    std::vector<Spline3D*> openCubicShapes;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

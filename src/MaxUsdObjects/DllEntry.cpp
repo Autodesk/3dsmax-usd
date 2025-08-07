@@ -18,12 +18,15 @@
 #include "ClassDescs.h"
 #include "LayerEditor/MaxLayerEditor.h"
 #include "MaxUsdUfe/UfeUtils.h"
+#include "Objects/USDStageObject.h"
+#include "USDQuadMenu.h"
 #include "resource.h"
 
 #include <pxr/base/plug/registry.h>
 
 #include <iparamb2.h>
 #include <iparamm2.h>
+#include <notify.h>
 
 HINSTANCE hInstance;
 int       controlsInit = FALSE;
@@ -76,6 +79,12 @@ __declspec(dllexport) int LibInitialize(void)
 {
     MaxUsd::ufe::initialize();
     MaxLayerEditor::Initialize();
+
+// Modern menu system available in 2025+
+#ifdef IS_MAX2025_OR_GREATER
+    RegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
+    RegisterUSDDynamicActionItem();
+#endif
     return TRUE;
 }
 
@@ -85,6 +94,9 @@ __declspec(dllexport) int LibInitialize(void)
 __declspec(dllexport) int LibShutdown(void)
 {
     MaxUsd::ufe::finalize();
+#ifdef IS_MAX2025_OR_GREATER
+    UnRegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
+#endif
     return TRUE;
 }
 
