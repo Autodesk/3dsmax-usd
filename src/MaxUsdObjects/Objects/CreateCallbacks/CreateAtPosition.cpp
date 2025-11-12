@@ -17,6 +17,8 @@
 
 #include <snap.h>
 
+void CreateAtPosition::setUsdStageObject(USDStageObject* obj) { this->usdObj = obj; }
+
 int CreateAtPosition::proc(ViewExp* vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat)
 {
     switch (msg) { // Handle geometry positioning
@@ -25,6 +27,12 @@ int CreateAtPosition::proc(ViewExp* vpt, int msg, int point, int flags, IPoint2 
         case 0: { // first click
             Point3 tx = vpt->SnapPoint(m, m, nullptr, SNAP_IN_3D);
             mat.SetTrans(tx);
+
+#ifdef IS_MAX2025_OR_GREATER
+            BroadcastNotification<NOTIFY_STAGE_CLICK_CREATE>(usdObj);
+#else
+            BroadcastNotification(NOTIFY_STAGE_CLICK_CREATE, usdObj);
+#endif
             return CREATE_STOP;
         }
         default: return CREATE_ABORT;

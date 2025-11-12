@@ -15,13 +15,23 @@
 //
 #include "TreeModel.h"
 
+#include "editCommand.h"
 #include "treeitem.h"
+#include "utils.h"
 
 #include <ufe/hierarchy.h>
+#include <ufe/pathString.h>
+#include <ufe/undoableCommandMgr.h>
 
+#include <QIODevice>
+#include <QMimeData>
 #include <QtGui/QPalette>
 #include <QtWidgets/QApplication>
 #include <functional>
+
+namespace {
+const QString UFE_PATHS_MIME_TYPE = "application/x-ufe-paths";
+}
 
 namespace UfeUi {
 
@@ -67,7 +77,7 @@ bool TreeModel::canFetchMore(const QModelIndex& parent) const
     if (_useSearchItems) {
         canFetchMore = false;
 
-        for (const auto& child:children) {
+        for (const auto& child : children) {
             // if there is at least one child in the search items paths, we can fetch more
             if (_searchItemsPaths.find(child->path()) != _searchItemsPaths.end()) {
                 children.push_back(child);
@@ -122,7 +132,7 @@ void TreeModel::fetchMore(const QModelIndex& parent)
         if (alreadyAdded) {
             continue;
         }
-        itemsToAdd.push_back(child);        
+        itemsToAdd.push_back(child);
     }
 
     if (itemsToAdd.empty()) {
@@ -255,9 +265,140 @@ Qt::ItemFlags TreeModel::flags(const QModelIndex& index) const
     }
 
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
-    _columns[index.column()]->flags(item, flags);
+    flags |= Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
 
+    _columns[index.column()]->flags(item, flags);
     return flags;
+}
+
+Qt::DropActions TreeModel::supportedDropActions() const { return Qt::MoveAction; }
+
+Qt::DropActions TreeModel::supportedDragActions() const { return Qt::MoveAction; }
+
+QMimeData* TreeModel::mimeData(const QModelIndexList& indexes) const
+{
+    // Write out the dragged UFE paths into the mime data.
+
+    std::vector<Ufe::Path> ufePaths;
+
+    for (const QModelIndex& index : indexes) {
+        // Only care about rows, not individual cells. So only process the first column
+        // for each row.
+        if (!index.isValid() || index.column() != 0) {
+            continue;
+        }
+        TreeItem* item = treeItem(index);
+        if (!item) {
+            continue;
+        }
+        const auto sceneItem = item->sceneItem();
+        if (!sceneItem) {
+            continue;
+        }
+
+        ufePaths.push_back(item->sceneItem()->path());
+    }
+
+    // Only add the root-most paths in the mime data. If parent/child are drag & dropped,
+    // only need to care about the parent, as all of its children will move along with it.
+
+    // Sort paths by ascending size, to make sure ancestors come before descendants.
+    std::sort(ufePaths.begin(), ufePaths.end(), [](const Ufe::Path& a, const Ufe::Path& b) {
+        return a.size() < b.size();
+    });
+
+    std::vector<Ufe::Path> rootMostPaths;
+    for (const auto& path : ufePaths) {
+        bool ancestorExists = false;
+        for (const auto& rootPath : rootMostPaths) {
+            if (path.startsWith(rootPath)) {
+                ancestorExists = true;
+                break;
+            }
+        }
+        if (!ancestorExists) {
+            rootMostPaths.push_back(path);
+        }
+    }
+
+    QMimeData*  mimeData = new QMimeData();
+    QByteArray  itemData;
+    QDataStream dataStream(&itemData, QIODevice::WriteOnly);
+
+    for (const auto& path : rootMostPaths) {
+        // Get the UFE path as a string using PathString, not toString(). This allows us to
+        // rebuild
+        // the paths easily on the other side, on the drop, in TreeModel::dropMimeData().
+        const std::string pathString = Ufe::PathString::string(path);
+        dataStream << QString::fromStdString(pathString);
+    }
+
+    mimeData->setData(UFE_PATHS_MIME_TYPE, itemData);
+    return mimeData;
+}
+
+bool TreeModel::dropMimeData(
+    const QMimeData*   data,
+    Qt::DropAction     action,
+    int                row,
+    int                column,
+    const QModelIndex& parent)
+{
+    if (action == Qt::IgnoreAction || column > 0 || !data->hasFormat(UFE_PATHS_MIME_TYPE)) {
+        return true;
+    }
+
+    // Get the parent item where we're dropping into.
+    TreeItem* parentItem = nullptr;
+    if (parent.isValid()) {
+        parentItem = treeItem(parent);
+    } else {
+        parentItem = _rootItem;
+    }
+
+    if (!parentItem) {
+        return false;
+    }
+
+    // Dropped items will be reparented here in a single composite command.
+    const auto compositeCommand = Ufe::CompositeUndoableCommand::create({});
+
+    // Extract the dropped UFE paths.
+    QByteArray  encodedData = data->data(UFE_PATHS_MIME_TYPE);
+    QDataStream stream(&encodedData, QIODevice::ReadOnly);
+    QString     pathString;
+    while (!stream.atEnd()) {
+        stream >> pathString;
+        // Convert the string back to a UFE path using PathString
+        const std::string stdPathString = pathString.toStdString();
+        Ufe::Path         path = Ufe::PathString::path(stdPathString);
+
+        QModelIndex sourceIndex = getIndexFromPath(path);
+        if (!sourceIndex.isValid()) {
+            continue;
+        }
+        if (TreeItem* sourceItem = treeItem(sourceIndex)) {
+
+            Ufe::InsertChildCommand::Ptr cmd = nullptr;
+            try {
+                auto hier = Ufe::Hierarchy::hierarchy(parentItem->sceneItem());
+                cmd = hier->insertChildCmd(sourceItem->sceneItem(), nullptr);
+            } catch (const std::exception& ex) {
+                Utils::ReportError(ex.what());
+                continue;
+            }
+            if (cmd) {
+                compositeCommand->append(cmd);
+            }
+        }
+    }
+
+    if (!compositeCommand->cmdsList().empty()) {
+        const auto editCmd = UfeUi::EditCommand::create(
+            parentItem->sceneItem()->path(), compositeCommand, "Reparent");
+        Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
+    }
+    return true;
 }
 
 QVariant TreeModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -348,7 +489,6 @@ void TreeModel::buildTreeFrom(
 
     Q_EMIT layoutAboutToBeChanged();
 
-
     QModelIndex parentIdx = {};
     if (auto parentSceneItem = buildRoot->sceneItem()) {
         parentIdx = getIndexFromPath(parentSceneItem->path());
@@ -428,5 +568,18 @@ void TreeModel::buildTree(
             _searchItemsPaths = includes.itemPaths;
         }
     }
+}
+
+bool TreeModel::canDropMimeData(
+    const QMimeData*   data,
+    Qt::DropAction     action,
+    int                row,
+    int                column,
+    const QModelIndex& parent) const
+{
+    if (!data->hasFormat(UFE_PATHS_MIME_TYPE)) {
+        return false;
+    }
+    return true;
 }
 } // namespace UfeUi

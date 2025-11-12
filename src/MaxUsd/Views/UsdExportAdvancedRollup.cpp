@@ -17,6 +17,7 @@
 
 #include "ui_UsdExportAdvancedRollup.h"
 
+#include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Widgets/TooltipEventFilter.h>
 
 #include <Qt/QmaxToolClips.h>
@@ -90,7 +91,7 @@ void UsdExportAdvancedRollup::on_LogOutputTypeComboBox_currentIndexChanged(int i
 
 void UsdExportAdvancedRollup::on_LogFilePathToolButton_clicked()
 {
-    const TCHAR* exportDir
+    const MSTR exportDir
         = MaxSDKSupport::GetString(IPathConfigMgr::GetPathConfigMgr()->GetDir(APP_EXPORT_DIR));
     QString qDir = QString::fromStdString(MaxUsd::MaxStringToUsdString(exportDir));
     QString logfile = QFileDialog::getSaveFileName(

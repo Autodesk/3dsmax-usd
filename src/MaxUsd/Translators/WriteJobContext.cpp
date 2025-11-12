@@ -15,6 +15,8 @@
 //
 #include "WriteJobContext.h"
 
+#include <MaxUsd/MaxTokens.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 MaxUsdWriteJobContext::MaxUsdWriteJobContext(
@@ -47,6 +49,21 @@ std::string MaxUsdWriteJobContext::ResolveString(const std::string& input) const
         result = MaxUsd::ResolveToken(result, token.first, token.second);
     }
     return result;
+}
+
+pxr::SdfPath MaxUsdWriteJobContext::ResolveRootPath() const
+{
+    const auto rootPrimPath = args.GetRootPrimPath(false).GetString();
+    const auto defaultPrim = stage->GetDefaultPrim();
+
+    static std::string token = pxr::MaxUsdExportTokens->DEFAULT_PRIM.GetString();
+    if (defaultPrim) {
+        return pxr::SdfPath { MaxUsd::ResolveToken(
+            rootPrimPath, token, defaultPrim.GetPath().GetString()) };
+    }
+    const auto defaultOpts = MaxUsd::USDSceneBuilderOptions {};
+    return pxr::SdfPath { MaxUsd::ResolveToken(
+        rootPrimPath, token, defaultOpts.GetRootPrimPath().GetString()) };
 }
 
 const MaterialBindings& MaxUsdWriteJobContext::GetMaterialBindings() const

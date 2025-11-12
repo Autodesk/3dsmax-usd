@@ -54,7 +54,8 @@ public:
         const MCHAR*       filePath,
         FPInterface*       usdExportOptions,
         int                contentSource,
-        const Tab<INode*>* nodesToExport)
+        const Tab<INode*>* nodesToExport,
+        const Tab<Mtl*>*   mtlsToExport)
     {
         // No filePath, can't export so return export failure
         if (!filePath) {
@@ -83,8 +84,17 @@ public:
             // value
             if (exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
+                || exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
                 || (nodesToExport && nodesToExport->Count() > 0)) {
                 exportOptions->SetNodesToExport(*nodesToExport);
+            }
+            if (exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
+                || exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
+                || (mtlsToExport && mtlsToExport->Count() > 0)) {
+                exportOptions->SetMaterialsToExport(*mtlsToExport);
             }
             res = USDExporter::ExportFile(filePath, (*exportOptions), true, "usd");
         }
@@ -104,7 +114,8 @@ public:
         int                        contentSource,
         const Tab<INode*>*         nodesToExport,
         bool                       allowOverwrite,
-        const Matrix3&             rootTransform)
+        const Matrix3&             rootTransform,
+        const Tab<Mtl*>*           mtlsToExport)
     {
         if (!stage) {
             return IMPEXP_FAIL;
@@ -132,8 +143,17 @@ public:
             // value
             if (exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
-                || (nodesToExport && nodesToExport->Count() > 0)) {
+                || exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
+                && (nodesToExport && nodesToExport->Count() > 0)) {
                 exportOptions->SetNodesToExport(*nodesToExport);
+            }
+            if (exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
+                || exportOptions->GetContentSource()
+                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
+                && (mtlsToExport && mtlsToExport->Count() > 0)) {
+                exportOptions->SetMaterialsToExport(*mtlsToExport);
             }
             res = MaxUsd::GetUSDIOController()->Export(
                 stage, *exportOptions, allowOverwrite, rootTransform);
@@ -154,7 +174,8 @@ public:
         int                contentSource,
         const Tab<INode*>* nodesToExport,
         bool               allowOverwrite,
-        bool               inheritStageObjectTransform)
+        bool               inheritStageObjectTransform,
+        const Tab<Mtl*>*   mtlsToExport)
     {
         // No filePath, can't export so return export failure
         if (!stageNode) {
@@ -177,7 +198,13 @@ public:
         }
 
         return ExportToStage(
-            stage, usdExportOptions, contentSource, nodesToExport, allowOverwrite, rootTransform);
+            stage,
+            usdExportOptions,
+            contentSource,
+            nodesToExport,
+            allowOverwrite,
+            rootTransform,
+            mtlsToExport);
     }
 
     int ExportToStage(
@@ -186,12 +213,19 @@ public:
         int                contentSource,
         const Tab<INode*>* nodesToExport,
         bool               allowOverwrite,
-        const Matrix3&     rootTransform)
+        const Matrix3&     rootTransform,
+        const Tab<Mtl*>*   mtlsToExport)
     {
         const auto stage = pxr::UsdUtilsStageCache::Get().Find(
             pxr::UsdStageCache::Id::FromLongInt(static_cast<long>(cacheId)));
         return ExportToStage(
-            stage, usdExportOptions, contentSource, nodesToExport, allowOverwrite, rootTransform);
+            stage,
+            usdExportOptions,
+            contentSource,
+            nodesToExport,
+            allowOverwrite,
+            rootTransform,
+            mtlsToExport);
     }
 
     FPInterface* CreateOptions() { return new MaxUsd::IUSDExportOptions; }
@@ -231,13 +265,13 @@ public:
 
     // clang-format off
     BEGIN_FUNCTION_MAP
-        PROP_FNS(fid_GetUIOptions, GetUIOptions, fid_SetUIOptions, SetUIOptions, TYPE_INTERFACE);
-        FN_4(fid_ExportFile, TYPE_INT, ExportFile, TYPE_STRING, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB);
-        FN_6(fid_ExportToStage, TYPE_INT, ExportToStage, TYPE_INODE, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_BOOL)
-        FN_6(fid_ExportToCachedStage, TYPE_INT, ExportToStage, TYPE_INT64, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_MATRIX3);
-        FN_0(fid_CreateOptions, TYPE_INTERFACE, CreateOptions);
-        FN_1(fid_CreateOptionsFromJsonString, TYPE_INTERFACE, CreateOptionsFromJsonString, TYPE_STRING);
-        VFN_2(fid_Log, Log, TYPE_ENUM, TYPE_STRING);
+        PROP_FNS(fid_GetUIOptions, GetUIOptions, fid_SetUIOptions, SetUIOptions, TYPE_INTERFACE)
+        FN_5(fid_ExportFile, TYPE_INT, ExportFile, TYPE_STRING, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_MTL_TAB)
+        FN_7(fid_ExportToStage, TYPE_INT, ExportToStage, TYPE_INODE, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_BOOL, TYPE_MTL_TAB)
+        FN_7(fid_ExportToCachedStage, TYPE_INT, ExportToStage, TYPE_INT64, TYPE_INTERFACE, TYPE_ENUM, TYPE_INODE_TAB, TYPE_BOOL, TYPE_MATRIX3, TYPE_MTL_TAB)
+        FN_0(fid_CreateOptions, TYPE_INTERFACE, CreateOptions)
+        FN_1(fid_CreateOptionsFromJsonString, TYPE_INTERFACE, CreateOptionsFromJsonString, TYPE_STRING)
+        VFN_2(fid_Log, Log, TYPE_ENUM, TYPE_STRING)
     END_FUNCTION_MAP
 // clang-format on    
 };
@@ -248,25 +282,28 @@ public:
 static USDExportInterface usdExportInterface(
     USDEXPORT_INTERFACE, _T("USDExport"), 0, GetUSDExporterDesc(), 0,
     // Functions
-    USDExportInterface::fid_ExportFile, _T("ExportFile"), "Export USD file with custom options.", TYPE_INT, FP_NO_REDRAW, 4,
+    USDExportInterface::fid_ExportFile, _T("ExportFile"), "Export USD file with custom options.", TYPE_INT, FP_NO_REDRAW, 5,
         _T("filePath"), 0, TYPE_STRING,
         _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
         _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
         _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
-    USDExportInterface::fid_ExportToStage, _T("ExportToStage"), "Export to a USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 6,
+        _T("materialList"), 0, TYPE_MTL_TAB, f_keyArgDefault, NULL,
+    USDExportInterface::fid_ExportToStage, _T("ExportToStage"), "Export to a USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 7,
         _T("stageObject"), 0, TYPE_INODE,
         _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
         _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
         _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
         _T("allowOverwrite"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
         _T("inheritStageObjectTransform"), 0, TYPE_BOOL, f_keyArgDefault, TRUE,
-   USDExportInterface::fid_ExportToCachedStage, _T("ExportToCachedStage"), "Export to a cached USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 6,
+        _T("materialList"), 0, TYPE_MTL_TAB, f_keyArgDefault, NULL,
+   USDExportInterface::fid_ExportToCachedStage, _T("ExportToCachedStage"), "Export to a cached USD stage with custom options.", TYPE_INT, FP_NO_REDRAW, 7,
         _T("stageId"), 0, TYPE_INT64,
         _T("exportOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
         _T("contentSource"), 0, TYPE_ENUM, USDExportInterface::eid_ContentSource, f_keyArgDefault, MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
         _T("nodeList"), 0, TYPE_INODE_TAB, f_keyArgDefault, NULL,
         _T("allowOverwrite"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
         _T("rootTransform"), 0, TYPE_MATRIX3_BV, f_keyArgDefault, Matrix3::Identity,
+        _T("materialList"), 0, TYPE_MTL_TAB, f_keyArgDefault, NULL,
     USDExportInterface::fid_CreateOptions, _T("CreateOptions"), "Create a new set of export options filled with default values", TYPE_INTERFACE, FP_NO_REDRAW, 0,
     USDExportInterface::fid_CreateOptionsFromJsonString, _T("CreateOptionsFromJson"), "Creates export options from a JSON formatted string.", TYPE_INTERFACE, FP_NO_REDRAW, 1,
         _T("jsonString"), 0, TYPE_STRING,
@@ -276,10 +313,12 @@ static USDExportInterface usdExportInterface(
     properties,
     USDExportInterface::fid_GetUIOptions, USDExportInterface::fid_SetUIOptions, _T("UIOptions"), 0, TYPE_INTERFACE,
     enums,
-    USDExportInterface::eid_ContentSource, 3,
+    USDExportInterface::eid_ContentSource, 5,
         _T("all"), MaxUsd::USDSceneBuilderOptions::ContentSource::RootNode,
         _T("selected"), MaxUsd::USDSceneBuilderOptions::ContentSource::Selection,
         _T("nodeList"), MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList,
+        _T("materialList"), MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList,
+        _T("nodeAndMaterialList"), MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList,
     USDExportInterface::eid_LogLevel, 3,
         _T("info"), MaxUsd::Log::Level::Info,
         _T("warn"), MaxUsd::Log::Level::Warn,

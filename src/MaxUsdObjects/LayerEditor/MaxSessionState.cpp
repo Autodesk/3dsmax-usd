@@ -40,6 +40,14 @@
 #include <QtWidgets/QMenu>
 #include <notify.h>
 
+#if _MSVC_LANG > 201402L
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
 using namespace UsdLayerEditor;
@@ -73,15 +81,20 @@ bool MaxSessionState::getStageEntry(StageEntry* entry, USDStageObject* object)
     if (!object) {
         return false;
     }
+
+    auto referencingNodes = MaxUsd::GetReferencingNodes(object);
+
+    if (referencingNodes.size() == 0) {
+        return false;
+    }
+
     const auto stage = object->GetUSDStage();
     if (!stage) {
         return false;
     }
 
-    const std::string layerName = MaxUsd::Ui::GetStageLabel(stage);
-
     entry->_stage = stage;
-    entry->_displayName = layerName;
+    entry->_displayName = MaxUsd::MaxStringToUsdString(referencingNodes[0]->NodeName().data());
     entry->_id = object->GetGuid();
     const auto path = MaxUsd::ufe::getUsdStageObjectPath(object).string();
     entry->_dccObjectPath = path;
@@ -141,6 +154,9 @@ void MaxSessionState::registerNotifications()
     RegisterNotification(onSceneNodesChanged, this, NOTIFY_SCENE_PRE_DELETED_NODE);
     RegisterNotification(onStageLoadStateChanged, this, NOTIFY_STAGE_LOAD_STATE_CHANGED);
     RegisterNotification(onMaxSelectionChanged, this, NOTIFY_SELECTIONSET_CHANGED);
+    // NOTE: NOTIFY_NODE_RENAMED doesn't seem to work.. there's a comment about
+    //  it in BaseNode::SetName (from the maxsdk)
+    RegisterNotification(onNodeRename, this, NOTIFY_NODE_NAME_SET);
     _ufeCommandHook.addObserver(_commandObserver);
 }
 
@@ -150,7 +166,19 @@ void MaxSessionState::unregisterNotifications()
     UnRegisterNotification(onSceneNodesChanged, this, NOTIFY_SCENE_PRE_DELETED_NODE);
     UnRegisterNotification(onStageLoadStateChanged, this, NOTIFY_STAGE_LOAD_STATE_CHANGED);
     UnRegisterNotification(onMaxSelectionChanged, this, NOTIFY_SELECTIONSET_CHANGED);
+    UnRegisterNotification(onNodeRename, this, NOTIFY_NODE_NAME_SET);
     _ufeCommandHook.removeObserver(_commandObserver);
+}
+
+void MaxSessionState::onNodeRename(void* param, NotifyInfo*)
+{
+    const auto session = static_cast<MaxSessionState*>(param);
+    if (!session) {
+        return;
+    }
+
+    session->refreshStageEntry(session->_currentStageEntry._dccObjectPath);
+    QTimer::singleShot(0, [session]() { session->stageListChangedSignal(); });
 }
 
 void MaxSessionState::CommandObserver::operator()(const Ufe::Notification& notification)
@@ -167,15 +195,21 @@ void MaxSessionState::refreshCurrentStageEntry()
 
 void MaxSessionState::refreshStageEntry(const std::string& dccObjectPath)
 {
-    // TODO LE-EXTRACT : Not used for now - will be important when we save anonymous layers
-    // to disk. In that case the layer model is updated.
     StageEntry entry;
     const auto ufePath = Ufe::PathString::path(dccObjectPath);
     const auto object = StageObjectMap::GetInstance()->Get(ufePath);
 
     if (getStageEntry(&entry, object)) {
         if (entry._dccObjectPath == _currentStageEntry._dccObjectPath) {
-            QTimer::singleShot(0, this, [this, entry]() { setStageEntry(entry); });
+            QTimer::singleShot(0, this, [this, entry]() {
+                // if we are refreshing the same stageEntry as the currently opened
+                // 1) stageResetSignal: refreshes the entries in the layer-editor stage dropdown
+                // 2) setStageEntry: rebuilds model for that entry and sets it as selected
+                Q_EMIT stageResetSignal(entry);
+                setStageEntry(entry);
+            });
+        } else {
+            QTimer::singleShot(0, this, [this, entry]() { Q_EMIT stageResetSignal(entry); });
         }
     }
 }
@@ -183,6 +217,8 @@ void MaxSessionState::refreshStageEntry(const std::string& dccObjectPath)
 void MaxSessionState::onStageLoadStateChanged(void* param, NotifyInfo* /*info*/)
 {
     const auto session = static_cast<MaxSessionState*>(param);
+
+    session->refreshStageEntry(session->_currentStageEntry._dccObjectPath);
     QTimer::singleShot(0, [session]() { session->stageListChangedSignal(); });
 }
 
@@ -214,8 +250,11 @@ bool MaxSessionState::saveLayerUI(
     std::string*                  out_filePath,
     const PXR_NS::SdfLayerRefPtr& parentLayer) const
 {
-    // TODO LE-EXTRACT Save Layers UI.
-    return false;
+    std::string parentPath;
+    if (parentLayer) {
+        parentPath = fs::path(parentLayer->GetRealPath()).parent_path().string();
+    }
+    return SaveLayersDialog::saveLayerFilePathUI(*out_filePath, parentPath);
 }
 
 std::vector<std::string>

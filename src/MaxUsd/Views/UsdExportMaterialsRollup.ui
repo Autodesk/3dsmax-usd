@@ -58,12 +58,59 @@
              <string>Export active material only</string>
             </property>
            </item>
-          </widget>
-         </item>
-        </layout>
+                 </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="ShellMtlOptionWidget" native="true">
+     <layout class="QGridLayout" name="ShellMtlOptionLayout" columnstretch="1,2">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="ShellMtlExportStyleLabel">
+        <property name="text">
+         <string>Shell Material</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="ShellMtlExportStyleComboBox">
+        <item>
+         <property name="text">
+          <string>Export baked material</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Export original material</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Export both materials</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>
+    </widget>
+   </item>
+  </layout>
     </widget>
    </item>
    <item>

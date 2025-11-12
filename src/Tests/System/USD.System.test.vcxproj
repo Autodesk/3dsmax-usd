@@ -100,6 +100,7 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="MaxScriptInterface.cpp" />
     <ClCompile Include="MaxUsdObjects.Camera.test.cpp" />
+    <ClCompile Include="MaxUsdObjects.SubobjectClone.test.cpp" />
     <ClCompile Include="RenderDelegate.LightGizmos.cpp" />
     <ClCompile Include="systemtests_pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

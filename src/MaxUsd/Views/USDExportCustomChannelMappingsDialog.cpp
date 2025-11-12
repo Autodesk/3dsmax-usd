@@ -133,7 +133,14 @@ USDExportCustomChannelMappingsDialog::USDExportCustomChannelMappingsDialog(
             mapCheckbox->setCheckState(
                 channelEnabled ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
             QObject::connect(
-                mapCheckbox, &QCheckBox::stateChanged, this, [this, row, table](bool checked) {
+                mapCheckbox,
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+                &QCheckBox::checkStateChanged,
+#else
+                &QCheckBox::stateChanged,
+#endif
+                this,
+                [this, row, table](bool checked) {
                     auto primvarName = table->cellWidget(row, 2);
                     primvarName->setDisabled(!checked);
                     auto primvarType = table->cellWidget(row, 3);

@@ -277,8 +277,25 @@ std::string GetStageLabel(const pxr::UsdStageWeakPtr& stage)
     const auto        layerNameWithExt = stage->GetRootLayer()->GetDisplayName();
     const size_t      lastIndex = layerNameWithExt.find_last_of(".");
     const std::string layerName = layerNameWithExt.substr(0, lastIndex);
-    return layerName;
+    if (!layerName.empty())
+        return layerName;
+
+    return stage->GetRootLayer()->GetIdentifier();
 }
+
+namespace {
+std::function<bool()> shiftPressedFunc;
+}
+
+bool IsShiftPressed()
+{
+    if (shiftPressedFunc) {
+        return shiftPressedFunc();
+    }
+    return GetKeyState(VK_SHIFT) & 0x8000;
+}
+
+void SetIsShiftPressedFunction(std::function<bool()> func) { shiftPressedFunc = func; }
 
 } // namespace Ui
 } // namespace MAXUSD_NS_DEF

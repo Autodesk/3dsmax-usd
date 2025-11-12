@@ -138,6 +138,7 @@ int USDExporter::ExportFile(
             // and the file format used.
             const auto ext = exportFile.extension();
 
+            // File format validation
             if (exportOptions.GetFileFormat() != MaxUsd::USDSceneBuilderOptions::FileFormat::Binary
                 && ext == ".usdc") {
                 reportExportConfigError(
@@ -152,19 +153,53 @@ int USDExporter::ExportFile(
                     L"extension, consider using #ascii instead.\n");
                 return IMPEXP_FAIL;
             }
-            if (exportOptions.GetContentSource()
-                    != MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
-                && exportOptions.GetNodesToExport().Count() != 0) {
+
+            // Content source validation
+            const auto contentSource = exportOptions.GetContentSource();
+            const auto nodeCount = exportOptions.GetNodesToExport().Count();
+            const auto materialCount = exportOptions.GetMaterialsToExport().Count();
+
+            if (contentSource != MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
+                && nodeCount != 0 && materialCount == 0) {
                 reportExportConfigError(
                     L"UsdExporter error : argument \"contentSource\" needs to be set to "
                     L"\"#nodeList\" when a \"nodeList\" has been provided.\n");
                 return IMPEXP_FAIL;
             }
-            if (exportOptions.GetContentSource()
-                    == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
-                && exportOptions.GetNodesToExport().Count() == 0) {
-                reportExportConfigError(L"UsdExporter error : argument \"contentSource:#nodeList\" "
-                                        L"requires \"nodeList\" to be passed as argument.\n");
+            if (contentSource == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeList
+                && nodeCount == 0) {
+                reportExportConfigError(
+                    L"UsdExporter error : argument \"contentSource:#nodeList\" requires "
+                    L"\"nodeList\" to be passed as argument.\n");
+                return IMPEXP_FAIL;
+            }
+            if (contentSource != MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
+                && materialCount != 0 && nodeCount == 0) {
+                reportExportConfigError(
+                    L"UsdExporter error : argument \"contentSource\" needs to be set to "
+                    L"\"#materialList\" when a \"materialList\" has been provided.\n");
+                return IMPEXP_FAIL;
+            }
+            if (contentSource == MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
+                && materialCount == 0) {
+                reportExportConfigError(
+                    L"UsdExporter error : argument \"contentSource:#materialList\" requires "
+                    L"\"materialList\" to be passed as argument.\n");
+                return IMPEXP_FAIL;
+            }
+            if (contentSource != MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
+                && nodeCount != 0 && materialCount != 0) {
+                reportExportConfigError(
+                    L"UsdExporter error : argument \"contentSource\" needs to be set to "
+                    L"\"#nodeAndMaterialList\" when a \"nodeList\" and a \"materialList\" have "
+                    L"been provided.\n");
+                return IMPEXP_FAIL;
+            }
+            if (contentSource == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
+                && (nodeCount == 0 || materialCount == 0)) {
+                reportExportConfigError(
+                    L"UsdExporter error : argument \"contentSource:#nodeAndMaterialList\" requires "
+                    L"\"nodeList\" and \"materialList\" to be passed as argument.\n");
                 return IMPEXP_FAIL;
             }
 

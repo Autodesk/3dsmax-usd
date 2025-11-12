@@ -56,26 +56,32 @@ struct export_up_axis_test
         
         local exportPath = output_prefix + "export_test_y_up_axis.usda"
 
-        -- Export to USD
-        USDExporter.ExportFile exportPath exportOptions:exportOptions
-        
-        local stage = pyUsd.Stage.Open(exportPath)
-        local exportedUpAxis = pyUsdGeom.GetStageUpAxis(stage)
+        exportFormats = #(#singleMatrix, #splitComponents)
+        for exportFormat in exportFormats do (
+            exportOptions.TransformFormat = exportFormat
+            -- Export to USD
+            USDExporter.ExportFile exportPath exportOptions:exportOptions
+            
+            local stage = pyUsd.Stage.Open(exportPath)
+            local exportedUpAxis = pyUsdGeom.GetStageUpAxis(stage)
 
-        assert_true(exportedUpAxis == pyUsdGeom.Tokens.y) message: "The wrong upAxis value was exported."
+            assert_true(exportedUpAxis == pyUsdGeom.Tokens.y) message: "The wrong upAxis value was exported."
+            
+            local exportedBoxPrim = stage.GetPrimAtPath("/Box")
+            local exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
+            local exportedTransform = exportedPrimXformable.GetLocalTransformation()
         
-        local exportedBoxPrim = stage.GetPrimAtPath("/Box")
-        local exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
-        local exportedTransform = exportedPrimXformable.GetLocalTransformation()
-       
-        local expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 0 -1 0 0 1 0 0 10 10 -10 1)
-        assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
-        
-        exportedBoxPrim = stage.GetPrimAtPath("/Box/ChildBox")
-        exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
-        exportedTransform = exportedPrimXformable.GetLocalTransformation()
-        expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1)
-        assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
+            local expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 0 -1 0 0 1 0 0 10 10 -10 1)
+            assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
+            
+            exportedBoxPrim = stage.GetPrimAtPath("/Box/ChildBox")
+            exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
+            exportedTransform = exportedPrimXformable.GetLocalTransformation()
+            expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1)
+            assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
+
+            quickReset()
+        )
     ),
 
     function test_export_z_up_axis = (
@@ -86,20 +92,26 @@ struct export_up_axis_test
         exportOptions.UpAxis = #z
         
         local exportPath = output_prefix + "export_test_z_up_axis.usda"
+        exportFormats = #(#singleMatrix, #splitComponents)
+        for exportFormat in exportFormats do (
+            exportOptions.TransformFormat = exportFormat
 
-        -- Export to USD
-        USDExporter.ExportFile exportPath exportOptions:exportOptions
-        
-        local stage = pyUsd.Stage.Open(exportPath)
-        
-        local exportedUpAxis = pyUsdGeom.GetStageUpAxis(stage)
-        assert_true(exportedUpAxis == pyUsdGeom.Tokens.z) message: "The wrong upAxis value was exported."
-        
-        local exportedBoxPrim = stage.GetPrimAtPath("/Box")
-        local exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
-        local exportedTransform = exportedPrimXformable.GetLocalTransformation()
-        local expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 10 10 10 1)
-        assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
+            -- Export to USD
+            USDExporter.ExportFile exportPath exportOptions:exportOptions
+            
+            local stage = pyUsd.Stage.Open(exportPath)
+            
+            local exportedUpAxis = pyUsdGeom.GetStageUpAxis(stage)
+            assert_true(exportedUpAxis == pyUsdGeom.Tokens.z) message: "The wrong upAxis value was exported."
+            
+            local exportedBoxPrim = stage.GetPrimAtPath("/Box")
+            local exportedPrimXformable = pyUsdGeom.Xformable(exportedBoxPrim)
+            local exportedTransform = exportedPrimXformable.GetLocalTransformation()
+            local expectedTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 10 10 10 1)
+            assert_true(compare2dMatrix exportedTransform expectedTransform 4 4)
+
+            quickReset()
+        )
     ),
 
     function teardown = (

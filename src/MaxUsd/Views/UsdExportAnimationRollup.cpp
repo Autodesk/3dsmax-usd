@@ -32,6 +32,13 @@ UsdExportAnimationRollup::UsdExportAnimationRollup(
 
     ui->SkinCheckBox->setChecked(buildOptions.GetTranslateSkin());
     ui->MorpherCheckBox->setChecked(buildOptions.GetTranslateMorpher());
+    ui->IncludeAllBonesCheckBox->setChecked(buildOptions.GetIncludeAllBones());
+    ui->PreserveBoneMeshesCheckBox->setChecked(buildOptions.GetPreserveBoneMeshes());
+    ui->SimplifyBonePathsCheckBox->setChecked(buildOptions.GetSimplifyBonePaths());
+
+    ui->IncludeAllBonesCheckBox->setEnabled(buildOptions.GetTranslateSkin());
+    ui->PreserveBoneMeshesCheckBox->setEnabled(buildOptions.GetTranslateSkin());
+    ui->SimplifyBonePathsCheckBox->setEnabled(buildOptions.GetTranslateSkin());
 
     const auto timeMode = buildOptions.GetTimeMode();
     switch (timeMode) {
@@ -48,6 +55,18 @@ UsdExportAnimationRollup::UsdExportAnimationRollup(
         ui->FrameRangeRadioButton->setChecked(true);
         break;
     }
+
+    // USD Splines aren't supported before USD 24.11 hide the ui elements
+#ifndef USD_CURVES_SUPPORTED
+    for (int i = 0; i < ui->AnimationTypeGridLayout->count(); ++i) {
+        auto item = ui->AnimationTypeGridLayout->itemAt(i);
+        if (item && item->widget()) {
+            item->widget()->setVisible(false);
+        }
+    }
+#else
+    ui->AnimationTypeComboBox->setCurrentIndex(static_cast<int>(buildOptions.GetAnimationType()));
+#endif
 
     ui->FrameNumberDoubleSpinBox->setMinimum(-DBL_MAX);
     ui->FrameNumberDoubleSpinBox->setMaximum(DBL_MAX);
@@ -194,11 +213,29 @@ void UsdExportAnimationRollup::on_SamplePerFrameDoubleSpinBox_valueChanged(doubl
 void UsdExportAnimationRollup::on_SkinCheckBox_stateChanged(int state)
 {
     buildOptions.SetTranslateSkin(state == Qt::Checked);
+    ui->IncludeAllBonesCheckBox->setEnabled(state == Qt::Checked);
+    ui->PreserveBoneMeshesCheckBox->setEnabled(state == Qt::Checked);
+    ui->SimplifyBonePathsCheckBox->setEnabled(state == Qt::Checked);
 }
 
 void UsdExportAnimationRollup::on_MorpherCheckBox_stateChanged(int state)
 {
     buildOptions.SetTranslateMorpher(state == Qt::Checked);
+}
+
+void UsdExportAnimationRollup::on_IncludeAllBonesCheckBox_stateChanged(int state)
+{
+    buildOptions.SetIncludeAllBones(state == Qt::Checked);
+}
+
+void UsdExportAnimationRollup::on_PreserveBoneMeshesCheckBox_stateChanged(int state)
+{
+    buildOptions.SetPreserveBoneMeshes(state == Qt::Checked);
+}
+
+void UsdExportAnimationRollup::on_SimplifyBonePathsCheckBox_stateChanged(int state)
+{
+    buildOptions.SetSimplifyBonePaths(state == Qt::Checked);
 }
 
 void UsdExportAnimationRollup::SetWidgetsState()
@@ -240,4 +277,13 @@ void UsdExportAnimationRollup::SaveDialogState()
         buildOptions.SetEndFrame(animationRollupData.frameRangeEnd);
         break;
     }
+}
+
+
+void UsdExportAnimationRollup::on_AnimationTypeComboBox_currentIndexChanged(int index)
+{
+#ifdef USD_CURVES_SUPPORTED
+    buildOptions.SetAnimationType(
+        static_cast<MaxUsd::USDSceneBuilderOptions::AnimationType>(index));
+#endif
 }

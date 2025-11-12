@@ -15,11 +15,17 @@
 //
 #pragma once
 
+#include <MaxUsdObjects/Objects/USDStageObject.h>
+
 #include <maxapi.h>
 #include <mouseman.h>
 
 class CreateAtPosition : public CreateMouseCallBack
 {
 public:
-    int proc(ViewExp* vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override;
+    int  proc(ViewExp* vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override;
+    void setUsdStageObject(USDStageObject* obj);
+
+private:
+    USDStageObject* usdObj;
 };

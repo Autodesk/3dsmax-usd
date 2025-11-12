@@ -42,10 +42,19 @@ bool MaxUsdSkeletonWriter::Write(
 
     // Export the mesh itself and set it as guide. Only need to do so on the first frame we export.
     if (time.IsFirstFrame()) {
+        ReferenceTarget*             refTarget = static_cast<ReferenceTarget*>(sourceNode);
+        MaxUsd::HasDependentSkinProc skinProc(refTarget);
+        refTarget->DoEnumDependents(&skinProc);
+        MaxUsd::HasDependentMorpherProc morpherProc(sourceNode);
+        refTarget->DoEnumDependents(&morpherProc);
+
         // Export the bone geometry as a mesh (at the start time).
+        // Use the TranslateMeshes option to decide when the node is a morpher and the preserve bone
+        // meshes when the node is a bone node
         // TODO: spline will be erroneously exported as meshes if they are being used as bone for a
         // skin modifier in the scene.
-        if (GetExportArgs().GetTranslateMeshes()) {
+        if ((GetExportArgs().GetTranslateMeshes() && morpherProc.hasDependentMorpher)
+            || GetExportArgs().GetPreserveBoneMeshes()) {
             MaxUsd::MeshConverter meshConverter;
             UsdGeomMesh           prim = meshConverter.ConvertToUSDMesh(
                 sourceNode,
@@ -54,21 +63,21 @@ bool MaxUsdSkeletonWriter::Write(
                 GetExportArgs().GetMeshConversionOptions(),
                 applyOffsetTransform,
                 false,
-                MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true });
+                MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true },
+                GetExportArgs().GetTransformFormat());
         }
 
         // Set the prim as purpose "guide". That way it can easily be hidden later.
         const auto imageable = pxr::UsdGeomImageable(targetPrim);
         imageable.CreatePurposeAttr().Set(pxr::UsdGeomTokens->guide);
 
-        ReferenceTarget*             refTarget = static_cast<ReferenceTarget*>(sourceNode);
-        MaxUsd::HasDependentSkinProc skinProc(refTarget);
-        refTarget->DoEnumDependents(&skinProc);
-        hasSkinModDependency = !skinProc.foundSkinsMod.empty();
+        // A node is considered a "morpher node" if it has a morpher modifier and has no dependent
+        // skin modifier.
+        isMorpherNode = morpherProc.hasDependentMorpher && skinProc.foundSkinsMod.empty();
     }
 
     // This Max node only depends on a Morpher modifier, no need to do anything else
-    if (!hasSkinModDependency) {
+    if (isMorpherNode) {
         return true;
     }
 
@@ -120,10 +129,15 @@ bool MaxUsdSkeletonWriter::Write(
         return false;
     }
 
-    // Append the skel name to the beginning of each joint token for path reference when importing
-    // This is necessary because the SkelAnimation prim can hold joint from several different
-    // Skeleton prims and avoid naming collision.
-    auto skelJointToken = skelPath.AppendPath(jointSubPath).GetAsToken();
+    // 3ds Max allows for mesh nodes to be used as bones. To improve the round-tripping when
+    // exporting and reimporting USD data from 3ds Max, we export the joint name with the full path
+    // from the skel root. When reimporting, it's possible to check if there's a mesh on that path
+    // and use that mesh as the original bone.
+    // If the user doesn't care about round-tripping, they can choose to simplify the joint paths
+    // to only use the bone name.
+    auto skelJointToken = GetExportArgs().GetSimplifyBonePaths()
+        ? jointSubPath.GetAsToken()
+        : skelPath.AppendPath(jointSubPath).GetAsToken();
 
     // When exporting the first frame, setup some time-independent properties.
     if (time.IsFirstFrame()) {
@@ -258,28 +272,29 @@ bool MaxUsdSkeletonWriter::Write(
     // Append the current rest pose to the end of the rest pose array.
     if (time.IsFirstFrame()) {
         // Setup the bind transform...
+        // Get the other bind transforms that were already there, in order to add the new one
+        const UsdAttribute bindTransforms = skel.GetBindTransformsAttr();
+        VtMatrix4dArray    bindTransformsArray;
+        bindTransforms.Get(&bindTransformsArray);
 
         MaxUsd::HasDependentSkinProc skinProc(sourceNode);
         sourceNode->DoEnumDependents(&skinProc);
-        if (!skinProc.foundSkinsMod.empty()) {
-            const auto objectTransform = MaxUsd::GetBindTransform(
-                MaxUsd::BindTransformElement::Bone,
-                sourceNode,
-                skinProc.foundSkinsMod[0],
-                isYUp,
-                GetExportArgs().GetMeshConversionOptions().GetBakeObjectOffsetTransform());
 
-            // Get the other bind transforms that were already there, in order to add the new one
-            const UsdAttribute bindTransforms = skel.GetBindTransformsAttr();
-            VtMatrix4dArray    bindTransformsArray;
-            bindTransforms.Get(&bindTransformsArray);
+        // The Skeleton prim needs a binding transform for each bone in it.
+        // Add the identity matrix for the cases where the bone is not referenced by a skin modifier
+        const auto objectTransform = skinProc.foundSkinsMod.empty()
+            ? GfMatrix4d(1)
+            : MaxUsd::GetBindTransform(
+                  MaxUsd::BindTransformElement::Bone,
+                  sourceNode,
+                  skinProc.foundSkinsMod[0],
+                  isYUp,
+                  GetExportArgs().GetMeshConversionOptions().GetBakeObjectOffsetTransform());
+        bindTransformsArray.emplace_back(objectTransform);
 
-            bindTransformsArray.emplace_back(objectTransform);
-            if (!skel.GetBindTransformsAttr().Set(bindTransformsArray)) {
-                MaxUsd::Log::Error(
-                    "Couldn't set Skeleton bind transform attribute for {} !", primName);
-                return false;
-            }
+        if (!skel.GetBindTransformsAttr().Set(bindTransformsArray)) {
+            MaxUsd::Log::Error("Couldn't set Skeleton bind transform attribute for {} !", primName);
+            return false;
         }
 
         // Setup the rest transform...
@@ -325,6 +340,11 @@ MaxUsdSkeletonWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOption
 {
     if (!exportArgs.GetTranslateSkin() && !exportArgs.GetTranslateMorpher()) {
         return ContextSupport::Unsupported;
+    }
+
+    // Always export any bone when the include all bones option is on
+    if (exportArgs.GetIncludeAllBones() && MaxUsd::IsBoneObject(node->GetObjectRef())) {
+        return ContextSupport::Fallback;
     }
 
     const bool isBakedOffset = exportArgs.GetMeshConversionOptions().GetBakeObjectOffsetTransform();
@@ -379,6 +399,34 @@ Interval MaxUsdSkeletonWriter::GetValidityInterval(const TimeValue& time)
     // Declare the export valid at this exact time only. We want the writer to be called into at
     // every frame, whatever the object's validity interval, as we are also working with transforms.
     return Interval(time, time);
+}
+
+bool MaxUsdSkeletonWriter::PostExport(UsdPrim& targetPrim)
+{
+    //The writers can't prevent the prims to be created on the stage.
+    //The GetPreserveBoneMeshes option allows the user to not export the bone geometry.
+    //We do that by removing the prims that were unnecessarily created.
+    //The geometry for the bones are generally created with an xform + a mesh prim under it.
+    //This method is called for the bone mesh prim, so we check if the parent is an xform with the
+    //same name minus the suffix we are using for the bone prims. Then remove both prims.
+    if (!GetExportArgs().GetPreserveBoneMeshes() && targetPrim.IsValid()) {
+        if (auto stage = targetPrim.GetStage()) {
+            auto targetPrimPath = targetPrim.GetPath();
+            auto targetElementString = targetPrimPath.GetElementString();
+            auto boneSuffix = "_" + GetObjectPrimSuffix().GetString();
+            auto parentXformElement
+                = targetElementString.substr(0, targetElementString.size() - boneSuffix.size());
+
+            SdfPath parentPath;
+            if (parentXformElement == targetPrim.GetParent().GetPath().GetElementString()) {
+                parentPath = targetPrim.GetParent().GetPath();
+            }
+
+            return stage->RemovePrim(targetPrim.GetPath()) && stage->RemovePrim(parentPath);
+        }
+    }
+
+    return true;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -35,6 +35,7 @@
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 
+#include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/sdf/layerStateDelegate.h>
 
 #include <Qt/QmaxMainWindow.h>
@@ -195,6 +196,14 @@ IOResult USDStageObjectclassDesc::Save(ISave* iSave)
                     }
                     writtenLayerNames[layerIdentifierStr] = true;
 
+                    if (!dirtylayer->IsAnonymous()) {
+                        // Capitalize drive letter if present otherwise this causes issues from
+                        // older versions of OpenUSD where the drive was small case:
+                        // https://forum.aousd.org/t/drive-letter-casing-for-normalized-windows-paths-in-openusd/1412
+                        layerIdentifierStr
+                            = MaxUsd::CapitalizeDriveLetterWindowsPath(layerIdentifierStr);
+                    }
+
                     const bool sessionExpResult = dirtylayer->ExportToString(&dirtyLayersStr);
                     // If there is an error, log it, but do not fail the entire max scene save.
                     if (!sessionExpResult) {
@@ -287,6 +296,9 @@ IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
         return IO_OK;
     }
 
+    // Temporary vector to keep track of all loaded dirty layers from the .max file
+    std::vector<pxr::SdfLayerRefPtr> loadedDirtyLayers;
+
     int numDirtyLayer = 0;
     while (IO_OK == (res = iLoad->OpenChunk())) {
         switch (iLoad->CurChunkID()) {
@@ -359,14 +371,46 @@ IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
                 iLoad->CloseChunk();
             }
 
-            // Layer name used for anonymous layer created from disk
-            const auto& layerName
-                = "3dsmax_usd_dirty_layer_" + std::to_string(numDirtyLayer) + ".usda";
-            // Create an anonymous layer to hold the data loaded from disk
-            pxr::SdfLayerRefPtr dirtyLayerFromMaxScene = pxr::SdfLayer::CreateAnonymous(layerName);
+            pxr::SdfLayerRefPtr dirtyLayerFromMaxScene;
+            if (pxr::SdfLayer::IsAnonymousLayerIdentifier(layerIdStr)) {
+                // Create the anonymous layer and use the display name part of the identifier
+                // as the tag for the anonymous layer.
+                dirtyLayerFromMaxScene = pxr::SdfLayer::CreateAnonymous(
+                    pxr::SdfLayer::GetDisplayNameFromIdentifier(layerIdStr));
+            } else {
+                pxr::SdfFileFormatConstPtr fileFormat = pxr::SdfFileFormat::FindByExtension(
+                    pxr::ArGetResolver().GetExtension(layerIdStr));
+                if (!fileFormat) {
+                    DbgAssert(
+                        0
+                        && _T("Cannot determine the fileFormat from the layer identifier that was ")
+                           _T("saved."));
+                    continue; // skip
+                }
+
+#if PXR_VERSION >= 2408
+                layerIdStr = MaxUsd::CapitalizeDriveLetterWindowsPath(layerIdStr);
+#else
+                layerIdStr = MaxUsd::UncapitalizeDriveLetterWindowsPath(layerIdStr);
+#endif
+                // In order to make the layer reloadable by SdfLayer::Reload(), we hack the
+                // identifier with temp one on creation and call layer->SetIdentifier()
+                // again to set the timestamp:
+                dirtyLayerFromMaxScene = pxr::SdfLayer::New(fileFormat, layerIdStr + "_tmp");
+                dirtyLayerFromMaxScene->Clear(); // mark it dirty
+            }
 
             // Import the actual layer data loaded from the max file
             const bool layerImportRes = dirtyLayerFromMaxScene->ImportFromString(layerStr);
+
+            // If there is an error, log it, but do not fail the entire max scene load.
+            if (!layerImportRes) {
+                const auto msg = _T("UsdStageObject load error. Unable to load the saved layer ")
+                                 _T("from the max file.");
+                DbgAssert(0 && msg);
+                GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
+                continue; // skip
+            }
 
             // First check if the layer already exists in memory for whatever reason
             // (e.g. created via scripting)
@@ -374,7 +418,7 @@ IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
             // max file takes priority always.
             pxr::SdfLayerRefPtr layerPtr = pxr::SdfLayer::Find(layerIdStr);
             if (layerPtr) {
-                // Note: we do a content transfer here instead of just doing a
+                // Note: we do a content transfer here instead of doing a
                 // "ImportFromString()" call on the layer that we found from memory that has the
                 // name id, because depending on if it was created with a ".usda" tag or not,
                 // internally, "ImportFromString()" will behave differently. Doing a
@@ -382,32 +426,15 @@ IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
                 // applied to the existing layer in memory that has the same identifier
                 layerPtr->TransferContent(dirtyLayerFromMaxScene);
                 dirtyLayerFromMaxScene = layerPtr;
-                break;
             }
 
-            // Set the identifier of the layer to the same identifier that we just loaded from disk
             dirtyLayerFromMaxScene->SetIdentifier(layerIdStr);
 
-            // If there is an error, log it, but do not fail the entire max scene load.
-            if (!layerImportRes) {
-                const auto msg = _T("UsdStageObject load error. Unable to load the session layer ")
-                                 _T("from the max file.");
-                DbgAssert(0 && msg);
-                GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
-            }
+            // Map the old identifiers (i.e. loaded from disk), to the newly
+            // created layers from this procedure.
+            USDLayerManager::Instance()->AddLoadedLayerMapping(layerIdStr, dirtyLayerFromMaxScene);
 
-            // HACK: there are no APIs for setting a stage to the dirty state
-            // so we abuse the "DeleteSpec()" function with dummy arguments
-            // as it sets the layer to dirty in the first line of the function.
-            // NOTE: ultimately, we do not need to explicitly load the layer
-            // to the stage. The dirty state layer was already created the layer
-            // in memory in the "Load()" function: when the stage is loaded
-            // and composed, that layer will be loaded and associated to the stage
-            // object via the identifier (i.e. filename) of the layer. We simply
-            // need to mark it as dirty to return to the state of unsaved layer edits.
-            dirtyLayerFromMaxScene->GetStateDelegate()->DeleteSpec(pxr::SdfPath(), false);
-
-            USDLayerManager::Instance()->AddDirtyLayerFromMaxScene(dirtyLayerFromMaxScene);
+            loadedDirtyLayers.emplace_back(dirtyLayerFromMaxScene);
 
             numDirtyLayer++;
         }
@@ -415,6 +442,40 @@ IOResult USDStageObjectclassDesc::Load(ILoad* iLoad)
         }
         iLoad->CloseChunk();
     }
+
+    const std::unordered_map<std::string, pxr::SdfLayerRefPtr>& oldIDToNewLayerMap
+        = USDLayerManager::Instance()->GetLoadedLayerMap();
+    // Helper lambda to mapped layer
+    auto findLayer = [&oldIDToNewLayerMap](std::string identifier) -> pxr::SdfLayerHandle {
+        auto foundIdAndLayer = oldIDToNewLayerMap.find(identifier);
+        if (foundIdAndLayer != oldIDToNewLayerMap.end()) {
+            return foundIdAndLayer->second;
+        }
+
+        return pxr::SdfLayerHandle();
+    };
+
+    // Remap the sublayers of all the layers created from the ImportFromString()
+    // calls so that their respective sublayers' identifier match the newly generated
+    // identifiers from the CreateAnonymous() calls.;
+    bool modifiedPaths = false;
+    for (auto savedLayer : loadedDirtyLayers) {
+        std::vector<std::string> paths = savedLayer->GetSubLayerPaths();
+        for (size_t i = 0, n = paths.size(); i < n; ++i) {
+            pxr::SdfLayerRefPtr subLayer = findLayer(paths[i]);
+            if (subLayer) {
+                if (subLayer->GetIdentifier() != paths[i]) {
+                    paths[i] = subLayer->GetIdentifier();
+                    modifiedPaths = true;
+                }
+            }
+        }
+
+        if (modifiedPaths) {
+            savedLayer->SetSubLayerPaths(paths);
+        }
+    }
+
     return IO_OK;
 }
 

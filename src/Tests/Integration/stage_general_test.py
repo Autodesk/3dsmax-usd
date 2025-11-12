@@ -88,6 +88,118 @@ class TestStageGeneral(unittest.TestCase):
         maxUsdObj.Reload(quiet=True)
         self.assertAlmostEqual(init_units_per_meter, maxUsdObj.SourceMetersPerUnit, places=6)
 
+    def test_reload_with_anonymous_root(self):
+        """Test that reload only affects file-backed layers, not anonymous layers."""
+        import tempfile
+        import uuid
+        
+        # Create temporary file-backed layers with random names
+        temp_dir = tempfile.gettempdir()
+        file_backed_layer_path = os.path.join(temp_dir, f"test_layer_{uuid.uuid4().hex[:8]}.usda")
+        file_backed_layer_2_path = os.path.join(temp_dir, f"test_layer_2_{uuid.uuid4().hex[:8]}.usda")
+        
+        # Create the layers and save them
+        file_backed_layer = Sdf.Layer.CreateNew(file_backed_layer_path)
+        file_backed_layer.Save()
+        
+        file_backed_layer_2 = Sdf.Layer.CreateNew(file_backed_layer_2_path)
+        file_backed_layer_2.Save()
+        
+        # Track files for cleanup
+        temp_files = [file_backed_layer_path, file_backed_layer_2_path]
+        
+        try:
+            # Create a UsdStageObject with default anonymous root layer
+            maxUsdObj = mxs.USDStageObject()
+            stageCache = UsdUtils.StageCache.Get()
+            stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+            
+            # Get references to the layers
+            anon_root_layer = stage.GetRootLayer()
+            session_layer = stage.GetSessionLayer()
+            
+            # Verify the root layer is anonymous
+            self.assertTrue(anon_root_layer.anonymous)
+            self.assertTrue(session_layer.anonymous)
+            
+            # Use UsdLayerEditor commands to add sublayers
+            import ufe
+            mgr = ufe.UndoableCommandMgr.instance()
+            
+            # Add the file-backed layer as a sublayer to the anonymous root using InsertSubPathCommand
+            insert_file_cmd = UsdLayerEditor.InsertSubPathCommand(stage, anon_root_layer, file_backed_layer_path, 0)
+            mgr.executeCmd(insert_file_cmd)
+            
+            # Add an anonymous sublayer directly to the anonymous root
+            add_anon_to_root_cmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, anon_root_layer)
+            mgr.executeCmd(add_anon_to_root_cmd)
+            anon_sublayer_of_root_id = add_anon_to_root_cmd.addedLayer()
+            anon_sublayer_of_root = Sdf.Layer.Find(anon_sublayer_of_root_id)
+            
+            # Add another anonymous sublayer to the file-backed layer
+            add_anon_to_file_cmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, file_backed_layer)
+            mgr.executeCmd(add_anon_to_file_cmd)
+            anon_sublayer_of_file_id = add_anon_to_file_cmd.addedLayer()
+            anon_sublayer_of_file = Sdf.Layer.Find(anon_sublayer_of_file_id)
+            
+            # Add the same sublayer structure under the session layer
+            # Add the file-backed layer as a sublayer to the session layer
+            insert_file_to_session_cmd = UsdLayerEditor.InsertSubPathCommand(stage, session_layer, file_backed_layer_2_path, 0)
+            mgr.executeCmd(insert_file_to_session_cmd)
+            
+            # Add an anonymous sublayer to the session layer
+            add_anon_to_session_cmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, file_backed_layer_2)
+            mgr.executeCmd(add_anon_to_session_cmd)
+            anon_sublayer_of_session_file_backed_layer_id = add_anon_to_session_cmd.addedLayer()
+            anon_sublayer_of_session_file_backed_layer = Sdf.Layer.Find(anon_sublayer_of_session_file_backed_layer_id)
+            
+            # Get the file-backed layer identifier for proper checking
+            file_backed_layer_id = file_backed_layer.identifier
+            file_backed_layer_2_id = file_backed_layer_2.identifier
+            
+            # Verify initial state - all sublayers are present
+            self.assertEqual(len(anon_root_layer.subLayerPaths), 2)
+            self.assertIn(anon_sublayer_of_root_id, anon_root_layer.subLayerPaths)
+            self.assertIn(file_backed_layer_id, anon_root_layer.subLayerPaths)
+            self.assertEqual(len(file_backed_layer.subLayerPaths), 1)
+            self.assertIn(anon_sublayer_of_file_id, file_backed_layer.subLayerPaths)
+     
+            self.assertEqual(len(session_layer.subLayerPaths), 1)
+            self.assertIn(file_backed_layer_2_id, session_layer.subLayerPaths)
+            self.assertEqual(len(file_backed_layer_2.subLayerPaths), 1)
+            self.assertIn(anon_sublayer_of_session_file_backed_layer_id, file_backed_layer_2.subLayerPaths)
+            
+            # Perform reload
+            maxUsdObj.Reload(quiet=True)
+            
+            # After reload, verify behavior:
+            # 1. Anonymous root should still have the file-backed sublayer
+            self.assertIn(file_backed_layer_id, anon_root_layer.subLayerPaths)
+            
+            # 2. Anonymous root should still have its direct anonymous sublayer
+            self.assertIn(anon_sublayer_of_root_id, anon_root_layer.subLayerPaths)
+            
+            # 3. File-backed layer should be reloaded from disk and no longer have anonymous sublayer
+            self.assertEqual(len(file_backed_layer.subLayerPaths), 0)
+            
+            # 4. Session layer should remain unchanged (anonymous but not affected by reload)
+            # Session layer should still have both its sublayers (file-backed and anonymous)
+            self.assertEqual(len(session_layer.subLayerPaths), 1)
+            self.assertIn(file_backed_layer_2_id, session_layer.subLayerPaths)
+            self.assertEqual(len(file_backed_layer_2.subLayerPaths), 1)
+            self.assertIn(anon_sublayer_of_session_file_backed_layer_id, file_backed_layer_2.subLayerPaths)
+            
+            self.assertTrue(session_layer.anonymous)
+        
+        finally:
+            # Clean up temporary files
+            for temp_file in temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except:
+                    pass  # Ignore cleanup errors
+
     def test_deactivation_crash_fix(self):
         # Test crash fix, see https://jira.autodesk.com/browse/MAXX-71391
         stageObject = mxs.USDStageObject()
@@ -325,7 +437,7 @@ class TestStageGeneral(unittest.TestCase):
 
         containsSublayer = False
         for sublayerPath in stage.GetRootLayer().subLayerPaths:
-            if sublayerPath == new_layer_name:
+            if os.path.normcase(os.path.normpath(sublayerPath)) == os.path.normcase(os.path.normpath(new_layer_name)):
                 containsSublayer = True
                 break
         # Check if the sublayer is part of the stage's layers
@@ -352,6 +464,229 @@ class TestStageGeneral(unittest.TestCase):
         # Check if the root layer is dirty -- it shouldn't be
         self.assertEqual(stage.GetRootLayer().dirty, False)   
 
+        # 7 
+        # Test UsdStageObject with anonymous root layer by default
+        # Create a UsdStageObject without setting a root layer - should have anonymous root layer
+        anonStageName = "anonStage"
+        anonStageObj = mxs.USDStageObject(name=anonStageName)
+        anonStageCache = UsdUtils.StageCache.Get()
+        anonStage = anonStageCache.Find(Usd.StageCache.Id.FromLongInt(anonStageObj.CacheId))
+        
+        # Verify the root layer is anonymous
+        self.assertTrue(anonStage.GetRootLayer().anonymous)
+        
+        # Create some content in the anonymous root layer
+        anonStage.SetEditTarget(anonStage.GetRootLayer())
+        anonRootPrim = anonStage.DefinePrim("/anonRoot", "Xform")
+        anonCubePrim = anonStage.DefinePrim("/anonRoot/cube", "Cube")
+        
+        # Make the cube invisible
+        anonCubeImg = UsdGeom.Imageable(anonCubePrim)
+        anonCubeImg.MakeInvisible()
+        
+        # Save the scene with the anonymous root layer
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        anonSceneSavePath = self.output_prefix + "test_save_load_anonymous_root.max"
+        mxs.saveMaxFile(anonSceneSavePath, quiet=True)
+        
+        anonCubeNotSavedPrim = anonStage.DefinePrim("/anonRoot/cubeNotSaved", "Cube")
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        
+        # Load the scene and verify the anonymous root layer content is preserved
+        mxs.loadMaxFile(anonSceneSavePath)
+        loadedAnonStageObject = mxs.getNodeByName(anonStageName)
+        loadedAnonStage = anonStageCache.Find(Usd.StageCache.Id.FromLongInt(loadedAnonStageObject.CacheId))
+        
+        # Verify the root layer is still anonymous
+        self.assertTrue(loadedAnonStage.GetRootLayer().anonymous)
+        
+        # Verify the content is preserved
+        loadedAnonRootPrim = loadedAnonStage.GetPrimAtPath("/anonRoot")
+        self.assertTrue(loadedAnonRootPrim.IsValid())
+        loadedAnonCubePrim = loadedAnonStage.GetPrimAtPath("/anonRoot/cube")
+        self.assertTrue(loadedAnonCubePrim.IsValid())
+
+        # Verify the content added after save is not there after load
+        loadedAnonCubeNotSavedPrim = loadedAnonStage.GetPrimAtPath("/anonRoot/cubeNotSaved")
+        self.assertFalse(loadedAnonCubeNotSavedPrim.IsValid())
+        
+        # Check that the cube is invisible
+        loadedAnonCubeImg = UsdGeom.Imageable(loadedAnonCubePrim)
+        self.assertEqual(loadedAnonCubeImg.GetVisibilityAttr().Get(), UsdGeom.Tokens.invisible)
+        
+        # Check if the anonymous root layer is dirty
+        self.assertEqual(loadedAnonStage.GetRootLayer().dirty, True)
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # 8
+        # Test anonymous sublayers with file-based root layer
+        # Create stage with file-based root layer and add anonymous sublayer
+        anonSublayerStageName = "anonSublayerStage"
+        anonSublayerStageObj = mxs.USDStageObject(name=anonSublayerStageName)
+        anonSublayerStageObj.SetRootLayer(test_file_path, stageMask='/')
+        anonSublayerStageCache = UsdUtils.StageCache.Get()
+        anonSublayerStage = anonSublayerStageCache.Find(Usd.StageCache.Id.FromLongInt(anonSublayerStageObj.CacheId))
+        
+        # Use the proper command to add an anonymous sublayer
+        addAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(anonSublayerStage, anonSublayerStage.GetRootLayer())
+        addAnonSublayerCmd.execute()
+        
+        # Get the anonymous sublayer that was added
+        anonSublayerPath = addAnonSublayerCmd.addedLayer()
+        anonSublayer = Sdf.Layer.Find(anonSublayerPath)
+        self.assertIsNotNone(anonSublayer)
+        self.assertTrue(anonSublayer.anonymous)
+        
+        # Add content to the anonymous sublayer
+        anonSublayerStage.SetEditTarget(anonSublayer)
+        anonSublayerRootPrim = anonSublayerStage.DefinePrim("/anonSublayerRoot", "Xform")
+        anonSublayerCylinderPrim = anonSublayerStage.DefinePrim("/anonSublayerRoot/cylinder", "Cylinder")
+        
+        # Make the cylinder invisible in the anonymous sublayer
+        anonSublayerCylinderImg = UsdGeom.Imageable(anonSublayerCylinderPrim)
+        anonSublayerCylinderImg.MakeInvisible()
+        
+        # Save the scene with anonymous sublayer
+        anonSublayerSceneSavePath = self.output_prefix + "test_anonymous_sublayer.max"
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        mxs.saveMaxFile(anonSublayerSceneSavePath, quiet=True)
+        saved_anon_sublayer_id = anonSublayer.identifier
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        
+        # Load the scene and verify the anonymous sublayer content is preserved
+        mxs.loadMaxFile(anonSublayerSceneSavePath)
+        loadedAnonSublayerStageObject = mxs.getNodeByName(anonSublayerStageName)
+        loadedAnonSublayerStage = anonSublayerStageCache.Find(Usd.StageCache.Id.FromLongInt(loadedAnonSublayerStageObject.CacheId))
+        
+        # Verify the root layer is file-based
+        self.assertFalse(loadedAnonSublayerStage.GetRootLayer().anonymous)
+        
+        # Check that the anonymous sublayer is present
+        containsAnonSublayer = False
+        for sublayerPath in loadedAnonSublayerStage.GetRootLayer().subLayerPaths:
+            if Sdf.Layer.IsAnonymousLayerIdentifier(sublayerPath):
+                containsAnonSublayer = True
+                break
+        self.assertTrue(containsAnonSublayer)
+        
+        # Verify the content from the anonymous sublayer is preserved
+        loadedAnonSublayerRootPrim = loadedAnonSublayerStage.GetPrimAtPath("/anonSublayerRoot")
+        self.assertTrue(loadedAnonSublayerRootPrim.IsValid())
+        loadedAnonSublayerCylinderPrim = loadedAnonSublayerStage.GetPrimAtPath("/anonSublayerRoot/cylinder")
+        self.assertTrue(loadedAnonSublayerCylinderPrim.IsValid())
+        
+        # Check that the cylinder is invisible
+        loadedAnonSublayerCylinderImg = UsdGeom.Imageable(loadedAnonSublayerCylinderPrim)
+        self.assertEqual(loadedAnonSublayerCylinderImg.GetVisibilityAttr().Get(), UsdGeom.Tokens.invisible)
+        
+        # Find the anonymous sublayer and check if it's dirty
+        anonSublayerFound = None
+        for sublayerPath in loadedAnonSublayerStage.GetRootLayer().subLayerPaths:
+            if Sdf.Layer.IsAnonymousLayerIdentifier(sublayerPath):
+                anonSublayerFound = Sdf.Layer.Find(sublayerPath)
+                break
+                self.assertIsNotNone(anonSublayerFound)
+        self.assertEqual(anonSublayerFound.dirty, True)
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        # 9 
+        # Test anonymous root layer with anonymous sublayer, both with edits
+        # Create a UsdStageObject without setting root layer - gets anonymous root by default
+        anonRootWithSubStageName = "anonRootWithSubStage"
+        anonRootWithSubStageObj = mxs.USDStageObject(name=anonRootWithSubStageName)
+        anonRootWithSubStageCache = UsdUtils.StageCache.Get()
+        anonRootWithSubStage = anonRootWithSubStageCache.Find(Usd.StageCache.Id.FromLongInt(anonRootWithSubStageObj.CacheId))
+        
+        # Verify the root layer is anonymous
+        self.assertTrue(anonRootWithSubStage.GetRootLayer().anonymous)
+        
+        # Add content to the anonymous root layer and make edits
+        anonRootWithSubStage.SetEditTarget(anonRootWithSubStage.GetRootLayer())
+        rootContentPrim = anonRootWithSubStage.DefinePrim("/rootContent", "Xform")
+        rootSpherePrim = anonRootWithSubStage.DefinePrim("/rootContent/sphere", "Sphere")
+        
+        # Make the sphere in root layer invisible
+        rootSphereImg = UsdGeom.Imageable(rootSpherePrim)
+        rootSphereImg.MakeInvisible()
+        
+        # Add an anonymous sublayer using the proper command
+        addAnonSubCmd = UsdLayerEditor.AddAnonSubLayerCommand(anonRootWithSubStage, anonRootWithSubStage.GetRootLayer())
+        addAnonSubCmd.execute()
+        
+        # Get the anonymous sublayer
+        anonSubLayerPath = addAnonSubCmd.addedLayer()
+        anonSubLayer = Sdf.Layer.Find(anonSubLayerPath)
+        self.assertIsNotNone(anonSubLayer)
+        self.assertTrue(anonSubLayer.anonymous)
+        
+        # Switch edit target to the anonymous sublayer and add content
+        anonRootWithSubStage.SetEditTarget(anonSubLayer)
+        subContentPrim = anonRootWithSubStage.DefinePrim("/subContent", "Xform")
+        subCubePrim = anonRootWithSubStage.DefinePrim("/subContent/cube", "Cube")
+        
+        # Make the cube in sublayer invisible
+        subCubeImg = UsdGeom.Imageable(subCubePrim)
+        subCubeImg.MakeInvisible()
+        
+        # Verify both layers are dirty
+        self.assertTrue(anonRootWithSubStage.GetRootLayer().dirty)
+        self.assertTrue(anonSubLayer.dirty)
+        
+        # Save the scene with both anonymous layers having edits
+        anonRootWithSubSceneSavePath = self.output_prefix + "test_anon_root_with_anon_sub.max"
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        mxs.saveMaxFile(anonRootWithSubSceneSavePath, quiet=True)
+        saved_anon_root_id = anonRootWithSubStage.GetRootLayer().identifier
+        saved_anon_sub_id = anonSubLayer.identifier
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+        
+        # Load the scene and verify both anonymous layers and their content are preserved
+        mxs.loadMaxFile(anonRootWithSubSceneSavePath)
+        loadedAnonRootWithSubStageObject = mxs.getNodeByName(anonRootWithSubStageName)
+        loadedAnonRootWithSubStage = anonRootWithSubStageCache.Find(Usd.StageCache.Id.FromLongInt(loadedAnonRootWithSubStageObject.CacheId))
+        
+        # Verify the root layer is still anonymous
+        self.assertTrue(loadedAnonRootWithSubStage.GetRootLayer().anonymous)
+        
+        # Verify the anonymous sublayer is present
+        containsAnonSub = False
+        loadedAnonSubLayerFound = None
+        for sublayerPath in loadedAnonRootWithSubStage.GetRootLayer().subLayerPaths:
+            if Sdf.Layer.IsAnonymousLayerIdentifier(sublayerPath):
+                containsAnonSub = True
+                loadedAnonSubLayerFound = Sdf.Layer.Find(sublayerPath)
+                break
+        self.assertTrue(containsAnonSub)
+        self.assertIsNotNone(loadedAnonSubLayerFound)
+        self.assertTrue(loadedAnonSubLayerFound.anonymous)
+        
+        # Verify content from the anonymous root layer is preserved
+        loadedRootContentPrim = loadedAnonRootWithSubStage.GetPrimAtPath("/rootContent")
+        self.assertTrue(loadedRootContentPrim.IsValid())
+        loadedRootSpherePrim = loadedAnonRootWithSubStage.GetPrimAtPath("/rootContent/sphere")
+        self.assertTrue(loadedRootSpherePrim.IsValid())
+        
+        # Check that the sphere in root layer is invisible
+        loadedRootSphereImg = UsdGeom.Imageable(loadedRootSpherePrim)
+        self.assertEqual(loadedRootSphereImg.GetVisibilityAttr().Get(), UsdGeom.Tokens.invisible)
+        
+        # Verify content from the anonymous sublayer is preserved
+        loadedSubContentPrim = loadedAnonRootWithSubStage.GetPrimAtPath("/subContent")
+        self.assertTrue(loadedSubContentPrim.IsValid())
+        loadedSubCubePrim = loadedAnonRootWithSubStage.GetPrimAtPath("/subContent/cube")
+        self.assertTrue(loadedSubCubePrim.IsValid())
+        
+        # Check that the cube in sublayer is invisible
+        loadedSubCubeImg = UsdGeom.Imageable(loadedSubCubePrim)
+        self.assertEqual(loadedSubCubeImg.GetVisibilityAttr().Get(), UsdGeom.Tokens.invisible)
+        
+        # Verify both layers are dirty after load (indicating edits were preserved)
+        self.assertTrue(loadedAnonRootWithSubStage.GetRootLayer().dirty)
+        self.assertTrue(loadedAnonSubLayerFound.dirty)
+        
         # Reset the default save mode
         mxs.USDStageObject.SetDefaultSaveMode("saveAll")
 
@@ -360,6 +695,10 @@ class TestStageGeneral(unittest.TestCase):
         # Create a simple stage object.
         maxUsdObj = mxs.USDStageObject()
         maxUsdObj.SetRootLayer(self.test_usd_file_path, stageMask='/')
+        maxUsdObjDefaultCreatedObjStr = maxUsd.GetUsdPrimUfePath(maxUsdObj.handle, "/")
+
+        # Test stage object with no loaded usd stage.
+        self.assertNotEqual("", maxUsdObjDefaultCreatedObjStr)
                         
         # Test absolute root path
         pathStr = maxUsd.GetUsdPrimUfePath(maxUsdObj.handle, "/")
@@ -386,20 +725,6 @@ class TestStageGeneral(unittest.TestCase):
         # Test object handle of non-usd object.
         pathStr = maxUsd.GetUsdPrimUfePath(mxs.box().handle, "/")
         self.assertEqual("", pathStr)
-                
-        # Test stage object with no loaded usd stage.
-        emptyStageObj = mxs.USDStageObject()
-        pathStr = maxUsd.GetUsdPrimUfePath(emptyStageObj.handle, "/")
-        self.assertEqual("", pathStr)
-
-    def test_payload_none_legacy(self):
-        testDataDir = os.path.dirname(__file__)
-        sampleLegacyFile = (testDataDir + "\\data\\stage_payload_none_legacy.max")
-        mxs.loadMaxFile(sampleLegacyFile)
-        stageCache = UsdUtils.StageCache.Get()
-        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(mxs.objects[0].CacheId))
-        loadRules = stage.GetLoadRules().GetRules()
-        self.assertEqual(len([item for item in loadRules if item[0] == Sdf.Path("/") and item[1] == Usd.StageLoadRules.NoneRule]), 1)
 
     def test_save_payload_rules(self):
         # remove the setup object that was created before executing the rest of this test
@@ -563,6 +888,65 @@ class TestStageGeneral(unittest.TestCase):
         self.assertFalse(subLayer1.permissionToEdit)
         self.assertTrue(subLayer2.permissionToEdit)
         self.assertFalse(subLayer3.permissionToEdit)
+
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+
+        # Now test anon sublayer cases
+        stageName = "anon"
+        stageObject = mxs.USDStageObject(name=stageName)
+
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+
+        addedAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, rootLayer)
+        addedAnonSublayerCmd.execute();
+        anonSublayerId = addedAnonSublayerCmd.addedLayer()
+        anonSublayer = Sdf.Layer.Find(anonSublayerId)
+
+        cmd = UsdLayerEditor.LockLayerCommand(stage, anonSublayer,  UsdLayerEditor.LayerLock_Locked, False, False)
+        cmd.execute();
+
+        # Add an anon sublayer to the session layer
+        addedAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, stage.GetSessionLayer())
+        addedAnonSublayerCmd.execute();
+        anonSublayerFromSessionId = addedAnonSublayerCmd.addedLayer()
+        anonSublayerFromSession = Sdf.Layer.Find(anonSublayerFromSessionId)
+
+        cmd = UsdLayerEditor.LockLayerCommand(stage, anonSublayerFromSession,  UsdLayerEditor.LayerLock_Locked, False, False)
+        cmd.execute();
+
+        self.assertFalse(anonSublayer.permissionToEdit)
+        self.assertTrue(rootLayer.permissionToEdit)
+        self.assertFalse(anonSublayerFromSession.permissionToEdit)
+        self.assertTrue(stage.GetSessionLayer().permissionToEdit)
+
+        maxSceneSavePath = self.output_prefix + "layer_lock_save_anon.max"
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+
+        cmd = UsdLayerEditor.LockLayerCommand(stage, anonSublayer,  UsdLayerEditor.LayerLock_Unlocked, True, False)
+        cmd.execute();
+        cmd = UsdLayerEditor.LockLayerCommand(stage, anonSublayerFromSession,  UsdLayerEditor.LayerLock_Unlocked, True, False)
+        cmd.execute();
+
+        self.assertTrue(anonSublayer.permissionToEdit)
+        self.assertTrue(rootLayer.permissionToEdit)
+        self.assertTrue(anonSublayerFromSession.permissionToEdit)
+        self.assertTrue(stage.GetSessionLayer().permissionToEdit)
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+
+        self.assertFalse(anonSublayer.permissionToEdit)
+        self.assertTrue(rootLayer.permissionToEdit)
+        self.assertFalse(anonSublayerFromSession.permissionToEdit)
+        self.assertTrue(stage.GetSessionLayer().permissionToEdit)
+
+        # Reset the default save mode
+        mxs.USDStageObject.SetDefaultSaveMode("saveAll")
+
                 
     def test_save_layer_mute_state(self):
         stageName = "stage"
@@ -622,6 +1006,65 @@ class TestStageGeneral(unittest.TestCase):
         self.assertFalse(stage.IsLayerMuted(subLayer2.identifier)) 
         self.assertTrue(stage.IsLayerMuted(subLayer3.identifier))
 
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+
+        # Now test anon sublayer cases
+        stageName = "anon"
+        stageObject = mxs.USDStageObject(name=stageName)
+
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+
+        # Add an anon sublayer to root layer
+        addedAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, rootLayer)
+        addedAnonSublayerCmd.execute();
+        anonSublayerFromRootId = addedAnonSublayerCmd.addedLayer()
+        anonSublayerFromRoot = Sdf.Layer.Find(anonSublayerFromRootId)
+
+
+        # Add an anon sublayer to the session layer
+        addedAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, stage.GetSessionLayer())
+        addedAnonSublayerCmd.execute();
+        anonSublayerFromSessionId = addedAnonSublayerCmd.addedLayer()
+        anonSublayerFromSession = Sdf.Layer.Find(anonSublayerFromSessionId)
+
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, anonSublayerFromRoot,  True)
+        cmd.execute();
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, anonSublayerFromSession,  True)
+        cmd.execute();
+
+        self.assertTrue(stage.IsLayerMuted(anonSublayerFromRoot.identifier))
+        self.assertFalse(stage.IsLayerMuted(rootLayer.identifier))
+        self.assertTrue(stage.IsLayerMuted(anonSublayerFromSession.identifier))
+        self.assertFalse(stage.IsLayerMuted(stage.GetSessionLayer().identifier))
+        
+        maxSceneSavePath = self.output_prefix + "layer_mute_save_anon.max"
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, anonSublayerFromRoot,  False)
+        cmd.execute();
+        cmd = UsdLayerEditor.MuteLayerCommand(stage, anonSublayerFromSession,  False)
+        cmd.execute();
+
+        self.assertFalse(stage.IsLayerMuted(anonSublayerFromRoot.identifier))
+        self.assertFalse(stage.IsLayerMuted(rootLayer.identifier))
+        self.assertFalse(stage.IsLayerMuted(anonSublayerFromSession.identifier))
+        self.assertFalse(stage.IsLayerMuted(stage.GetSessionLayer().identifier))
+
+        mxs.loadMaxFile(maxSceneSavePath)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        self.assertTrue(stage.IsLayerMuted(anonSublayerFromRoot.identifier))
+        self.assertFalse(stage.IsLayerMuted(rootLayer.identifier))
+        self.assertTrue(stage.IsLayerMuted(anonSublayerFromSession.identifier))
+        self.assertFalse(stage.IsLayerMuted(stage.GetSessionLayer().identifier))
+
+        # Reset the default save mode
+        mxs.USDStageObject.SetDefaultSaveMode("saveAll")
+
+
     def test_save_and_restore_edit_target(self):
         
         stageName = "foo"
@@ -679,6 +1122,232 @@ class TestStageGeneral(unittest.TestCase):
         loadedStageObject = mxs.getNodeByName(stageName)
         stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
         self.assertEqual(stage.GetEditTarget(), stage.GetRootLayer())
+
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+
+        # Now test anon sublayer cases using command system
+        stageObject = mxs.USDStageObject(name=stageName)
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+
+        # Add an anon sublayer to root layer
+        addedAnonSublayerCmd = UsdLayerEditor.AddAnonSubLayerCommand(stage, rootLayer)
+        addedAnonSublayerCmd.execute();
+        anonSublayerFromRootId = addedAnonSublayerCmd.addedLayer()
+        anonSublayerFromRoot = Sdf.Layer.Find(anonSublayerFromRootId)
+        
+        stage.SetEditTarget(anonSublayerFromRoot)
+        maxSceneSavePath = self.output_prefix + "save_sublayer_target.max"
+        mxs.USDStageObject.SetDefaultSaveMode("saveAllEditsMax")
+        mxs.saveMaxFile(maxSceneSavePath, quiet=True)
+        
+        mxs.resetMaxFile(mxs.Name("noprompt"))
+
+        # Load the scene from disk, make sure the edit target was properly restored.
+        mxs.loadMaxFile(maxSceneSavePath, quiet=True)
+        loadedStageObject = mxs.getNodeByName(stageName)
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(loadedStageObject.CacheId))
+        rootLayer = stage.GetRootLayer()
+        anonSublayerFromRoot = Sdf.Layer.FindRelativeToLayer(rootLayer, rootLayer.subLayerPaths[0])
+        self.assertEqual(stage.GetEditTarget(), anonSublayerFromRoot) 
+
+        # Reset the default save mode
+        mxs.USDStageObject.SetDefaultSaveMode("saveAll")
+
+
+    def test_undo_redo_stage_root_layer_preservation(self):
+        """Test that undo/redo operations preserve stage objects when switching between anonymous and file-backed root layers"""
+        # Create a USDStageObject which by default comes with an anonymous root layer
+        stageName = "testStage"
+        stageObject = mxs.USDStageObject(name=stageName)
+        
+        # Verify the stage starts with an anonymous root layer
+        stageCache = UsdUtils.StageCache.Get()
+        initialStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertTrue(initialStage.GetRootLayer().anonymous)
+        
+        # Add some content to the anonymous root layer to make it more interesting
+        initialStage.SetEditTarget(initialStage.GetRootLayer())
+        rootPrim = initialStage.DefinePrim("/testRoot", "Xform")
+        spherePrim = initialStage.DefinePrim("/testRoot/sphere", "Sphere")
+        
+        # set the root layer to a file-backed layer
+        stageObject.SetRootLayer(self.test_usd_file_path, stageMask='/')
+        
+        # Verify the root layer changed to file-backed
+        fileBackedStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertFalse(fileBackedStage.GetRootLayer().anonymous)
+        
+        # Verify the stage content changed (should have the box from the file now)
+        boxPrim = fileBackedStage.GetPrimAtPath("/box")
+        self.assertTrue(boxPrim.IsValid())
+        
+        # Undo the operation
+        pymxs.run_undo()
+        
+        # Verify we're back to the anonymous root layer
+        undoStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertTrue(undoStage.GetRootLayer().anonymous)
+        
+        # Verify the stage object is preserved after undo
+        self.assertEqual(initialStage, undoStage)
+        
+        # Verify the original anonymous content is back
+        undoRootPrim = undoStage.GetPrimAtPath("/testRoot")
+        self.assertTrue(undoRootPrim.IsValid())
+        undoSpherePrim = undoStage.GetPrimAtPath("/testRoot/sphere")
+        self.assertTrue(undoSpherePrim.IsValid())
+        
+        # Redo the operation
+        pymxs.run_redo()
+        
+        # Verify we're back to the file-backed root layer
+        redoStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertFalse(redoStage.GetRootLayer().anonymous)
+        
+        # Verify the stage object is preserved after redo
+        self.assertEqual(fileBackedStage, redoStage)
+        
+        # Verify the file-backed content is back
+        redoBoxPrim = redoStage.GetPrimAtPath("/box")
+        self.assertTrue(redoBoxPrim.IsValid())
+
+    def test_default_anonymous_stage_settings(self):
+        """Test that USDStageObject with default anonymous root has 3dsMax default TPS, FPS, Units, and Z up-axis"""
+        # Create a USDStageObject with default anonymous root layer
+        stageObject = mxs.USDStageObject()
+        
+        # Get the stage from cache
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        
+        # Verify the root layer is anonymous
+        self.assertTrue(stage.GetRootLayer().anonymous)
+        
+        # Test default time codes per second (TPS)
+        expectedTPS = 4800.0 / mxs.ticksPerFrame
+        actualTPS = stage.GetTimeCodesPerSecond()
+        self.assertEqual(actualTPS, expectedTPS, 
+                        f"Expected TPS {expectedTPS}, got {actualTPS}")
+        
+        # Test default frames per second (FPS)
+        expectedFPS = expectedTPS
+        actualFPS = stage.GetFramesPerSecond()
+        self.assertEqual(actualFPS, expectedFPS,
+                        f"Expected FPS {expectedFPS}, got {actualFPS}")
+        
+        # Test default units - default 3ds Max units are in inches
+        expectedMetersPerUnit = 0.0254
+        actualMetersPerUnit = UsdGeom.GetStageMetersPerUnit(stage)
+        self.assertAlmostEqual(actualMetersPerUnit, expectedMetersPerUnit, places=6,
+                              msg=f"Expected meters per unit {expectedMetersPerUnit}, got {actualMetersPerUnit} (in inches)")
+        
+        # Test default up-axis - should be Z
+        expectedUpAxis = UsdGeom.Tokens.z
+        actualUpAxis = UsdGeom.GetStageUpAxis(stage)
+        self.assertEqual(actualUpAxis, expectedUpAxis,
+                        f"Expected up-axis {expectedUpAxis}, got {actualUpAxis}")
+
+    def test_set_stage_from_cache(self):
+        """Test SetStageFromCache functionality with undo/redo and SetRootLayer combinations"""
+        # Create anonymous stages from scratch using pxr APIs
+        stageCache = UsdUtils.StageCache.Get()
+        
+        # Create first anonymous stage with a sphere
+        stage1 = Usd.Stage.CreateInMemory()  # Anonymous stage
+        spherePrim = UsdGeom.Sphere.Define(stage1, "/sphere")
+        spherePrim.GetRadiusAttr().Set(5.0)
+        cubePrim = UsdGeom.Cube.Define(stage1, "/cube")
+        cubePrim.GetSizeAttr().Set(2.0)
+        
+        # Insert into cache and get cache ID
+        stageCache.Insert(stage1)
+        stage1Id = stageCache.GetId(stage1).ToLongInt()
+        
+        # Create second anonymous stage with different content
+        stage2 = Usd.Stage.CreateInMemory()  # Anonymous stage
+        conePrim = UsdGeom.Cone.Define(stage2, "/cone")
+        conePrim.GetHeightAttr().Set(10.0)
+        conePrim.GetRadiusAttr().Set(3.0)
+        cylinderPrim = UsdGeom.Cylinder.Define(stage2, "/cylinder")
+        cylinderPrim.GetHeightAttr().Set(8.0)
+        
+        # Insert into cache and get cache ID
+        stageCache.Insert(stage2)
+        stage2Id = stageCache.GetId(stage2).ToLongInt()
+        
+        # Create a USDStageObject
+        stageName = "testStageFromCache"
+        stageObject = mxs.USDStageObject(name=stageName)
+        
+        # Add some prims to the initial stage in the USDStageObject
+        initialStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        initialStage.SetEditTarget(initialStage.GetRootLayer())
+        initialRootPrim = initialStage.DefinePrim("/initialRoot", "Xform")
+        initialPlanePrim = initialStage.DefinePrim("/initialRoot/plane", "Mesh")
+        
+        # Test setting stage from cache with first stage
+        stageObject.SetStageFromCache(stage1Id)
+        
+        # Verify the stage object now uses the cached stage
+        currentStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertEqual(currentStage, stage1)
+        
+        # Verify the prims from stage1 are accessible
+        spherePrimFromStage = currentStage.GetPrimAtPath("/sphere")
+        self.assertTrue(spherePrimFromStage.IsValid())
+        cubePrimFromStage = currentStage.GetPrimAtPath("/cube")
+        self.assertTrue(cubePrimFromStage.IsValid())
+        
+        # Verify sphere properties
+        sphereFromStage = UsdGeom.Sphere(spherePrimFromStage)
+        self.assertEqual(sphereFromStage.GetRadiusAttr().Get(), 5.0)
+        
+        # Test undo functionality
+        pymxs.run_undo()
+        
+        # After undo, should be back to the original anonymous stage
+        undoStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertTrue(undoStage.GetRootLayer().anonymous)
+        
+        # The sphere and cube should not be present in the original stage
+        self.assertFalse(undoStage.GetPrimAtPath("/sphere").IsValid())
+        self.assertFalse(undoStage.GetPrimAtPath("/cube").IsValid())
+        
+        # Check that the initial prims we added are still there after undo
+        undoInitialRootPrim = undoStage.GetPrimAtPath("/initialRoot")
+        self.assertTrue(undoInitialRootPrim.IsValid())
+        undoInitialPlanePrim = undoStage.GetPrimAtPath("/initialRoot/plane")
+        self.assertTrue(undoInitialPlanePrim.IsValid())
+
+        # Test redo functionality
+        pymxs.run_redo()
+        
+        # After redo, should be back to stage1
+        redoStage = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertEqual(redoStage, stage1)
+        self.assertTrue(redoStage.GetPrimAtPath("/sphere").IsValid())
+        self.assertTrue(redoStage.GetPrimAtPath("/cube").IsValid())
+        
+        # Test switching to second stage from cache
+        stageObject.SetStageFromCache(stage2Id)
+        
+        # Verify the stage object now uses the second cached stage
+        currentStage2 = stageCache.Find(Usd.StageCache.Id.FromLongInt(stageObject.CacheId))
+        self.assertEqual(currentStage2, stage2)
+        
+        # Verify the prims from stage2 are accessible
+        conePrimFromStage = currentStage2.GetPrimAtPath("/cone")
+        self.assertTrue(conePrimFromStage.IsValid())
+        cylinderPrimFromStage = currentStage2.GetPrimAtPath("/cylinder")
+        self.assertTrue(cylinderPrimFromStage.IsValid())
+        
+        # Verify cone properties
+        coneFromStage = UsdGeom.Cone(conePrimFromStage)
+        self.assertEqual(coneFromStage.GetHeightAttr().Get(), 10.0)
+        self.assertEqual(coneFromStage.GetRadiusAttr().Get(), 3.0)
+    
 
 def run_tests():
     return unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(unittest.TestLoader().loadTestsFromTestCase(TestStageGeneral))

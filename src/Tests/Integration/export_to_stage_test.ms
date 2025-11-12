@@ -822,6 +822,126 @@ struct export_to_stage
         max redo
         assert_true ((stage1.GetPrimAtPath("/root/boxA")).IsValid())
     ),
+    
+    function test_default_prim_token = (
+        box1 = box()
+        box1.name = "box1"                
+        stageObject = USDStageObject()
+        
+        local stageCache = pyUsdUtils.StageCache.Get()
+        local stage = stageCache.Find(pyUsd.StageCache.Id.FromLongInt(stageObject.cacheId))
+        
+        pyUsdGeom.SetStageUpAxis stage pyUsdGeom.Tokens.z
+        fooPrim = stage.DefinePrim "/foo" "Xform"
+        
+        opts = USDExporter.CreateOptions()
+
+        -- Use the token, but there is no current default prim.
+        -- Should fallback to option defaults (/root)
+        opts.RootPrimPath = "DEFAULT_PRIM"
+            
+        UsdExporter.ExportToStage stageObject exportOptions:opts contentSource:#nodeList nodeList:#(box1)
+        assert_true ((stage.GetPrimAtPath("/root/box1")).IsValid())
+
+        stage.SetDefaultPrim fooPrim
+            
+        box2 = box()
+        box2.name = "box2"
+            
+        UsdExporter.ExportToStage stageObject exportOptions:opts contentSource:#nodeList nodeList:#(box2)
+        assert_true ((stage.GetPrimAtPath("/foo/box2")).IsValid())
+
+        barPrim = stage.DefinePrim "/bar" "Xform"    
+        
+        box3 = box()
+        box3.name = "box3"
+        
+        stage.SetDefaultPrim barPrim
+        
+        UsdExporter.ExportToStage stageObject exportOptions:opts contentSource:#nodeList nodeList:#(box3)
+        assert_true ((stage.GetPrimAtPath("/bar/box3")).IsValid())
+                
+        box4 = box()
+        box4.name = "box4"
+        opts.RootPrimPath = "DEFAULT_PRIM/some/child"
+            
+        UsdExporter.ExportToStage stageObject exportOptions:opts contentSource:#nodeList nodeList:#(box4)
+        assert_true ((stage.GetPrimAtPath("/bar/some/child/box4")).IsValid())
+    ),
+    
+    function test_export_only_materials_to_stage = (
+        local box001 = Box pos:[0,0,0] name:"box001"
+        local physicalMtl = Physical_Material name:"test_only_mtl"
+        local nonExportedMtl = Physical_Material name:"nonExportedMtl"
+        
+        box001.material = physicalMtl
+        
+        local stageObject1 = USDStageObject()
+        stageObject1.SetRootLayer emptyLayer
+    
+        local stageCache = pyUsdUtils.StageCache.Get()
+        local stage1 = stageCache.Find(pyUsd.StageCache.Id.FromLongInt(stageObject1.cacheId))
+        stage1.Reload()
+        
+        local opts = USDExporter.CreateOptions()
+        opts.Materials = true
+        local mList = #(physicalMtl)
+        
+        UsdExporter.ExportToStage stageObject1 exportOptions:opts contentSource:#materialList materialList:mList
+        
+        -- Validate that material exists
+        local mtlPrim = stage1.GetPrimAtPath("/root/mtl/test_only_mtl")
+        assert_true (mtlPrim.IsValid())
+        
+        -- Validate that geometry does not exist  
+        local boxPrim = stage1.GetPrimAtPath("/root/box001")
+        assert_false (boxPrim.IsValid())
+
+        -- Validate that the material that was not part of the list was not exported
+        local invalidMtl = stage1.GetPrimAtPath("/root/mtl/nonExportedMtl")
+        assert_false (invalidMtl.IsValid())
+    ),
+    
+    function test_export_node_and_materials_to_stage = (
+        local box001 = Box pos:[0,0,0] name:"box001"
+        local physicalMtl = Physical_Material name:"assigned_material"
+        local nonAssignedMat = Physical_Material name:"nonAssigned_material"
+        box001.material = physicalMtl
+        local nonExportedBox = Box pos:[10,10,10] name:"nonExportedBox"
+        local nonExportedMtl = Physical_Material name:"nonExportedMtl"
+        local mtlList = #(nonAssignedMat)
+        local nList = #(box001)
+        
+        local stageObject1 = USDStageObject()
+        stageObject1.SetRootLayer emptyLayer
+    
+        local stageCache = pyUsdUtils.StageCache.Get()
+        local stage1 = stageCache.Find(pyUsd.StageCache.Id.FromLongInt(stageObject1.cacheId))
+        stage1.Reload()
+        
+        local opts = USDExporter.CreateOptions()
+        opts.Materials = true
+        
+        UsdExporter.ExportToStage stageObject1 exportOptions:opts contentSource:#nodeAndMaterialList nodeList:nList materialList:mtlList
+        
+        -- Validate that mesh geometry exists
+        local boxPrim = stage1.GetPrimAtPath("/root/box001")
+        assert_true (boxPrim.IsValid())
+        
+        -- Validate that material bound to the box is exported
+        local assignedMtlPrim = stage1.GetPrimAtPath("/root/mtl/assigned_material")
+        assert_true (assignedMtlPrim.IsValid())
+        
+        -- Validate that the non assigned material is exported
+        local mtlPrim = stage1.GetPrimAtPath("/root/mtl/nonAssigned_material")
+        assert_true (mtlPrim.IsValid())
+
+        -- Validate that non-list members are not exported
+        local invalidPrim = stage1.GetPrimAtPath("/root/nonExportedBox")
+        assert_false (invalidPrim.IsValid())
+        local invalidMtl = stage1.GetPrimAtPath("/root/mtl/nonExportedMtl")
+        assert_false (invalidMtl.IsValid())
+    ),
         
     function teardown = (
         units.SystemType = initialUnits
@@ -845,7 +965,10 @@ struct export_to_stage
         test_update_time_metadata,
         test_worldspace_roots,
         test_logging,
-        test_undo_redo)
+        test_undo_redo,
+        test_default_prim_token,
+        test_export_only_materials_to_stage,
+        test_export_node_and_materials_to_stage)
 )
 
 runUsdTestFixture export_to_stage (getThisScriptFilename())

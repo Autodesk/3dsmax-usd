@@ -293,10 +293,23 @@ TF_REGISTRY_FUNCTION(TfEnum)
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::TimeMode::ExplicitFrame);
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::TimeMode::FrameRange);
 
+#ifdef USD_CURVES_SUPPORTED
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples);
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::Curves);
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::Both);
+#endif
+
+    TF_ADD_ENUM_NAME(MaxUsd::TransformFormat::SplitComponents);
+    TF_ADD_ENUM_NAME(MaxUsd::TransformFormat::SingleMatrix);
+
 #ifdef IS_MAX2024_OR_GREATER
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::MtlSwitcherExportStyle::AsVariantSets);
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::MtlSwitcherExportStyle::ActiveMaterialOnly);
 #endif
+
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Baked);
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Original);
+    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Both);
 }
 
 void wrapUsdSceneBuilderOptions()
@@ -310,9 +323,14 @@ void wrapUsdSceneBuilderOptions()
     TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::UpAxis>("UpAxis");
     TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::FileFormat>("FileFormat");
     TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::TimeMode>("TimeMode");
+#ifdef USD_CURVES_SUPPORTED
+    TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::AnimationType>("AnimationType");
+#endif
+    TfPyWrapEnum<MaxUsd::TransformFormat>("TransformFormat");
 #ifdef IS_MAX2024_OR_GREATER
     TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::MtlSwitcherExportStyle>("MtlSwitcherExportStyle");
 #endif
+    TfPyWrapEnum<MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle>("ShellMtlExportStyle");
     TfPyWrapEnum<MaxUsd::Log::Level>("LogLevel");
 
     class_<USDSceneBuilderOptionsWrapper> c(
@@ -422,6 +440,36 @@ void wrapUsdSceneBuilderOptions()
             &MaxUsd::USDSceneBuilderOptions::SetTranslateSkin,
             (pyboost::args("self", "translateSkin")),
             "Sets whether skin and skeletons should be translated.")
+        .def(
+            "GetIncludeAllBones",
+            &MaxUsd::USDSceneBuilderOptions::GetIncludeAllBones,
+            (pyboost::arg("self")),
+            "Check if all bones should be included in the export.")
+        .def(
+            "SetIncludeAllBones",
+            &MaxUsd::USDSceneBuilderOptions::SetIncludeAllBones,
+            (pyboost::args("self", "includeAllBones")),
+            "Sets whether all bones should be included in the export.")
+        .def(
+            "GetSimplifyBonePaths",
+            &MaxUsd::USDSceneBuilderOptions::GetSimplifyBonePaths,
+            (pyboost::arg("self")),
+            "Check if bone paths should be simplified.")
+        .def(
+            "SetSimplifyBonePaths",
+            &MaxUsd::USDSceneBuilderOptions::SetSimplifyBonePaths,
+            (pyboost::args("self", "simplifyBonePaths")),
+            "Sets whether bone paths should be simplified.")
+        .def(
+            "GetPreserveBoneMeshes",
+            &MaxUsd::USDSceneBuilderOptions::GetPreserveBoneMeshes,
+            (pyboost::arg("self")),
+            "Check if the bones hierarchy should be preserved as USD mesh prims.")
+        .def(
+            "SetPreserveBoneMeshes",
+            &MaxUsd::USDSceneBuilderOptions::SetPreserveBoneMeshes,
+            (pyboost::args("self", "preserveBoneMeshes")),
+            "Sets whether the bones hierarchy should be preserved as USD mesh prims.")
         .def(
             "GetTranslateMorpher",
             &MaxUsd::USDSceneBuilderOptions::GetTranslateMorpher,
@@ -715,6 +763,18 @@ void wrapUsdSceneBuilderOptions()
             "(maxUsd.MtlSwitcherExportStyle).")
 #endif
         .def(
+            "GetShellMtlExportStyle",
+            &MaxUsd::USDSceneBuilderOptions::GetShellMtlExportStyle,
+            (pyboost::arg("self")),
+            "Gets the Shell Material export style to be used for export "
+            "(maxUsd.ShellMtlExportStyle).")
+        .def(
+            "SetShellMtlExportStyle",
+            &MaxUsd::USDSceneBuilderOptions::SetShellMtlExportStyle,
+            (pyboost::args("self", "exportStyle")),
+            "Sets the Shell Material export style to be used for export "
+            "(maxUsd.ShellMtlExportStyle).")
+        .def(
             "GetUseProgressBar",
             &MaxUsd::USDSceneBuilderOptions::GetUseProgressBar,
             (pyboost::arg("self")),
@@ -827,5 +887,28 @@ void wrapUsdSceneBuilderOptions()
             (pyboost::args("self", "useWorldspaceRoot")),
             "Exports the root prims with their worldspace transform instead of local transform. "
             "This feature is useful for exporting specific parts without needing to export the "
-            "entire hierarchy.");
+            "entire hierarchy.")
+        .def(
+            "GetTransformFormat",
+            &MaxUsd::USDSceneBuilderOptions::GetTransformFormat,
+            (pyboost::arg("self")),
+            "Gets the export transform format options.")
+        .def(
+            "SetTransformFormat",
+            &MaxUsd::USDSceneBuilderOptions::SetTransformFormat,
+            (pyboost::args("self", "newTransformFormat")),
+            "Sets the export transform format options.")
+#ifdef USD_CURVES_SUPPORTED
+        .def(
+            "GetAnimationType",
+            &MaxUsd::USDSceneBuilderOptions::GetAnimationType,
+            (pyboost::arg("self")),
+            "Gets the export animation type options.")
+        .def(
+            "SetAnimationType",
+            &MaxUsd::USDSceneBuilderOptions::SetAnimationType,
+            (pyboost::args("self", "newAnimationType")),
+            "Sets the export animation type options (maxUsd.AnimationType).")
+#endif
+    ;
 }

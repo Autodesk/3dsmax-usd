@@ -35,6 +35,7 @@
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
     </Link>
     <ClCompile>
+      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
       <ForcedIncludeFiles>../silence_usd_warnings.h</ForcedIncludeFiles>
     </ClCompile>

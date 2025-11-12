@@ -31,6 +31,9 @@
 #include <pxr/usdImaging/usdImaging/delegate.h>
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImagingGL/renderParams.h>
+#if PXR_VERSION >= 2508
+#include <pxr/imaging/hdx/taskControllerSceneIndex.h>
+#endif
 
 #include <QtGui/QOffscreenSurface>
 #include <QtWidgets/QApplication>
@@ -428,7 +431,15 @@ bool USDPickingRenderer::MaxUsdImagingGLEngine::TestIntersection(
     const pxr::VtValue vtPickParams(pickParams);
 
     _GetHdEngine()->SetTaskContextData(pxr::HdxPickTokens->pickParams, vtPickParams);
+#if PXR_VERSION >= 2508
+    if (_taskControllerSceneIndex) {
+        _Execute(params, _taskControllerSceneIndex->GetPickingTaskPaths());
+    } else if (_taskController) {
+        _Execute(params, _taskController->GetPickingTaskPaths());
+    }
+#else 
     _Execute(params, _taskController->GetPickingTasks());
+#endif
 
     // Since we are in nearest-hit mode, we expect allHits to have
     // a single point in it.
@@ -522,7 +533,15 @@ bool USDPickingRenderer::MaxUsdImagingGLEngine::TestAreaIntersection(
     const pxr::VtValue vtPickParams(pickParams);
 
     _GetHdEngine()->SetTaskContextData(pxr::HdxPickTokens->pickParams, vtPickParams);
+#if PXR_VERSION >= 2508
+    if (_taskControllerSceneIndex) {
+        _Execute(params, _taskControllerSceneIndex->GetPickingTaskPaths());
+    } else if (_taskController) {
+        _Execute(params, _taskController->GetPickingTaskPaths());
+    }
+#else 
     _Execute(params, _taskController->GetPickingTasks());
+#endif
 
     if (outHits.empty()) {
         return false;

@@ -130,6 +130,12 @@ public:
     MaxUsd::PrimvarMappingOptions& GetPrimvarMappingOptions();
 
     /**
+     * \brief Set Primvar to 3dsMax map channel mapping options.
+     * \param mapping The primvar mappings to set.
+     */
+    void SetPrimvarMappingOptions(MaxUsd::PrimvarMappingOptions& mapping);
+
+    /**
      * \brief Returns the material collection held by the render delegate.
      */
     std::shared_ptr<HdMaxMaterialCollection> GetMaterialCollection();

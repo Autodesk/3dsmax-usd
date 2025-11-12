@@ -98,6 +98,7 @@
 #define IDS_PARAMS                                                   79
 #define IDS_USDSTAGEOBJECT_ROLLUP_TOOLS_TITLE                        80
 #define IDS_USDSTAGEOBJECT_ROLLUP_METADATA_TITLE                     81
+#define IDS_USDSTAGEOBJECT_ROLL_OUT_ANONROOTID                       82
 
 // Next default values for new objects
 //

@@ -21,6 +21,8 @@
 #include <Path.h>
 
 class QByteArray;
+class QFile;
+class QJsonObject;
 class pxr::VtDictionary;
 
 namespace MAXUSD_NS_DEF {
@@ -125,6 +127,22 @@ MaxUSDAPI void SaveImportOptions(const MaxSceneBuilderOptions& options);
  * @return A MaxSceneBuilderOptions object with the loaded options.
  */
 MaxUSDAPI MaxSceneBuilderOptions LoadImportOptions();
+
+/**
+ * \brief Read a json string from a file and parse it into a QJsonObject.
+ * \param json The QJsonObject to populate with the parsed json data.
+ * \param file The file to read the json string from.
+ * \param path The path to the file to read
+ */
+MaxUSDAPI bool ReadJsonFile(QJsonObject& json, QFile& file, const WStr& path);
+
+/**
+ * \brief Write a json string to a file.
+ * \param file The file to write the json string to.
+ * \param jsonString The json string to write to the file.
+ * \param path The path to the file to write.
+ */
+MaxUSDAPI void WriteJsonFile(QFile& file, const std::string& jsonString, const WStr& path);
 
 } // namespace OptionUtils
 } // namespace MAXUSD_NS_DEF

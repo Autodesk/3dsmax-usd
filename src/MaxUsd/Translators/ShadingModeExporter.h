@@ -38,9 +38,17 @@ public:
     MaxUSDAPI MaxUsdShadingModeExporter();
     MaxUSDAPI virtual ~MaxUsdShadingModeExporter();
 
+    /**
+     * \brief Exports 3ds Max materials and their bindings to a USD stage. Exports unique materials that are found in primsToMaterialBind and materialsToExport.
+     * \param writeJobContexts The context containing information about the current USD export job.
+     * \param primsToMaterialBind A set of USD prim paths that are associated with material bindings.
+     * \param materialsToExport A set of 3ds Max materials to export.
+     * \param progress Progress bar interface for reporting export progress to the user.
+     */
     MaxUSDAPI void DoExport(
         MaxUsdWriteJobContext&                                  writeJobContexts,
         const pxr::TfHashSet<pxr::SdfPath, pxr::SdfPath::Hash>& primsToMaterialBind,
+        const std::vector<Mtl*>&                                materialsToExport,
         MaxUsd::MaxProgressBar&                                 progress);
 
     /// Called once, before any exports are started.

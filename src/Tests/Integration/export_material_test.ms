@@ -1552,6 +1552,120 @@ struct export_material_test
         assert_true (matPrim.IsValid())
     ),    
     
+    -- This test validates that materials are exported while both Meshes and Shapes options are false.
+    function test_export_only_materials = (
+        local box001 = Box pos:[0,0,0] name:"box001"
+        local physicalMtl = Physical_Material name:"test_only_mtl"
+        
+        box001.material = physicalMtl
+        
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Materials = true
+        mList = #(physicalMtl)
+        local exportPath = output_prefix + "export_only_materials.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#materialList materialList:mList
+        
+        local stage = pyUsd.Stage.Open(exportPath)
+        
+        -- Validate that material exists
+        local mtlPrim = stage.GetPrimAtPath("/mtl/test_only_mtl")
+        assert_true (mtlPrim.IsValid())
+        assert_true (mtlPrim.IsA(pyShade.Material))
+        
+        -- Validate that geometry does not exist  
+        local boxPrim = stage.GetPrimAtPath("/box001")
+        assert_false (boxPrim.IsValid())
+    ),
+    
+    -- This test validate that we're not exporting scene materials when shapes (or meshes) are exported.
+    function test_export_node_and_materials = (
+        local box001 = Box pos:[0,0,0] name:"box001"
+        local physicalMtl = Physical_Material name:"assigned_material"
+        local nonAssignedMat = Physical_Material name:"nonAssigned_material"
+        box001.material = physicalMtl
+        mtlList = #(nonAssignedMat)
+		nList = #(box001)
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Materials = true
+        
+        local exportPath = output_prefix + "test_export_only_materials.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#nodeAndMaterialList nodeList:nList materialList:mtlList
+        
+        local stage = pyUsd.Stage.Open(exportPath)
+        
+        -- Validate that mesh geometry doesn't exists
+        local boxPrim = stage.GetPrimAtPath("/box001")
+        assert_true (boxPrim.IsValid())
+        
+        -- Validate that material bound to the box is exported
+        local assignedMtlPrim = stage.GetPrimAtPath("/mtl/assigned_material")
+        assert_true (assignedMtlPrim.IsValid())
+        
+        -- Validate that the non assigned material is exported
+        local mtlPrim = stage.GetPrimAtPath("/mtl/nonAssigned_material")
+        assert_true (mtlPrim.IsValid())
+    ),
+    
+    -- This test validates that only materials are exported when exporting a multi-material.
+    -- It should export the submaterials but not the multimaterial container itself.
+    function test_export_only_multiMat = (
+        -- Create a multimaterial with 2 submaterials
+        local multiMtl = multimaterial numsubs:2
+        local subMat1 = Physical_Material name:"sub_material_1"
+        subMat1.base_color = (color 255 0 0)  -- Red
+        local subMat2 = Physical_Material name:"sub_material_2"
+        subMat2.base_color = (color 0 255 0)  -- Green
+        
+        multiMtl.materialList[1] = subMat1
+        multiMtl.materialList[2] = subMat2
+        multiMtl.name = "multi_material"
+        
+        -- Create another regular material
+        local regularMtl = Physical_Material name:"regular_material"
+        regularMtl.base_color = (color 0 0 255)  -- Blue
+        
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Materials = true
+        
+        -- Export only the materials (multimaterial and regular material)
+        mList = #(multiMtl, regularMtl)
+        local exportPath = output_prefix + "export_only_multiMat.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#materialList materialList:mList
+        
+        local stage = pyUsd.Stage.Open(exportPath)
+        
+        -- Validate that the first submaterial exists
+        local subMat1Prim = stage.GetPrimAtPath("/mtl/sub_material_1")
+        assert_true (subMat1Prim.IsValid())
+        assert_true (subMat1Prim.IsA(pyShade.Material))
+        
+        -- Validate that the second submaterial exists
+        local subMat2Prim = stage.GetPrimAtPath("/mtl/sub_material_2")
+        assert_true (subMat2Prim.IsValid())
+        assert_true (subMat2Prim.IsA(pyShade.Material))
+        
+        -- Validate that the regular material exists
+        local regularMtlPrim = stage.GetPrimAtPath("/mtl/regular_material")
+        assert_true (regularMtlPrim.IsValid())
+        assert_true (regularMtlPrim.IsA(pyShade.Material))
+        
+        -- Validate that the multimaterial container itself is NOT exported
+        local multiMtlPrim = stage.GetPrimAtPath("/mtl/multi_material")
+        assert_false (multiMtlPrim.IsValid())
+        
+        -- Additional validation: check that we have exactly 3 materials exported (2 subs + 1 regular)
+        local mtlScope = stage.GetPrimAtPath("/mtl")
+        assert_true (mtlScope.IsValid())
+        local children = mtlScope.GetAllChildren()
+        assert_equal 3 (children.Count)
+    ),
+    
     function teardown = (
         pyUsdMaterialWriter._material_export_options["relative_texture_paths"] = true
     ),
@@ -1588,7 +1702,10 @@ struct export_material_test
         test_export_material_custom_scope,
         test_export_material_scope_path,
         test_export_material_no_scope,
-        test_absolute_material_path
+        test_absolute_material_path,
+        test_export_only_materials,
+        test_export_only_multiMat,
+        test_export_node_and_materials
     )
 )
 

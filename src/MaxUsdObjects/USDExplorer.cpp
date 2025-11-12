@@ -390,8 +390,6 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
             treeViewBranchAdjustStyle,
             colors);
 
-        const std::string stageLabel = MaxUsd::Ui::GetStageLabel(stage);
-
         explorer->setColumnState(1 /*VisColumn*/, IsColumnHidden(1));
         explorer->setColumnState(2 /*TypeColumn*/, IsColumnHidden(2));
         explorer->setColumnState(3 /*KindColumn*/, IsColumnHidden(3));
@@ -406,7 +404,7 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
             }
         }
 
-        host->addExplorer(explorer, stageLabel.c_str(), true);
+        host->addExplorer(explorer, MaxUsd::Ui::GetStageLabel(stage).c_str(), true);
 
         explorer->treeView()->installEventFilter(ContextMenuEventFilter::Instance());
 

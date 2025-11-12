@@ -33,10 +33,12 @@
 #include <pxr/usd/pcp/mapFunction.h>
 #pragma warning(pop)
 
+#if PXR_VERSION <= 2411
 #pragma warning(push)
 #pragma warning(disable : 4267)
 #include <pxr/usd/ndr/property.h>
 #pragma warning(pop)
+#endif
 
 #pragma warning(push)
 #pragma warning(disable : 4251)

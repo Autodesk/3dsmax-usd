@@ -147,7 +147,11 @@ private:
                 Shiboken::AutoDecRef requiredModule(Shiboken::Module::import("PySide2.QtWidgets"));
 #endif
                 if (!requiredModule.isNull()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+                    SbkPySide_QtWidgetsTypes = &Shiboken::Module::getTypes(requiredModule)->type;
+#else
                     SbkPySide_QtWidgetsTypes = Shiboken::Module::getTypes(requiredModule);
+#endif
                     SbkPySide_QtWidgetsTypeConverters
                         = Shiboken::Module::getTypeConverters(requiredModule);
                 }
@@ -155,8 +159,11 @@ private:
             if (SbkPySide_QtWidgetsTypes) {
                 // Convert the QWidget pointer to a Python object
 #ifdef USE_PYSIDE_6
+#pragma warning(push)
+#pragma warning(disable : 4996)
                 pyQtWidget = Shiboken::Conversions::pointerToPython(
                     SbkPySide_QtWidgetsTypes[SBK_QWIDGET_IDX], parentUI);
+#pragma warning(pop)
 #else
                 pyQtWidget = Shiboken::Conversions::pointerToPython(
                     reinterpret_cast<SbkObjectType*>(SbkPySide_QtWidgetsTypes[SBK_QWIDGET_IDX]),

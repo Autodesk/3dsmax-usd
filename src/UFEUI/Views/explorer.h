@@ -241,8 +241,11 @@ protected:
     /**
      * \brief Completely rebuild the subtree below the given item.
      * \param item The root of the subtree to rebuild.
+     * \param pathChange Optional path mapping for an item who's path has changed.
+     * This is to be able to recover the correct tree expand state when an item is renamed.
      */
-    void rebuildSubtree(const TreeItem* item);
+    void
+    rebuildSubtree(const TreeItem* item, const std::pair<Ufe::Path, Ufe::Path>& pathChange = {});
 
     /**
      * \brief React to a context menu being requested at the given point.

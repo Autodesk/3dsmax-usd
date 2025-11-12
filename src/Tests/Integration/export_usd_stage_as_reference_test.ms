@@ -118,10 +118,12 @@ struct export_usd_stage_as_reference_test
         
         local exporterLayerStage = pyUsd.Stage.Open exportPath
         
-        -- A prim is created for the Stage object, but it didnt reference anything.
-        local stageObject = exporterLayerStage.GetPrimAtPath (exportOptions.RootPrimPath + "/" + stage.name)
-        assert_true (stageObject.IsValid())            
-        assert_equal 0 ((stageObject.GetChildren()).Count)
+        -- A prim is not created for the invalid layer in the Stage object:
+        -- The root layer was invalid, so it was not loaded. At export time, there is an anynoymous root
+        -- layer, which we do not export.
+        local primAtRootPrimPath = exporterLayerStage.GetPrimAtPath (exportOptions.RootPrimPath)
+        assert_true (primAtRootPrimPath.IsValid())            
+        assert_equal 0 ((primAtRootPrimPath.GetChildren()).Count)
     ),
     
     -- Test that a USD Stage Object with a layer that has no suitable prims for referencing is not exported as a reference.

@@ -22,6 +22,7 @@
 
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/ufe/UsdSceneItem.h>
+#include <usdUfe/ufe/UsdUndoDeleteCommand.h>
 
 #include <ufe/globalSelection.h>
 #include <ufe/observableSelection.h>
@@ -62,15 +63,37 @@ static constexpr char AddPrimFrom3dsMaxOptionsLabel[] = "Options...";
 static constexpr char PromoteTo3dsMaxObjectItem[] = "Promote to 3ds Max Object";
 static constexpr char PromoteTo3dsMaxObjectLabel[] = "Promote to 3ds Max Object";
 
+static constexpr char RemovePrimItem[] = "Remove Prim";
+static constexpr char RemovePrimLabel[] = "Remove Prim";
+
 MaxUsdContextOps::MaxUsdContextOps(const UsdUfe::UsdSceneItem::Ptr& item)
     : UsdUfe::UsdContextOps(item)
 {
+    // If the item we are opening the context-menu for has no
+    // segments/GUID as part of its path, remove all bulk item
+    // since we don't know which stage we are in and which item
+    // we should process for any subsequent action
+    if (item->path().nbSegments() == 0) {
+        _bulkItems.clear();
+        _bulkType.clear();
+        return;
+    }
+
+    auto itemGUID = item->path().getSegments()[0];
     // Adjust bulk items for 3dsMax. Only support bulk editing on the same stage.
     for (const auto& bulkItem : _bulkItems) {
-        if (bulkItem->path().popSegment() == item->path().popSegment()) {
+        // If the bulk item has no segments/GUID for whatever reason
+        // remove it from the list
+        if (bulkItem->path().nbSegments() == 0) {
+            _bulkItems.remove(bulkItem);
             continue;
         }
-        _bulkItems.remove(bulkItem);
+
+        auto bulkItemGUID = bulkItem->path().getSegments()[0];
+        if (bulkItemGUID == itemGUID)
+            continue; // same stage -> keep in items
+
+        _bulkItems.remove(bulkItem); // diff stage -> remove it!
     }
     // Clear bulk items if we under up with just one, not a bulk edit anymore.
     if (_bulkItems.size() == 1) {
@@ -90,25 +113,12 @@ MaxUsdContextOps::Ptr MaxUsdContextOps::create(const UsdUfe::UsdSceneItem::Ptr& 
 Ufe::ContextOps::Items MaxUsdContextOps::getItems(const ItemPath& itemPath) const
 {
     if (isBulkEdit()) {
-        return getBulkItems(itemPath);
+        auto bulkItems = getBulkItems(itemPath);
+        bulkItems.push_back({ RemovePrimItem, RemovePrimLabel });
+        return bulkItems;
     }
 
     auto items = UsdContextOps::getItems(itemPath);
-
-    // Temporarily remove the context ops related to the default prim. Indeed, setting
-    // and clearing the default prim can only happen on the root layer, but we currently
-    // always target the session layer.
-    auto removeOp = [&items](const std::string& name) {
-        const auto it
-            = std::find_if(items.begin(), items.end(), [&name](const Ufe::ContextItem& ci) {
-                  return ci.item == name;
-              });
-        if (it != items.end()) {
-            items.erase(it);
-        }
-    };
-    removeOp(USDSetAsDefaultPrim);
-    removeOp(USDClearDefaultPrim);
 
     // only add copy prim path to the root menu context option
     if (itemPath.empty()) {
@@ -118,6 +128,8 @@ Ufe::ContextOps::Items MaxUsdContextOps::getItems(const ItemPath& itemPath) cons
         if (prim().IsA<pxr::UsdGeomImageable>()) {
             items.insert(items.begin(), { PromoteTo3dsMaxObjectItem, PromoteTo3dsMaxObjectLabel });
         }
+
+        items.push_back({ RemovePrimItem, RemovePrimLabel });
     }
     // Submenus (depth = 1)
     else if (itemPath.size() == 1) {
@@ -168,6 +180,10 @@ Ufe::UndoableCommand::Ptr MaxUsdContextOps::doOpCmd(const ItemPath& itemPath)
         const auto imageable = pxr::UsdGeomImageable(prim());
         const auto current = imageable.ComputeVisibility() != pxr::UsdGeomTokens->invisible;
         return object3d->makeVisibleCmd(!current);
+    }
+
+    if (itemPath[0] == RemovePrimItem && !isBulkEdit()) {
+        return UsdUfe::UsdUndoDeleteCommand::create(prim());
     }
 
     // Submenus
@@ -238,6 +254,20 @@ Ufe::UndoableCommand::Ptr MaxUsdContextOps::doOpCmd(const ItemPath& itemPath)
         return cmd;
     }
     return nullptr;
+}
+
+Ufe::UndoableCommand::Ptr MaxUsdContextOps::doBulkOpCmd(const ItemPath& itemPath)
+{
+    if (itemPath[0] == RemovePrimItem) {
+        std::list<Ufe::CompositeUndoableCommand::Ptr> cmdList;
+        for (auto& selItem : _bulkItems) {
+            const UsdUfe::UsdSceneItem::Ptr usdItem
+                = std::dynamic_pointer_cast<UsdUfe::UsdSceneItem>(selItem);
+            cmdList.push_back(UsdUfe::UsdUndoDeleteCommand::create(usdItem->prim()));
+        }
+        return std::make_shared<Ufe::CompositeUndoableCommand>(cmdList);
+    }
+    return UsdContextOps::doBulkOpCmd(itemPath);
 }
 
 } // namespace ufe

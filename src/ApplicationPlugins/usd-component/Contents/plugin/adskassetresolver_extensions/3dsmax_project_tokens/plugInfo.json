@@ -1,0 +1,11 @@
+{
+   "Plugins": [
+      {
+         "Info": {
+            "AssetResolverExtension": { }
+         },
+         "Name": "ar_project_tokens",
+         "Type": "python"
+      }
+   ]
+}

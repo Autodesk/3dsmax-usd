@@ -66,10 +66,12 @@ struct import_options_test
         assert_equal importOptions.ImportUnmappedPrimvars true message:"The ImportUnmappedPrimvars property was not properly initialized."
         assert_true (importOptions.Materials()) message:"The Materials property was not properly initialized to true (default)"
         assert_equal "none" importOptions.PreferredMaterial message:"The PreferredMaterial property was not properly initialized."
-        assert_equal 1 importOptions.ShadingModes.count message:"The ShadingModes property was not properly initialized."
+        assert_equal 2 importOptions.ShadingModes.count message:"The ShadingModes property was not properly initialized."
+        assert_equal "useRegistry" importOptions.ShadingModes[2][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
+        assert_equal "UsdPreviewSurface" importOptions.ShadingModes[2][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
         assert_equal "useRegistry" importOptions.ShadingModes[1][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
-        assert_equal "UsdPreviewSurface" importOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
-
+        assert_equal "MaterialXReference" importOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
+        
         -- Set them all to non-default values
         importOptions.StageMask = #("/foo")
         importOptions.StartTimeCode = 10.0
@@ -128,9 +130,11 @@ struct import_options_test
         assert_true uiImportOptions.ImportUnmappedPrimvars message:"The ImportUnmappedPrimvars property was not properly reset."
         assert_true (uiImportOptions.Materials()) message:"The Materials property was not properly reset"
         assert_equal "none" uiImportOptions.PreferredMaterial message:"The PreferredMaterial property was not properly reset."
-        assert_equal 1 uiImportOptions.ShadingModes.count message:"The ShadingModes property was not properly reset."
-        assert_equal "useRegistry" uiImportOptions.ShadingModes[1][1] message:"The ShadingModes property was not properly reseted with expected 'mode'."
-        assert_equal "UsdPreviewSurface" uiImportOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly reseted with expected 'materialConversion'."
+        assert_equal 2 uiImportOptions.ShadingModes.count message:"The ShadingModes property was not properly reset."
+        assert_equal "useRegistry" uiImportOptions.ShadingModes[2][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
+        assert_equal "UsdPreviewSurface" uiImportOptions.ShadingModes[2][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
+        assert_equal "useRegistry" uiImportOptions.ShadingModes[1][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
+        assert_equal "MaterialXReference" uiImportOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
     ),
 
     function test_stage_mask_option = (

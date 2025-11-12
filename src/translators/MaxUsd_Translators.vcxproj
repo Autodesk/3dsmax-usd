@@ -20,10 +20,13 @@
     <ClInclude Include="maxusdtranslators_pch.h" />
     <ClInclude Include="MeshWriter.h" />
     <ClInclude Include="MtlSwitcherWriter.h" />
+    <ClInclude Include="MultiMaterialUtils.h" />
+    <ClInclude Include="ShellMtlWriter.h" />
     <ClInclude Include="PhotometricLightWriter.h" />
     <ClInclude Include="ShapeWriter.h" />
     <ClInclude Include="SkeletonWriter.h" />
     <ClInclude Include="SkinMorpherWriter.h" />
+    <ClInclude Include="SplineUtils.h" />
     <ClInclude Include="StageWriter.h" />
     <ClInclude Include="SunPositionerWriter.h" />
   </ItemGroup>
@@ -40,6 +43,8 @@
     <ClCompile Include="MeshReader.cpp" />
     <ClCompile Include="MeshWriter.cpp" />
     <ClCompile Include="MtlSwitcherWriter.cpp" />
+    <ClCompile Include="MultiMaterialUtils.cpp" />
+    <ClCompile Include="ShellMtlWriter.cpp" />
     <ClCompile Include="MtlxShaderWriter.cpp" />
     <ClCompile Include="NurbsCurvesReader.cpp" />
     <ClCompile Include="PhotometricLightWriter.cpp" />

@@ -75,6 +75,49 @@ def addUsdBinariesToWindowsPath():
 		sysPath = usdLibPath + ";" + sysPath
 	os.environ["PATH"] = sysPath
 
+def add3dsMaxInstallDirsToPath():
+	"""Attempt to prepend the 3ds Max installation root and its bin folder to PATH.
+
+	We infer the install root from the python executable path when the wrapper is
+	launched via RunUsdTool.ps1 (which points to Max's bundled python). Typical layout:
+	  <InstallDir>\\Python\\python.exe
+	Add both <InstallDir> and <InstallDir>\\bin if they exist and are not already in PATH.
+	Also call os.add_dll_directory for these locations (Python >=3.8) so current process
+	DLL loads succeed even before spawning child processes.
+	"""
+	try:
+		pyExe = os.path.abspath(sys.executable)
+		# Go up one level (../) to get the Python folder, then parent for install root
+		pyDir = os.path.dirname(pyExe)
+		installRoot = os.path.dirname(pyDir)
+		candidateDirs = []
+		if os.path.isdir(installRoot):
+			candidateDirs.append(installRoot)
+			binDir = os.path.join(installRoot, 'bin')
+			if os.path.isdir(binDir):
+				candidateDirs.append(binDir)
+
+		# Some distributions also place essential DLLs directly alongside python.exe
+		candidateDirs.append(pyDir)
+		# Prepend in reverse order so final PATH has installRoot first
+		currentPath = os.environ.get('PATH', '')
+		pathParts = currentPath.split(os.pathsep) if currentPath else []
+		prepend = []
+		for d in candidateDirs:
+			if d and d not in pathParts:
+				prepend.append(d)
+		if prepend:
+			os.environ['PATH'] = os.pathsep.join(prepend) + os.pathsep + currentPath
+			# Add DLL directories for current process (won't propagate to child, PATH already handles that)
+			if hasattr(os, 'add_dll_directory'):
+				for d in prepend:
+					try:
+						os.add_dll_directory(d)
+					except Exception:
+						pass
+	except Exception as e:
+		pass
+
 def addMtlxLibToPath():
 	usdMtlXLibPath = getMtlxLibPath()
 	from pxr import Usd
@@ -91,13 +134,16 @@ def addMtlxLibToPath():
 
 def validateUsdViewRequirements():
 	status = True
-	if sys.version_info.major == 3 and sys.version_info.minor == 11:
+	if sys.version_info.major == 3 and sys.version_info.minor >= 11:
 		try:
 			import PySide6
 		except ImportError:
+			pysideVersion = "6.5.3"
+			if sys.version_info.major == 3 and sys.version_info.minor == 13:
+				pysideVersion = "6.8.3"
 			print("WARN: PySide6 is not installed, USDView will not work. You can install pip and PySide6 with the scripts below:")
 			print('"{}" -m ensurepip --upgrade --user'.format(sys.executable))
-			print('"{}" -m pip install --user PySide6==6.5.3'.format(sys.executable))
+			print('"{}" -m pip install --user PySide6=={}'.format(sys.executable, pysideVersion))
 			status = False
 	else:
 		try:
@@ -125,6 +171,9 @@ if __name__ == "__main__":
 		print("ERROR: Incorrect arguments set, first argument should be name of usd tool such as `usdcat`")
 		exit()
 
+	# also attempt to add 3ds Max install directories to PATH (root, bin, python dir)
+	add3dsMaxInstallDirsToPath()
+
 	# make sure usd python bindings path is in `sys.path`
 	addUsdPythonBindingsToPythonPath()
 	addUsdToolPythonBindingsToPythonPath()
@@ -148,6 +197,27 @@ if __name__ == "__main__":
 	newArgs = sys.argv[1: len(sys.argv)]
 	sys.argv = newArgs
 
+	# Try same path with .exe appended (covers case where caller passed 'UsdChecker')
+	exePath = None
+	if os.path.exists(cmd + '.exe'):
+		exePath = cmd + '.exe'
+
+		# Usd checker has changed to require a new arg to enable the new validation framework
+		if cmd.lower() == "usdchecker":
+			newArgs.append("--useNewValidationFramework")
+
+	# If an .exe version of the tool exists (newer OpenUSD releases converted some python tools to native exes)
+	if exePath:
+		import subprocess
+		# Run the native executable; pass only the arguments after the tool name.
+		toolArgs = newArgs[1:]
+		try:
+			completed = subprocess.run([exePath] + toolArgs, check=True)
+			sys.exit(completed.returncode)
+		except Exception as e:
+			sys.exit(e.returncode)
+
+	# The command is not a native exe, so we assume it's a python script and try to run it via runpy.
 	filename = cmd
 	if not os.path.exists(filename):
 		filename = "./bin/" + cmd
@@ -155,7 +225,9 @@ if __name__ == "__main__":
 	import runpy
 	try:
 		runpy.run_path(filename, run_name='__main__')
+		sys.exit(0)
 	except ImportError:
 		print("The 'PATH' environment variable contains a conflicting path with the 3ds Max USD component binaries.\nReversing the 'PATH' order and trying a second time to launch '{0}'.".format(filename))
 		os.environ["PATH"] = ';'.join(reversed(os.getenv('PATH', '').split(os.pathsep)))
 		runpy.run_path(filename, run_name='__main__')
+		sys.exit(0)

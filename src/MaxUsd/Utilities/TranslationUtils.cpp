@@ -77,7 +77,8 @@ Matrix3 GetMaxObjectOffsetTransform(INode* node)
 void ApplyObjectOffsetTransform(
     INode*                 node,
     pxr::UsdGeomXformable& xformable,
-    const TimeValue&       time)
+    const TimeValue&       time,
+    TransformFormat        transformFormat)
 {
     // If a WSM is applied, the offset is already considered for the geometry's points,
     // which are now in world space.
@@ -86,14 +87,47 @@ void ApplyObjectOffsetTransform(
     }
     const auto objectTransform = MaxUsd::GetMaxObjectOffsetTransform(node);
     if (!MaxUsd::MathUtils::IsIdentity(objectTransform)) {
-        bool                resetsXformStack = false;
-        pxr::UsdGeomXformOp usdGeomXFormOp;
-        size_t              nbOfOps = xformable.GetOrderedXformOps(&resetsXformStack).size();
-        usdGeomXFormOp = xformable.AddXformOp(
-            pxr::UsdGeomXformOp::TypeTransform,
-            pxr::UsdGeomXformOp::PrecisionDouble,
-            nbOfOps > 0 ? pxr::TfToken("t" + std::to_string(nbOfOps)) : pxr::TfToken());
-        usdGeomXFormOp.Set(MaxUsd::ToUsd(objectTransform));
+        bool       resetsXformStack = false;
+        size_t     nbOfOps = xformable.GetOrderedXformOps(&resetsXformStack).size();
+        const auto usdTransform = MaxUsd::ToUsd(objectTransform);
+
+        if (transformFormat == TransformFormat::SingleMatrix) {
+            pxr::UsdGeomXformOp usdGeomXFormOp;
+            SetXForm(
+                usdTransform,
+                xformable,
+                usdGeomXFormOp,
+                UsdGeomXformOp::TypeTransform,
+                UsdGeomXformOp::PrecisionDouble,
+                nbOfOps);
+        } else {
+            // Divide by 3 since each op is now composed by 3 elements instead of just 1 when
+            // compared to the single matrix export type.
+            nbOfOps = nbOfOps / 3;
+
+            pxr::UsdGeomXformOp transOp, rotOp, scaleOp;
+            SetXForm(
+                usdTransform,
+                xformable,
+                transOp,
+                UsdGeomXformOp::TypeTranslate,
+                UsdGeomXformOp::PrecisionDouble,
+                nbOfOps);
+            SetXForm(
+                usdTransform,
+                xformable,
+                rotOp,
+                UsdGeomXformOp::TypeRotateXYZ,
+                UsdGeomXformOp::PrecisionFloat,
+                nbOfOps);
+            SetXForm(
+                usdTransform,
+                xformable,
+                scaleOp,
+                UsdGeomXformOp::TypeScale,
+                UsdGeomXformOp::PrecisionFloat,
+                nbOfOps);
+        }
     }
 }
 
@@ -179,6 +213,31 @@ bool IsValidAbsolutePath(const fs::path& path)
     return maxPath.IsLegal();
 }
 
+std::string CapitalizeDriveLetterWindowsPath(const std::string& pathStr)
+{
+    std::string capPathStr = pathStr;
+    // Capitalize drive letter if present
+    if (capPathStr.size() >= 2 && std::isalpha(static_cast<unsigned char>(capPathStr[0]))
+        && capPathStr[1] == ':') {
+        capPathStr[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(capPathStr[0])));
+    }
+
+    return capPathStr;
+}
+
+std::string UncapitalizeDriveLetterWindowsPath(const std::string& pathStr)
+{
+    std::string uncapPathStr = pathStr;
+    // Uncapitalize drive letter if present
+    if (uncapPathStr.size() >= 2 && std::isalpha(static_cast<unsigned char>(uncapPathStr[0]))
+        && uncapPathStr[1] == ':') {
+        uncapPathStr[0]
+            = static_cast<char>(std::tolower(static_cast<unsigned char>(uncapPathStr[0])));
+    }
+
+    return uncapPathStr;
+}
+
 bool FindInstanceableNodes(
     INode*                            node,
     INodeTab&                         instancesNode,
@@ -242,6 +301,72 @@ Object* GetFirstDerivedObjectWithModifier(INode* node)
         objectPtr = derivedObjectPtr->GetObjRef();
     }
     return objectPtr;
+}
+
+bool SetXForm(
+    const pxr::GfMatrix4d&         transformMatrix,
+    pxr::UsdGeomXformable&         xformPrim,
+    pxr::UsdGeomXformOp&           xformOp,
+    pxr::UsdGeomXformOp::Type      xformType,
+    pxr::UsdGeomXformOp::Precision xformPrecision,
+    size_t                         opsIdentifier,
+    const pxr::UsdTimeCode&        time)
+{
+    pxr::VtValue value;
+    std::string  suffix;
+
+    pxr::GfMatrix4d rotR;
+    pxr::GfMatrix4d rotU;
+    pxr::GfVec3d    scale;
+    pxr::GfVec3d    translate;
+    pxr::GfMatrix4d project;
+    // Factor uses precision of 1E-10 by default, but we can reduce it to avoid setting properties
+    // like 1.0000002 when it could have been 1.0
+    transformMatrix.Factor(&rotR, &scale, &rotU, &translate, &project, 1E-6);
+
+    switch (xformType) {
+    case pxr::UsdGeomXformOp::TypeTranslate: {
+        suffix = "t";
+        value = pxr::VtValue(translate);
+        break;
+    }
+    case pxr::UsdGeomXformOp::TypeRotateXYZ: {
+        suffix = "r";
+        auto decompRot = rotU.DecomposeRotation(
+            pxr::GfVec3f::ZAxis(), pxr::GfVec3f::YAxis(), pxr::GfVec3f::XAxis());
+        // the values are placed as z, y, x due to how the transform stack works.
+        value = pxr::VtValue(pxr::GfVec3f(
+            static_cast<float>(decompRot[2]),
+            static_cast<float>(decompRot[1]),
+            static_cast<float>(decompRot[0])));
+        break;
+    }
+    case pxr::UsdGeomXformOp::TypeScale: {
+        suffix = "s";
+        value = pxr::VtValue(pxr::GfVec3f(
+            static_cast<float>(scale[0]),
+            static_cast<float>(scale[1]),
+            static_cast<float>(scale[2])));
+        break;
+    }
+
+    case pxr::UsdGeomXformOp::TypeTransform:
+    default: {
+        suffix = "tr";
+        value = pxr::VtValue(transformMatrix);
+        break;
+    }
+    }
+
+    if (!xformOp.IsDefined()) {
+        xformOp = xformPrim.AddXformOp(
+            xformType,
+            xformPrecision,
+            opsIdentifier > 0 ? pxr::TfToken(suffix + std::to_string(opsIdentifier))
+                              : pxr::TfToken());
+    }
+
+    return xformOp.Set(value, time);
 }
 
 std::string UniqueNameGenerator::GetName(const std::string& name)

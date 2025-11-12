@@ -17,10 +17,10 @@
 #include <MaxUsd.h>
 #include <MaxUsd/MaxUSDAPI.h>
 
+#include <Qt/QmaxHelpers.h>
+
 #include <QtCore/QObject>
 #include <string>
-
-#include <Qt/QmaxHelpers.h>
 
 namespace MAXUSD_NS_DEF {
 namespace Ui {
@@ -72,6 +72,19 @@ MaxUSDAPI std::string PrettifyName(const std::string& name);
  * @return The stage's label.
  */
 MaxUSDAPI std::string GetStageLabel(const pxr::UsdStageWeakPtr& stage);
+
+/*
+ * Returns true if the shift key is currently pressed, false otherwise. Added
+ * so that implementation can be swapped in tests.
+ * @return True if shift is presed.
+ */
+MaxUSDAPI bool IsShiftPressed();
+
+/**
+ * Specifies the function to check for the SHIFT press state. Useful for tests.
+ * @param func The new IsShiftPressed function
+ */
+MaxUSDAPI void SetIsShiftPressedFunction(std::function<bool()> func);
 
 } // namespace Ui
 } // namespace MAXUSD_NS_DEF

@@ -47,3 +47,13 @@ qExplorerTreeView::selectionCommand(const QModelIndex& index, const QEvent* even
     }
     return QTreeView::selectionCommand(index, event);
 }
+
+void qExplorerTreeView::dragEnterEvent(QDragEnterEvent* event)
+{
+    // The base implementation doesn't accept the event if the item being hovered when the
+    // event is called cant accept a drop. This doesnt work for us, because dragMouveEvent is
+    // then never called again and the "state of dropability" is never refreshed.
+    // This is considered to be a QT issue.
+    event->accept();
+    setState(DraggingState);
+}

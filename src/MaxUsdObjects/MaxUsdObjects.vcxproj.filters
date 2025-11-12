@@ -210,9 +210,6 @@
     <ClCompile Include="Objects\USDGeomObject.cpp">
       <Filter>Source Files\Objects</Filter>
     </ClCompile>
-    <ClCompile Include="Objects\USDStageObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Views\UsdGeomObjectIncludesRollup.cpp">
       <Filter>Source Files\Views</Filter>
     </ClCompile>
@@ -227,6 +224,12 @@
     </ClCompile>
     <ClCompile Include="USDQuadMenu.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects\USDStageObject.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsdMenu.cpp">
+      <Filter>Source Files\Views</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -358,6 +361,9 @@
     </ClInclude>
     <ClInclude Include="Objects\MaxUsdNotify.h">
       <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\UsdMenu.h">
+      <Filter>Header Files\Views</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

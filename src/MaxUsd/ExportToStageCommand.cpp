@@ -18,6 +18,7 @@
 
 #include "Builders/USDSceneBuilder.h"
 #include "Builders/USDSceneBuilderOptions.h"
+#include "MaxUsdObjects/MaxUsdUfe/StageObjectMap.h"
 #include "Utilities/DiagnosticDelegate.h"
 
 #include <pxr/usd/usdGeom/metrics.h>
@@ -36,10 +37,17 @@ ExportToStageCommand::Ptr ExportToStageCommand::create(
 
 void ExportToStageCommand::execute()
 {
+    pxr::UsdStageWeakPtr stageWeakPtr = _stage;
+#ifdef IS_MAX2025_OR_GREATER
+    BroadcastNotification<NOTIFY_EXPORT_TO_STAGE_START>(&stageWeakPtr);
+#else
+    BroadcastNotification(NOTIFY_EXPORT_TO_STAGE_START, &stageWeakPtr);
+#endif
+
     if (_buildOptions.GetUseSeparateMaterialLayer()) {
         Tf_PostWarningHelper(
             TfCallContext("ExportToStageCommand.cpp", __func__, 40, __FUNCSIG__),
-            "Warning :Exporting materials to a seperate layer is not supported when exporting to "
+            "Warning :Exporting materials to a separate layer is not supported when exporting to "
             "live "
             "stages.");
         _buildOptions.SetUseSeparateMaterialLayer(false);
@@ -70,6 +78,12 @@ void ExportToStageCommand::execute()
     if (_cancelled) {
         undo();
     }
+
+#ifdef IS_MAX2025_OR_GREATER
+    BroadcastNotification<NOTIFY_EXPORT_TO_STAGE_END>(&stageWeakPtr);
+#else
+    BroadcastNotification(NOTIFY_EXPORT_TO_STAGE_END, &stageWeakPtr);
+#endif
 
     GetCOREInterface()->ForceCompleteRedraw();
 }

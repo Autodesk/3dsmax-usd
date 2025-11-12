@@ -41,6 +41,9 @@ PXR_NAMESPACE_OPEN_SCOPE
 	(translateSkin) \
 	(useWorldspaceRoot) \
 	(translateMorpher) \
+	(preserveBoneMeshes) \
+	(includeAllBones) \
+	(simplifyBonePaths) \
 	(useUSDVisibility) \
 	(allowNestedGprims) \
 	(shadingMode) \
@@ -59,6 +62,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 	(rootPrimPath) \
 	(openInUsdView) \
 	(mtlSwitcherExportStyle) \
+	(shellMtlExportStyle) \
 	(useProgressBar) \
 	(separateMaterialLayer) \
 	(materialLayerPath) \
@@ -66,7 +70,9 @@ PXR_NAMESPACE_OPEN_SCOPE
 	(useLastResortUSDPreviewSurfaceWriter) \
 	(bonesPrimName) \
 	(animationsPrimName) \
-	(version)
+	(version) \
+        (transformFormat) \
+        (animationType)
 // clang-format on
 
 TF_DECLARE_PUBLIC_TOKENS(
@@ -89,9 +95,11 @@ public:
      */
     enum class MaxUSDAPI ContentSource
     {
-        RootNode,  ///< Build from the Root Node of the 3ds Max scene.
-        Selection, ///< Build from the Nodes selected in the 3ds Max scene.
-        NodeList   ///< Build from a nodes list.
+        RootNode,           ///< Build from the Root Node of the 3ds Max scene.
+        Selection,          ///< Build from the Nodes selected in the 3ds Max scene.
+        NodeList,           ///< Build from a nodes list.
+        MaterialList,       ///< Build from a materials list.
+        NodeAndMaterialList ///< Build from a nodes list and a materials list.
     };
 
     /**
@@ -133,6 +141,17 @@ public:
         ToStage
     };
 
+    /**
+     * \brief Preference for the type of animation to be exported, when possible.
+     * Curves type aren't supported by all attributes - time samples will be used for those cases.
+     */
+    enum class MaxUSDAPI AnimationType
+    {
+        TimeSamples,
+        Curves,
+        Both
+    };
+
     static MaxUSDAPI const double MIN_SAMPLES_PER_FRAME;
     static MaxUSDAPI const double MAX_SAMPLES_PER_FRAME;
 
@@ -146,6 +165,16 @@ public:
         ActiveMaterialOnly
     };
 #endif
+
+    /**
+     * \brief Shell Material export style.
+     */
+    enum class MaxUSDAPI ShellMtlExportStyle
+    {
+        Baked,
+        Original,
+        Both
+    };
 
 public:
     /**
@@ -265,6 +294,56 @@ public:
      * \param translateMorpher "true" to translate morphers modifiers
      */
     MaxUSDAPI void SetTranslateMorpher(bool translateMorpher);
+
+    /**
+     * \brief Export the 3ds Max bone meshes as USD Prims.
+     * When this option is set, Max bone nodes will be exported as meshes.
+     * @param preserveBoneMeshes true to export the full bone hierarchy as meshes
+     */
+    MaxUSDAPI void SetPreserveBoneMeshes(bool preserveBoneMeshes);
+
+    /**
+     * \brief Check if the full bone hierarchy should be exported.
+     * When this option is set, Max bone nodes will be exported as meshes.
+     * @return "true" if the full bone hierarchy should be exported as USD prims
+     */
+    MaxUSDAPI bool GetPreserveBoneMeshes() const;
+
+    /**
+     * \brief Set whether all bones should be included in the export.
+     * By default, the SkelWriter won't include bones that aren't being referenced by a skin
+     * modifier, when this option is enabled, any bone object in the export list will be exported to
+     * USD. Classes being considered as bones are: Bone, BoneGeometry, CATParent, CATBone,
+     * Biped_object, HubObject.
+     * @param includeAllBones "true" to include all bones, "false" otherwise.
+     */
+    MaxUSDAPI void SetIncludeAllBones(bool includeAllBones);
+
+    /**
+     * \brief Check if all bones should be included in the export.
+     * By default, the SkelWriter won't include bones that aren't being referenced by a skin
+     * modifier, when this option is enabled, any bone object in the export list will be exported to
+     * USD. Classes being considered as bones are: Bone, BoneGeometry, CATParent, CATBone,
+     * Biped_object, HubObject.
+     * @return "true" if all bones should be included, "false" otherwise.
+     */
+    MaxUSDAPI bool GetIncludeAllBones() const;
+
+    /**
+     * \brief Set whether the bone paths should be simplified when exporting skin and skeleton.
+     * By default, each Usd joint token will have the UsdSkel prim path as a prefix. When this
+     * option is enabled, the joint token will be represented by the bone name only.
+     * @param simplifyBonePaths "true" to simplify bone paths, "false" otherwise.
+     */
+    MaxUSDAPI void SetSimplifyBonePaths(bool simplifyBonePaths);
+
+    /**
+     * \brief Check if the bone paths should be simplified when exporting skin and skeleton.
+     * By default, each Usd joint token will have the UsdSkel prim path as a prefix. When this
+     * option is enabled, the joint token will be represented by the bone name only.
+     * @return "true" if the bone paths should be simplified, "false" otherwise.
+     */
+    MaxUSDAPI bool GetSimplifyBonePaths() const;
 
     /**
      * \brief Check if morpher modifiers should be translated as USD Blendshapes
@@ -439,6 +518,18 @@ public:
     MaxUSDAPI const Tab<INode*>& GetNodesToExport() const;
 
     /**
+     * \brief Sets the materials to convert to USD.
+     * \param materials The materials to convert to USD.
+     */
+    MaxUSDAPI void SetMaterialsToExport(const Tab<Mtl*>& materials);
+
+    /**
+     * \brief Gets the materials to convert to USD.
+     * \return The materials to convert to USD.
+     */
+    MaxUSDAPI const Tab<Mtl*>& GetMaterialsToExport() const;
+
+    /**
      * \brief Sets the time mode for export, either CURRENT or EXPLICIT. If explicit, export from
      * the time specified by the Time property.
      * \param timeMode The time mode to set.
@@ -585,6 +676,18 @@ public:
 #endif
 
     /**
+     * \brief Sets the Shell Material export style to use at export
+     * \param exportStyle The Shell Material export style to apply at export
+     */
+    MaxUSDAPI void SetShellMtlExportStyle(const ShellMtlExportStyle& exportStyle);
+
+    /**
+     * \brief Gets the Shell Material export style to use at export
+     * \return Shell Material export style used at export
+     */
+    MaxUSDAPI const ShellMtlExportStyle GetShellMtlExportStyle() const;
+
+    /**
      * \brief Gets whether to use the progress bar or not.
      * \return True if the progress bar should be used.
      */
@@ -594,6 +697,16 @@ public:
      * \brief Sets whether to use the progress bar.
      */
     MaxUSDAPI void SetUseProgressBar(bool useProgressBar);
+
+    /**
+     * \brief Sets what kind of transform type to use during export.
+     */
+    MaxUSDAPI void SetTransformFormat(int option);
+
+    /**
+     * \brief Gets what kind of transform type to use during export.
+     */
+    MaxUSDAPI TransformFormat GetTransformFormat() const;
 
     /**
      * \brief Sets the file path to export materials to.
@@ -650,6 +763,21 @@ public:
      */
     MaxUSDAPI bool GetUseLastResortUSDPreviewSurfaceWriter() const;
 
+#ifdef USD_CURVES_SUPPORTED
+    /**
+     * \brief Sets the animation typed preferred to be used on export.
+     * Not all attributes support curves animation, so time samples will be used for those cases.
+     * \param animationType The animation type to set.
+     */
+    MaxUSDAPI void SetAnimationType(AnimationType animationType);
+
+    /**
+     * \brief Gets the animation typed preferred to be used on export.
+     * \return The animation type.
+     */
+    MaxUSDAPI AnimationType GetAnimationType() const;
+#endif
+
     // export dialog specific state settings
     // they differ from the export settings retained by the user at export
     // some options need data to be displayed for the user to make a choice
@@ -673,19 +801,21 @@ public:
      */
     MaxUSDAPI void SaveAnimationRollupData(const AnimationRollupData& animationRollupData);
 
-protected:
     /**
      * \brief The dictionary holding the default state of all the options.
      * \return The default options dictionary.
      */
     static const pxr::VtDictionary& GetDefaultDictionary();
 
+protected:
     /// Specifies the current targeted material being treated by the material export process
     ///	this member is set by the process ONLY
     pxr::TfToken convertMaterialsTo;
     /// A List of nodes to export (if any).
     /// Used when exporting with option USDSceneBuilderOptions::ContentSource::NodeList
     Tab<INode*> nodesToExport;
+    /// Used when exporting with option USDSceneBuilderOptions::ContentSource::MaterialList
+    Tab<Mtl*> materialsToExport;
     // export animation rollup data
     AnimationRollupData animationRollupData;
 };

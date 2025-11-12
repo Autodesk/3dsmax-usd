@@ -103,7 +103,8 @@ TF_DECLARE_PUBLIC_TOKENS(MaxUsdPurposeTokens, MaxUSDAPI, MAX_USD_PURPOSE_TOKENS)
 // clang-format off
 #define MAX_USD_EXPORT_TOKENS \
     (allowPrimOverwrite) \
-    (inheritStageObjectTransform)
+    (inheritStageObjectTransform) \
+    (DEFAULT_PRIM)
 // clang-format on
 
 TF_DECLARE_PUBLIC_TOKENS(MaxUsdExportTokens, MaxUSDAPI, MAX_USD_EXPORT_TOKENS);

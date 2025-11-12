@@ -724,14 +724,33 @@ public:
         std::shared_ptr<bool>    isInteractive = std::make_shared<bool>(false);
         std::shared_ptr<UfeType> ufeValueInit = std::make_shared<UfeType>();
 
+        // Keep track of whether attributes where first authored during interactive edition,
+        // so that we can revert correctly before running the undoable command.
+        std::shared_ptr<std::vector<bool>> attrSpecExistedBeforeEdit
+            = std::make_shared<std::vector<bool>>();
+
         QObject::connect(
             spinBox,
             &MaxSDK::QmaxMultiSpinner::interactiveChanged,
-            [isInteractive, itemPath, numericAttributes, attributeName, ufeValueInit, spinBox](
-                bool interactive) {
+            [isInteractive,
+             itemPath,
+             numericAttributes,
+             attributeName,
+             ufeValueInit,
+             spinBox,
+             attrSpecExistedBeforeEdit](bool interactive) {
                 // Start of an interactive edit, store the initial value of the attribute.
                 if (!*isInteractive && interactive) {
-
+                    // Store whether the attr was authored before interactive edition.
+                    for (const auto& a : numericAttributes) {
+                        auto sceneItem = a->sceneItem();
+                        auto prim = MaxUsd::ufe::ufePathToPrim(sceneItem->path());
+                        auto propPath = prim.GetPath().AppendProperty(pxr::TfToken(attributeName));
+                        auto stage = prim.GetStage();
+                        auto prop = stage->GetPropertyAtPath(propPath);
+                        attrSpecExistedBeforeEdit->push_back(
+                            prop && prop.IsAuthored() ? true : false);
+                    }
                     auto spinnerValues = spinBox->fromMaxTypeVariant(spinBox->value());
                     setUfeValue(spinnerValues, *ufeValueInit);
                 }
@@ -744,12 +763,27 @@ public:
                     setUfeValue(spinnerValues, ufeValueCurr);
 
                     // Revert to initial to undo from the correct value...
-                    for (const auto& a : numericAttributes) {
+                    for (int i = 0; i < numericAttributes.size(); ++i) {
                         try {
-                            a->set(*ufeValueInit);
+                            const auto& attr = numericAttributes[i];
+                            // Revert the value, or remove the attr completely, depending on the
+                            // state before interactive edition.
+                            if (!(*attrSpecExistedBeforeEdit)[i]) {
+                                auto sceneItem = attr->sceneItem();
+                                auto prim = MaxUsd::ufe::ufePathToPrim(sceneItem->path());
+                                auto stage = prim.GetStage();
+                                auto propPath
+                                    = prim.GetPath().AppendProperty(pxr::TfToken(attributeName));
+                                auto propSpec
+                                    = stage->GetEditTarget().GetPropertySpecForScenePath(propPath);
+                                auto layer = stage->GetEditTarget().GetLayer();
+                                layer->GetPrimAtPath(prim.GetPath())->RemoveProperty(propSpec);
+                            } else {
+                                attr->set(*ufeValueInit);
+                            }
                         } catch (std::exception&) {
-                            // Ignore exceptions while in interactive mode, report errors when we
-                            // actually try to edit from the command.
+                            // Ignore exceptions while in interactive mode, report errors when
+                            // we actually try to edit from the command.
                         }
                     }
                     // Apply the new value from an undoable command.

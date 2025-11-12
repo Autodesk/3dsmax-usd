@@ -1,0 +1,4 @@
+LIBRARY MaxUsd_Preferences.dll
+EXPORTS
+SECTIONS
+   .data READ WRITE

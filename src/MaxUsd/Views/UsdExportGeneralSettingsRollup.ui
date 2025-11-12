@@ -5,33 +5,101 @@
   <property name="windowTitle">
    <string>General Settings</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
    <item>
-    <widget class="QLabel" name="UpAxisLabel">
-     <property name="toolTip">
-      <string>Select the upward axis of orientation for your USD scene.</string>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="horizontalSpacing">
+      <number>3</number>
      </property>
-     <property name="text">
-      <string>Up Axis</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-    </widget>
+     <item row="0" column="0">
+      <widget class="QLabel" name="UpAxisLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>Select the upward axis of orientation for your USD scene.</string>
+       </property>
+       <property name="text">
+        <string>Up Axis</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="UpAxisComboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>2</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <item>
+        <property name="text">
+         <string>Y</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Z</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
-    <widget class="QComboBox" name="UpAxisComboBox">
-     <item>
-      <property name="text">
-       <string>Y</string>
-      </property>
+    <layout class="QGridLayout" name="TransformFormatGrid" columnstretch="0,0">
+     <property name="horizontalSpacing">
+      <number>3</number>
+     </property>
+     <item row="1" column="0">
+      <widget class="QLabel" name="TransformFormatLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::RightToLeft</enum>
+       </property>
+       <property name="text">
+        <string>Transform Format</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
      </item>
-     <item>
-      <property name="text">
-       <string>Z</string>
-      </property>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="TransformFormatComboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>2</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="currentIndex">
+        <number>1</number>
+       </property>
+       <item>
+        <property name="text">
+         <string>Separate Translate, Rotate, and Scale</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Single Matrix</string>
+        </property>
+       </item>
+      </widget>
      </item>
-    </widget>
+    </layout>
    </item>
   </layout>
  </widget>

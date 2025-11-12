@@ -1106,8 +1106,8 @@ public:
         const MCHAR* name = NULL,
         float        z = 0.0f,
         BOOL         mono = false,
-        bool         disableBitmapProxies = false) override {};
-    virtual void SetPlayPreviewWhenDone(BOOL play) override {};
+        bool         disableBitmapProxies = false) override { };
+    virtual void SetPlayPreviewWhenDone(BOOL play) override { };
     virtual BOOL GetPlayPreviewWhenDone() override { return TRUE; }
 
     virtual bool ArchiveSceneFile(
@@ -1822,9 +1822,9 @@ public:
 
     virtual void UpdateOsnapDlg() const override { }
 
-    virtual void SetASnapStatus(BOOL enable) override {};
+    virtual void SetASnapStatus(BOOL enable) override { };
 
-    virtual void SetPSnapStatus(BOOL enable) override {};
+    virtual void SetPSnapStatus(BOOL enable) override { };
 
     virtual void DoUICustomization(CUIDialogPage pageId) override { }
 
@@ -1838,7 +1838,8 @@ public:
 
 #if MAX_RELEASE >= 28900
     Bitmap* LoadMaxThumbnail(const MCHAR* filename) { return nullptr; };
-    bool DisplayObjectPropertiesDialog(const INodeTab& nodeTab) {return false;}
+    bool    DisplayObjectPropertiesDialog(const INodeTab& nodeTab) { return false; }
+    void    UpdateColors() override { };
 #endif
 
 #else

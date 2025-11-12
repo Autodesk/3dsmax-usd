@@ -38,6 +38,7 @@
       <Command>@echo Do not forget to update "$(OutDir)RegisterPlugin.ms" in order to load the C++ version of the plugin.</Command>
     </PostBuildEvent>
     <ClCompile>
+      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
       <ForcedIncludeFiles>../silence_usd_warnings.h</ForcedIncludeFiles>
     </ClCompile>

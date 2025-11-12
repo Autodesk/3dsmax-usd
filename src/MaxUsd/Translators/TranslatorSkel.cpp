@@ -213,13 +213,17 @@ bool MaxUsdTranslatorSkel::CreateJointsNodes(
 
     const VtTokenArray jointTokens = skelQuery.GetJointOrder();
     const size_t       numJoints = jointTokens.size();
-    joints.resize(numJoints);
+    joints.reserve(numJoints);
 
     auto&      topo = skelQuery.GetTopology();
     const auto coreInterface = GetCOREInterface17();
     for (size_t i = 0; i < numJoints; ++i) {
         const SdfPath jointPath = SdfPath(jointTokens[i]);
         if (!jointPath.IsPrimPath()) {
+            MaxUsd::Log::Warn(
+                "Skipping invalid token found on Skeleton prim \"{0}\": \"{1}\". ",
+                skelQuery.GetPrim().GetName().GetString(),
+                jointPath.GetString());
             continue;
         }
 
@@ -243,8 +247,7 @@ bool MaxUsdTranslatorSkel::CreateJointsNodes(
             } else {
                 MaxUsd::Log::Warn(
                     "Skeleton prim \"{0}\" has topology out of order. Parent joints should always "
-                    "come "
-                    "before children joints.",
+                    "come before children joints.",
                     skelQuery.GetPrim().GetName().GetString());
             }
         } else {
@@ -254,7 +257,7 @@ bool MaxUsdTranslatorSkel::CreateJointsNodes(
             }
         }
 
-        joints[i] = jointNode;
+        joints.emplace_back(jointNode);
     }
 
     return true;

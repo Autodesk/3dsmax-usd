@@ -24,6 +24,7 @@
 #include <ufe/globalSelection.h>
 #include <ufe/object3d.h>
 #include <ufe/observableSelection.h>
+#include <ufe/sceneItemOps.h>
 #include <ufe/uiInfoHandler.h>
 #include <ufe/undoableCommandMgr.h>
 
@@ -112,6 +113,13 @@ QVariant NameColumn::data(const UfeUi::TreeItem* treeItem, int role) const
         }
     }
 
+    if (role == Qt::EditRole) {
+        if (isRootItem) {
+            return QVariant {};
+        }
+        return QString::fromStdString(sceneItem->nodeName());
+    }
+
     if (role != Qt::DisplayRole) {
         return QVariant {};
     }
@@ -138,6 +146,44 @@ QStyledItemDelegate* NameColumn::createStyleDelegate(QObject* parent)
 }
 
 int NameColumn::resizeMode() const { return QHeaderView::ResizeToContents; }
+
+void NameColumn::flags(const UfeUi::TreeItem* treeItem, Qt::ItemFlags& flags)
+{
+    const auto parent = treeItem->parentItem();
+    const bool isRootItem = !parent || parent->sceneItem() == nullptr;
+    if (!isRootItem) {
+        flags |= Qt::ItemIsEditable;
+    }
+}
+
+bool NameColumn::setData(const UfeUi::TreeItem* treeItem, const QVariant& value, int role)
+{
+    if (role != Qt::EditRole) {
+        return false;
+    }
+
+    const auto sceneItem = treeItem->sceneItem();
+    if (!sceneItem) {
+        return false;
+    }
+
+    const auto newName = value.toString();
+    if (newName.isEmpty()) {
+        return false;
+    }
+
+    auto ops = Ufe::SceneItemOps::sceneItemOps(treeItem->sceneItem());
+
+    try {
+        auto cmd = ops->renameItemCmdNoExecute(Ufe::PathComponent { newName.toStdString() });
+        Ufe::UndoableCommandMgr::instance().executeCmd(cmd);
+    } catch (const std::exception& ex) {
+        UfeUi::Utils::ReportError(ex.what());
+        return false;
+    }
+
+    return true;
+}
 
 QVariant TypeColumn::columnHeader(int role) const
 {

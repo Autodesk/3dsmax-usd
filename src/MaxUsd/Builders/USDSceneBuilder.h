@@ -264,6 +264,7 @@ protected:
      * \parm rootPrim The root prim we are exporting to. This may be useful in case we need to create prims outside
      * the hierarchy, but that should still be under the targeted root prim for export. For example,
      * prototype prims.
+     * \param transformFormat The format to use when exporting the node's transform.
      * \return A vector of definitions of prims created from the node (or that would be created if in preview mode).
      * The first prim in the vector is the root prim for the node.
      */
@@ -274,7 +275,8 @@ protected:
         const std::string&                   objectPrimSuffix,
         const MaxUsd::XformSplitRequirement& xformRequirement,
         const MaxUsd::InstancingRequirement& instancingRequirement,
-        const pxr::SdfPath&                  rootPrim);
+        const pxr::SdfPath&                  rootPrim,
+        TransformFormat                transformFormat);
 
     /**
      * \brief Translate USD round-trip attributes stored as Max custom attributes
@@ -330,6 +332,7 @@ private:
     // Explicit set of nodes to be exported. Used when exporting the selection or from a node list.
     // Remains empty if exporting the whole scene.
     std::unordered_set<INode*> nodesToExportSet;
+    std::vector<Mtl*>          materialsToExport;
 
     // Cached maintained by HasExportableDescendants() to avoid extra scene graph
     // traversals. For each node in the map, the boolean value specifies whether or

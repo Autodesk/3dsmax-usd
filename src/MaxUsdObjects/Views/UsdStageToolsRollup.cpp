@@ -56,6 +56,10 @@ void UsdStageToolsRollup::SetParamBlock(ReferenceMaker* owner, IParamBlock2* con
 
 void UsdStageToolsRollup::UpdateUI(const TimeValue t)
 {
+    if (!modelObj) {
+        return;
+    }
+
     auto stage = modelObj->GetUSDStage();
     if (stage) {
         ui->ExploreButton->setEnabled(true);

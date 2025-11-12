@@ -47,6 +47,7 @@
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
+      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <AdditionalIncludeDirectories>$(QtInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
       <ForcedIncludeFiles>../silence_usd_warnings.h</ForcedIncludeFiles>

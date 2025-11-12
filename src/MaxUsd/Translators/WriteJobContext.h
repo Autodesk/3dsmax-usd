@@ -130,7 +130,8 @@ public:
 
     /**
      * \brief An additional root transform to apply to prims in the output stage.
-     * When exporting to a USDStageObject, this corresponds to the transform of the node referencing it.
+     * When exporting to a USDStageObject, this corresponds to the transform of the node referencing
+     * it.
      * \return The root transform.
      */
     MaxUSDAPI Matrix3 GetRootTranform() const { return rootTransform; }
@@ -163,6 +164,13 @@ public:
      * \return The resolved string
      */
     MaxUSDAPI std::string ResolveString(const std::string& input) const;
+
+    /**
+     * Resolve the root prim path from the options. This essentially replaces the DEFAULT_PRIM
+     * token for the default prim of a target stage if it exists.
+     * @return The resolved path.
+     */
+    pxr::SdfPath ResolveRootPath() const;
 
     /**
      * \brief Get the materials and which prims they are bound to.

@@ -132,7 +132,6 @@ struct mtlx_shader_writer_test
         assert_equal ((shader.GetInput "base_diffuse_roughness").Get()) 0
         assert_equal ((shader.GetInput "base_metalness").Get()) 0
         assert_equal ((shader.GetInput "base_weight").Get()) 1
-        assert_equal ((shader.GetInput "coat_bump_map_amt").Get()) 1
         assert_equal ((shader.GetInput "coat_color").Get()) (pyGf.Vec3f 1 1 1)
         assert_equal ((shader.GetInput "coat_darkening").Get()) 1
         assert_equal ((shader.GetInput "coat_ior").Get()) 1.6

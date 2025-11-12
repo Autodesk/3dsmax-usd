@@ -120,6 +120,19 @@ HdTaskSharedPtrVector const HdMaxTaskController::GetRenderingTasks() const
     return tasks;
 }
 
+SdfPathVector HdMaxTaskController::GetPickingTaskPaths() const
+{
+    SdfPathVector tasks;
+
+    // The set of tasks we can run, in order, is:
+    // See _CreateRenderGraph for more details.
+    for (SdfPath const& id : _renderTaskIds) {
+        tasks.push_back(id);
+    }
+
+    return tasks;
+}
+
 void HdMaxTaskController::SetCollection(HdRprimCollection const& collection)
 {
     // XXX For now we assume the application calling to set a new

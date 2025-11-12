@@ -18,6 +18,7 @@
 #include "USDCore.h"
 
 #include <iparamm2.h>
+#include <notify.h>
 
 HINSTANCE hInstance;
 int       controlsInit = FALSE;
@@ -35,9 +36,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID /*lpvReserved*/)
         // Hang on to this DLL's instance handle.
         hInstance = hinstDLL;
         DisableThreadLibraryCalls(hInstance);
-        // DO NOT do any initialization here. Use LibInitialize() instead.
-
-        // FIXME: See above comment.
         USDCore::initialize();
     }
     return (TRUE);

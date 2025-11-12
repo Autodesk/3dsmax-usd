@@ -20,6 +20,7 @@
 #include "MaxUsdUfe/UfeUtils.h"
 #include "Objects/USDStageObject.h"
 #include "USDQuadMenu.h"
+#include "Views/UsdMenu.h"
 #include "resource.h"
 
 #include <pxr/base/plug/registry.h>
@@ -82,8 +83,13 @@ __declspec(dllexport) int LibInitialize(void)
 
 // Modern menu system available in 2025+
 #ifdef IS_MAX2025_OR_GREATER
+    RegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     RegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
+#ifdef IS_MAX2026_OR_GREATER
+    RegisterNotification(InitializeUsdPreferences, nullptr, NOTIFY_SYSTEM_STARTUP);
+#endif
     RegisterUSDDynamicActionItem();
+    RegisterUSDMenuAction();
 #endif
     return TRUE;
 }
@@ -95,7 +101,11 @@ __declspec(dllexport) int LibShutdown(void)
 {
     MaxUsd::ufe::finalize();
 #ifdef IS_MAX2025_OR_GREATER
+    UnRegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     UnRegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
+#ifdef IS_MAX2026_OR_GREATER
+    UnRegisterNotification(InitializeUsdPreferences, nullptr, NOTIFY_SYSTEM_STARTUP);
+#endif
 #endif
     return TRUE;
 }

@@ -237,6 +237,21 @@ public:
      */
     const wchar_t* GetMaterialPrimPath() const;
 
+#ifdef USD_CURVES_SUPPORTED
+    /**
+     * \brief Sets the animation typed preferred to be used on export.
+     * Not all attributes support curves animation, so time samples will be used for those cases.
+     * \param animationType The animation type to set.
+     */
+    void SetAnimationType(int animationType);
+
+    /**
+     * \brief Gets the animation typed preferred to be used on export.
+     * \return The animation type.
+     */
+    int GetAnimationType() const;
+#endif
+
     /**
      * \brief Serialize the options to a json string.
      * \return A json formated string representing the options
@@ -250,7 +265,19 @@ public:
      */
     void SetMtlSwitcherExportStyle(int exportStyle);
 #endif
-// clang-format off
+
+    /**
+     * \brief Gets the Shell Material export style.
+     * \return The Shell Material export style.
+     */
+    int GetShellMtlExportStyle() const;
+
+    /**
+     * \brief Sets the Shell Material export style.
+     * \param exportStyle The Shell Material export style to set.
+     */
+    void SetShellMtlExportStyle(int exportStyle);
+    // clang-format off
     enum
     {
         fnIdGetTranslateMeshes, fnIdSetTranslateMeshes,
@@ -258,6 +285,9 @@ public:
         fnIdGetTranslateLights, fnIdSetTranslateLights,
         fnIdGetTranslateCameras, fnIdSetTranslateCameras,
         fnIdGetTranslateSkin, fnIdSetTranslateSkin,
+        fnIdGetIncludeAllBones, fnIdSetIncludeAllBones,
+        fnIdGetPreserveBoneMeshes, fnIdSetPreserveBoneMeshes,
+        fnIdGetSimplifyBonePaths, fnIdSetSimplifyBonePaths,
         fnIdGetTranslateMorpher, fnIdSetTranslateMorpher,
         fnIdGetTranslateHidden, fnIdSetTranslateHidden,
         fnIdGetUseUSDVisibility, fnIdSetUseUSDVisibility,
@@ -267,6 +297,7 @@ public:
         fnIdGetBakeObjectOffsetTransform, fnIdSetBakeObjectOffsetTransform,
         fnIdGetLogPath, fnIdSetLogPath,
         fnIdGetLogLevel, fnIdSetLogLevel,
+        fnIdGetTransformFormat, fnIdSetTransformFormat,
         fnIdReset,
         fnIdSetChannelPrimvarMappingDefaults,
         fnIdSetChannelPrimvarMapping,
@@ -296,13 +327,17 @@ public:
 #ifdef IS_MAX2024_OR_GREATER
         fnIdGetMtlSwitcherExportStyle, fnIdSetMtlSwitcherExportStyle,
 #endif
+        fnIdGetShellMtlExportStyle, fnIdSetShellMtlExportStyle,
         fnIdGetMaterialLayerPath, fnIdSetMaterialLayerPath,
         fnIdGetMaterialPrimPath, fnIdSetMaterialPrimPath,
         fnIdGetUseSeparateMaterialLayer, fnIdSetUseSeparateMaterialLayer,
         fnIdGetUseProgressBar, fnIdSetUseProgressBar,
         fnIdGetUseLastResortUSDPreviewSurfaceWriter, fnIdSetUseLastResortUSDPreviewSurfaceWriter,
         fidSerialize,
-        fnIdGetUseWorldspaceRoot, fnIdSetUseWorldspaceRoot
+        fnIdGetUseWorldspaceRoot, fnIdSetUseWorldspaceRoot,
+#ifdef USD_CURVES_SUPPORTED
+        fnIdGetAnimationType, fnIdSetAnimationType,
+#endif
     };
 
     enum
@@ -314,9 +349,14 @@ public:
         eIdNormalsMode,
         eIdTimeMode,
         eIdMeshFormat,
+        eIdTransformFormat,
 #ifdef IS_MAX2024_OR_GREATER
-        eIdMtlSwitcherExportStyle
+        eIdMtlSwitcherExportStyle,
 #endif
+#ifdef USD_CURVES_SUPPORTED
+        eIdAnimationType,
+#endif
+        eIdShellMtlExportStyle
     };
 
     BEGIN_FUNCTION_MAP
@@ -326,6 +366,9 @@ public:
         PROP_FNS(fnIdGetTranslateCameras, GetTranslateCameras, fnIdSetTranslateCameras, SetTranslateCameras, TYPE_BOOL);
         PROP_FNS(fnIdGetTranslateMaterials, GetTranslateMaterials, fnIdSetTranslateMaterials, SetTranslateMaterials, TYPE_BOOL);
         PROP_FNS(fnIdGetTranslateSkin, GetTranslateSkin, fnIdSetTranslateSkin, SetTranslateSkin, TYPE_BOOL);
+        PROP_FNS(fnIdGetIncludeAllBones, GetIncludeAllBones, fnIdSetIncludeAllBones, SetIncludeAllBones, TYPE_BOOL);
+        PROP_FNS(fnIdGetPreserveBoneMeshes, GetPreserveBoneMeshes, fnIdSetPreserveBoneMeshes, SetPreserveBoneMeshes, TYPE_BOOL);
+        PROP_FNS(fnIdGetSimplifyBonePaths, GetSimplifyBonePaths, fnIdSetSimplifyBonePaths, SetSimplifyBonePaths, TYPE_BOOL);
         PROP_FNS(fnIdGetTranslateMorpher, GetTranslateMorpher, fnIdSetTranslateMorpher, SetTranslateMorpher, TYPE_BOOL);
         PROP_FNS(fnIdGetShadingMode, GetShadingMode, fnIdSetShadingMode, SetShadingMode, TYPE_STRING);
         PROP_FNS(fnIdGetUsdStagesAsReferences, GetUsdStagesAsReferences, fnIdSetUsdStagesAsReferences, SetUsdStagesAsReferences, TYPE_BOOL);
@@ -339,6 +382,9 @@ public:
         PROP_FNS(fnIdGetBakeObjectOffsetTransform, GetBakeObjectOffsetTransform, fnIdSetBakeObjectOffsetTransform, SetBakeObjectOffsetTransform, TYPE_BOOL);
         PROP_FNS(fnIdGetPreserveEdgeOrientation, GetPreserveEdgeOrientation, fnIdSetPreserveEdgeOrientation, SetPreserveEdgeOrientation, TYPE_BOOL);
         PROP_FNS(fnIdGetTimeMode, GetTimeMode, fnIdSetTimeMode, SetTimeMode, TYPE_ENUM);
+#ifdef USD_CURVES_SUPPORTED
+        PROP_FNS(fnIdGetAnimationType, GetAnimationType, fnIdSetAnimationType, SetAnimationType, TYPE_ENUM);
+#endif
         PROP_FNS(fid_GetStartFrame, GetStartFrame, fid_SetStartFrame, SetStartFrame, TYPE_DOUBLE);
         PROP_FNS(fid_GetEndFrame, GetEndFrame, fid_SetEndFrame, SetEndFrame, TYPE_DOUBLE);
         PROP_FNS(fid_GetSamplesPerFrame, GetSamplesPerFrame, fid_SetSamplesPerFrame, SetSamplesPerFrame, TYPE_DOUBLE);
@@ -347,6 +393,7 @@ public:
         PROP_FNS(fnIdGetAnimationsPrimName, GetAnimationsPrimName, fnIdSetAnimationsPrimName, SetAnimationsPrimName, TYPE_STRING);
         PROP_FNS(fnIdGetLogPath, logInterface.GetLogPath, fnIdSetLogPath, logInterface.SetLogPath, TYPE_STRING);
         PROP_FNS(fnIdGetLogLevel, logInterface.GetLogLevel, fnIdSetLogLevel, logInterface.SetLogLevel, TYPE_ENUM);
+        PROP_FNS(fnIdGetTransformFormat, GetTransformFormat, fnIdSetTransformFormat, SetTransformFormat, TYPE_ENUM);
         PROP_FNS(fnIdGetOpenInUsdview, GetOpenInUsdview, fnIdSetOpenInUsdview, SetOpenInUsdview, TYPE_BOOL);
         PROP_FNS(fnIdGetChaserNames, GetChaserNamesMxs, fnIdSetChaserNames, SetChaserNamesMxs, TYPE_TSTR_TAB_BV);
         PROP_FNS(fnIdGetAllChaserArgs, GetAllChaserArgs, fnIdSetAllChaserArgs, SetAllChaserArgs, TYPE_VALUE);
@@ -354,6 +401,7 @@ public:
 #ifdef IS_MAX2024_OR_GREATER
         PROP_FNS(fnIdGetMtlSwitcherExportStyle, GetMtlSwitcherExportStyle, fnIdSetMtlSwitcherExportStyle, SetMtlSwitcherExportStyle, TYPE_ENUM);
 #endif
+        PROP_FNS(fnIdGetShellMtlExportStyle, GetShellMtlExportStyle, fnIdSetShellMtlExportStyle, SetShellMtlExportStyle, TYPE_ENUM);
         PROP_FNS(fnIdGetUseProgressBar, GetUseProgressBar, fnIdSetUseProgressBar, SetUseProgressBar, TYPE_BOOL);
         PROP_FNS(fnIdGetMaterialLayerPath, GetMaterialLayerPath, fnIdSetMaterialLayerPath, SetMaterialLayerPath, TYPE_STRING);
         PROP_FNS(fnIdGetMaterialPrimPath, GetMaterialPrimPath, fnIdSetMaterialPrimPath, SetMaterialPrimPath, TYPE_STRING);
@@ -369,10 +417,10 @@ public:
         FN_0(fnIdGetAllMaterialConversions, TYPE_TSTR_TAB_BV, GetAllMaterialTargets);
         VFN_1(fnIdSetAllMaterialConversions, SetAllMaterialTargets, TYPE_TSTR_TAB_BV);
         FN_0(fnIdGetAvailableMaterialConversions, TYPE_TSTR_TAB_BV, GetAvailableMaterialTargets);
-        FN_0(fnIdGetAvailableChasers, TYPE_STRING_TAB_BV, GetAvailableChasers);
+        FN_0(fnIdGetAvailableChasers, TYPE_TSTR_TAB_BV, GetAvailableChasers);
         FN_0(fidSerialize, TYPE_STRING, Serialize);
     END_FUNCTION_MAP
-// clang-format on
+    // clang-format on
 
 private:
     IOLoggingMxsInterface logInterface { this };

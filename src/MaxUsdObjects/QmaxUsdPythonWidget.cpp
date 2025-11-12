@@ -85,7 +85,11 @@ bool QmaxUsdPythonWidgetPrivate::initTypes()
 #endif
 
         if (!requiredModule.isNull()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+            SbkPySide_QtWidgetsTypes = &Shiboken::Module::getTypes(requiredModule)->type;
+#else
             SbkPySide_QtWidgetsTypes = Shiboken::Module::getTypes(requiredModule);
+#endif
         }
     }
     return SbkPySide_QtWidgetsTypes != nullptr;
@@ -207,10 +211,13 @@ QmaxUsdPythonWidget* QmaxUsdPythonWidget::embed(PyObject* pySideWidget, QWidget*
         if (QmaxUsdPythonWidgetPrivate::initTypes()) {
             QWidget* pythonWidget = nullptr;
 #ifdef USE_PYSIDE_6
+#pragma warning(push)
+#pragma warning(disable : 4996)
             Shiboken::Conversions::pythonToCppPointer(
                 QmaxUsdPythonWidgetPrivate::SbkPySide_QtWidgetsTypes[SBK_QWIDGET_IDX],
                 pySideWidget,
                 &pythonWidget);
+#pragma warning(pop)
 #else
             Shiboken::Conversions::pythonToCppPointer(
                 reinterpret_cast<SbkObjectType*>(

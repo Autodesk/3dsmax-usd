@@ -48,6 +48,11 @@
 #include <pybind11/pybind11.h>
 // clang-format on
 
+#include <MaxUsdObjects/MaxUsdUfe/MaxUsdEditCommand.h>
+
+#include <UFEUI/genericCommand.h>
+
+#include <MaxUsd/ExportToStageCommand.h>
 #include <MaxUsd/MaxTokens.h>
 #include <MaxUsd/MeshConversion/MeshFacade.h>
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
@@ -66,6 +71,7 @@
 #include <UsdLayerEditor/layerMuting.h>
 #include <UsdLayerEditor/layers.h>
 #include <usdUfe/ufe/UsdSceneItem.h>
+#include <usdUfe/ufe/UsdUndoRenameCommand.h>
 #include <usdUfe/utils/loadRules.h>
 
 #include <pxr/base/plug/plugin.h>
@@ -73,8 +79,10 @@
 #include <pxr/base/tf/pyFunction.h>
 #include <pxr/base/tf/pyObjWrapper.h>
 #include <pxr/usd/kind/registry.h>
+#include <pxr/usd/sdf/copyUtils.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usd/modelAPI.h>
+#include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/stageCacheContext.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/metrics.h>
@@ -91,6 +99,8 @@
 #include <ufe/attributes.h>
 #include <ufe/globalSelection.h>
 #include <ufe/observableSelection.h>
+#include <ufe/pathString.h>
+#include <ufe/sceneItemOps.h>
 #include <ufe/selection.h>
 #include <ufe/selectionNotification.h>
 #include <ufe/undoableCommandMgr.h>
@@ -124,6 +134,7 @@ constexpr USHORT LAYER_EDITS_LAYER_ID_SIZE_CHUNK_ID = 1000;
 constexpr USHORT LAYER_EDITS_LAYER_ID_CHUNK_ID = 1100;
 constexpr USHORT LAYER_EDITS_LAYER_DATA_SIZE_CHUNK_ID = 1200;
 constexpr USHORT LAYER_EDITS_LAYER_DATA_CHUNK_ID = 1300;
+constexpr USHORT SESSION_LAYER_ID_CHUNK_ID = 1400;
 
 // The session layer identifier does not persist, as the layer is anonymous. We need
 // a way to identify it, for example when saving/reloading the edit target to the 3dsmax scene.
@@ -389,6 +400,8 @@ static FPInterfaceDesc usdStageInterface(
 	fnIdPromoteTo3dsMaxObject, _T("PromoteTo3dsMaxObject"), "Promote a USD Prim tree to a UsdGeomObject...", TYPE_VOID, 0, 2,
 		_T("primPath"), 0, TYPE_STRING,
                 _T("select"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
+        fnIdSetStageFromCache, _T("SetStageFromCache"), "Set the stage from the global USD stage cache by using cache id.", TYPE_BOOL, 0, 1,
+                _T("cacheId"), 0, TYPE_INT,
         p_end
 );
 
@@ -424,7 +437,7 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 	Guid, _M("Guid"), TYPE_STRING, P_INVISIBLE | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_GUID, 
 		p_accessor, &pbAccessor,
 		p_end,
-	IsOpenInExplorer, _M("IsOpenInExplorer"), TYPE_BOOL, P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_IS_OPEN_IN_EXPLORER, 
+	IsOpenInExplorer, _M("IsOpenInExplorer"), TYPE_BOOL, P_RESET_DEFAULT | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_IS_OPEN_IN_EXPLORER, 
 		p_default, FALSE,
 		p_end,
 	AxisAndUnitTransform, _M("AxisAndUnitTransform"), TYPE_MATRIX3, P_INVISIBLE | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_AXIS_AND_UNIT_TRANSFORM, 
@@ -539,6 +552,8 @@ ParamBlockDesc2 propertiesParamblock(PBLOCK_REF, // The parameter block ID.
 		p_default, 1.0f,
 		p_range, 0.f, 999999999.f,
 		p_end,
+        AnonRootId, _M("AnonRootId"), TYPE_STRING, P_INVISIBLE | P_READ_ONLY, IDS_USDSTAGEOBJECT_ROLL_OUT_ANONROOTID,
+                p_end,
 	p_end
 );
 // clang-format on
@@ -651,6 +666,63 @@ float GetParamBlockFloat(IParamBlock2* paramBlock, PBParameterIds id)
     return value;
 }
 
+class StageRestoreObj
+    : public RestoreObj
+    , private SingleRefMaker
+{
+public:
+    StageRestoreObj(
+        USDStageObject* object,
+        IParamBlock2*   pb,
+        const WStr&     oldRootLayer,
+        const WStr&     oldStageMask,
+        const WStr&     newRootLayer,
+        const WStr&     newStageMask)
+        : oldRootLayer { oldRootLayer }
+        , oldStageMask { oldStageMask }
+        , newRootLayer { newRootLayer }
+        , newStageMask { newStageMask }
+        , pb { pb }
+        , object { object }
+    {
+        // Keep a reference on the stage object, to make sure it's not garbage collected.
+        this->SetRef(object);
+        this->SetAutoDropRefOnShutdown(AutoDropRefOnShutdown::PrePluginShutdown);
+
+        oldStageRef = object->GetUSDStage();
+    }
+    void Restore(int isUndo) override
+    {
+        newStageRef = object->GetUSDStage();
+
+        pb->SetValue(PBParameterIds::StageFile, GetCOREInterface()->GetTime(), oldRootLayer.data());
+        pb->SetValue(PBParameterIds::StageMask, GetCOREInterface()->GetTime(), oldStageMask.data());
+        object->SetUSDStage(oldStageRef);
+    }
+    void Redo() override
+    {
+        pb->SetValue(PBParameterIds::StageFile, GetCOREInterface()->GetTime(), newRootLayer.data());
+        pb->SetValue(PBParameterIds::StageMask, GetCOREInterface()->GetTime(), newStageMask.data());
+        object->SetUSDStage(newStageRef);
+    }
+    int Size() override
+    {
+        return sizeof(oldStageMask) + sizeof(newStageMask) + sizeof(oldRootLayer)
+            + sizeof(newRootLayer) + sizeof(pb) + sizeof(object);
+    }
+    TSTR Description() override { return TSTR(_T("USD Stage Object root layer restore.")); }
+
+private:
+    WStr                oldRootLayer;
+    WStr                oldStageMask;
+    WStr                newRootLayer;
+    WStr                newStageMask;
+    IParamBlock2*       pb;
+    USDStageObject*     object;
+    pxr::UsdStageRefPtr oldStageRef;
+    pxr::UsdStageRefPtr newStageRef;
+};
+
 } // namespace
 
 FPInterfaceDesc* USDStageObject::GetDesc() { return &usdStageInterface; }
@@ -662,6 +734,29 @@ static void NotifyPostOpenProcess(void* param, NotifyInfo* /*info*/)
     if (nullptr == usdStageObject) {
         return;
     }
+
+    // In some case the root layer can have been moved on disk.
+    // This will lead to the asset manager to ask the user to add paths to the missing assets.
+    // If the user resolve the missing root layer, re-load the stage.
+    if (auto pb = usdStageObject->GetParamBlock(0)) {
+        const MCHAR* currentRootLayerValue = nullptr;
+        pb->GetValue(StageFile, GetCOREInterface()->GetTime(), currentRootLayerValue);
+        // If the current root layer is not empty, and does not exist on disk
+        // (not an anonymous layer), then try to resolve it via the asset manager.
+        if (currentRootLayerValue && MSTR(currentRootLayerValue).length() != 0) {
+            if (!QFile::exists(MaxUsd::MaxStringToUsdString(currentRootLayerValue).data())) {
+                MSTR                               resolvedPath;
+                MaxSDK::AssetManagement::AssetUser assetFile(
+                    pb->GetAssetUser(PBParameterIds::StageFile));
+                if (assetFile.GetFullFilePath(resolvedPath)) {
+                    pb->SetValue(StageFile, 0, resolvedPath.ToMCHAR());
+                    usdStageObject->LoadUSDStage(MaxUsd::MaxStringToUsdString(resolvedPath), "/");
+                    usdStageObject->ApplyLoadedStateFromMax();
+                }
+            }
+        }
+    }
+
     // the 3ds Max file loading is done at this point
     usdStageObject->SetLoadingMaxFile(false);
     // properly remove and replace the camera nodes if required
@@ -818,6 +913,60 @@ static void NotifyNodePostClone(void* param, NotifyInfo* info)
             Interval valid = FOREVER;
             usdStageObject->ForceNotify(valid);
         }
+    }
+}
+
+static void NotifyExportToStage(void* param, NotifyInfo* info)
+{
+    // Always disable camera generation when we are exporting to a stage object,
+    // it is too costly when we are making alot of edits. When the export is done,
+    // renable the cameras if necessary.
+    static std::unordered_map<USDStageObject*, BOOLEAN> genCameraStates;
+    switch (info->intcode) {
+
+    case NOTIFY_EXPORT_TO_STAGE_START: {
+        const auto stageObject = static_cast<USDStageObject*>(param);
+#ifdef IS_MAX2025_OR_GREATER
+        pxr::UsdStageWeakPtr* stage = GetNotifyParam<NOTIFY_EXPORT_TO_STAGE_START>(info);
+#else
+        pxr::UsdStageWeakPtr* stage = static_cast<pxr::UsdStageWeakPtr*>(info->callParam);
+#endif
+
+        if (*stage != stageObject->GetUSDStage()) {
+            break;
+        }
+
+        BOOL genCamerasWasEnabled = FALSE;
+        auto pb = stageObject->GetParamBlock(0);
+        pb->GetValue(GenerateCameras, 0, genCamerasWasEnabled);
+        genCameraStates.insert({ stageObject, genCamerasWasEnabled });
+        pb->SetValue(GenerateCameras, 0, FALSE);
+        return;
+    }
+    case NOTIFY_EXPORT_TO_STAGE_END: {
+        const auto stageObject = static_cast<USDStageObject*>(param);
+        const auto it = genCameraStates.find(stageObject);
+        if (it != genCameraStates.end()) {
+            stageObject->GetParamBlock(0)->SetValue(GenerateCameras, 0, it->second);
+            genCameraStates.erase(it);
+        }
+    };
+    }
+}
+
+static void NotifyClickCreate(void* param, NotifyInfo* info)
+{
+#ifdef IS_MAX2025_OR_GREATER
+    USDStageObject* usdStageObject = GetNotifyParam<NOTIFY_STAGE_CLICK_CREATE>(info);
+#else
+    USDStageObject* usdStageObject = static_cast<USDStageObject*>(info->callParam);
+#endif
+
+    // We want to open the explorer when are creating a new
+    // USDStageObject by clicking on the viewport, if the
+    // root layer is anonymous.
+    if (usdStageObject->GetUSDStage()->GetRootLayer()->IsAnonymous()) {
+        USDExplorer::Instance()->OpenStage(usdStageObject);
     }
 }
 
@@ -1267,17 +1416,35 @@ void USDStageObject::AdjustRollupsForSelection()
         auto l = new QGridLayout(w);
         auto label = new QLabel(QApplication::translate("USDStageObject", "Name"));
         auto textEdit = new QLineEdit();
-        textEdit->setReadOnly(true);
+
         label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         label->setBuddy(textEdit);
         l->addWidget(label, 0, 0);
         l->addWidget(textEdit, 0, 1);
 
         if (selection.size() == 1) {
-            auto selected_prim = selection.front();
-            textEdit->setText(QString::fromStdString(selected_prim->nodeName()));
+            auto selectedPrim = selection.front();
+            textEdit->setText(QString::fromStdString(selectedPrim->nodeName()));
+
+            // Handle name changes when the user leaves focus.
+            QObject::connect(textEdit, &QLineEdit::editingFinished, [selectedPrim, textEdit]() {
+                const std::string newName = textEdit->text().toStdString();
+                const std::string currentName = selectedPrim->nodeName();
+                if (newName != currentName && !newName.empty()) {
+                    auto ops = Ufe::SceneItemOps::sceneItemOps(selectedPrim);
+                    try {
+                        auto cmd = ops->renameItemCmdNoExecute(Ufe::PathComponent { newName });
+                        Ufe::UndoableCommandMgr::instance().executeCmd(cmd);
+                    } catch (const std::exception& ex) {
+                        MaxUsd::Listener::Write(
+                            MaxUsd::UsdStringToMaxString(ex.what()).data(), true);
+                    }
+                }
+            });
+
         } else {
             textEdit->setText(QApplication::translate("USDStageObject", "Multiple prims selected"));
+            textEdit->setReadOnly(true);
             textEdit->setDisabled(true);
         }
 
@@ -1549,8 +1716,8 @@ USDStageObject::USDStageObject()
     // Register ourselves as a listener for USD stage change notifications. Another USD client could
     // be changing the scene.
     pxr::TfWeakPtr<USDStageObject> me(this);
+
     onStageChangeNotice = pxr::TfNotice::Register(me, &USDStageObject::OnStageChange);
-    onLayerMutingChangedNotice = pxr::TfNotice::Register(me, &USDStageObject::OnLayerMutingChanged);
 
     RegisterNotification(NotifyPostOpenProcess, this, NOTIFY_FILE_POST_OPEN_PROCESS_FINALIZED);
     RegisterNotification(NotifyTimeRangeChanged, this, NOTIFY_TIMERANGE_CHANGE);
@@ -1563,6 +1730,11 @@ USDStageObject::USDStageObject()
     RegisterNotification(
         NotifySelectionHighlightConfigChanged, this, NOTIFY_SELECTION_HIGHLIGHT_ENABLED_CHANGED);
 
+    RegisterNotification(NotifyExportToStage, this, NOTIFY_EXPORT_TO_STAGE_START);
+    RegisterNotification(NotifyExportToStage, this, NOTIFY_EXPORT_TO_STAGE_END);
+
+    RegisterNotification(NotifyClickCreate, this, NOTIFY_STAGE_CLICK_CREATE);
+
     nodeEventCallbackKey = GetISceneEventManager()->RegisterCallback(&nodeEventCallback);
 
     // Init viewport icon display
@@ -1572,6 +1744,8 @@ USDStageObject::USDStageObject()
 
     selectionObserver = std::make_shared<SelectionObserver>(this);
     Ufe::GlobalSelection::get()->addObserver(selectionObserver);
+
+    CreateInMemoryStage();
 }
 
 USDStageObject::~USDStageObject()
@@ -1586,6 +1760,11 @@ USDStageObject::~USDStageObject()
     UnRegisterNotification(NotifyNodeAdded, this, NOTIFY_SCENE_ADDED_NODE);
     UnRegisterNotification(NotifyNodePreClone, this, NOTIFY_PRE_NODES_CLONED);
     UnRegisterNotification(NotifyNodePostClone, this, NOTIFY_POST_NODES_CLONED);
+
+    UnRegisterNotification(NotifyExportToStage, this, NOTIFY_EXPORT_TO_STAGE_START);
+    UnRegisterNotification(NotifyExportToStage, this, NOTIFY_EXPORT_TO_STAGE_END);
+
+    UnRegisterNotification(NotifyClickCreate, this, NOTIFY_STAGE_CLICK_CREATE);
 
     if (stage) {
         // If the stage is currently opened in the explorer, close it.
@@ -1603,8 +1782,36 @@ USDStageObject::~USDStageObject()
     }
 
     pxr::TfNotice::Revoke(onStageChangeNotice);
-    pxr::TfNotice::Revoke(onLayerMutingChangedNotice);
     GetISceneEventManager()->UnRegisterCallback(nodeEventCallbackKey);
+}
+
+void USDStageObject::CreateInMemoryStage()
+{
+    const auto root = pxr::SdfLayer::CreateAnonymous("anonymousLayer1");
+    const auto anonStage = pxr::UsdStage::Open(root);
+
+    // Set default TPS, FPS, Unit based on 3dsMax values.
+    double stageScale = GetSystemUnitScale(UNITS_METERS);
+    // round float imprecision
+    stageScale = MaxUsd::MathUtils::RoundToSignificantDigit(
+        stageScale, std::numeric_limits<float>::digits10);
+    pxr::UsdGeomSetStageMetersPerUnit(anonStage, stageScale);
+
+    const auto maxFramePerSecond = (4800.0 / double(GetTicksPerFrame()));
+    anonStage->SetTimeCodesPerSecond(maxFramePerSecond);
+    anonStage->SetFramesPerSecond(maxFramePerSecond);
+
+    // Hardcode Z-up axis for the stage
+    pxr::UsdGeomSetStageUpAxis(anonStage, pxr::UsdGeomTokens->z);
+
+    SetUSDStage(anonStage);
+
+    // Set the anon root layer ID to the AnonRootId param:
+    // This param drives the process of recreating the stage
+    // correctly when loading/opening a .max scene which has
+    // an anon root layer saved to it. See USDAssetAccessor.h.
+    auto rootLayerId = MaxUsd::UsdStringToMaxString(anonStage->GetRootLayer()->GetIdentifier());
+    pb->SetValue(AnonRootId, GetCOREInterface()->GetTime(), rootLayerId);
 }
 
 void USDStageObject::SetReference(int i, RefTargetHandle rtarg)
@@ -1747,8 +1954,11 @@ void USDStageObject::FullStageReset()
     stage = pxr::TfNullPtr;
     stageCacheId = {};
 
-    // Reset the engine, to make sure we don't hold onto any state.
+    // Reset the engine, to make sure we don't hold onto any state other than
+    // primvar mappings
+    auto primvarMappings = hydraEngine->GetRenderDelegate()->GetPrimvarMappingOptions();
     hydraEngine = std::make_unique<HdMaxEngine>();
+    hydraEngine->GetRenderDelegate()->SetPrimvarMappingOptions(primvarMappings);
 
     if (auto owner = dynamic_cast<Object*>(pb->GetOwner())) {
         Interval valid = FOREVER;
@@ -1892,6 +2102,51 @@ void USDStageObject::GenerateDrawModes()
             }
         }
     }
+}
+
+bool USDStageObject::SetStageFromCache(int cacheId)
+{
+    auto cacheIdFromCache = pxr::UsdStageCache::Id::FromLongInt(cacheId);
+    auto foundStage = pxr::UsdUtilsStageCache::Get().Find(cacheIdFromCache);
+
+    if (!foundStage) {
+        return false;
+    }
+
+    Interval     valid = FOREVER;
+    const MCHAR* currentRootLayerValue = nullptr;
+    pb->GetValue(StageFile, GetCOREInterface()->GetTime(), currentRootLayerValue, valid);
+
+    const MCHAR* currentStageMaskValue = nullptr;
+    pb->GetValue(StageMask, GetCOREInterface()->GetTime(), currentStageMaskValue, valid);
+
+    WStr rootLayer = L"";
+    WStr stageMask = L"/";
+
+    auto rootLayerId = foundStage->GetRootLayer()->GetIdentifier();
+    if (!SdfLayer::IsAnonymousLayerIdentifier(rootLayerId)) {
+        rootLayer = MaxUsd::UsdStringToMaxString(rootLayerId);
+    }
+
+    // Insert the StageRestoreObj in the undo stack, to allow undoing the stage change.
+    if (!theHold.Holding()) {
+        theHold.Begin();
+        theHold.Put(new StageRestoreObj(
+            this, pb, currentRootLayerValue, currentStageMaskValue, rootLayer, stageMask));
+        GetParamBlock(0)->SetValue(StageFile, GetCOREInterface()->GetTime(), rootLayer);
+        GetParamBlock(0)->SetValue(StageMask, GetCOREInterface()->GetTime(), stageMask);
+        SetUSDStage(foundStage);
+        theHold.Accept(L"Set Stage from Cache");
+    } else {
+        if (!theHold.IsSuspended()) {
+            theHold.Put(new StageRestoreObj(
+                this, pb, currentRootLayerValue, currentStageMaskValue, rootLayer, stageMask));
+        }
+        GetParamBlock(0)->SetValue(StageFile, GetCOREInterface()->GetTime(), rootLayer);
+        GetParamBlock(0)->SetValue(StageMask, GetCOREInterface()->GetTime(), stageMask);
+        SetUSDStage(foundStage);
+    }
+    return true;
 }
 
 INode* USDStageObject::PromoteTo3dsMaxObject(const wchar_t* primPath, bool select)
@@ -2055,12 +2310,12 @@ bool USDStageObject::IsInCreateMode() const { return isInCreateMode; }
 
 void USDStageObject::SetLockedLayersState(const std::vector<std::string>& lockedLayers)
 {
-    this->lockedLayers = lockedLayers;
+    this->lockedLayersFromMaxScene = lockedLayers;
 }
 
 void USDStageObject::SetMutedLayersState(const std::vector<std::string>& mutedLayers)
 {
-    this->mutedLayers = mutedLayers;
+    this->mutedLayersFromMaxScene = mutedLayers;
 }
 
 RefResult USDStageObject::NotifyRefChanged(
@@ -2444,15 +2699,234 @@ void USDStageObject::Scale(
     TransformInteractive(partm, tmAxis, scaling);
 }
 
+// On prim clone operations, callbacks are triggered. This function creates the
+// clone callback data dicts, giving info on what happened or is about to happen
+// The clone "mode" (for now we only have "as internal reference") and what items
+// are about to be cloned, or were cloned.
+void CreatePrimCloneCallbackData(
+    const std::string& itemsKey,
+    VtDictionary&      context,
+    VtDictionary&      data)
+{
+    context["mode"] = VtValue("internalReference");
+    VtStringArray paths;
+    auto&         globalSelection = Ufe::GlobalSelection::get();
+    const auto&   selection = *globalSelection;
+    for (const auto& item : selection) {
+        const std::string pathString = Ufe::PathString::string(item->path());
+        paths.push_back(pathString);
+    }
+    data[itemsKey] = paths;
+}
+
+void USDStageObject::PrimCloneStart(std::vector<Transformable>& transformables)
+{
+    Ufe::Selection newSelection;
+    for (auto& transformable : transformables) {
+        // TODO support for point instances
+        if (!transformable.instanceIndices.empty()) {
+            continue;
+        }
+        // Generate a unique name for the clone.
+        MaxUsd::UniqueNameGenerator gen;
+        const auto&                 prim = transformable.prim;
+        const auto&                 parentPrim = prim.GetParent();
+        if (parentPrim) {
+            for (const auto& child : parentPrim.GetAllChildrenNames()) {
+                gen.AddExistingName(child.GetString());
+            }
+        }
+        const auto newName = gen.GetName(prim.GetName().GetString());
+
+        // Create the prim with an internal reference to the source in a UFE command,
+        // so that the clone operation is undoable and appears on the max undo stack.
+        Ufe::Path  srcUfePath = MaxUsd::ufe::getUfePath(prim);
+        const auto newPath = parentPrim.GetPath().AppendChild(pxr::TfToken(newName));
+        const auto typeName = prim.GetTypeName();
+        const auto sourcePrimPath = prim.GetPath();
+
+        auto cmdLambda = [this, newPath, sourcePrimPath, typeName](
+                             UfeUI::GenericCommand::Mode mode) {
+            if (mode == UfeUI::GenericCommand::Mode::kRedo) {
+                if (auto newPrim = stage->DefinePrim(newPath, typeName)) {
+
+                    // We create internal references when shift dragging. When we chain
+                    // duplicate, this would create a chain of internal references.
+                    // /prim3 -> /prim2 -> /prim1
+
+                    // Try to avoid this chaining if we detect that a prim is likely
+                    // one that we duplicated previously. In other words :
+                    // - It only has specs on a single layer (def + internal refs).
+                    // - It has exactly one internal reference on the spec.
+                    // - It has no children specs.
+                    // - It only overrides the transform property and possibly the op order.
+                    // - It does not have any extra fields authored.
+                    auto refSource = sourcePrimPath;
+                    auto tryAvoidRefChain = [&refSource, &sourcePrimPath, &newPrim, this]() {
+                        auto sourcePrim = stage->GetPrimAtPath(sourcePrimPath);
+                        if (!sourcePrim) {
+                            return;
+                        }
+                        // Only defined on a single layer - possibly multiple internal references.
+                        auto primStack = sourcePrim.GetPrimStack();
+                        auto layer = primStack.front()->GetLayer();
+                        for (const auto& spec : primStack) {
+                            if (spec->GetLayer() != layer) {
+                                return;
+                            }
+                        }
+
+                        // No children specs...
+                        auto sourcePrimSpec = layer->GetPrimAtPath(sourcePrimPath);
+                        auto children = sourcePrimSpec->GetNameChildren();
+                        if (!children.empty()) {
+                            return;
+                        }
+
+                        // Only transform overrides...
+                        auto props = sourcePrimSpec->GetProperties();
+                        if (props.size() < 1 || props.size() > 2) {
+                            return;
+                        }
+                        const auto transformOpToken = "xformOp:transform";
+                        const auto opOrderToken = "xformOpOrder";
+                        if (props[0]->GetName() != transformOpToken) {
+                            return;
+                        }
+                        if (props.size() == 2 && props[1]->GetName() != opOrderToken) {
+                            return;
+                        }
+                        // Only expect these fields :
+                        // references, typename, specifier, properties.
+                        // This ensures there are no other arcs authored.
+                        std::vector<pxr::TfToken> expectedFields = { pxr::TfToken("specifier"),
+                                                                     pxr::TfToken("typeName"),
+                                                                     pxr::TfToken("references"),
+                                                                     pxr::TfToken("properties") };
+                        auto                      fields = sourcePrimSpec->ListFields();
+                        if (fields.size() != 4) {
+                            return;
+                        }
+                        for (const auto& field : expectedFields) {
+                            if (std::find(fields.begin(), fields.end(), field) == fields.end()) {
+                                return;
+                            }
+                        }
+
+                        // Only expect one prepended internal reference.
+                        const auto refList = sourcePrimSpec->GetReferenceList();
+                        auto       prependedRefs = refList.GetPrependedItems();
+                        if (prependedRefs.size() != 1 || !refList.GetAddedItems().empty()
+                            || !refList.GetDeletedItems().empty()
+                            || !refList.GetExplicitItems().empty()
+                            || !refList.GetOrderedItems().empty()
+                            || !refList.GetAppendedItems().empty()) {
+                            return;
+                        }
+                        SdfReference ref = prependedRefs.front();
+                        if (!ref.IsInternal()) {
+                            return;
+                        }
+
+                        // We can avoid the chain : copy over the transform overrides, and use the
+                        // source's internal reference.
+                        refSource = ref.GetPrimPath();
+                        auto newPrimSpec
+                            = stage->GetEditTarget().GetPrimSpecForScenePath(newPrim.GetPath());
+                        // We previously validated that there should only be transform + transform
+                        // op order in the props.
+                        for (int i = 0; i < props.size(); ++i) {
+                            const auto prop = props[i];
+                            auto       sourcePropPath = prop->GetPath();
+                            auto       newPropPath = sourcePropPath.ReplacePrefix(
+                                sourcePropPath.GetPrimPath(), newPrim.GetPath());
+                            SdfCopySpec(
+                                sourcePrimSpec->GetLayer(),
+                                sourcePropPath,
+                                sourcePrimSpec->GetLayer(),
+                                newPropPath);
+                        }
+                    };
+
+                    tryAvoidRefChain();
+
+                    newPrim.GetReferences().AddInternalReference(refSource);
+                }
+                return;
+            }
+            // Undo
+            if (stage->GetPrimAtPath(newPath)) {
+                // Store/restore selection to work around regression in USDUFE.
+                // TODO : remove this work around when it is fixed.
+                auto sel = *Ufe::GlobalSelection::get();
+                stage->RemovePrim(newPath);
+                *Ufe::GlobalSelection::get() = sel;
+            }
+        };
+
+        // Will be wrapped in part of the move command - not directly visible on the undo stack.
+        auto cloneCmd = UfeUI::GenericCommand::create(cmdLambda, "Clone Prims");
+        // Edit commands in max trigger a VP refresh and make sure the edit target is still the same
+        // on undo/redo.
+        auto editCmd = UfeUi::EditCommand::create(srcUfePath, cloneCmd, "Clone Prim Edit");
+        Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
+
+        // The creation of the prim can fail (locked layers, instance proxies, etc.)
+        // This doesn't prevent the clone of other items in the selection, if any.
+        if (auto newPrim = stage->GetPrimAtPath(newPath)) {
+            const auto newUfePath = MaxUsd::ufe::getUfePath(newPrim);
+            const auto ufeItem = Ufe::Hierarchy::createItem(newUfePath);
+            newSelection.append(ufeItem);
+        }
+    }
+
+    // If we managed to clone prims, set them as the new selection, and call any registered
+    // callbacks.
+    if (!newSelection.empty()) {
+
+        pxr::VtDictionary callbackContext, callbackData;
+        CreatePrimCloneCallbackData("items", callbackContext, callbackData);
+        UsdUfe::triggerUICallback(TfToken("onUsdPrimCloneStart"), callbackContext, callbackData);
+
+        Ufe::UndoableCommandMgr::instance().executeCmd(
+            std::make_shared<UfeUi::ReplaceSelectionCommand>(newSelection));
+        transformables = GetTransformablesFromSelection();
+        inUsdCloneOp = true;
+    }
+}
+
+void USDStageObject::PrimCloneFinish()
+{
+    pxr::VtDictionary callbackContext, callbackData;
+    CreatePrimCloneCallbackData("cloned_items", callbackContext, callbackData);
+    UsdUfe::triggerUICallback(TfToken("onUsdPrimCloneFinish"), callbackContext, callbackData);
+    inUsdCloneOp = false;
+}
+
+void USDStageObject::PrimCloneCancel()
+{
+    pxr::VtDictionary callbackContext, callbackData;
+    CreatePrimCloneCallbackData("cloned_items", callbackContext, callbackData);
+    UsdUfe::triggerUICallback(TfToken("onUsdPrimCloneCancel"), callbackContext, callbackData);
+    // Will undo the creation of the clone.
+    theHold.Cancel();
+    inUsdCloneOp = false;
+}
+
 void USDStageObject::TransformStart(TimeValue t)
 {
     // Setup a diagnostic delegate to log any errors in the listener.
     const auto del
         = MaxUsd::Diagnostics::ScopedDelegate::Create<MaxUsd::Diagnostics::ListenerDelegate>();
 
-    const auto transformables = GetTransformablesFromSelection();
+    auto transformables = GetTransformablesFromSelection();
     if (transformables.empty()) {
         return;
+    }
+
+    // Shift dragging duplicates prims.
+    if (MaxUsd::Ui::IsShiftPressed()) {
+        PrimCloneStart(transformables);
     }
 
     // We read USD values at the current time code, but we will author at the default time code.
@@ -2488,6 +2962,10 @@ void USDStageObject::TransformFinish(TimeValue t)
         return;
     }
 
+    if (inUsdCloneOp) {
+        PrimCloneFinish();
+    }
+
     // Use a composite command to properly support undo when transforming from a multi-selection.
     const auto compositeCmd = Ufe::CompositeUndoableCommand::create({});
     for (const auto& manip : subObjectManips) {
@@ -2507,6 +2985,12 @@ void USDStageObject::TransformFinish(TimeValue t)
 void USDStageObject::TransformCancel(TimeValue t)
 {
     if (subObjectManips.empty()) {
+        return;
+    }
+
+    if (inUsdCloneOp) {
+        PrimCloneCancel();
+        // No need to undo the transforms of removed clones - they will be gone.
         return;
     }
 
@@ -2726,68 +3210,6 @@ void USDStageObject::SetRootLayer(
     const wchar_t* stageMask,
     bool           payloadsLoaded)
 {
-
-    class StageRestoreObj
-        : public RestoreObj
-        , private SingleRefMaker
-    {
-    public:
-        StageRestoreObj(
-            USDStageObject*     object,
-            IParamBlock2*       pb,
-            const std::wstring& oldRootLayer,
-            const std::wstring& oldStageMask,
-            const std::wstring& newRootLayer,
-            const std::wstring& newStageMask)
-            : oldRootLayer { oldRootLayer }
-            , oldStageMask { oldStageMask }
-            , newRootLayer { newRootLayer }
-            , newStageMask { newStageMask }
-            , pb { pb }
-            , object { object }
-        {
-            // Keep a reference on the stage object, to make sure it's not garbage collected.
-            this->SetRef(object);
-            this->SetAutoDropRefOnShutdown(AutoDropRefOnShutdown::PrePluginShutdown);
-
-            oldStageRef = object->GetUSDStage();
-        }
-        void Restore(int isUndo) override
-        {
-            newStageRef = object->GetUSDStage();
-
-            pb->SetValue(
-                PBParameterIds::StageFile, GetCOREInterface()->GetTime(), oldRootLayer.c_str());
-            pb->SetValue(
-                PBParameterIds::StageMask, GetCOREInterface()->GetTime(), oldStageMask.c_str());
-            object->LoadUSDStage(oldStageRef);
-        }
-        void Redo() override
-        {
-            pb->SetValue(
-                PBParameterIds::StageFile, GetCOREInterface()->GetTime(), newRootLayer.c_str());
-            pb->SetValue(
-                PBParameterIds::StageMask, GetCOREInterface()->GetTime(), newStageMask.c_str());
-            object->LoadUSDStage(newStageRef);
-        }
-        int Size() override
-        {
-            return sizeof(oldStageMask) + sizeof(newStageMask) + sizeof(oldRootLayer)
-                + sizeof(newRootLayer) + sizeof(pb) + sizeof(object);
-        }
-        TSTR Description() override { return TSTR(_T("USD Stage Object root layer restore.")); }
-
-    private:
-        std::wstring        oldRootLayer;
-        std::wstring        oldStageMask;
-        std::wstring        newRootLayer;
-        std::wstring        newStageMask;
-        IParamBlock2*       pb;
-        USDStageObject*     object;
-        pxr::UsdStageRefPtr oldStageRef;
-        pxr::UsdStageRefPtr newStageRef;
-    };
-
     const MCHAR* stageFilepathValue = nullptr;
     Interval     valid = FOREVER;
     pb->GetValue(StageFile, GetCOREInterface()->GetTime(), stageFilepathValue, valid);
@@ -2801,10 +3223,13 @@ void USDStageObject::SetRootLayer(
         auto configureAndLoadStage = [this, rootLayer, stageMask, payloadsLoaded]() {
             pb->SetValue(StageFile, GetCOREInterface()->GetTime(), rootLayer);
             pb->SetValue(StageMask, GetCOREInterface()->GetTime(), stageMask);
-            LoadUSDStage(nullptr, payloadsLoaded);
+            LoadUSDStage(
+                MaxUsd::MaxStringToUsdString(rootLayer),
+                MaxUsd::MaxStringToUsdString(stageMask),
+                payloadsLoaded);
         };
 
-        // Insert the StageResoreObj in the undo stack, to allow undoing the stage change.
+        // Insert the StageRestoreObj in the undo stack, to allow undoing the stage change.
         if (!theHold.Holding()) {
             theHold.Begin();
             theHold.Put(new StageRestoreObj(
@@ -2843,11 +3268,17 @@ void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
     // added, or removed, or some instance indices changed.
     DirtySelectionDisplay();
 
-    // If we have resync'ed paths, there were structural changes to the stage.
-    if (!notice.GetResyncedPaths().empty()) {
+    const auto resynced = notice.GetResyncedPaths();
 
-        // We may have deleted or added cameras.
-        BuildCameraNodes();
+    // If we have resync'ed paths, there were structural changes to the stage.
+    if (!resynced.empty()) {
+
+        for (const auto& path : resynced) {
+            if (path.IsPrimPath()) {
+                BuildCameraNodes();
+                break;
+            }
+        }
 
         // We might need to update out selection, to avoid holding on to now expired prims.
         const auto& globalSelection = Ufe::GlobalSelection::get();
@@ -2877,15 +3308,6 @@ void USDStageObject::OnStageChange(pxr::UsdNotice::ObjectsChanged const& notice)
     // Notify that the object may have changed, so that it is flagged for redraw.
     Interval valid = FOREVER;
     this->ForceNotify(valid);
-}
-
-void USDStageObject::OnLayerMutingChanged(pxr::UsdNotice::LayerMutingChanged const& notice)
-{
-    const auto stage = GetUSDStage();
-    if (!stage) {
-        return;
-    }
-    SetMutedLayersState(stage->GetMutedLayers());
 }
 
 void USDStageObject::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp, Box3& box)
@@ -2952,8 +3374,65 @@ pxr::UsdStageWeakPtr USDStageObject::GetUSDStage() const
     return pxr::TfNullPtr;
 }
 
-pxr::UsdStageWeakPtr
-USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayloads)
+void USDStageObject::ApplyLoadedStateFromMax()
+{
+    if (!stage) {
+        return;
+    }
+
+    // Check if a sessionLayer was loaded from the max file
+    if (sessionLayerFromMaxScene) {
+        stage->GetSessionLayer()->TransferContent(sessionLayerFromMaxScene);
+
+        // No need to hold onto the layer once it is passed to the stage.
+        sessionLayerFromMaxScene = nullptr;
+    }
+
+    if (!editTargetFromMaxScene.empty()) {
+        pxr::SdfLayerHandle targetLayer;
+        if (editTargetFromMaxScene == SESSION_LAYER_PERSISTANT_ID) {
+            targetLayer = stage->GetSessionLayer();
+        } else {
+            targetLayer = UsdLayerEditor::Layers::getLocalTargetLayerFromString(
+                {}, *stage, editTargetFromMaxScene);
+        }
+
+        if (targetLayer) {
+            stage->SetEditTarget(targetLayer);
+        } else {
+            // Layer no longer exists or is invalid..
+            const auto nodes = MaxUsd::GetReferencingNodes(this);
+            if (nodes.Count() != 0) {
+                std::string msg = "Unable to restore the saved edit target (";
+                msg.append(editTargetFromMaxScene);
+                msg.append(") for USDStageObject ");
+                msg.append(MaxUsd::MaxStringToUsdString(nodes[0]->GetName()));
+                MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(msg).ToMCHAR(), true);
+            }
+        }
+        // Clear the string, if the stage object is repurposed with a new root layer, and
+        // reloaded, we do not want to reapply this. Should only be applied once when loading
+        // from disk.
+        editTargetFromMaxScene = {};
+    }
+
+    UsdLayerEditor::LayerNameMap nameMap;
+    if (!lockedLayersFromMaxScene.empty()) {
+        UsdLayerEditor::loadLayerLockState(lockedLayersFromMaxScene, nameMap, *stage);
+
+        // Use once, then clear
+        lockedLayersFromMaxScene.clear();
+    }
+
+    if (!mutedLayersFromMaxScene.empty()) {
+        UsdLayerEditor::loadLayerMuteState(mutedLayersFromMaxScene, nameMap, *stage);
+
+        // Use once, then clear
+        mutedLayersFromMaxScene.clear();
+    }
+}
+
+pxr::UsdStageWeakPtr USDStageObject::SetUSDStage(const pxr::UsdStageRefPtr& fromStage)
 {
     const auto scopeGuard = MaxUsd::MakeScopeGuard(
         []() {},
@@ -2968,119 +3447,15 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
             }
         });
 
+    if (!fromStage) {
+        return nullptr;
+    }
+
     if (stage) {
         FullStageReset();
     }
 
-    Interval valid;
-
-    if (fromStage) {
-        stage = fromStage;
-    } else {
-        // Block stage cache population for now. If the same file is referenced several times, we
-        // want different stages.
-        pxr::UsdStageCacheContext stageCacheContext {
-            pxr::UsdStageCacheContextBlockType::UsdBlockStageCachePopulation
-        };
-        const MCHAR* stageFilepathValue = nullptr;
-
-        pb->GetValue(StageFile, GetCOREInterface()->GetTime(), stageFilepathValue, valid);
-        if ((!stageFilepathValue) || (!stageFilepathValue[0])) {
-            return nullptr;
-        }
-
-        const std::string filename = MaxUsd::MaxStringToUsdString(stageFilepathValue);
-        if (filename.empty() || MaxUsd::HasUnicodeCharacter(filename)) {
-            // NOTE: need better error reporting here
-            return nullptr;
-        }
-
-        if (!pxr::UsdStage::IsSupportedFile(filename)) {
-            return nullptr;
-        }
-
-        const MCHAR* stageMaskValue = nullptr;
-        pb->GetValue(StageMask, GetCOREInterface()->GetTime(), stageMaskValue, valid);
-        if ((!stageMaskValue) || (!stageMaskValue[0])) {
-            return nullptr;
-        }
-
-        pxr::UsdStagePopulationMask stageMask;
-        pxr::SdfPath                stageMaskSdfPath(MaxUsd::MaxStringToUsdString(stageMaskValue));
-        stageMask.Add(stageMaskSdfPath);
-
-        const auto rootLayer = pxr::SdfLayer::FindOrOpen(filename);
-
-        pxr::UsdStage::InitialLoadSet initialLoadSet;
-        // Depending on whether we have a session layer that was loaded from the 3dsMax file or not,
-        // we need to call different signatures to open the stage. Indeed, if we pass a null session
-        // layer, none will be created for us. The signature which does not pass a session layer,
-        // will create a session layer for us under the hood - this is what we want.
-        if (sessionLayerFromMaxScene) {
-            // was the file saved with the obsolete PB value for 'LoadPayloads'
-            // in case the 'LoadNone' was set it will use that value, otherwise,
-            // whether the value is set or not, it uses the default 'LoadAll'
-            initialLoadSet = GetParamBlockBool(pb, LoadPayloads) ? pxr::UsdStage::LoadAll
-                                                                 : pxr::UsdStage::LoadNone;
-
-            stage = pxr::UsdStage::OpenMasked(
-                rootLayer, sessionLayerFromMaxScene, stageMask, initialLoadSet);
-            // No need to hold onto the layer once it is passed to the stage.
-            sessionLayerFromMaxScene = nullptr;
-        } else {
-            initialLoadSet = loadPayloads ? pxr::UsdStage::LoadAll : pxr::UsdStage::LoadNone;
-            stage = pxr::UsdStage::OpenMasked(rootLayer, stageMask, initialLoadSet);
-        }
-
-        if (!stage) {
-            editTargetFromMaxScene.clear();
-            return nullptr;
-        }
-
-        if (initialLoadSet == pxr::UsdStage::LoadNone) {
-            SaveStageLoadRules();
-        } else {
-            // set the payload rules that apply
-            stage->SetLoadRules(UsdUfe::createLoadRulesFromText(savedPayloadRules));
-        }
-
-        if (!editTargetFromMaxScene.empty()) {
-
-            pxr::SdfLayerHandle targetLayer;
-            // TODO LE-EXTRACT Save anonymous layers.
-            // Once we save anonymous layers and have the remapping behavior in place - use that
-            // instead of a special case for the session layer.
-            if (editTargetFromMaxScene == SESSION_LAYER_PERSISTANT_ID) {
-                targetLayer = stage->GetSessionLayer();
-            } else {
-                targetLayer = UsdLayerEditor::Layers::getLocalTargetLayerFromString(
-                    {}, *stage, editTargetFromMaxScene);
-            }
-
-            if (targetLayer) {
-                stage->SetEditTarget(targetLayer);
-            } else {
-                // Layer no longer exists or is invalid..
-                const auto nodes = MaxUsd::GetReferencingNodes(this);
-                if (nodes.Count() != 0) {
-                    std::string msg = "Unable to restore the saved edit target (";
-                    msg.append(editTargetFromMaxScene);
-                    msg.append(") for USDStageObject ");
-                    msg.append(MaxUsd::MaxStringToUsdString(nodes[0]->GetName()));
-                    MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(msg).ToMCHAR(), true);
-                }
-            }
-            // Clear the string, if the stage object is repurposed with a new root layer, and
-            // reloaded, we do not want to reapply this. Should only be applied once when loading
-            // from disk.
-            editTargetFromMaxScene = {};
-        }
-    }
-
-    // TODO LE-EXTRACT Anonymous layer save - need to map layer renames.
-    UsdLayerEditor::LayerNameMap nameMap;
-    UsdLayerEditor::loadLayerLockState(lockedLayers, nameMap, *stage);
-    UsdLayerEditor::loadLayerMuteState(mutedLayers, nameMap, *stage);
+    stage = fromStage;
 
     // Insert the stage into the cache, and expose the CacheId so that it is accessible from
     // Maxscript.
@@ -3091,6 +3466,7 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
     auto sourceAnimationLength = stage->GetEndTimeCode() - stage->GetStartTimeCode();
     auto animationLength = MaxUsd::GetMaxFrameFromUsdTimeCode(stage, sourceAnimationLength);
 
+    Interval valid;
     // The following segment of code is for setting the "End Frame" ui field to the length of the
     // animation that is being referenced for convenience. The check here is being performed to
     // ensure that it is in fact a newly added reference and in order to not override previously set
@@ -3115,6 +3491,35 @@ USDStageObject::LoadUSDStage(const pxr::UsdStageRefPtr& fromStage, bool loadPayl
     GenerateDrawModes();
 
     return stage;
+}
+
+pxr::UsdStageWeakPtr USDStageObject::LoadUSDStage(
+    const std::string& rootPath,
+    const std::string& stageMaskPath,
+    bool               loadPayloads)
+{
+    pxr::UsdStage::InitialLoadSet initialLoadSet
+        = loadPayloads ? pxr::UsdStage::LoadAll : pxr::UsdStage::LoadNone;
+
+    pxr::UsdStagePopulationMask stageMask;
+    pxr::SdfPath                stageMaskSdfPath(stageMaskPath);
+    stageMask.Add(stageMaskSdfPath);
+
+    const auto rootLayer = pxr::SdfLayer::FindOrOpen(rootPath);
+    auto       loadedStage = pxr::UsdStage::OpenMasked(rootLayer, stageMask, initialLoadSet);
+
+    if (!loadedStage) {
+        return nullptr;
+    }
+
+    if (initialLoadSet == pxr::UsdStage::LoadNone) {
+        savedPayloadRules = UsdUfe::convertLoadRulesToText(loadedStage->GetLoadRules());
+    } else {
+        // set the payload rules that apply
+        loadedStage->SetLoadRules(UsdUfe::createLoadRulesFromText(savedPayloadRules));
+    }
+
+    return SetUSDStage(loadedStage);
 }
 
 pxr::GfMatrix4d USDStageObject::GetStageRootTransform() const
@@ -3161,17 +3566,29 @@ void USDStageObject::EnumAuxFiles(AssetEnumCallback& nameEnum, DWORD flags)
     this->ReferenceMaker::EnumAuxFiles(nameEnum, flags);
 }
 
-IOResult USDStageObject::Save(ISave* iSave)
+bool USDStageObject::SpecifySaveReferences(ReferenceSaveManager& referenceSaveManager)
 {
     // Ask the USD layer manager to handle the scene save. If there are any dirty USD layers
     // the users will be prompted about what to do.
     // The first USD stage in the scene being saved will trigger the save of all dirty layers.
     // On subsequent stage objects this would be a no-op. The reason is that there is no
     // clean way to cancel the save operation before we traverse the scene up until the
-    // first object. If the user requests to cancel the save (to be able to deal some dirty layers),
-    // we want to do interupt the save - and do so at the earliest possible time. The stage object
+    // first object.
+    // If the user requests to cancel the save (to be able to deal some dirty layers),
+    // we want to do interrupt the save - and do so at the earliest possible time. The stage object
     // "class" save callback is not suitable, as those are called into last.
     if (!USDLayerManager::Instance()->HandleMaxSceneSave()) {
+        interruptSave = true;
+        return true;
+    }
+
+    return __super::SpecifySaveReferences(referenceSaveManager);
+}
+
+IOResult USDStageObject::Save(ISave* iSave)
+{
+    if (interruptSave) {
+        interruptSave = false;
         return IO_INTERRUPT;
     }
 
@@ -3224,6 +3641,12 @@ IOResult USDStageObject::Save(ISave* iSave)
             const auto storageStr = MaxUsd::UsdStringToMaxString(sessionLayerStr);
             iSave->WriteWString(storageStr.ToACP());
             iSave->EndChunk();
+
+            // Save the session ID
+            iSave->BeginChunk(SESSION_LAYER_ID_CHUNK_ID);
+            const auto sessionLayerId = MaxUsd::UsdStringToMaxString(sessionLayer->GetIdentifier());
+            iSave->WriteWString(sessionLayerId.ToACP());
+            iSave->EndChunk();
         }
 
         // save the payload rules applied on the stage
@@ -3232,34 +3655,48 @@ IOResult USDStageObject::Save(ISave* iSave)
         iSave->EndChunk();
     }
 
-    // Save layer lock / mute states.
-    for (auto lockedLayer : lockedLayers) {
-        iSave->BeginChunk(LOCKED_LAYER_IDENTIFIERS_CHUNK_ID);
-        const auto layerId = MaxUsd::UsdStringToMaxString(lockedLayer);
-        iSave->WriteWString(layerId.ToACP());
-        iSave->EndChunk();
-    }
-    for (auto mutedLayer : mutedLayers) {
-        iSave->BeginChunk(MUTED_LAYER_IDENTIFIERS_CHUNK_ID);
-        const auto layerId = MaxUsd::UsdStringToMaxString(mutedLayer);
-        iSave->WriteWString(layerId.ToACP());
-        iSave->EndChunk();
-    }
+    // If you have a anon root layer, and the selected save operation is to save only the 3dsMax
+    // content, then, upon reloading the saved .max file, the max scene will start with a fresh
+    // new stage with a single anonymous root with a new identifier
+    bool shouldLayerIDSavesBeSkipped = stage->GetRootLayer()->IsAnonymous()
+        && USDLayerManager::Instance()->GetSaveMode() == SaveMode::Save3dsMaxOnly;
 
-    // Save the stage's current edit target
-    if (stage) {
-        auto editTarget = UsdLayerEditor::Layers::getLocalTargetLayerAsString(stage);
-        if (!editTarget.empty()) {
-            iSave->BeginChunk(STAGE_EDIT_TARGET_CHUNK_ID);
-            // TODO LE-EXTRACT Save anonymous layers.
-            // Once we save anonymous layers and have the remapping behavior in place - use that
-            // instead of a special case for the session layer.
-            if (editTarget == stage->GetSessionLayer()->GetIdentifier()) {
-                editTarget = SESSION_LAYER_PERSISTANT_ID;
-            }
-            const auto layerId = MaxUsd::UsdStringToMaxString(editTarget);
+    if (!shouldLayerIDSavesBeSkipped) {
+        // Save layer lock / mute states.
+        for (auto lockedLayer : UsdLayerEditor::getLockedLayersIdentifiers()) {
+            iSave->BeginChunk(LOCKED_LAYER_IDENTIFIERS_CHUNK_ID);
+            // Capitalize drive letter if present otherwise this causes issues from
+            // older versions of OpenUSD where the drive was small case:
+            // https://forum.aousd.org/t/drive-letter-casing-for-normalized-windows-paths-in-openusd/1412
+            lockedLayer = MaxUsd::CapitalizeDriveLetterWindowsPath(lockedLayer);
+            const auto layerId = MaxUsd::UsdStringToMaxString(lockedLayer);
             iSave->WriteWString(layerId.ToACP());
             iSave->EndChunk();
+        }
+        for (auto mutedLayer : stage->GetMutedLayers()) {
+            iSave->BeginChunk(MUTED_LAYER_IDENTIFIERS_CHUNK_ID);
+            mutedLayer = MaxUsd::CapitalizeDriveLetterWindowsPath(mutedLayer);
+            const auto layerId = MaxUsd::UsdStringToMaxString(mutedLayer);
+            iSave->WriteWString(layerId.ToACP());
+            iSave->EndChunk();
+        }
+
+        // Save the stage's current edit target
+        if (stage) {
+            auto editTarget = UsdLayerEditor::Layers::getLocalTargetLayerAsString(stage);
+            if (!editTarget.empty()) {
+                iSave->BeginChunk(STAGE_EDIT_TARGET_CHUNK_ID);
+                // TODO LE-EXTRACT Save anonymous layers.
+                // Once we save anonymous layers and have the remapping behavior in place - use that
+                // instead of a special case for the session layer.
+                if (editTarget == stage->GetSessionLayer()->GetIdentifier()) {
+                    editTarget = SESSION_LAYER_PERSISTANT_ID;
+                }
+                editTarget = MaxUsd::CapitalizeDriveLetterWindowsPath(editTarget);
+                const auto layerId = MaxUsd::UsdStringToMaxString(editTarget);
+                iSave->WriteWString(layerId.ToACP());
+                iSave->EndChunk();
+            }
         }
     }
 
@@ -3313,6 +3750,9 @@ IOResult USDStageObject::Load(ILoad* iLoad)
     std::vector<std::string> lockedLayers;
     std::vector<std::string> mutedLayers;
 
+    std::string loadedSessionLayerID;
+    std::string sessionLayerString;
+
     while (IO_OK == (res = iLoad->OpenChunk())) {
         switch (iLoad->CurChunkID()) {
         // We will probably get multiple of these, as we can only have one string
@@ -3358,19 +3798,8 @@ IOResult USDStageObject::Load(ILoad* iLoad)
                 DbgAssert(0 && _T("Error reading session layer from UsdStageObject."));
                 return strRes;
             }
-            // The passed string is just a tag. The extension is important as SdfLayer will
-            // use it to determine the used file format for the layer.
-            sessionLayerFromMaxScene
-                = pxr::SdfLayer::CreateAnonymous("3dsmax_usd_session_layer.usd");
-            const bool layerImportRes = sessionLayerFromMaxScene->ImportFromString(
-                MaxUsd::MaxStringToUsdString(sessionLayerRaw));
-            // If there is an error, log it, but do not fail the entire max scene load.
-            if (!layerImportRes) {
-                const auto msg = _T("UsdStageObject load error. Unable to load the session layer ")
-                                 _T("from the max file.");
-                DbgAssert(0 && msg);
-                GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
-            }
+
+            sessionLayerString = MaxUsd::MaxStringToUsdString(sessionLayerRaw);
             break;
         }
         case PAYLOAD_RULES_CHUNK_ID: {
@@ -3390,7 +3819,12 @@ IOResult USDStageObject::Load(ILoad* iLoad)
                 DbgAssert(0 && _T("Error reading locked layer ID in UsdStageObject."));
                 return strRes;
             }
-            lockedLayers.push_back(MaxUsd::MaxStringToUsdString(layerID));
+            auto lockedLayerId = MaxUsd::MaxStringToUsdString(layerID);
+#if PXR_VERSION >= 2408
+            lockedLayers.push_back(MaxUsd::CapitalizeDriveLetterWindowsPath(lockedLayerId));
+#else
+            lockedLayers.push_back(MaxUsd::UncapitalizeDriveLetterWindowsPath(lockedLayerId));
+#endif
             break;
         }
         case MUTED_LAYER_IDENTIFIERS_CHUNK_ID: {
@@ -3400,7 +3834,12 @@ IOResult USDStageObject::Load(ILoad* iLoad)
                 DbgAssert(0 && _T("Error reading muted layer ID in UsdStageObject."));
                 return strRes;
             }
-            mutedLayers.push_back(MaxUsd::MaxStringToUsdString(layerID));
+            auto mutedLayerId = MaxUsd::MaxStringToUsdString(layerID);
+#if PXR_VERSION >= 2408
+            mutedLayers.push_back(MaxUsd::CapitalizeDriveLetterWindowsPath(mutedLayerId));
+#else
+            mutedLayers.push_back(MaxUsd::UncapitalizeDriveLetterWindowsPath(mutedLayerId));
+#endif
             break;
         }
         case STAGE_EDIT_TARGET_CHUNK_ID: {
@@ -3410,7 +3849,22 @@ IOResult USDStageObject::Load(ILoad* iLoad)
                 DbgAssert(0 && _T("Error reading edit target layer ID in UsdStageObject."));
                 return strRes;
             }
-            editTargetFromMaxScene = MaxUsd::MaxStringToUsdString(layerID);
+            auto editTargetLayerId = MaxUsd::MaxStringToUsdString(layerID);
+#if PXR_VERSION >= 2408
+            editTargetFromMaxScene = MaxUsd::CapitalizeDriveLetterWindowsPath(editTargetLayerId);
+#else
+            editTargetFromMaxScene = MaxUsd::UncapitalizeDriveLetterWindowsPath(editTargetLayerId);
+#endif
+            break;
+        }
+        case SESSION_LAYER_ID_CHUNK_ID: {
+            TCHAR*     sessionLayerID = NULL;
+            const auto strRes = iLoad->ReadWStringChunk(&sessionLayerID);
+            if (strRes != IO_OK) {
+                DbgAssert(0 && _T("Error reading session layer ID in UsdStageObject."));
+                return strRes;
+            }
+            loadedSessionLayerID = MaxUsd::MaxStringToUsdString(sessionLayerID);
             break;
         }
         default: break;
@@ -3418,8 +3872,34 @@ IOResult USDStageObject::Load(ILoad* iLoad)
         iLoad->CloseChunk();
     }
 
-    SetLockedLayersState(lockedLayers);
-    SetMutedLayersState(mutedLayers);
+    const auto& oldIDToNewLayerMap = USDLayerManager::Instance()->GetLoadedLayerMap();
+
+    // Helper lambda that remaps input layer id strings to mapped layer ids
+    // based on the mapping retrieved in the loading process from the .max
+    // scene (i.e. data contained in USDLayerManager::GetLoadedLayerMap())
+    std::function<std::vector<std::string>(std::vector<std::string>&)> remapLayers
+        = [&oldIDToNewLayerMap](const std::vector<std::string>& originalLayers) {
+              std::vector<std::string> remappedLayers;
+              for (auto layerId : originalLayers) {
+                  std::string& mappedLayerID = layerId;
+                  if (oldIDToNewLayerMap.find(layerId) != oldIDToNewLayerMap.end()) {
+                      auto mappedLockedLayer = oldIDToNewLayerMap.at(layerId);
+                      mappedLayerID = mappedLockedLayer->GetIdentifier();
+                  }
+
+                  remappedLayers.push_back(mappedLayerID);
+              }
+              return remappedLayers;
+          };
+
+    // Remap locked and muted layers
+    SetLockedLayersState(remapLayers(lockedLayers));
+    SetMutedLayersState(remapLayers(mutedLayers));
+
+    // Remap the editTarget
+    if (oldIDToNewLayerMap.find(editTargetFromMaxScene) != oldIDToNewLayerMap.end()) {
+        editTargetFromMaxScene = oldIDToNewLayerMap.at(editTargetFromMaxScene)->GetIdentifier();
+    }
 
     // We should always find the same number of names/channels.
     if (primvarNames.size() != primvarChannels.size()) {
@@ -3434,6 +3914,40 @@ IOResult USDStageObject::Load(ILoad* iLoad)
         // Already know here that both vectors are of the same size.
         primvarMappingOptions.SetPrimvarChannelMapping(primvarNames[i], primvarChannels[i]);
     }
+
+    // Load the session layer
+    sessionLayerFromMaxScene = pxr::SdfLayer::CreateAnonymous("3dsmax_usd_session_layer.usd");
+
+    // First check if the session layer ID is being used:
+    // If it exists in the loaded layer mapping in the USDLayerManager
+    // then transfer the content of that layer, as it will have sublayers,
+    // anonymous and not, correctly remapped as well.
+    // Note that this system is only used in the case of when scenes are
+    // saved with "SaveAllEditsMax" to the max scene.
+    bool foundInLayerMappingSystem = false;
+    if (oldIDToNewLayerMap.find(loadedSessionLayerID) != oldIDToNewLayerMap.end()) {
+        auto loadedSessionLayer = oldIDToNewLayerMap.at(loadedSessionLayerID);
+        sessionLayerFromMaxScene->TransferContent(loadedSessionLayer);
+        foundInLayerMappingSystem = true;
+    }
+
+    // Otherwise use the legacy session layer storage system.
+    // Note that the legacy system always stores the session layer in the
+    // SESSION_LAYER_CHUNK_ID chunk. When we are saying "SaveAll" or
+    // "Save3dsMaxOnly", if the session layer is dirty, they will be saved here.
+    // In both these cases, remapping is not needed, so we can depend on the
+    // exported string in SESSION_LAYER_CHUNK_ID to be correct.
+    if (!foundInLayerMappingSystem) {
+        const bool layerImportRes = sessionLayerFromMaxScene->ImportFromString(sessionLayerString);
+        // If there is an error, log it, but do not fail the entire max scene load.
+        if (!layerImportRes) {
+            const auto msg = _T("UsdStageObject load error. Unable to load the session layer ")
+                             _T("from the max file.");
+            DbgAssert(0 && msg);
+            GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, nullptr, msg);
+        }
+    }
+
     return IO_OK;
 }
 
@@ -4441,6 +4955,7 @@ std::vector<USDPickingRenderer::HitInfo> USDStageObject::PickStage(
 CreateMouseCallBack* USDStageObject::GetCreateMouseCallBack()
 {
     static CreateAtPosition createMouseCallback {};
+    createMouseCallback.setUsdStageObject(this);
     return &createMouseCallback;
 }
 
@@ -4456,9 +4971,19 @@ RefTargetHandle USDStageObject::Clone(RemapDir& remap)
     newStage->ReplaceReference(0, remap.CloneRef(pb));
     BaseClone(this, newStage, remap);
     newStage->savedPayloadRules = savedPayloadRules;
+
+    const MCHAR* stageFilepathValue = nullptr;
+    Interval     valid = FOREVER;
+    pb->GetValue(StageFile, GetCOREInterface()->GetTime(), stageFilepathValue, valid);
+
+    const MCHAR* stageMaskValue = nullptr;
+    pb->GetValue(StageMask, GetCOREInterface()->GetTime(), stageMaskValue, valid);
+
     // Manually trigger stage loading in the cloned object, as we don't setup
     // the root layer in the usual way.
-    newStage->LoadUSDStage();
+    newStage->LoadUSDStage(
+        MaxUsd::MaxStringToUsdString(stageFilepathValue),
+        MaxUsd::MaxStringToUsdString(stageMaskValue));
     return (newStage);
 }
 
@@ -4654,25 +5179,28 @@ void USDStageObject::Reload(bool quiet)
         sessionLayers.insert(*it);
     }
 
-    bool       warnUser = false;
-    const auto allLayers = stage->GetUsedLayers(true);
+    bool                        warnUser = false;
+    const auto                  allLayers = stage->GetUsedLayers(true);
+    std::vector<SdfLayerRefPtr> usedLayerNotInSessionLayerStack;
     for (const auto& layer : allLayers) {
         if (sessionLayers.find(layer) != sessionLayers.end()) {
             continue;
         }
-        // Edits will be discarded, and anonymous layers will be cleared.
-        if (layer->IsDirty() || layer->IsAnonymous()) {
+
+        // Edits will be discarded on non-anonymous layers
+        if (layer->IsDirty() && !layer->IsAnonymous()) {
             warnUser = true;
-            break;
+            usedLayerNotInSessionLayerStack.emplace_back(layer);
         }
     }
 
     if (warnUser && !quiet) {
         const WStr stageLabel = MaxUsd::UsdStringToMaxString(MaxUsd::Ui::GetStageLabel(stage));
 
-        QString textStr = QObject::tr("Reloading %s will discard edits on all its layers (except "
-                                      "the session layer). This action is irreversible.");
-        WStr    text;
+        QString textStr
+            = QObject::tr("Reloading %s will discard edits on all its non-anonymous layers (except "
+                          "the session layer). This action is irreversible.");
+        WStr text;
         text.printf(textStr.toStdWString().c_str(), stageLabel.ToMCHAR());
 
         QMessageBox msgBox;
@@ -4687,7 +5215,9 @@ void USDStageObject::Reload(bool quiet)
         }
     }
 
-    stage->Reload();
+    for (const auto& layer : usedLayerNotInSessionLayerStack) {
+        layer->Reload();
+    }
     Redraw();
 }
 

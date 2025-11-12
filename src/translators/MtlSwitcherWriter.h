@@ -19,6 +19,7 @@
 #ifdef IS_MAX2024_OR_GREATER
 #include <MaxUsd/Translators/ShaderWriter.h>
 #include <MaxUsd/Translators/WriteJobContext.h>
+#include "MultiMaterialUtils.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -29,10 +30,8 @@ class MtlSwitcherWriter : public MaxUsdShaderWriter
 public:
     /// A bundle contains the MatID set that it represents, the Bindings that it needs to connect
     /// and the (placeholder) Material Prims that are used to represent it in the stage.
-    struct VariantBundle
+    struct VariantBundle : public MaxUsdMultiMaterialUtils::MaterialBundle
     {
-        std::set<int>                 matSetIdx;
-        std::list<SdfPath>            geomBindPaths;
         std::vector<UsdShadeMaterial> subObjsMatPrims;
     };
 
@@ -66,11 +65,6 @@ private:
     /// \brief Bind the variant bundles placeholder materials to the geometry
     void BindPlaceholderMatsToGeom();
 
-    /// \brief Get the material IDs from a Multi/Sub-Object material
-    /// \param mat The Multi/Sub-Object material
-    /// \param matIdSet The set to report the material IDs
-    void GetMatIDsFromMultiMat(Mtl* mat, std::set<int>& matIdSet);
-
     /// \brief Adds the references between the placeholder materials and the actual materials
     /// \param variantBundle The variant bundle to connect
     /// \param variant The variant material
@@ -81,18 +75,6 @@ private:
         Mtl*                 variant,
         std::set<int>&       matIdSet,
         const UsdVariantSet* variantSet = nullptr);
-
-    /// \brief Create a new variant bundle and adds it to the member vector, if a bundle with the
-    /// same material IDs set was already created,
-    ///  just adds the geomBindPath to the bundle
-    /// \param geomBindPath The path to the prim this bundle will be bound to
-    /// \param materialIdsSet The set containing the material IDs of the geometry prim
-    /// \param matIDsSets The vector of material IDs sets used to keep track of what's already been
-    /// found.
-    void CreateVariantBundle(
-        const SdfPath&              geomBindPath,
-        const std::set<int>&        materialIdsSet,
-        std::vector<std::set<int>>& matIDsSets);
 
     // cached list of material variants (sub mtl of the Material Switcher)
     std::vector<Mtl*>                                      variantMaterials;

@@ -112,7 +112,8 @@ bool MaxUsdShapeWriter::Write(
             GetExportArgs().GetMeshConversionOptions(),
             applyOffsetTransform,
             timeConfig.IsAnimated(),
-            time);
+            time,
+            GetExportArgs().GetTransformFormat());
         return true;
     }
 

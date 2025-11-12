@@ -46,6 +46,25 @@ public:
         const pxr::SdfPath&            targetPath,
         const USDSceneBuilderOptions&  options,
         const std::list<pxr::SdfPath>& bindings);
+
+    /**
+     * \brief Converts a set of 3dsMax materials to UsdShade materials.
+     * \param materials The set of 3dsMax materials to export.
+     * \param stage The stage we are exporting these materials to.
+     * \param fileName The path of the layer we are exporting these materials to, might be used for computing relative paths.
+     * \param isUSDZ True if the target layer is intended to be packaged into a USDZ file.
+     * \param targetPaths The prim paths to export the materials to, one for each material in the set.
+     * \param options The export options.
+     * \param bindings Prim paths to bind the materials to, one for each material in the set, optional.
+     */
+    static void ConvertToUSDMaterials(
+        const std::vector<Mtl*>&                       materials,
+        const pxr::UsdStageRefPtr&                  stage,
+        const std::string&                          fileName,
+        bool                                        isUSDZ,
+        const std::vector<pxr::SdfPath>&            targetPaths,
+        const USDSceneBuilderOptions&               options,
+        const std::vector<std::list<pxr::SdfPath>>& bindings);
 };
 
 } // namespace MAXUSD_NS_DEF

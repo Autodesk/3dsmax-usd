@@ -84,6 +84,99 @@ class TestPythonMaterialConverter(unittest.TestCase):
         # Left around, for debugging.
         # stage.GetRootLayer().Export(layerFilePath)
         # maxUsd.OpenInUsdView(layerFilePath)
+
+    def test_multiple_mtls_to_usd(self):
+        
+        # Create multiple test materials
+        testMaterial1 = rt.MaxUsdPreviewSurface()
+        testMaterial1.Name = "usdps1"
+        checker1 = rt.BitmapTexture()
+        checker1.filename = UV_CHECKER_PATH
+        testMaterial1.diffuseColor_map = checker1
+        
+        testMaterial2 = rt.MaxUsdPreviewSurface()
+        testMaterial2.Name = "usdps2"
+        checker2 = rt.BitmapTexture()
+        checker2.filename = UV_CHECKER_PATH
+        testMaterial2.diffuseColor_map = checker2
+        
+        stage = Usd.Stage.CreateInMemory()
+        
+        # We wont actually write the stage do disk, but give a fictitious file path for the stage's root layer.
+        # We need to know the path of the layer when translating materials, so that we can compute any required
+        # relative paths for things like textures and any other referenced asset.
+        
+        layerFilePath = os.path.join(TEST_DATA_DIR, "dummy.usda")
+        options = maxUsd.USDSceneBuilderOptions()
+        
+        testMaterial1Handle = rt.getHandleByAnim(testMaterial1)
+        testMaterial2Handle = rt.getHandleByAnim(testMaterial2)
+        
+        # Test batch conversion without bindings
+        materialHandles = [testMaterial1Handle, testMaterial2Handle]
+        targetPaths = ["/mtl/test_mtl1_no_binding", "/mtl/test_mtl2_no_binding"]
+        bindings = []
+        
+        maxUsd.MaterialConverter.ConvertToUSDMaterials(materialHandles, stage, layerFilePath, False, targetPaths, options, bindings)
+        
+        # Validate both materials were created
+        usdMaterial1 = stage.GetPrimAtPath("/mtl/test_mtl1_no_binding")
+        usdMaterial2 = stage.GetPrimAtPath("/mtl/test_mtl2_no_binding")
+        self.assertTrue(usdMaterial1.IsDefined())
+        self.assertTrue(usdMaterial2.IsDefined())
+        
+        # Validate texture prims for both materials
+        texturePrim1 = stage.GetPrimAtPath("/mtl/test_mtl1_no_binding/Bitmaptexture/Bitmaptexture")
+        texturePrim2 = stage.GetPrimAtPath("/mtl/test_mtl2_no_binding/Bitmaptexture_1/Bitmaptexture")
+        self.assertTrue(texturePrim1.IsValid())
+        self.assertTrue(texturePrim2.IsValid())
+        
+        inputFile1 = str(UsdShade.Shader(texturePrim1).GetInput("file").Get())
+        inputFile2 = str(UsdShade.Shader(texturePrim2).GetInput("file").Get())
+        self.assertEqual("@./" + UV_CHECKER_NAME + "@", inputFile1)
+        self.assertEqual("@./" + UV_CHECKER_NAME + "@", inputFile2)
+        
+        # Test batch conversion with bindings
+        spherePath = "/sphere"
+        cubePath = "/cube"
+        cylinderPath = "/cylinder"
+        conePath = "/cone"
+        
+        spherePrim = UsdGeom.Sphere.Define(stage, spherePath)
+        cubePrim = UsdGeom.Cube.Define(stage, cubePath)
+        cylinderPrim = UsdGeom.Cylinder.Define(stage, cylinderPath)
+        conePrim = UsdGeom.Cone.Define(stage, conePath)
+
+        # Define bindings for each material
+        material1Bindings = [spherePath, cubePath]
+        material2Bindings = [cylinderPath, conePath]
+        boundTargetPaths = ["/mtl/test_mtl1_with_binding", "/mtl/test_mtl2_with_binding"]
+        boundBindings = [material1Bindings, material2Bindings]
+        
+        maxUsd.MaterialConverter.ConvertToUSDMaterials(materialHandles, stage, layerFilePath, False, boundTargetPaths, options, boundBindings)
+        # Validate both bound materials were created
+        usdBoundMaterial1 = stage.GetPrimAtPath("/mtl/test_mtl1_with_binding")
+        usdBoundMaterial2 = stage.GetPrimAtPath("/mtl/test_mtl2_with_binding")
+        self.assertTrue(usdBoundMaterial1.IsDefined())
+        self.assertTrue(usdBoundMaterial2.IsDefined())
+
+        # Validate the bindings for material 1
+        for path in material1Bindings:
+            prim = stage.GetPrimAtPath(path)
+            api = UsdShade.MaterialBindingAPI(prim)
+            mtl = api.GetDirectBindingRel().GetTargets()[0]
+            self.assertEqual(str(mtl), "/mtl/test_mtl1_with_binding")
+
+        # Validate the bindings for material 2
+        for path in material2Bindings:
+            prim = stage.GetPrimAtPath(path)
+            api = UsdShade.MaterialBindingAPI(prim)
+            mtl = api.GetDirectBindingRel().GetTargets()[0]
+            self.assertEqual(str(mtl), "/mtl/test_mtl2_with_binding")
+
+        # Left around, for debugging.
+        # stage.GetRootLayer().Export(layerFilePath)
+        # maxUsd.OpenInUsdView(layerFilePath)
         
 rt.clearListener()
 def run_tests():

@@ -42,82 +42,101 @@ struct export_transforms_test
     ),
 
     function test_object_offset_transforms = (
-        -- Each pair : (v1: expected usd suffix for the object on the USD side, v2: Max node).
-        local light = DataPair "Light" (free_light());
-        local camera = DataPair "Camera" (Freecamera())
-        local cube = DataPair "Shape" (box())
-        local helper = DataPair "Dummy" (dummy())
-        local usdStage = DataPair "Layer" (UsdStageObject())
-        sphere()    
-        sphere()
-        local sphereGroup = DataPair "Dummy" (group $sphere*) -- Groups are dummy nodes also.
-        
-        local nodes = #(light, camera, cube, helper, usdStage, sphereGroup);
-        
-        -- This setting only applies to meshes and is tested in export_options_test. Here we are only 
-        -- testing the general case, i.e. when Max node maps to two USD prims, an Xform for the Node 
-        -- transform, and xformable prim for the max node.
-        exportOptions.BakeObjectOffsetTransform = false
-        
-        -- Apply some translation/ rotation / scale to both the nodes. Leave offset transform as identity
-        for n in nodes do (
-            n.v2.pos = [1,2,3]
-            n.v2.scale = [1,2,3]
-            n.v2.rotation = quat 1 2 3 1
-        )
-        
-        local exportPath = output_prefix + "test_object_offset_transforms_identity.usd"
-        USDExporter.ExportFile exportPath exportOptions:exportOptions
-        local stage = pyUsd.Stage.Open(exportPath)
-        -- Validate the USD export... Max nodes should map to single USD prims.
-        for n in nodes do (
-            local nodePath = "/" + n.v2.name;
-            local objectPath = nodePath + "/" + n.v2.name + "_" + n.v1
-            local nodePrim = stage.GetPrimAtPath(nodePath)
-            local objectPrim = stage.GetPrimAtPath(objectPath)
-            assert_true (pyUsd.Prim.IsValid(nodePrim)) message:("Missing node prim for " + n.v2.name)
-            assert_false (pyUsd.Prim.IsValid(objectPrim)) message:"Should not need a sub-object prim, offset transform was the identity"
-            -- Make sure the node's transform is valid : 
-            xformable = pyUsdGeom.Xformable(nodePrim)
-            assert_true (compareUsdAndMaxTransforms (xformable.GetLocalTransformation()) n.v2.transform)  message:("The transform is wrong in the USD scene for " + nodePath)
-        )
-        
-        -- Now add some translation/ rotation / scale to both the object offsets.
-        for n in nodes do (
-            n.v2.objectOffsetPos = [4,5,6]
-            n.v2.objectOffsetScale = [4,5,6]
-            n.v2.objectOffsetRot = quat 4 5 6 1
-        )
-        -- Re-export...
-        exportPath = output_prefix + "test_object_offset_transforms.usd"
-        USDExporter.ExportFile exportPath exportOptions:exportOptions
-        stage = pyUsd.Stage.Open(exportPath)
-        
-        -- Validate the USD export... Max node should map to 2 USD prims, to properly represent the object offset with an Xform.
-        for n in nodes do (
-            local nodePath = "/" + n.v2.name;
-            local objectPath = nodePath + "/" + n.v2.name + "_" + n.v1            
-            local xformPrim = stage.GetPrimAtPath(nodePath)
-            local objectPrim = stage.GetPrimAtPath(objectPath)
-            assert_true (pyUsd.Prim.IsValid(xformPrim)) message:("Missing xform object for " + n.v2.name)
-            assert_true (xformPrim.IsA(pyUsdGeom.Xform)) message:("Wrong prim type for " + nodePath)
-            assert_true (pyUsd.Prim.IsValid(objectPrim)) message:("Missing object prim for " + objectPath)
-            
-            -- Make sure the node transform and the offset transform are both valid : 
-            xformable = pyUsdGeom.Xformable(xformPrim)
-            assert_true (compareUsdAndMaxTransforms (xformable.GetLocalTransformation()) n.v2.transform)  message:("The transform is wrong in the USD scene for " + nodePath)
-            objectXForm = pyUsdGeom.Xformable(objectPrim)
-            local scaleOffset = scaleMatrix n.v2.objectOffsetScale
-            local rotationOffset =n.v2.objectOffsetRot as matrix3
-            local translationOffset = transMatrix n.v2.objectOffsetPos
-            local offsetTransform = scaleOffset * rotationOffset * translationOffset
+        exportFormats = #(#singleMatrix, #splitComponents)
 
-            if (isGroupHead n.v2) then (
-                -- for max groups, object offset transforms should not have been exported
-                local expectedIdentityTransform = (pyGf.Matrix4d 1.0)
-                assert_true (compare2dMatrix expectedIdentityTransform (objectXForm.GetLocalTransformation()) 4 4) message:("Expected identity on XForm for exported max group for " + objectPath)
-            ) else (
-                assert_true (compareUsdAndMaxTransforms (objectXForm.GetLocalTransformation()) offsetTransform) message:("The transform is wrong in the USD scene for " + objectPath)
+        for exportFormat in exportFormats do (
+            quickReset()
+            -- Each pair : (v1: expected usd suffix for the object on the USD side, v2: Max node).
+            local light = DataPair "Light" (free_light());
+            local camera = DataPair "Camera" (Freecamera())
+            local cube = DataPair "Shape" (box())
+            local helper = DataPair "Dummy" (dummy())
+            local usdStage = DataPair "Layer" (UsdStageObject())
+            local anonUsdStage = DataPair "Layer" (UsdStageObject())
+            sphere()    
+            sphere()
+            local sphereGroup = DataPair "Dummy" (group $sphere*) -- Groups are dummy nodes also.
+
+            -- Set empty root layer (but valid one) from file
+            local testDataDir = getFilenamePath (getThisScriptFilename())
+            local sample = (testDataDir + @"data\empty.usda")
+            usdStage.v2.SetRootLayer sample
+
+            local nodes = #(light, camera, cube, helper, usdStage, sphereGroup);
+
+            -- This setting only applies to meshes and is tested in export_options_test. Here we are only 
+            -- testing the general case, i.e. when Max node maps to two USD prims, an Xform for the Node 
+            -- transform, and xformable prim for the max node.
+            exportOptions.BakeObjectOffsetTransform = false
+            
+            -- Apply some translation/ rotation / scale to both the nodes. Leave offset transform as identity
+            for n in nodes do (
+                n.v2.pos = [1,2,3]
+                n.v2.scale = [1,2,3]
+                n.v2.rotation = quat 1 2 3 1
+            )
+
+            local exportPath = output_prefix + (exportFormat as string) + "_test_object_offset_transforms_identity.usd"
+            exportOptions.TransformFormat = exportFormat
+
+            USDExporter.ExportFile exportPath exportOptions:exportOptions
+            local stage = pyUsd.Stage.Open(exportPath)
+
+            -- First validate that the anonUsdStage was not exported
+            local anonStageNodePath = "/" + anonUsdStage.v2.name;
+            local anonStageNodePrim = stage.GetPrimAtPath(anonStageNodePath)
+            assert_false (pyUsd.Prim.IsValid(anonStageNodePrim)) message:("There should be no prim/node for because it has an anonymous root " + anonUsdStage.v2.name)
+
+            -- Validate the USD export... Max nodes should map to single USD prims.
+            for n in nodes do (
+                local nodePath = "/" + n.v2.name;
+                local objectPath = nodePath + "/" + n.v2.name + "_" + n.v1
+                local nodePrim = stage.GetPrimAtPath(nodePath)
+                local objectPrim = stage.GetPrimAtPath(objectPath)
+                assert_true (pyUsd.Prim.IsValid(nodePrim)) message:("Missing node prim for " + n.v2.name)
+                assert_false (pyUsd.Prim.IsValid(objectPrim)) message:"Should not need a sub-object prim, offset transform was the identity"
+                -- Make sure the node's transform is valid : 
+                xformable = pyUsdGeom.Xformable(nodePrim)
+                assert_true (compareUsdAndMaxTransforms (xformable.GetLocalTransformation()) n.v2.transform)  message:("The transform is wrong in the USD scene for " + nodePath)
+            )
+            
+            -- Now add some translation/ rotation / scale to both the object offsets.
+            for n in nodes do (
+                n.v2.objectOffsetPos = [4,5,6]
+                n.v2.objectOffsetScale = [4,5,6]
+                n.v2.objectOffsetRot = quat 4 5 6 1
+            )
+            -- Re-export...
+            exportPath = output_prefix + (exportFormat as string) + "_test_object_offset_transforms.usd"
+            USDExporter.ExportFile exportPath exportOptions:exportOptions
+            stage = pyUsd.Stage.Open(exportPath)
+            
+            -- Validate the USD export... Max node should map to 2 USD prims, to properly represent the object offset with an Xform.
+            for n in nodes do (
+                local nodePath = "/" + n.v2.name;
+                local objectPath = nodePath + "/" + n.v2.name + "_" + n.v1            
+                local xformPrim = stage.GetPrimAtPath(nodePath)
+                local objectPrim = stage.GetPrimAtPath(objectPath)
+                assert_true (pyUsd.Prim.IsValid(xformPrim)) message:("Missing xform object for " + n.v2.name)
+                assert_true (xformPrim.IsA(pyUsdGeom.Xform)) message:("Wrong prim type for " + nodePath)
+                assert_true (pyUsd.Prim.IsValid(objectPrim)) message:("Missing object prim for " + objectPath)
+                
+                -- Make sure the node transform and the offset transform are both valid : 
+                xformable = pyUsdGeom.Xformable(xformPrim)
+                assert_true (compareUsdAndMaxTransforms (xformable.GetLocalTransformation()) n.v2.transform)  message:("The transform is wrong in the USD scene for " + nodePath)
+                objectXForm = pyUsdGeom.Xformable(objectPrim)
+                local scaleOffset = scaleMatrix n.v2.objectOffsetScale
+                local rotationOffset =n.v2.objectOffsetRot as matrix3
+                local translationOffset = transMatrix n.v2.objectOffsetPos
+                local offsetTransform = scaleOffset * rotationOffset * translationOffset
+
+                if (isGroupHead n.v2) then (
+                    -- for max groups, object offset transforms should not have been exported
+                    local expectedIdentityTransform = (pyGf.Matrix4d 1.0)
+                    assert_true (compare2dMatrix expectedIdentityTransform (objectXForm.GetLocalTransformation()) 4 4) message:("Expected identity on XForm for exported max group for " + objectPath)
+                ) else (
+                    assert_true (compareUsdAndMaxTransforms (objectXForm.GetLocalTransformation()) offsetTransform) message:("The transform is wrong in the USD scene for " + objectPath)
+                )
             )
         )
     ),
@@ -262,7 +281,7 @@ struct export_transforms_test
     ),
 
     function test_worldspaceroot_on = (
-        
+
         setup_worldspaceroot_tests()
 
         local exportOptions = USDExporter.CreateOptions()
@@ -271,59 +290,67 @@ struct export_transforms_test
         exportOptions.RootPrimPath = "/"
     
         local exportPath = output_prefix + "test_worldspaceRoot_ON.usda"
-        
-        assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
 
-        local stage = pyUsd.Stage.Open(exportPath)
-        -- Validate "box" transform
-        local boxPrim = stage.GetPrimAtPath("/box")
-        assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
-        local boxXformable = pyUsdGeom.Xformable(boxPrim)
-        local boxTransform = boxXformable.GetLocalTransformation()
-        local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 40 40 25 1)
-        assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+        exportFormats = #(#singleMatrix, #splitComponents)
+        for exportFormat in exportFormats do (
+            exportOptions.TransformFormat = exportFormat
+            assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
 
-        -- Validate "box2" transform
-        local box2Prim = stage.GetPrimAtPath("/box/box2")
-        assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
-        local box2Xformable = pyUsdGeom.Xformable(box2Prim)
-        local box2Transform = box2Xformable.GetLocalTransformation()
-        local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
-        assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+            local stage = pyUsd.Stage.Open(exportPath)
+            -- Validate "box" transform
+            local boxPrim = stage.GetPrimAtPath("/box")
+            assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
+            local boxXformable = pyUsdGeom.Xformable(boxPrim)
+            local boxTransform = boxXformable.GetLocalTransformation()
+            local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 40 40 25 1)
+            assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+
+            -- Validate "box2" transform
+            local box2Prim = stage.GetPrimAtPath("/box/box2")
+            assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
+            local box2Xformable = pyUsdGeom.Xformable(box2Prim)
+            local box2Transform = box2Xformable.GetLocalTransformation()
+            local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
+            assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+        )
     ),
 
     function test_worldspaceroot_off = (
-          
+
         setup_worldspaceroot_tests()
 
         local exportOptions = USDExporter.CreateOptions()
         exportOptions.UseWorldspaceRoot = false
         exportOptions.FileFormat = #ascii
         exportOptions.RootPrimPath = "/"
-    
+
         local exportPath = output_prefix + "test_worldspaceRoot_OFF.usda"
-        
-        assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
 
-        local stage = pyUsd.Stage.Open(exportPath)
-        stage.Reload()
-        -- Validate "box" transform
-        local boxPrim = stage.GetPrimAtPath("/box")
-        assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
-        local boxXformable = pyUsdGeom.Xformable(boxPrim)
-        local boxTransform = boxXformable.GetLocalTransformation()
-        local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 30 30 0 1)
-        assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+        exportFormats = #(#singleMatrix, #splitComponents)
+        for exportFormat in exportFormats do (
+            exportOptions.TransformFormat = exportFormat
+            assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions contentSource:#selected)
 
-        -- Validate "box2" transform
-        local box2Prim = stage.GetPrimAtPath("/box/box2")
-        assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
-        local box2Xformable = pyUsdGeom.Xformable(box2Prim)
-        local box2Transform = box2Xformable.GetLocalTransformation()
-        local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
-        assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+            local stage = pyUsd.Stage.Open(exportPath)
+            stage.Reload()
+            -- Validate "box" transform
+            local boxPrim = stage.GetPrimAtPath("/box")
+            assert_true (boxPrim.IsValid()) message:"Missing 'box' prim"
+            local boxXformable = pyUsdGeom.Xformable(boxPrim)
+            local boxTransform = boxXformable.GetLocalTransformation()
+            local expectedBoxTransform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 30 30 0 1)
+            assert_true (compare2dMatrix boxTransform expectedBoxTransform 4 4) message:"Incorrect transform for 'box'"
+
+            -- Validate "box2" transform
+            local box2Prim = stage.GetPrimAtPath("/box/box2")
+            assert_true (box2Prim.IsValid()) message:"Missing 'box2' prim"
+            local box2Xformable = pyUsdGeom.Xformable(box2Prim)
+            local box2Transform = box2Xformable.GetLocalTransformation()
+            local expectedBox2Transform = (pyGf.Matrix4d 1 0 0 0 0 1 0 0 0 0 1 0 0 0 25 1)
+            assert_true (compare2dMatrix box2Transform expectedBox2Transform 4 4) message:"Incorrect transform for 'box2'"
+        )
     ),
-        
+
     function teardown = (
     ),
 

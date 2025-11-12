@@ -1129,7 +1129,11 @@ void HdMaxEngine::RenderBatch()
     renderCollection.SetRootPath(pxr::SdfPath::AbsoluteRootPath());
 
     taskController->SetCollection(renderCollection);
+#if PXR_VERSION < 2508
     auto renderingTasks = taskController->GetRenderingTasks();
 
     engine.Execute(renderIndex.get(), &renderingTasks);
+#else
+    engine.Execute(renderIndex.get(), taskController->GetPickingTaskPaths());
+#endif
 }

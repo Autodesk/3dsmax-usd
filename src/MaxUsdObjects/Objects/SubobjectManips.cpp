@@ -162,7 +162,17 @@ Ufe::UndoableCommand::Ptr XformableManip::BuildTransformCmd() const
     auto callback = [stage, xformOpPath, initialMatrix = initOpMatrix, newTransform](
                         UfeUI::GenericCommand::Mode mode) {
         const auto attr = stage->GetAttributeAtPath(xformOpPath);
-        const auto op = pxr::UsdGeomXformOp(attr);
+
+        pxr::UsdGeomXformOp op;
+        if (attr) {
+            op = pxr::UsdGeomXformOp(attr);
+        } else {
+            // Covers an edge case when coming from a deleted prim in undo/redo.
+            auto prim = stage->GetPrimAtPath(xformOpPath.GetPrimPath());
+            auto xformable = pxr::UsdGeomXformable(prim);
+            op = xformable.AddTransformOp(pxr::UsdGeomXformOp::PrecisionDouble);
+        }
+
         if (mode == UfeUI::GenericCommand::Mode::kUndo) {
             op.Set(initialMatrix);
         } else if (mode == UfeUI::GenericCommand::Mode::kRedo) {

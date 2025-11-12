@@ -23,6 +23,16 @@
 #include <ufe/undoableCommand.h>
 #include <ufe/undoableCommandMgr.h>
 
+#ifdef IS_MAX2025_OR_GREATER
+#include <notify.h>
+// No way to ensure custom notification codes are unique...but with any luck,  will be!
+DEFINE_NOTIFY_CODE(NOTIFY_EXPORT_TO_STAGE_START, REFMSG_USER + 0x29515135, pxr::UsdStageWeakPtr*)
+DEFINE_NOTIFY_CODE(NOTIFY_EXPORT_TO_STAGE_END, REFMSG_USER + 0x29515136, pxr::UsdStageWeakPtr*)
+#else
+#define NOTIFY_EXPORT_TO_STAGE_START REFMSG_USER + 0x29515135
+#define NOTIFY_EXPORT_TO_STAGE_END   REFMSG_USER + 0x29515136
+#endif
+
 namespace MAXUSD_NS_DEF {
 
 //! \brief ExportToStageCommand

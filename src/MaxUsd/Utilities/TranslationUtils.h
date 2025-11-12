@@ -64,6 +64,12 @@ static const TSTR getModifierByClassScript = LR"(
 
 namespace MAXUSD_NS_DEF {
 
+enum class TransformFormat
+{
+    SplitComponents,
+    SingleMatrix
+};
+
 /**
  * \brief Creates a prim, or returns it for edition if already existing.
  * \tparam T The prim's class.
@@ -117,9 +123,13 @@ MaxUSDAPI Matrix3 GetMaxObjectOffsetTransform(INode* node);
  * \param node The node with the object-offset.
  * \param xformable The xformable onto which to apply the transform.
  * \param time The Max time at which to apply the transform.
+ * \param transformFormat transform format to use when creating the xform ops.
  */
-MaxUSDAPI void
-ApplyObjectOffsetTransform(INode* node, pxr::UsdGeomXformable& xformable, const TimeValue& time);
+MaxUSDAPI void ApplyObjectOffsetTransform(
+    INode*                 node,
+    pxr::UsdGeomXformable& xformable,
+    const TimeValue&       time,
+    TransformFormat        transformFormat);
 
 /**
  * \brief Checks whether the given channel id is valid. In Max, there is a limit of 100
@@ -180,6 +190,20 @@ MaxUSDAPI bool IsAttributeAuthored(const pxr::UsdAttribute& att, const pxr::UsdT
 MaxUSDAPI bool IsValidAbsolutePath(const fs::path& path);
 
 /**
+ * \brief Attempts to capitalize the drive letter of a windows path.
+ * \param path The path str to try to capitalize
+ * \return the capitalized path
+ */
+MaxUSDAPI std::string CapitalizeDriveLetterWindowsPath(const std::string& pathStr);
+
+/**
+ * \brief Attempts to uncapitalize the drive letter of a windows path.
+ * \param path The path str to try to uncapitalize
+ * \return the uncapitalized path
+ */
+MaxUSDAPI std::string UncapitalizeDriveLetterWindowsPath(const std::string& pathStr);
+
+/**
  * \brief Populate the INodeTab with all the nodes that can be considered instance of the given node in the USD
  * (including the node itself).
  * \param node The 3ds Max node for which to find all nodes who can be represented as instance of it
@@ -199,6 +223,28 @@ MaxUSDAPI bool FindInstanceableNodes(
  * \return the first reference object with modifier applied or the base object.
  */
 MaxUSDAPI Object* GetFirstDerivedObjectWithModifier(INode* node);
+
+/**
+ * \brief Sets the given transform on a xformable prim passed as parameter.
+ * Only supported types are: transform, translate, scale, rotate.
+ * @param transformMatrix The transform matrix to set on the xformable prim.
+ * @param xformPrim The xformable prim on which to set the transform.
+ * @param xformOp The xformOp to set the transform on. If not defined, it will be created.
+ * @param xformType The type of the xformOp to set. If not transform, the matrix will be decomposed.
+ * @param xformPrecision The precision of the xformOp to set. If not specified, it will default to
+ * double.
+ * @param opsIdentifier this is used to name new ops incrementally to avoid collisions.
+ * @param time The time at which to set the transform.
+ * @return true if the transform was successfully set, false otherwise.
+ */
+MaxUSDAPI bool SetXForm(
+    const pxr::GfMatrix4d&         transformMatrix,
+    pxr::UsdGeomXformable&         xformPrim,
+    pxr::UsdGeomXformOp&           xformOp,
+    pxr::UsdGeomXformOp::Type      xformType,
+    pxr::UsdGeomXformOp::Precision xformPrecision,
+    size_t                         opsIdentifier = 0,
+    const pxr::UsdTimeCode&        time = pxr::UsdTimeCode::Default());
 
 /**
  * \brief Utility class to ensure every name is unique.

@@ -4,8 +4,8 @@
 	<PropertyGroup Label="UserMacros">
 		<UfeInc Condition="'$(MaxUsdDevKit)'!='' and '$(UfeInc)'==''">$(MaxUsdDevKit)\ufe\include</UfeInc>
 		<UfeLib Condition="'$(MaxUsdDevKit)'!='' and '$(UfeLib)'==''">$(MaxUsdDevKit)\ufe\lib</UfeLib>
-		<UfeInc Condition="'$(UfeInc)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-5.6.0\common\include</UfeInc>
-		<UfeLib Condition="'$(UfeLib)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-5.6.0\platform\Windows\RelWithDebInfo\lib</UfeLib>
+		<UfeInc Condition="'$(UfeInc)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-6.5.1\common\include</UfeInc>
+		<UfeLib Condition="'$(UfeLib)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-6.5.1\platform\Windows\RelWithDebInfo\lib</UfeLib>
 		<PyBind11Inc Condition="'$(PyBind11Inc)'==''">$(RepoRootDir)additional_includes\pybind11\include</PyBind11Inc>
 	</PropertyGroup>
 	
@@ -15,7 +15,7 @@
 		</ClCompile>
 		<Link>
 			<AdditionalLibraryDirectories>$(UfeLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>ufe_5.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>ufe_6.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

@@ -23,6 +23,7 @@
     <!-- Artifacts location -->
     <Artifacts>$(RepoRootDir)artifacts\</Artifacts>
     <QTVER Condition=" '$(VersionTarget)'&gt;='2025' ">6.5.3</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'&gt;'2026' ">6.8.3</QTVER>
     <QTVER Condition=" '$(VersionTarget)'&lt;='2024' ">5.15.1</QTVER>
     <MaxSDK Condition="'$(MaxSDK)'==''">$(Artifacts)$(VersionTarget)\maxsdk</MaxSDK>
     <MaxSdkLibRelease>$(MaxSDK)\lib\$(Platform)\Release</MaxSdkLibRelease>
@@ -65,9 +66,11 @@
     <PySideLib>$(PySideDir)</PySideLib>
     <PySideShibokenLib>$(PySideShibokenDir)</PySideShibokenLib>
     <PySideLibraries Condition=" '$(VersionTarget)'&gt;='2025' ">shiboken6.cp311-win_amd64.lib;pyside6.cp311-win_amd64.lib</PySideLibraries>
+    <PySideLibraries Condition=" '$(VersionTarget)'&gt;'2026' ">shiboken6.abi3.lib;pyside6.abi3.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.lib;pyside2.abi3.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.lib;pyside2.cp39-win_amd64.lib</PySideLibraries>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'&gt;='2025' ">shiboken6.cp311-win_amd64.dll</PySideDelayLoadDLL>
+    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'&gt;'2026' ">shiboken6.abi3.dll</PySideDelayLoadDLL>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.dll</PySideDelayLoadDLL>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.dll</PySideDelayLoadDLL>
   </PropertyGroup>

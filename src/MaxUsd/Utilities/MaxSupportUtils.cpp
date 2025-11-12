@@ -57,6 +57,13 @@ public:
         }
     }
 
+    // This can be used for filtering (during debugging, for example)
+    void GetClassName(MSTR& s, bool localized) const override
+    {
+        UNUSED_PARAM(localized);
+        s = MSTR(_M("DeletedModifierInfo"));
+    }
+
     Modifier*       mod = nullptr; // modifier reference that was deleted
     IDerivedObject* obj = nullptr;
     bool            postDelete
