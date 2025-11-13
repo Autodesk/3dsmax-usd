@@ -38,6 +38,7 @@ artifact_map = {'maxsdk':('MaxSDK', 'The path location for the \'MaxSDK\' folder
                 'usdufe':('UsdUfeDir', 'The path location for the \'UsdUfe\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'usdlayereditor':('UsdLayerEditorDir', 'The path location for the \'UsdLayerEditor\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'usdsharedcomponent':('UsdSharedComponentsDir', 'The path location for the \'usdSharedComponents\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
+                'assetresolver':('AdskAssetResolverDir', 'The path location for the \'adskassetresolver\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'openusd':('PxrUsdRoot', 'The path location for the \'OpenUSD\' folder. If not provided, using the path from the \'devkit\' if the \'maxusddevkit\' option is provided.'),
                 'tbb':('TBBDir', 'The path location for the \'TBB\' folder. If not provided, using the path from the \'OpenUSD\' if the \'openusd\' or \'maxusddevkit\' option is provided.'),
                 'boostinc':('BoostInc', 'The path location for the \'Boost\' include folder. If not provided, using the path from the \'OpenUSD\' if the \'openusd\' or \'maxusddevkit\' option is provided.'),

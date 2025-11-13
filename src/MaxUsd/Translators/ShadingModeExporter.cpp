@@ -44,6 +44,7 @@ MaxUsdShadingModeExporter::~MaxUsdShadingModeExporter() { }
 void MaxUsdShadingModeExporter::DoExport(
     MaxUsdWriteJobContext&                                  writeJobContext,
     const pxr::TfHashSet<pxr::SdfPath, pxr::SdfPath::Hash>& primsToMaterialBind,
+    const std::vector<Mtl*>&                                materialsToExport,
     MaxUsd::MaxProgressBar&                                 progress)
 {
     const MaxUsd::USDSceneBuilderOptions& exportArgs = writeJobContext.GetArgs();
@@ -53,11 +54,28 @@ void MaxUsdShadingModeExporter::DoExport(
 
     PreExport(&context);
 
-    const auto materialBindings
+    auto materialBindings
         = MaxUsdShadingUtils::FetchMaterials(writeJobContext, primsToMaterialBind);
     writeJobContext.SetMaterialBindings(materialBindings);
-    if (materialBindings.empty()) {
+
+    if (materialBindings.empty() && materialsToExport.empty()) {
         return;
+    }
+
+    if (!materialsToExport.empty()) {
+        // if we have materials to export, but no material bindings, we need to create an
+        // empty MaterialBinding for each material to export
+        for (const auto& mat : materialsToExport) {
+            if (mat) {
+                auto materialAlreadyBound = [mat](const MaterialBinding& binding) -> bool {
+                    return binding.GetMaterial() == mat;
+                };
+                if (std::find_if(materialBindings.begin(), materialBindings.end(), materialAlreadyBound)
+                    == materialBindings.end()) {
+                    materialBindings.push_back(MaterialBinding(mat, {}));
+                }
+            }
+        }
     }
 
     std::stack<MaterialBinding> materialToExportStack(

@@ -90,7 +90,197 @@
             this partnership.</p>
 
         <h4 class="pt-4">Release notes</h4>
-        <h5 data-current-version="0.12.0">v0.12.0<small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        <h5 data-current-version="0.13.0">v0.13.0<small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        What's New:
+        <ul>
+            <li>
+                New public release - version 0.13.0
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                After updating to OpenUSD v0.25.08, 3ds Max is crashing when mouse hovering a USD stage.
+            </li>
+            <li>
+                Fix edit box cropping letters below line in Asset Resolver preference dialog
+            </li>
+        </ul>
+        <h5>v0.12.5</h5>
+        What's New:
+        <ul>
+            <li>
+                3ds Max Beta version now uses OpenUSD v0.25.08. No changes to 3ds Max 2026 and earlier.
+            </li>
+            <li>
+                Added a new option in the animation section of the USD Exporter to include animation bones that are not being referenced by a skin modifier.
+            </li>
+            <li>
+                Added an option in the animation section of the USD Exporter to preserve or not the original 3ds Max bones when exporting Usd Animations.
+            </li>
+            <li>
+                Added a new option in the animation section of the USD Exporter to simplify bone paths when exporting Usd Animations.
+            </li>
+            <li>
+                Added UX for managing search paths with the USD Asset Resolver.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed the Asset Resolver resolving the when the ADSK_AR_MAPPING_FILE environment variable was set.
+            </li>
+            <li>
+                Fixed defect where the Duplicate as USD Data menu in the quad menus could not be customized.
+            </li>
+            <li>
+                Fixed the USD Menus not having the top handle bar.
+            </li>
+            <li>
+                Fixed EXCEPTION_ACCESS_VIOLATION error when trying to export with contentSource set to #nodeAndMaterialList and no nodes where passed in the function.
+            </li>
+            <li>
+                Fixed a defect where a USD stage would not be found after renaming paths and opening a stage file in certain orders.
+            </li>
+            <li>
+                Fixed defect where USD edits saved into a Max 2023 scene would not open correctly in 3ds Max 2026.
+            </li>
+            <li>
+                Fixed an issue where the Skin options in the USD Exporter could be available when they ought to be disabled in the UI.
+            </li>
+            <li>
+                Fixed an issue where exporting Materials without Geometry, where the nodegraph used Multi-materials would not export the materials correctly.
+            </li>
+            <li>
+                Fixed an unexpected error after saving a 3ds Max file with anonymous stage
+            </li>
+            <li>
+                Fixed an issue with .AvailableChasers() returning unexpected values.
+            </li>
+        </ul>
+
+        <h5>v0.12.4</h5>
+        What's New:
+        <ul>
+            <li>
+                Optimized the elementSize of joinIndices and jointWeights in USD Skel to remove unnecessary data.
+            </li>
+            <li>
+                Added support for bulk deleting of prims in the USD Explorer.
+            </li>
+            <li>
+                Added new USD menu to the main toolbar.
+            </li>
+            <li>
+                Automatically opens the USD Explorer when creating a new USD Stage that has an anonymous root layer.
+            </li>
+            <li>
+                Added a new option in the animation section of the USD Exporter to export Animation Curves. When enabled, camera properties will exported as animation curves in USD 24.11+.
+            </li>
+            <li>
+                Updated the USD Exporter with a new Material option to handle Shell Materials. The options are to Use Baked, Us Original and Use Baked and Original. When using baked and original, sets the appropriate material purposes to "full" and "preview" and binds both materials to prims.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed an issue with MaterialX referencing on Import.
+            </li>
+        </ul>
+
+        <h5>v0.12.3</h5>
+        What's New:
+        <ul>
+            <li>
+                Updated the way anonymous layers are named. Instead of using the layer identifier, anonymous layers are now named with the convention of "anonymousLayerX", where X is the nth anonymous layer at the current level.
+            </li>
+            <li>
+                Updated the cloning of USD prims via SHIFT+DRAG to preserve the original prim's reference instead of making a chain of references if there is a single reference entry on the dragged prim. This improves the cleanliness of the USD data.
+            </li>
+            <li>
+                Automatically opens the USD Explorer when creating a new USD Stage that has an anonymous root layer.
+            </li>
+            <li>
+                Added support to remember usd layer edit targets even for anonymous layers.
+            </li>
+            <li>
+                Added Project-based tokens to the USD Asset Resolver. This will enable tokens that match those folders made by a standard Max project settings.
+            </li>
+            <li>
+                Added new option in USD Exporter to export materials without requiring geometry in the export.
+            </li>
+            <li>
+                Added a new method to the USDStageObject called SetStageFromCache(ID) that allows you to set change the stage used in a USDStageObject from a stage in the USD cache by passing the stage's cacheid.
+            </li>
+            <li>
+                Added the ability to rename USD Prims in the USD Explorer and in the command panel.
+            </li>
+            <li>
+                Added a Shader Reader for referenced MaterialX documents. When importing USD that has a MaterialX reference, the MaterialX will now be imported.
+            </li>
+            <li>
+                Added new Transform Format to the USD Exporter. The options are "Single Matrix" (one transform operator) or "Separate Translate, Rotate and Sale" (one operator for each). The new separation creates data that can remain consistent between 3ds Max and other DCCs such as Maya.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed the USD Layer Editor failing to show a layer stack below any layers brought in using Stage Variable Expressions.
+            </li>
+            <li>
+                Improved poor performance when duplicating many objects into a USD Stage.
+            </li>
+            <li>
+                Updated the Stage Reload button in the command panel of a USDStageObject to only reload file-backed layers allowing anonymous root layers and anonymous layers belonging to all anonymous root layers to remain when reloading a stage.
+            </li>
+        </ul>
+
+        <h5>v0.12.2</h5>
+        What's New:
+        <ul>
+            <li>
+                Added first iteration of being able to copy prims in a USD Stage using Shift+Drag in the viewport. At this time, the feature is limited to making an Internal Reference to the "copied" prim, meaning it is prone to break if the source prim moves in the USD hierarchy.
+            </li>
+            <li>
+                Added a menu to set/unset a prim in a USD Stage as the stage's default prim. The default prim is needed to properly reference a USD scene into other USD files without having to specify a prim path.
+            </li>
+            <li>
+                Added new option in the viewport quad menus to duplicate selected Max objects into a new stage instead of requiring a stage from file or existing stage node.
+            </li>
+            <li>
+                Added default values for new stages to set the up-axis, units and FPS based on the current Max scene settings.
+            </li>
+            <li>
+                Added support for saving anonymous layer lock and mute states.
+            </li>
+            <li>
+                Added the ability to reparent USD prims to change hierarchies in the USD Explorer.
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed some UI issues in the USD Explorer showing the wrong selection information after deleting a stage with an anonymous root layer.
+            </li>
+        </ul>
+
+        <h5>v0.12.1</h5>
+        What's New:
+        <ul>
+            <li>
+                USDStageObject now creates an anonymous root layer by default.
+            </li>
+            <li>
+                Added support to create and save anonymous layers in the USD Layer Editor.
+            </li>
+            <li>
+                Added support to save a anonymous layers into a 3ds Max scene without saving any files to disk.
+            </li>
+            <li>
+                Added the ability to reparent USD prims to change hierarchies in the USD Explorer.
+            </li>
+        </ul>
+        <h5>v0.12.0</h5>
         What's New:
         <ul>
             <li>

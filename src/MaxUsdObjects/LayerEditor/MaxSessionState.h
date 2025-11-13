@@ -63,6 +63,12 @@ public:
     void refreshStageEntry(const std::string& dccObjectPath) override;
 
     /**
+     * Respond to changes to name changes
+     * @param param Pointer to the session state.
+     * @param info Unused
+     */
+    static void onNodeRename(void* param, NotifyInfo* info);
+    /**
      * Respond to changes to the nodes present in the 3dsMax scene.
      * @param param Pointer to the session state.
      * @param info Scene node change info.

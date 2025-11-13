@@ -72,7 +72,7 @@ const pxr::VtDictionary& MaxSceneBuilderOptions::GetDefaultDictionary()
     static VtDictionary   defaultDict;
     static std::once_flag once;
     std::call_once(once, []() {
-        defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->version] = 1;
+        defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->version] = 2;
         // Base defaults.
         defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->initialLoadSet]
             = static_cast<int>(UsdStage::LoadAll);

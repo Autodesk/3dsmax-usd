@@ -40,6 +40,7 @@ public:
 
 public Q_SLOTS:
     /// Qt callback functions based on named widgets in the associated .ui file
+    void on_AnimationTypeComboBox_currentIndexChanged(int index);
     void on_AnimationRangeRadioButton_clicked(bool checked);
     void on_CurrentFrameRadioButton_clicked(bool checked);
     void on_FrameNumberRadioButton_clicked(bool checked);
@@ -50,6 +51,9 @@ public Q_SLOTS:
 
     void on_SkinCheckBox_stateChanged(int state);
     void on_MorpherCheckBox_stateChanged(int state);
+    void on_IncludeAllBonesCheckBox_stateChanged(int state);
+    void on_PreserveBoneMeshesCheckBox_stateChanged(int state);
+    void on_SimplifyBonePathsCheckBox_stateChanged(int state);
 
     // made those explicit instead of relying on the automatically generated connection
     // base on the widgets names; the 'setMinimum' emits 'valueChanged' on those otherwise

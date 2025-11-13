@@ -17,13 +17,16 @@
 import sys
 import ufe
 
-if sys.version_info.major == 3 and sys.version_info.minor == 11:
+if sys.version_info.major == 3 and sys.version_info.minor >= 11:
     try:
         import shiboken6
     except ImportError:
+        pysideVersion = "6.5.3"
+        if sys.version_info.major == 3 and sys.version_info.minor == 13:
+            pysideVersion = "6.8.3"
         print("WARN: PySide6 is not installed. You can install pip and PySide6 with the scripts below:")
         print('"{}" -m ensurepip --upgrade --user'.format(sys.executable))
-        print('"{}" -m pip install --user PySide6==6.5.3'.format(sys.executable))
+        print('"{}" -m pip install --user PySide6=={}'.format(sys.executable, pysideVersion))
         status = False
 else:
     try:
@@ -43,8 +46,8 @@ else:
     del _maxUsd
 del Tf
 
-__version__ = "0.12.0"
-__version_info__ = (0, 12, 0, "", "")
+__version__ = "0.13.0"
+__version_info__ = (0, 13, 0, "", "")
 
 class AnimatedAttributeHelper:
     """Helper class to import prim attributes that may or not be animated"""

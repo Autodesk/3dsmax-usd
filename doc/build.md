@@ -234,6 +234,9 @@ The build script can be used by following these usage rules:
       --usdsharedcomponent USDSHAREDCOMPONENT
                             The path location for the 'usdSharedComponents' folder. If not provided, using the path from
                             the 'devkit' if the 'maxusddevkit' option is provided.
+      --assetresolver ASSETRESOLVER
+                            The path location for the 'adskassetresolver' folder. If not provided, using the path from
+                            the 'devkit' if the 'maxusddevkit' option is provided.
       --openusd OPENUSD     The path location for the 'OpenUSD' folder. If not provided, using the path from the 'devkit'
                             if the 'maxusddevkit' option is provided.
       --tbb TBB             The path location for the 'TBB' folder. If not provided, using the path from the 'OpenUSD' if

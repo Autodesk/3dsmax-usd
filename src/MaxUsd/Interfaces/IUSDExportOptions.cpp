@@ -18,6 +18,7 @@
 #include "IUSDExportOptions.h"
 
 #include <MaxUsd/Chaser/ExportChaserRegistry.h>
+#include <MaxUsd/MaxTokens.h>
 #include <MaxUsd/Translators/ShadingModeRegistry.h>
 #include <MaxUsd/Utilities/OptionUtils.h>
 
@@ -56,6 +57,9 @@ FPInterfaceDesc IUSDExportOptionsDesc(
 	IUSDExportOptions::fnIdGetTranslateLights, IUSDExportOptions::fnIdSetTranslateLights, _T("Lights"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetTranslateCameras, IUSDExportOptions::fnIdSetTranslateCameras, _T("Cameras"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetTranslateSkin, IUSDExportOptions::fnIdSetTranslateSkin, _T("Skin"), 0, TYPE_BOOL,
+	IUSDExportOptions::fnIdGetIncludeAllBones, IUSDExportOptions::fnIdSetIncludeAllBones, _T("IncludeAllBones"), 0, TYPE_BOOL,
+	IUSDExportOptions::fnIdGetPreserveBoneMeshes, IUSDExportOptions::fnIdSetPreserveBoneMeshes, _T("PreserveBoneMeshes"), 0, TYPE_BOOL,
+	IUSDExportOptions::fnIdGetSimplifyBonePaths, IUSDExportOptions::fnIdSetSimplifyBonePaths, _T("SimplifyBonePaths"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetTranslateMorpher, IUSDExportOptions::fnIdSetTranslateMorpher, _T("Morpher"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetTranslateMaterials, IUSDExportOptions::fnIdSetTranslateMaterials, _T("Materials"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetShadingMode, IUSDExportOptions::fnIdSetShadingMode, _T("ShadingMode"), 0, TYPE_STRING,
@@ -79,6 +83,10 @@ FPInterfaceDesc IUSDExportOptionsDesc(
 	IUSDExportOptions::fnIdGetAnimationsPrimName, IUSDExportOptions::fnIdSetAnimationsPrimName, _T("AnimationsPrimName"), FP_NO_REDRAW, TYPE_STRING,
 	IUSDExportOptions::fnIdGetLogPath, IUSDExportOptions::fnIdSetLogPath, _T("LogPath"), FP_NO_REDRAW, TYPE_STRING,
 	IUSDExportOptions::fnIdGetLogLevel, IUSDExportOptions::fnIdSetLogLevel, _T("LogLevel"), FP_NO_REDRAW, TYPE_ENUM, IUSDExportOptions::eIdLogLevel,
+	IUSDExportOptions::fnIdGetTransformFormat, IUSDExportOptions::fnIdSetTransformFormat, _T("TransformFormat"), FP_NO_REDRAW, TYPE_ENUM, IUSDExportOptions::eIdTransformFormat,
+#ifdef USD_CURVES_SUPPORTED
+	IUSDExportOptions::fnIdGetAnimationType, IUSDExportOptions::fnIdSetAnimationType, _T("AnimationType"), FP_NO_REDRAW, TYPE_ENUM, IUSDExportOptions::eIdAnimationType,
+#endif
 	IUSDExportOptions::fnIdGetOpenInUsdview, IUSDExportOptions::fnIdSetOpenInUsdview, _T("OpenInUsdview"), 0, TYPE_BOOL,
 	IUSDExportOptions::fnIdGetChaserNames, IUSDExportOptions::fnIdSetChaserNames, _T("ChaserNames"), 0, TYPE_TSTR_TAB_BV,
 	IUSDExportOptions::fnIdGetAllChaserArgs, IUSDExportOptions::fnIdSetAllChaserArgs, _T("AllChaserArgs"), 0, TYPE_VALUE,
@@ -86,6 +94,7 @@ FPInterfaceDesc IUSDExportOptionsDesc(
 #ifdef IS_MAX2024_OR_GREATER
 	IUSDExportOptions::fnIdGetMtlSwitcherExportStyle, IUSDExportOptions::fnIdSetMtlSwitcherExportStyle, _T("MtlSwitcherExportStyle"), FP_NO_REDRAW, TYPE_ENUM, IUSDExportOptions::eIdMtlSwitcherExportStyle,
 #endif
+	IUSDExportOptions::fnIdGetShellMtlExportStyle, IUSDExportOptions::fnIdSetShellMtlExportStyle, _T("ShellMtlExportStyle"), FP_NO_REDRAW, TYPE_ENUM, IUSDExportOptions::eIdShellMtlExportStyle,
 	IUSDExportOptions::fnIdGetUseProgressBar, IUSDExportOptions::fnIdSetUseProgressBar, _T("UseProgressBar"), 0, TYPE_BOOL, 
 	IUSDExportOptions::fnIdGetMaterialLayerPath, IUSDExportOptions::fnIdSetMaterialLayerPath, _T("MaterialLayerPath"), FP_NO_REDRAW, TYPE_STRING, 
 	IUSDExportOptions::fnIdGetMaterialPrimPath,	IUSDExportOptions::fnIdSetMaterialPrimPath, _T("MaterialPrimPath"), FP_NO_REDRAW, TYPE_STRING,
@@ -125,11 +134,24 @@ FPInterfaceDesc IUSDExportOptionsDesc(
 		_T("explicit"), USDSceneBuilderOptions::TimeMode::ExplicitFrame,
 		_T("animationRange"), USDSceneBuilderOptions::TimeMode::AnimationRange,
 		_T("frameRange"), USDSceneBuilderOptions::TimeMode::FrameRange,
+        IUSDExportOptions::eIdTransformFormat, 2, 
+		_T("splitComponents"), TransformFormat::SplitComponents,
+		_T("singleMatrix"), TransformFormat::SingleMatrix,
 #ifdef IS_MAX2024_OR_GREATER
 	IUSDExportOptions::eIdMtlSwitcherExportStyle, 2, 
 		_T("asVariantSets"), USDSceneBuilderOptions::MtlSwitcherExportStyle::AsVariantSets,
 		_T("activeMaterial"), USDSceneBuilderOptions::MtlSwitcherExportStyle::ActiveMaterialOnly,
 #endif
+#ifdef USD_CURVES_SUPPORTED
+        IUSDExportOptions::eIdAnimationType, 3,
+                _T("timeSamples"), USDSceneBuilderOptions::AnimationType::TimeSamples,
+                _T("curves"), USDSceneBuilderOptions::AnimationType::Curves,
+                _T("both"), USDSceneBuilderOptions::AnimationType::Both,
+#endif
+	IUSDExportOptions::eIdShellMtlExportStyle, 3,
+		_T("baked"), USDSceneBuilderOptions::ShellMtlExportStyle::Baked,
+		_T("original"), USDSceneBuilderOptions::ShellMtlExportStyle::Original,
+		_T("both"), USDSceneBuilderOptions::ShellMtlExportStyle::Both,
 	p_end
 );
 // clang-format on
@@ -388,13 +410,29 @@ void IUSDExportOptions::SetRootPrimPath(const wchar_t* rootPath)
 {
     const std::wstring rootPathString = rootPath;
     auto path = pxr::SdfPath(MaxUsd::MaxStringToUsdString(rootPathString.c_str()).c_str());
-    auto noVarSelect = path.StripAllVariantSelections();
-    if (!rootPathString.empty()
-        && (!noVarSelect.IsAbsolutePath() || !noVarSelect.IsAbsoluteRootOrPrimPath())) {
-        const auto errorMsg = std::wstring(L"The root prim path could not be set. This is not a "
-                                           L"valid absolute USD prim path : ")
-                                  .append(rootPath);
-        throw RuntimeError(errorMsg.c_str());
+
+    // Validation.
+    if (!rootPathString.empty()) {
+
+        // The input might have a token for the DEFAULT_PRIM, at this time, we dont know what that
+        // would resolve to. Just replace with /root to simulate the resolved path, so that we can
+        // validate things.
+        auto       toValidatePath = path;
+        const auto defaultPrimToken = pxr::MaxUsdExportTokens->DEFAULT_PRIM.GetString();
+        if (rootPathString.find(std::wstring { UsdStringToMaxString(defaultPrimToken).ToMCHAR() })
+            == 0) {
+            toValidatePath = pxr::SdfPath(MaxUsd::ResolveToken(
+                MaxStringToUsdString(rootPathString.c_str()), defaultPrimToken, "/root"));
+        }
+
+        const auto noVarSelect = toValidatePath.StripAllVariantSelections();
+        if (!noVarSelect.IsAbsolutePath() || !noVarSelect.IsAbsoluteRootOrPrimPath()) {
+            const auto errorMsg
+                = std::wstring(L"The root prim path could not be set. This is not a "
+                               L"valid absolute USD prim path : ")
+                      .append(rootPath);
+            throw RuntimeError(errorMsg.c_str());
+        }
     }
     USDSceneBuilderOptions::SetRootPrimPath(path);
 }
@@ -413,6 +451,24 @@ void IUSDExportOptions::SetMtlSwitcherExportStyle(int exportStyle)
     USDSceneBuilderOptions::SetMtlSwitcherExportStyle(style);
 }
 #endif
+
+int IUSDExportOptions::GetShellMtlExportStyle() const
+{
+    return static_cast<int>(USDSceneBuilderOptions::GetShellMtlExportStyle());
+}
+
+void IUSDExportOptions::SetShellMtlExportStyle(int exportStyle)
+{
+    const auto style = USDSceneBuilderOptions::ShellMtlExportStyle(exportStyle);
+    // Validation.
+    if (style != ShellMtlExportStyle::Baked && style != ShellMtlExportStyle::Original
+        && style != ShellMtlExportStyle::Both) {
+        WStr errorMsg(L"Incorrect ShellMtlExportStyle value. Accepted values are #baked, #original, "
+                      L"or #both.");
+        throw RuntimeError(errorMsg.data());
+    }
+    USDSceneBuilderOptions::SetShellMtlExportStyle(style);
+}
 
 FPInterfaceDesc* IUSDExportOptions::GetDesc() { return &IUSDExportOptionsDesc; }
 
@@ -641,6 +697,18 @@ const wchar_t* IUSDExportOptions::GetMaterialPrimPath() const
 {
     return MaxUsd::UsdStringToMaxString(BaseClass::GetMaterialPrimPath().GetAsString()).data();
 }
+
+#ifdef USD_CURVES_SUPPORTED
+void IUSDExportOptions::SetAnimationType(int animationType)
+{
+    BaseClass::SetAnimationType(static_cast<AnimationType>(animationType));
+}
+
+int IUSDExportOptions::GetAnimationType() const
+{
+    return static_cast<int>(BaseClass::GetAnimationType());
+}
+#endif
 
 const MCHAR* IUSDExportOptions::Serialize() const
 {

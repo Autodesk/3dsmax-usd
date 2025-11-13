@@ -34,7 +34,8 @@ enum
     fnIdCloseInUsdExplorer,
     fnIdOpenInUsdLayerEditor,
     fnIdGenerateDrawModes,
-    fnIdPromoteTo3dsMaxObject
+    fnIdPromoteTo3dsMaxObject,
+    fnIdSetStageFromCache
 };
 
 namespace MAXUSD_NS_DEF {
@@ -71,6 +72,7 @@ public:
     VFN_0(fnIdClearMappedPrimvars, ClearMappedPrimvars);
     VFN_0(fnIdGenerateDrawModes, GenerateDrawModes);
     FN_2(fnIdPromoteTo3dsMaxObject, TYPE_INODE, PromoteTo3dsMaxObject, TYPE_STRING, TYPE_BOOL);
+    FN_1(fnIdSetStageFromCache, TYPE_BOOL, SetStageFromCache, TYPE_INT);
     END_FUNCTION_MAP
 
     /// Return a weak pointer to the stage held by this provider.
@@ -127,6 +129,9 @@ public:
 
     // Promote a subtree from the stage, to a USDGeomObject object.
     virtual INode* PromoteTo3dsMaxObject(const wchar_t* primvarName, bool select) = 0;
+
+    // Set the stage from cache using cacheId
+    virtual bool SetStageFromCache(int cacheId) = 0;
 };
 
 } // namespace MAXUSD_NS_DEF

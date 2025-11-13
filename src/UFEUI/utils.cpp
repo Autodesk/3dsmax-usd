@@ -91,19 +91,34 @@ void expandPaths(
 }
 
 ExpandStateGuard::ExpandStateGuard(
-    QTreeView*             treeView,
-    const TreeItem*        subtreeRoot,
-    TreeModel*             model,
-    QSortFilterProxyModel* proxyModel)
+    QTreeView*                             treeView,
+    const TreeItem*                        subtreeRoot,
+    TreeModel*                             model,
+    QSortFilterProxyModel*                 proxyModel,
+    const std::pair<Ufe::Path, Ufe::Path>& pathChange)
     : _model(model)
     , _proxyModel(proxyModel)
     , _treeView(treeView)
+    , _pathChange(pathChange)
 {
     findExpandedPaths(model, proxyModel, treeView, subtreeRoot, _expandedPaths);
 }
 
 ExpandStateGuard::~ExpandStateGuard()
 {
+    // Fix the expanded paths to correct for an item that changed path.
+    // This allows renaming operations, for example, to preserve the correct
+    // expansion state through the rename.
+    if (!_pathChange.first.empty()) {
+        for (int i = 0; i < _expandedPaths.size(); ++i) {
+            const auto& path = _expandedPaths[i];
+            if (path.startsWith(_pathChange.first)) {
+                auto newPath = path.reparent(_pathChange.first, _pathChange.second);
+                _expandedPaths[i] = newPath;
+            }
+        }
+    }
+
     // If the items paths still exist, restore their expanded state.
     expandPaths(_treeView, _model, _proxyModel, _expandedPaths);
     _expandedPaths.clear();

@@ -39,6 +39,8 @@
 		<UsdLayerEditorDir></UsdLayerEditorDir>
 		<!-- The path location for the 'usdSharedComponent' folder -->
 		<UsdSharedComponentsDir></UsdSharedComponentsDir>
+		<!-- The path location for the 'AdskAssetResolver' folder -->
+		<AdskAssetResolverDir></AdskAssetResolverDir>
 		<!-- The path location for the 'OpenUSD' folder -->
 		<PxrUsdRoot></PxrUsdRoot>
 		<!-- The following paths are usually found inside the 'OpenUSD' folder.

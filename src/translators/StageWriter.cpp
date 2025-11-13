@@ -48,8 +48,25 @@ MaxUsdStageWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOptions& 
     }
     Class_ID   USDSTAGEOBJECT_CLASS_ID(0x24ce4724, 0x14d2486b);
     const auto object = node->EvalWorldState(exportArgs.GetResolvedTimeConfig().GetStartTime()).obj;
-    return object->ClassID() == USDSTAGEOBJECT_CLASS_ID ? ContextSupport::Fallback
-                                                        : ContextSupport::Unsupported;
+
+    if (object->ClassID() == USDSTAGEOBJECT_CLASS_ID) {
+
+        auto stageProvider = static_cast<MaxUsd::IUSDStageProvider*>(
+            node->GetObjectRef()->GetInterface(IUSDStageProvider_ID));
+        pxr::UsdStageWeakPtr referencedStage = stageProvider->GetUSDStage();
+        // Anon stages are unsupported for export
+        if (referencedStage && referencedStage->GetRootLayer()->IsAnonymous()) {
+            MaxUsd::Log::Warn(
+                L"USD Stage Object {0} has an Anonymous Root layer. In memory changes will not be "
+                L"saved as part of the export of this USD Stage Object as a USD reference.",
+                node->GetName());
+            return ContextSupport::Unsupported;
+        }
+
+        return ContextSupport::Fallback;
+    }
+
+    return ContextSupport::Unsupported;
 }
 
 MaxUsd::XformSplitRequirement MaxUsdStageWriter::RequiresXformPrim()
@@ -104,7 +121,7 @@ bool MaxUsdStageWriter::Write(
     // fallback to the default prim.
     // If no default prim is available, fallback to the first available root prim.
     auto       paths = referencedStage->GetPopulationMask().GetPaths();
-    bool hasStageMask = false;
+    bool       hasStageMask = false;
     auto       referencedPrim = referencedStage->GetDefaultPrim();
     const bool hasDefaultPrim = referencedPrim.IsValid();
     auto rootPrims = referencedStage->GetPrimAtPath(pxr::SdfPath::AbsoluteRootPath()).GetChildren();

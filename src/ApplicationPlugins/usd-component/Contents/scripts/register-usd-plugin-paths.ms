@@ -28,8 +28,7 @@ function addUsdPluginPaths =
 	plugRegistry = pyUsdPlug.Registry()
 
 	pluginPaths = #(
-		"plugin\\MaxUsd_Translators",
-		"plugin\\BasePxrUsdPreviewSurface",
+		"plugin",
 		"scripts"
 	)
 	for pluginPath in pluginPaths do (

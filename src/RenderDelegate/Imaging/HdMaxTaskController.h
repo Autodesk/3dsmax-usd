@@ -51,6 +51,10 @@ public:
     /// based on current renderer state.
     HdTaskSharedPtrVector const GetRenderingTasks() const;
 
+    /// Obtain the set of tasks paths managed by the task controller,
+    /// for picking.
+    SdfPathVector GetPickingTaskPaths() const;
+
     /// -------------------------------------------------------
     /// Rendering API
 

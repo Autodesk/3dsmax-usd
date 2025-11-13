@@ -51,6 +51,13 @@ protected:
     QItemSelectionModel::SelectionFlags
     selectionCommand(const QModelIndex& index, const QEvent* event) const override;
 
+    /**
+     * Override the dragEnter event to work around an issue in QT where the drag enter event is
+     * ignored in some scenarios, leading to a broken state.
+     * @param event The drag enter event.
+     */
+    void dragEnterEvent(QDragEnterEvent* event) override;
+
 private:
     std::unordered_map<int, bool> _columnSelectability;
 };

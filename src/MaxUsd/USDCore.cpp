@@ -100,7 +100,9 @@ void USDCore::initialize()
                                               "hdx",
                                               "hio",
                                               "usdSkelImaging",
+#if PXR_VERSION <= 2411
                                               "ndr",
+#endif
                                               "usdShade",
                                               "usdImagingGL",
                                               "usdGeom",

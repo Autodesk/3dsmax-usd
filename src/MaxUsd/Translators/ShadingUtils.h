@@ -47,6 +47,9 @@ MaxUSDAPI UsdShadeOutput CreateShaderOutputAndConnectMaterial(
     const TfToken&    terminalName,
     const TfToken&    renderContext);
 
+// Get the material used by the given node.
+MaxUSDAPI Mtl* GetNodeMaterial(INode* exportedNode);
+
 } // namespace MaxUsdShadingUtils
 
 PXR_NAMESPACE_CLOSE_SCOPE

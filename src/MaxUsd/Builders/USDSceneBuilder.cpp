@@ -15,6 +15,7 @@
 //
 #include "USDSceneBuilder.h"
 
+#include "MaxUsd/Translators/ShadingUtils.h"
 #include "MaxUsdObjects/Objects/USDStageObject.h"
 
 #include <MaxUsd/MaxTokens.h>
@@ -26,9 +27,7 @@
 #include <MaxUsd/Utilities/Logging.h>
 #include <MaxUsd/Utilities/MathUtils.h>
 #include <MaxUsd/Utilities/MaxProgressBar.h>
-#include <MaxUsd/Utilities/MaxSupportUtils.h>
 #include <MaxUsd/Utilities/MetaDataUtils.h>
-#include <MaxUsd/Utilities/PluginUtils.h>
 #include <MaxUsd/Utilities/ScopeGuard.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
@@ -41,18 +40,16 @@
 #include <pxr/usd/usd/modelAPI.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/camera.h>
-#include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/tokens.h>
 #include <pxr/usd/usdLux/cylinderLight.h>
-#include <pxr/usd/usdLux/shadowAPI.h>
 
 #include <maxscript/maxwrapper/mxsobjects.h>
 
 #include <Shlwapi.h>
+#include <geom/quat.h>
 #include <memory>
-#include <mesh.h>
 #include <modstack.h>
 #include <stack>
 
@@ -154,6 +151,15 @@ void USDSceneBuilder::Build(
             }
         });
 
+    // Create the write job context - used for shader and prim writers.
+    // Also resolve the token that can be in the MaterialLayerPath, so that the full path can be
+    // used by the writers through the context.
+    pxr::MaxUsdWriteJobContext writeJobContext { stage,  filename.string(),  exportOptions,
+                                                 isUSDZ, allowPrimOverwrite, rootTransform };
+
+    auto resolvedRoot = writeJobContext.ResolveRootPath();
+    exportOptions.SetRootPrimPath(pxr::SdfPath(resolvedRoot));
+
     auto       rootPath = exportOptions.GetRootPrimPath(false);
     const auto variantSelection = rootPath.GetVariantSelection();
     rootPath = rootPath.StripAllVariantSelections();
@@ -180,12 +186,6 @@ void USDSceneBuilder::Build(
         const auto varEditTarget = variantSet.GetVariantEditTarget(editTarget.GetLayer());
         stage->SetEditTarget(varEditTarget);
     }
-
-    // Create the write job context - used for shader and prim writers.
-    // Also resolve the token that can be in the MaterialLayerPath, so that the full path can be
-    // used by the writers through the context.
-    pxr::MaxUsdWriteJobContext writeJobContext { stage,  filename.string(),  exportOptions,
-                                                 isUSDZ, allowPrimOverwrite, rootTransform };
 
     auto resolvedMaterialPath
         = fs::path(writeJobContext.ResolveString(exportOptions.GetMaterialLayerPath()));
@@ -286,7 +286,9 @@ void USDSceneBuilder::Build(
     // If we are not exporting the whole scene, build the set of the nodes to export, for easy
     // access later.
     nodesToExportSet.clear();
-    if (exportOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::NodeList) {
+    if (exportOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::NodeList
+        || exportOptions.GetContentSource()
+            == USDSceneBuilderOptions::ContentSource::NodeAndMaterialList) {
         const auto nodesToExport = exportOptions.GetNodesToExport();
         for (int i = 0; i < nodesToExport.Count(); ++i) {
             nodesToExportSet.emplace(nodesToExport[i]);
@@ -298,11 +300,41 @@ void USDSceneBuilder::Build(
         }
     }
 
+    materialsToExport.clear();
+    if (exportOptions.GetContentSource() == USDSceneBuilderOptions::ContentSource::MaterialList
+        || exportOptions.GetContentSource()
+            == USDSceneBuilderOptions::ContentSource::NodeAndMaterialList) {
+        const auto matsToExport = exportOptions.GetMaterialsToExport();
+        for (int i = 0; i < matsToExport.Count(); ++i) {
+            Mtl* mtl = matsToExport[i];
+            if (mtl != nullptr) {
+                // Make sure we're not adding duplicated entries.
+                if (mtl->IsMultiMtl()) {
+                    MultiMtl* multiMtl = static_cast<MultiMtl*>(mtl);
+                    for (int j = 0; j < multiMtl->NumSubMtls(); ++j) {
+                        Mtl* subMtl = multiMtl->GetSubMtl(j);
+                        if (subMtl != nullptr) {
+                            if (std::find(
+                                    materialsToExport.begin(), materialsToExport.end(), subMtl)
+                                == materialsToExport.end()) {
+                                materialsToExport.push_back(subMtl);
+                            }
+                        }
+                    }
+                    continue;
+                }
+                if (std::find(materialsToExport.begin(), materialsToExport.end(), mtl)
+                    == materialsToExport.end())
+                    materialsToExport.push_back(mtl);
+            }
+        }
+    }
+
     // If we are only exporting a set of nodes, and it is empty, we are done!
     // In practice, a user would most likely get stopped before reaching this point if trying to
     // export from an empty selection or an empty list of nodes.
     if (exportOptions.GetContentSource() != USDSceneBuilderOptions::ContentSource::RootNode
-        && nodesToExportSet.empty()) {
+        && nodesToExportSet.empty() && materialsToExport.empty()) {
         return;
     }
 
@@ -344,7 +376,7 @@ void USDSceneBuilder::Build(
 
     if (exportOptions.GetTranslateMaterials()) {
         pxr::MaxUsdTranslatorMaterial::ExportMaterials(
-            writeJobContext, primsToMaterialBind, progressBar);
+            writeJobContext, primsToMaterialBind, materialsToExport, progressBar);
     }
 
     // Report that we are running chasers...
@@ -610,8 +642,11 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
 
         // Check if the node should be excluded from export. If nodesToExportSet is empty, it means
         // we want to export the entire scene.
-        bool excludeNode = !nodesToExportSet.empty()
-            && nodesToExportSet.find(nodeToConvert) == nodesToExportSet.end();
+        // IF the content is MaterialList, we want to exclude all nodes.
+        bool excludeNode = (!nodesToExportSet.empty()
+                            && nodesToExportSet.find(nodeToConvert) == nodesToExportSet.end())
+            || buildOptions.GetContentSource()
+                == USDSceneBuilderOptions::ContentSource::MaterialList;
 
         const std::string primName
             = pxr::TfMakeValidIdentifier(MaxUsd::MaxStringToUsdString(nodeToConvert->GetName()));
@@ -913,7 +948,10 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                         } else {
                             pxr::UsdGeomXformable xformable { usdPrim };
                             MaxUsd::ApplyObjectOffsetTransform(
-                                context.node, xformable, context.timeConfig.GetStartTime());
+                                context.node,
+                                xformable,
+                                context.timeConfig.GetStartTime(),
+                                buildOptions.GetTransformFormat());
                         }
                     }
 
@@ -955,7 +993,8 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                 primWriter->GetObjectPrimSuffix(),
                 primWriter->RequiresXformPrim(),
                 primWriter->RequiresInstancing(),
-                targetRootPath);
+                targetRootPath,
+                buildOptions.GetTransformFormat());
 
             if (!exportedPrims->empty() && !exportedPrims->front().path.IsEmpty()) {
                 translationHandled = true;
@@ -1023,8 +1062,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                 additionalRootTransform = scalingMat * additionalRootTransform;
                 additionalRootTransform.Invert();
 
-                // Clear the op order so that when we if overwrite a prim, we dont keep adding more
-                // ops.
+                // Clear the op order so that when we overwrite a prim, we don't add more ops.
                 xFormPrim.ClearXformOpOrder();
 
                 // Queue the work of writing the node's transform - it will be batched with other
@@ -1032,93 +1070,234 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                 // figure this out from the validity intervals). This prevents us re-evaluating the
                 // same objects multiple times at the same time values.
                 auto node = context.node;
-                animExportTask.AddTransformExportOp(
-                    [&buildOptions, node, xFormPrim, additionalRootTransform, this](
-                        const MaxUsd::ExportTime& time, pxr::UsdGeomXformOp& usdGeomXFormOp) {
-                        pxr::GfMatrix4d maxTransformMatrix
-                            = MaxUsd::ToUsd(node->GetNodeTM(time.GetMaxTime()));
 
-                        if (!additionalRootTransform.IsIdentity()) {
-                            maxTransformMatrix
-                                = maxTransformMatrix * MaxUsd::ToUsd(additionalRootTransform);
-                        }
+                // Helper struct to hold data from one lambda to another
+                struct ParentTransformData
+                {
+                    INode*                maxNode;
+                    pxr::GfMatrix4d       parentWorldTransform;
+                    pxr::GfMatrix4d       nodeTransform;
+                    pxr::UsdGeomXformable xformPrim;
+                    bool                  isTransformInvertible;
+                    TimeConfig            resolvedTimeConfig;
 
-                        MaxUsd::MathUtils::RoundMatrixValues(
-                            maxTransformMatrix, std::numeric_limits<float>::digits10);
+                    // Tracks the current number of ops in the prim. This is used
+                    // to incrementally give different names to the new ops when
+                    // necessary.
+                    size_t numberOfOps;
+                };
 
-                        if (buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y) {
-                            MaxUsd::MathUtils::ModifyTransformZToYUp(maxTransformMatrix);
-                        }
+                auto parentTransformFunction
+                    = [&buildOptions, node, xFormPrim, additionalRootTransform, this](
+                          const ExportTime& time) -> ParentTransformData {
+                    auto            nodeTransform = node->GetNodeTM(time.GetMaxTime());
+                    pxr::GfMatrix4d maxTransformMatrix = MaxUsd::ToUsd(nodeTransform);
 
-                        // Compute the local transform of the prim. The current transform in the
-                        // hierarchy (i.e. the world transform of the parent).
-                        pxr::GfMatrix4d parentWorldTransform;
-                        parentWorldTransform.SetIdentity();
+                    if (!additionalRootTransform.IsIdentity()) {
+                        maxTransformMatrix
+                            = maxTransformMatrix * MaxUsd::ToUsd(additionalRootTransform);
+                    }
 
-                        const auto parentNode = node->GetParentNode();
-                        bool       parentIsRootNode = parentNode && parentNode->IsRootNode();
-                        bool       exportingParent
-                            = nodesToExportSet.find(parentNode) != nodesToExportSet.end();
-                        // If the parent node is not being exported and the WorldspaceRoot option is
-                        // on, Keep the parent's world transform as part of this node transform.
-                        bool keepWorldTransform
-                            = !exportingParent && buildOptions.GetUseWorldspaceRoot();
+                    MaxUsd::MathUtils::RoundMatrixValues(
+                        maxTransformMatrix, std::numeric_limits<float>::digits10);
 
-                        // Transform the Node's transform to local space :
-                        // If it's parent node is being exported.
-                        // If the parent is not being exported but the WorldspaceRoot option is
-                        // off.
-                        // If nodesToExportSet is empty, the entire scene is being exported.
-                        bool inverseTransform
-                            = exportingParent || !keepWorldTransform || nodesToExportSet.empty();
+                    if (buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y) {
+                        MaxUsd::MathUtils::ModifyTransformZToYUp(maxTransformMatrix);
+                    }
 
-                        if (!parentIsRootNode && inverseTransform) {
-                            parentWorldTransform = MaxUsd::GetNodeTransform(
-                                parentNode,
-                                time.GetMaxTime(),
-                                buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y,
-                                additionalRootTransform);
-                        } else if (
-                            xFormPrim.GetPath().GetParentPath() == buildOptions.GetRootPrimPath()) {
-                            const auto img = pxr::UsdGeomImageable(xFormPrim.GetPrim().GetParent());
-                            parentWorldTransform
-                                = img.ComputeLocalToWorldTransform(time.GetUsdTime());
-                        }
+                    // This struct is being used just for convenience, to pass data from this lambda
+                    // to the next one.
+                    ParentTransformData parentTransformData;
+                    parentTransformData.parentWorldTransform.SetIdentity();
 
-                        // The parent transform must be invertible for us to be able to compute the
-                        // local transform. A matrix with a non-zero determinant is invertible.
-                        if (parentWorldTransform.GetDeterminant() != 0.0) {
-                            pxr::GfMatrix4d transformMatrix
-                                = maxTransformMatrix * parentWorldTransform.GetInverse();
-                            // If exporting a single frame, no need to specify the transform if it
-                            // is the identity. When exporting an animation, we need to, as the
-                            // transform might change over time. If the frame at the identity was
-                            // not exported, the transform at that frame would be interpolated from
-                            // other authored frames, which would be wrong.
-                            const auto timeConfig = buildOptions.GetResolvedTimeConfig();
+                    const auto parentNode = node->GetParentNode();
+                    bool       parentIsRootNode = parentNode && parentNode->IsRootNode();
+                    bool       exportingParent
+                        = nodesToExportSet.find(parentNode) != nodesToExportSet.end();
+                    // If the parent node is not being exported and the WorldspaceRoot option is
+                    // on, Keep the parent's world transform as part of this node transform.
+                    bool keepWorldTransform
+                        = !exportingParent && buildOptions.GetUseWorldspaceRoot();
+
+                    // Transform the Node's transform to local space :
+                    // If it's parent node is being exported.
+                    // If the parent is not being exported but the WorldspaceRoot option is
+                    // off.
+                    // If nodesToExportSet is empty, the entire scene is being exported.
+                    bool inverseTransform
+                        = exportingParent || !keepWorldTransform || nodesToExportSet.empty();
+
+                    // Compute the local transform of the prim. The current transform in the
+                    // hierarchy (i.e. the world transform of the parent).
+                    if (!parentIsRootNode && inverseTransform) {
+                        parentTransformData.parentWorldTransform = MaxUsd::GetNodeTransform(
+                            parentNode,
+                            time.GetMaxTime(),
+                            buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y,
+                            additionalRootTransform);
+                    } else if (
+                        xFormPrim.GetPath().GetParentPath() == buildOptions.GetRootPrimPath()) {
+                        const auto img = pxr::UsdGeomImageable(xFormPrim.GetPrim().GetParent());
+                        parentTransformData.parentWorldTransform
+                            = img.ComputeLocalToWorldTransform(time.GetUsdTime());
+                    }
+
+                    parentTransformData.maxNode = node;
+
+                    // The parent transform must be invertible for us to be able to compute
+                    // the local transform. A matrix with a non-zero determinant is
+                    // invertible.
+                    parentTransformData.isTransformInvertible
+                        = parentTransformData.parentWorldTransform.GetDeterminant() != 0.0;
+
+                    parentTransformData.nodeTransform = maxTransformMatrix;
+                    parentTransformData.resolvedTimeConfig = buildOptions.GetResolvedTimeConfig();
+                    parentTransformData.xformPrim = xFormPrim;
+
+                    bool resetsXformStack = false;
+                    int  numOps
+                        = static_cast<int>(xFormPrim.GetOrderedXformOps(&resetsXformStack).size());
+
+                    // When not exporting a single matrix, we export the translation, rotation and
+                    // scale together as a single op. When exporting as split components, instead of
+                    // having 1 matrix to account for the 3 ops, they are separate, hence why we
+                    // divide the number of ops/3 in that case.
+                    const bool isExportingSingleMatrix
+                        = buildOptions.GetTransformFormat() == TransformFormat::SingleMatrix;
+                    parentTransformData.numberOfOps = isExportingSingleMatrix ? numOps : numOps / 3;
+
+                    // To avoid spamming the log, we only log this error once per transform. If it's
+                    // single matrix, that means each matrix, if it's split, that means each 3
+                    // transform.
+                    bool shouldLogNonInvertible = isExportingSingleMatrix || numOps % 3 == 0;
+                    if (!parentTransformData.isTransformInvertible && shouldLogNonInvertible) {
+                        MaxUsd::Log::Error(
+                            std::wstring(L"The parent prim of ")
+                            + parentTransformData.maxNode->GetName()
+                            + std::wstring(L" has a non-invertible world transform matrix. "
+                                           L"Unable to compute its local transform at frame ")
+                            + std::to_wstring(
+                                double(time.GetMaxTime()) / double(GetTicksPerFrame())));
+                    }
+
+                    return parentTransformData;
+                };
+
+                /////////    Regarding the export functions below:
+                //
+                // If exporting a single frame, no need to specify the transform if it
+                // is the identity. When exporting an animation always have to export it, as the
+                // transform might change over time. If the frame is the identity, and it was
+                // not exported, the transform at that frame would be interpolated
+                // from other authored frames, which would be wrong.
+
+                const bool isExportingSingleMatrix
+                    = buildOptions.GetTransformFormat() == TransformFormat::SingleMatrix;
+                if (isExportingSingleMatrix) {
+
+                    auto exportTransformFunc = [parentTransformFunction](
+                                                   const MaxUsd::ExportTime& time,
+                                                   pxr::UsdGeomXformOp&      usdGeomXFormOp) {
+                        auto parentTransformData = parentTransformFunction(time);
+
+                        if (parentTransformData.isTransformInvertible) {
+                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
+                                * parentTransformData.parentWorldTransform.GetInverse();
+
                             if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
-                                || timeConfig.IsAnimated()) {
-                                bool         resetsXformStack = false;
-                                const size_t nbOfOps
-                                    = xFormPrim.GetOrderedXformOps(&resetsXformStack).size();
-                                if (!usdGeomXFormOp.IsDefined()) {
-                                    usdGeomXFormOp = xFormPrim.AddXformOp(
-                                        pxr::UsdGeomXformOp::TypeTransform,
-                                        pxr::UsdGeomXformOp::PrecisionDouble,
-                                        nbOfOps > 0 ? pxr::TfToken("t" + std::to_string(nbOfOps))
-                                                    : pxr::TfToken());
-                                }
-                                usdGeomXFormOp.Set(transformMatrix, time.GetUsdTime());
+                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+
+                                SetXForm(
+                                    transformMatrix,
+                                    parentTransformData.xformPrim,
+                                    usdGeomXFormOp,
+                                    pxr::UsdGeomXformOp::TypeTransform,
+                                    pxr::UsdGeomXformOp::PrecisionDouble,
+                                    parentTransformData.numberOfOps,
+                                    time.GetUsdTime());
                             }
-                        } else {
-                            MaxUsd::Log::Error(
-                                std::wstring(L"The parent prim of ") + node->GetName()
-                                + std::wstring(L" has a non-invertible world transform matrix. "
-                                               L"Unable to compute its local transform at frame ")
-                                + std::to_wstring(
-                                    double(time.GetMaxTime()) / double(GetTicksPerFrame())));
                         }
-                    });
+                    };
+
+                    animExportTask.AddTransformExportOp(exportTransformFunc);
+
+                } else {
+
+                    auto exportTranslationFunc = [parentTransformFunction](
+                                                     const MaxUsd::ExportTime& time,
+                                                     pxr::UsdGeomXformOp&      usdGeomXFormOp) {
+                        auto parentTransformData = parentTransformFunction(time);
+
+                        if (parentTransformData.isTransformInvertible) {
+                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
+                                * parentTransformData.parentWorldTransform.GetInverse();
+
+                            if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
+                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+
+                                SetXForm(
+                                    transformMatrix,
+                                    parentTransformData.xformPrim,
+                                    usdGeomXFormOp,
+                                    pxr::UsdGeomXformOp::TypeTranslate,
+                                    pxr::UsdGeomXformOp::PrecisionDouble,
+                                    parentTransformData.numberOfOps,
+                                    time.GetUsdTime());
+                            }
+                        }
+                    };
+
+                    auto exportScaleFunction = [parentTransformFunction](
+                                                   const MaxUsd::ExportTime& time,
+                                                   pxr::UsdGeomXformOp&      usdGeomXFormOp) {
+                        auto parentTransformData = parentTransformFunction(time);
+
+                        if (parentTransformData.parentWorldTransform.GetDeterminant() != 0.0) {
+                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
+                                * parentTransformData.parentWorldTransform.GetInverse();
+
+                            if (!MathUtils::IsIdentity(transformMatrix)
+                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+
+                                SetXForm(
+                                    transformMatrix,
+                                    parentTransformData.xformPrim,
+                                    usdGeomXFormOp,
+                                    pxr::UsdGeomXformOp::TypeScale,
+                                    pxr::UsdGeomXformOp::PrecisionFloat,
+                                    parentTransformData.numberOfOps,
+                                    time.GetUsdTime());
+                            }
+                        }
+                    };
+
+                    auto exportRotationFunc = [parentTransformFunction](
+                                                  const MaxUsd::ExportTime& time,
+                                                  pxr::UsdGeomXformOp&      usdGeomXFormOp) {
+                        auto parentTransformData = parentTransformFunction(time);
+
+                        if (parentTransformData.isTransformInvertible) {
+                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
+                                * parentTransformData.parentWorldTransform.GetInverse();
+                            if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
+                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+
+                                SetXForm(
+                                    transformMatrix,
+                                    parentTransformData.xformPrim,
+                                    usdGeomXFormOp,
+                                    pxr::UsdGeomXformOp::TypeRotateXYZ,
+                                    pxr::UsdGeomXformOp::PrecisionFloat,
+                                    parentTransformData.numberOfOps,
+                                    time.GetUsdTime());
+                            }
+                        }
+                    };
+
+                    animExportTask.AddTransformExportOp(exportTranslationFunc);
+                    animExportTask.AddTransformExportOp(exportRotationFunc);
+                    animExportTask.AddTransformExportOp(exportScaleFunction);
+                }
             }
 
             for (const auto& configuratorStep : primConfigurators) {
@@ -1196,7 +1375,8 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::WriteNodePrims(
     const std::string&                   objectPrimSuffix,
     const MaxUsd::XformSplitRequirement& xformRequirement,
     const MaxUsd::InstancingRequirement& instancingRequirement,
-    const pxr::SdfPath&                  rootPrim)
+    const pxr::SdfPath&                  rootPrim,
+    TransformFormat                      transformFormat)
 {
     bool isInstanceableNode
         = maxNodeToClassPrimMap.find(context.node) != maxNodeToClassPrimMap.end();
@@ -1338,7 +1518,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::WriteNodePrims(
         // an offset transform. Whether or not a WSM is applied is not animatable, so we can just
         // consider it at the startFrame.
         MaxUsd::ApplyObjectOffsetTransform(
-            context.node, xformable, context.timeConfig.GetStartTime());
+            context.node, xformable, context.timeConfig.GetStartTime(), transformFormat);
 
         // The root prim created for the node is at .front(). This prim will be where the node
         // object transform will be applied. This should be the instance prim unless we had unbaked

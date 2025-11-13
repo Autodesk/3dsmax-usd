@@ -45,6 +45,10 @@ public:
 
     int resizeMode() const override;
 
+    void flags(const UfeUi::TreeItem* treeItem, Qt::ItemFlags& flags) override;
+
+    bool setData(const UfeUi::TreeItem* treeItem, const QVariant& value, int role) override;
+
 private:
     // An alias for the root item in the hierarchy.
     QString _rootAlias;

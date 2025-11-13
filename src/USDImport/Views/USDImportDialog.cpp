@@ -98,7 +98,11 @@ USDImportDialog::USDImportDialog(
         &USDImportDialog::OnEndTimeCodeValueChanged);
     connect(
         ui->endFrameCheckBox,
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+        &QCheckBox::checkStateChanged,
+#else
         &QCheckBox::stateChanged,
+#endif
         this,
         &USDImportDialog::OnEndFrameCheckBoxStateChanged);
 
@@ -106,7 +110,11 @@ USDImportDialog::USDImportDialog(
     ui->importMaterialsCheckbox->setChecked(buildOptions.GetTranslateMaterials());
     QObject::connect(
         ui->importMaterialsCheckbox,
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+        &QCheckBox::checkStateChanged,
+#else
         &QCheckBox::stateChanged,
+#endif
         this,
         &USDImportDialog::OnTranslateMaterialsStateChanged);
 
@@ -486,7 +494,7 @@ void USDImportDialog::OnTranslateMaterialsStateChanged(bool checked)
 
 void USDImportDialog::OnLogPathBrowseClicked()
 {
-    const TCHAR* importDir
+    const MSTR importDir
         = MaxSDKSupport::GetString(IPathConfigMgr::GetPathConfigMgr()->GetDir(APP_EXPORT_DIR));
     QString qDir = QString::fromStdString(MaxUsd::MaxStringToUsdString(importDir));
     QString logfile = QFileDialog::getSaveFileName(

@@ -41,6 +41,7 @@ public Q_SLOTS:
 #ifdef IS_MAX2024_OR_GREATER
     void OnMaterialSwitcherExportStyleComboBoxChanged(int index);
 #endif
+    void OnShellMtlExportStyleComboBoxChanged(int index);
 
     /// Rebuild the material conversion set when toggling the material type options.
     void OnMaterialConversionStateChanged(bool state);

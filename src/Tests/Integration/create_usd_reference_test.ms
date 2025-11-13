@@ -80,7 +80,7 @@ struct create_reference_test
         
         -- Test that a cache id is assigned correctly with a initialized stage.        
         local usdReference = USDStageObject()
-        assert_equal -1 usdReference.CacheId message:"An unitialized stage object should hold the default/invalid cache id."
+        assert_not_equal -1 usdReference.CacheId message:"An initialized stage object should hold not hold invalid cache id."
         try (
             usdReference.SetRootLayer ""
         )
@@ -88,7 +88,7 @@ struct create_reference_test
         (
             -- catch exception and continue with testing the the cacheId 
         )
-        assert_equal -1 usdReference.CacheId message:"An unitialized stage object should hold the default/invalid cache id."
+        assert_not_equal -1 usdReference.CacheId message:"An initialized stage object should hold not hold invalid cache id."
         usdReference.SetRootLayer exportPath
         assert_not_equal -1 usdReference.CacheId message:"CacheId should be set on the stage object."
         
@@ -109,14 +109,17 @@ struct create_reference_test
         usdReference3.SetRootLayer exportPath stageMask:"/bad"
         assert_not_equal -1 usdReference3.CacheId message:"CacheId should be set on the stage object."
         
+        -- Store the CacheId before the following tests
+        local currentCacheId = usdReference3.CacheId
+
         -- Test SetRootLayer stageMask invalid layer + valid mask
         local badExportPath = output_prefix + "bad.usd"
         usdReference3.SetRootLayer badExportPath stageMask:"/"
-        assert_equal -1 usdReference3.CacheId message:"An unitialized stage object should hold the default/invalid cache id."
+        assert_equal currentCacheId usdReference3.CacheId message:"When trying to set an invalid root layer on a UsdStageObject that current has a valid CacheId, the id shouldn't change."
 
         -- Test SetRootLayer stageMask invalid layer + invalid mask
         usdReference3.SetRootLayer badExportPath stageMask:"/bad"
-        assert_equal -1 usdReference3.CacheId message:"An unitialized stage object should hold the default/invalid cache id."
+        assert_equal currentCacheId usdReference3.CacheId message:"When trying to set an invalid root layer on a UsdStageObject that current has a valid CacheId, the id shouldn't change."
 
         -- test SetRootLayer same data, same cacheId
         usdReference3.SetRootLayer exportPath stageMask:"/"

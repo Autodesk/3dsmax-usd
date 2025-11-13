@@ -11,6 +11,11 @@
 		<PxrUsdRoot Condition="'$(VersionTarget)'&lt;='2025' and '$(PxrUsdRoot)'==''">$(Artifacts)$(VersionTarget)\Pixar_USD\Release</PxrUsdRoot>
 		<Pixar_USDInc>$(PxrUsdRoot)\include</Pixar_USDInc>
 		<Pixar_USDLib>$(PxrUsdRoot)\lib</Pixar_USDLib>
+		<AdskAssetResolverDir Condition="'$(MaxUsdDevKit)'!='' and '$(AdskAssetResolverDir)'==''">$(MaxUsdDevKit)\adskassetresolver</AdskAssetResolverDir>
+		<AdskAssetResolverDir Condition="'$(VersionTarget)'&gt;'2025' and '$(AdskAssetResolverDir)'==''">$(Artifacts)$(VersionTarget)\adskassetresolver\RelWithDebInfo</AdskAssetResolverDir>
+		<AdskAssetResolverInc Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\include</AdskAssetResolverInc>
+		<AdskAssetResolverLib Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\lib</AdskAssetResolverLib>
+		<AdskAssetResolverBin Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\bin</AdskAssetResolverBin>
 		<!-- With OpenUSD 24.11 and up, Python is no longer included, only the boost/python headers are -->
 		<BoostVersion Condition="'$(VersionTarget)'=='2025'">1_81</BoostVersion>
 		<BoostVersion Condition="'$(VersionTarget)'=='2024'">1_76</BoostVersion>
@@ -27,7 +32,8 @@
 		<PythonLocation Condition="'$(PythonLocation)'==''">$(Artifacts)$(VersionTarget)\Python</PythonLocation>
 		<PythonInc>$(PythonLocation)\Include</PythonInc>
 		<PythonLibs>$(PythonLocation)\libs</PythonLibs>
-		<PythonVersion Condition="'$(VersionTarget)'&gt;='2025'">311</PythonVersion>
+		<PythonVersion Condition="'$(VersionTarget)'&gt;'2026'">313</PythonVersion>
+		<PythonVersion Condition="'$(VersionTarget)'&gt;='2025' and '$(VersionTarget)'&lt;='2026'">311</PythonVersion>
 		<PythonVersion Condition="'$(VersionTarget)'=='2024'">310</PythonVersion>
 		<PythonVersion Condition="'$(VersionTarget)'=='2023'">39</PythonVersion>
 		<PyOpenGLDir Condition="'$(PyOpenGLDir)'==''">$(Artifacts)$(VersionTarget)\PyOpenGL</PyOpenGLDir>
@@ -37,10 +43,9 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2023">USD_VERSION_21_11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<!-- Starting with 3dsMax 2024, one USD version per 3dsMax release. -->
-			<PreprocessorDefinitions Condition="$(VersionTarget)==2024">USD_VERSION_22_11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">USD_VERSION_23_08;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2025'">;USD_CURVES_SUPPORTED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(SolutionDir);$(BoostInc);$(TBBInclude);$(PythonInc);$(Pixar_USDInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -63,10 +68,11 @@
 		</ClCompile>
 		<Link>
 			<AdditionalLibraryDirectories>$(Pixar_USDLib);$(BoostLib);$(TBBLib);$(PythonLibs);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>OpenGL32.lib;3dsmax_usd.lib;3dsmax_sdf.lib;3dsmax_js.lib;3dsmax_pcp.lib;3dsmax_tf.lib;3dsmax_ar.lib;3dsmax_arch.lib;3dsmax_garch.lib;3dsmax_gf.lib;3dsmax_glf.lib;3dsmax_hd.lib;3dsmax_hdSt.lib;3dsmax_hdx.lib;3dsmax_hf.lib;3dsmax_kind.lib;3dsmax_sdr.lib;3dsmax_ndr.lib;3dsmax_plug.lib;3dsmax_trace.lib;3dsmax_usdGeom.lib;3dsmax_usdImaging.lib;3dsmax_usdImagingGL.lib;3dsmax_usdLux.lib;3dsmax_vt.lib;3dsmax_work.lib;3dsmax_usdUtils.lib;3dsmax_usdShade.lib;3dsmax_usdUI.lib;3dsmax_usdSkel.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>OpenGL32.lib;3dsmax_usd.lib;3dsmax_sdf.lib;3dsmax_js.lib;3dsmax_pcp.lib;3dsmax_tf.lib;3dsmax_ar.lib;3dsmax_arch.lib;3dsmax_garch.lib;3dsmax_gf.lib;3dsmax_glf.lib;3dsmax_hd.lib;3dsmax_hdSt.lib;3dsmax_hdx.lib;3dsmax_hf.lib;3dsmax_kind.lib;3dsmax_sdr.lib;3dsmax_plug.lib;3dsmax_trace.lib;3dsmax_usdGeom.lib;3dsmax_usdImaging.lib;3dsmax_usdImagingGL.lib;3dsmax_usdLux.lib;3dsmax_vt.lib;3dsmax_work.lib;3dsmax_usdUtils.lib;3dsmax_usdShade.lib;3dsmax_usdUI.lib;3dsmax_usdSkel.lib;%(AdditionalDependencies)</AdditionalDependencies>
 			
 			<AdditionalDependencies Condition="$(VersionTarget)&lt;=2025">%(AdditionalDependencies);boost_python$(PythonVersion)-$(BoostLibToolSet)-mt-x64-$(BoostVersion).lib</AdditionalDependencies>
-			<AdditionalDependencies Condition="$(VersionTarget)&gt;2025">%(AdditionalDependencies);3dsmax_python.lib;3dsmax_boost.lib</AdditionalDependencies>
+			<AdditionalDependencies Condition="$(VersionTarget)&gt;2025">%(AdditionalDependencies);3dsmax_python.lib;3dsmax_boost.lib;3dsmax_ts.lib</AdditionalDependencies>
+			<AdditionalDependencies Condition="$(VersionTarget)&lt;=2026">%(AdditionalDependencies);3dsmax_ndr.lib</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

@@ -68,7 +68,8 @@ namespace {
 enum
 {
     OptionsId = -1,
-    NewStageId = -2
+    NewStageId = -2,
+    NewStageInMemoryId = -3
 };
 
 } // namespace
@@ -104,6 +105,7 @@ void USDDynamicActionItem::PopulateDynamicMenu(
     }
 
     dynMenu->AddSeparator();
+    dynMenu->AddItem(NewStageInMemoryId, QObject::tr("Stage with New Layer"));
     dynMenu->AddItem(NewStageId, QObject::tr("Stage from File"));
     dynMenu->AddSeparator();
     dynMenu->AddItem(OptionsId, QObject::tr("Options..."));
@@ -115,6 +117,9 @@ void USDDynamicActionItem::DynamicMenuItemSelected(int itemId)
         MaxUsd::GetUSDIOController()->ConfigureExportToStageOptions();
         return;
     }
+
+    // Make the entire operation undoable in one go.
+    theHold.Begin();
 
     INode* stageNode = nullptr;
 
@@ -131,6 +136,7 @@ void USDDynamicActionItem::DynamicMenuItemSelected(int itemId)
             L"macros.run \"USD\" \"CreateUSDStage\"", MAXScript::ScriptSource::Embedded);
         if (GetCOREInterface()->GetSelNodeCount() != 1) {
             // Create stage operation was aborted.
+            theHold.Cancel();
             return;
         }
         stageNode = GetCOREInterface()->GetSelNode(0);
@@ -140,6 +146,12 @@ void USDDynamicActionItem::DynamicMenuItemSelected(int itemId)
         for (const auto& node : selectedNodes) {
             GetCOREInterface()->SelectNode(node, false);
         }
+    } else if (itemId == NewStageInMemoryId) {
+
+        const auto stageObject = static_cast<USDStageObject*>(
+            GetCOREInterface()->CreateInstance(GEOMOBJECT_CLASS_ID, USDSTAGEOBJECT_CLASS_ID));
+        stageNode = GetCOREInterface()->CreateObjectNode(stageObject);
+        stageObject->OpenInUsdExplorer();
     } else {
         // A stage was picked from the menu...
         stageNode = GetCOREInterface()->GetINodeByHandle(itemId);
@@ -149,6 +161,7 @@ void USDDynamicActionItem::DynamicMenuItemSelected(int itemId)
 
     if (!usdStageObject) {
         DbgAssert("Incorrect stage node object type.");
+        theHold.Cancel();
         return;
     }
 
@@ -166,6 +179,8 @@ void USDDynamicActionItem::DynamicMenuItemSelected(int itemId)
     auto cmd = MaxUsd::ExportToStageCommand::create(
         opts, usdStageObject->GetUSDStage(), allowOverwrite, rootTransform);
     Ufe::UndoableCommandMgr::instance().executeCmd(cmd);
+
+    theHold.Accept(L"Duplicate to Stage");
 }
 
 void RegisterUSDDynamicActionItem()
@@ -180,12 +195,6 @@ void RegisterUSDDynamicActionItem()
     actionMgr->ActivateActionTable(&usdActionCallback, usdActionTableId);
 }
 
-void InsertUsdMenuItems(MaxSDK::CUI::ICuiMenu* menu)
-{
-    menu->CreateSeparator(MaxSDK::MaxGuid::CreateMaxGuid());
-    menu->CreateAction(MaxSDK::MaxGuid::CreateMaxGuid(), usdActionTableId, usdActionItemId);
-}
-
 void USDQuadMenuRegisterCallback(void* param, NotifyInfo* info)
 {
     using namespace MaxSDK::CUI;
@@ -198,19 +207,31 @@ void USDQuadMenuRegisterCallback(void* param, NotifyInfo* info)
     ICuiQuadMenuContext* viewportContext = menuMgr->GetContextById(kViewportQuadContextId);
     auto                 vpQuad = viewportContext->GetRightClickMenuByModifiers(kNoModifier);
     auto                 vpQuadMenus = vpQuad->GetMenus();
-    InsertUsdMenuItems(vpQuadMenus[2]);
+    vpQuadMenus[2]->CreateSeparator(MaxSDK::MaxGuid(L"87390108-800a-491d-b654-b0e94ac275f4"));
+    vpQuadMenus[2]->CreateAction(
+        MaxSDK::MaxGuid(L"2ef90997-e430-4267-bae1-26651e2def6b"),
+        usdActionTableId,
+        usdActionItemId);
 
     // Explorer hierarchy view
     auto explorerQuad
         = menuMgr->GetQuadMenuById(MaxSDK::MaxGuid(L"75091e5c-cf71-4fba-9472-b26ad686a050"));
     auto explorerQuadMenus = explorerQuad->GetMenus();
-    InsertUsdMenuItems(explorerQuadMenus[2]);
+    explorerQuadMenus[2]->CreateSeparator(MaxSDK::MaxGuid(L"feca2c9b-64d4-4288-b55f-f405e55ba57b"));
+    explorerQuadMenus[2]->CreateAction(
+        MaxSDK::MaxGuid(L"03aa3fbc-cb27-4999-b19e-4f3540b9aa76"),
+        usdActionTableId,
+        usdActionItemId);
 
     // Explorer layer view
     auto layerQuad
         = menuMgr->GetQuadMenuById(MaxSDK::MaxGuid(L"2097f00d-4042-482d-8ff6-9df377c26591"));
     auto layerQuadMenus = layerQuad->GetMenus();
-    InsertUsdMenuItems(layerQuadMenus[2]);
+    layerQuadMenus[2]->CreateSeparator(MaxSDK::MaxGuid(L"c8af2b77-eabf-4ca4-86cb-897c1c75b1d5"));
+    layerQuadMenus[2]->CreateAction(
+        MaxSDK::MaxGuid(L"82b45f54-2ca9-4837-9e12-779ef5dad621"),
+        usdActionTableId,
+        usdActionItemId);
 }
 
 #endif

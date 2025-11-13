@@ -98,7 +98,7 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
     static VtDictionary   defaultDict;
     static std::once_flag once;
     std::call_once(once, []() {
-        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->version] = 1;
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->version] = 2;
         // Base defaults.
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->contentSource]
             = static_cast<int>(ContentSource::RootNode);
@@ -111,11 +111,16 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->allowNestedGprims] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->translateHidden] = true;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->translateSkin] = false;
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->includeAllBones] = false;
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->preserveBoneMeshes] = true;
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->simplifyBonePaths] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->translateMorpher] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useUSDVisibility] = false;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useProgressBar] = true;
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->useWorldspaceRoot] = false;
 
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->animationType]
+            = static_cast<int>(AnimationType::TimeSamples);
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->timeMode]
             = static_cast<int>(TimeMode::CurrentFrame);
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->startFrame] = 0.0;
@@ -145,6 +150,8 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->mtlSwitcherExportStyle]
             = static_cast<int>(MtlSwitcherExportStyle::AsVariantSets);
 #endif
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->shellMtlExportStyle]
+            = static_cast<int>(ShellMtlExportStyle::Both);
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->materialLayerPath]
             = std::string("<filename>_mtl.usda");
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->separateMaterialLayer] = false;
@@ -154,6 +161,8 @@ const pxr::VtDictionary& USDSceneBuilderOptions::GetDefaultDictionary()
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->animationsPrimName]
             = pxr::TfToken("Animations");
         defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->bonesPrimName] = pxr::TfToken("Bones");
+        defaultDict[MaxUsdUsdSceneBuilderOptionsTokens->transformFormat]
+            = static_cast<int>(TransformFormat::SingleMatrix);
     });
     // Purposefully left out of the call_once, in order to always fetch the latest value for
     // "APP_TEMP_DIR".
@@ -326,6 +335,36 @@ void USDSceneBuilderOptions::SetTranslateMorpher(bool translateMorpher)
     options[MaxUsdUsdSceneBuilderOptionsTokens->translateMorpher] = translateMorpher;
 }
 
+void USDSceneBuilderOptions::SetPreserveBoneMeshes(bool preserveBoneMeshes)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->preserveBoneMeshes] = preserveBoneMeshes;
+}
+
+bool USDSceneBuilderOptions::GetPreserveBoneMeshes() const
+{
+    return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->preserveBoneMeshes);
+}
+
+void USDSceneBuilderOptions::SetIncludeAllBones(bool includeAllBones)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->includeAllBones] = includeAllBones;
+}
+
+bool USDSceneBuilderOptions::GetIncludeAllBones() const
+{
+    return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->includeAllBones);
+}
+
+void USDSceneBuilderOptions::SetSimplifyBonePaths(bool simplifyBonePaths)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->simplifyBonePaths] = simplifyBonePaths;
+}
+
+bool USDSceneBuilderOptions::GetSimplifyBonePaths() const
+{
+    return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->simplifyBonePaths);
+}
+
 bool USDSceneBuilderOptions::GetTranslateMorpher() const
 {
     return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->translateMorpher);
@@ -473,6 +512,13 @@ void USDSceneBuilderOptions::SetNodesToExport(const Tab<INode*>& nodes) { nodesT
 
 const Tab<INode*>& USDSceneBuilderOptions::GetNodesToExport() const { return nodesToExport; }
 
+void USDSceneBuilderOptions::SetMaterialsToExport(const Tab<Mtl*>& materials)
+{
+    materialsToExport = materials;
+}
+
+const Tab<Mtl*>& USDSceneBuilderOptions::GetMaterialsToExport() const { return materialsToExport; }
+
 void USDSceneBuilderOptions::SetTimeMode(const TimeMode& timeMode)
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->timeMode] = static_cast<int>(timeMode);
@@ -610,6 +656,19 @@ USDSceneBuilderOptions::GetMtlSwitcherExportStyle() const
 }
 #endif
 
+void USDSceneBuilderOptions::SetShellMtlExportStyle(const ShellMtlExportStyle& exportStyle)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->shellMtlExportStyle]
+        = static_cast<int>(exportStyle);
+}
+
+const USDSceneBuilderOptions::ShellMtlExportStyle
+USDSceneBuilderOptions::GetShellMtlExportStyle() const
+{
+    return static_cast<ShellMtlExportStyle>(
+        VtDictionaryGet<int>(options, MaxUsdUsdSceneBuilderOptionsTokens->shellMtlExportStyle));
+}
+
 bool USDSceneBuilderOptions::GetUseProgressBar() const
 {
     return VtDictionaryGet<bool>(options, MaxUsdUsdSceneBuilderOptionsTokens->useProgressBar);
@@ -618,6 +677,17 @@ bool USDSceneBuilderOptions::GetUseProgressBar() const
 void USDSceneBuilderOptions::SetUseProgressBar(bool useProgressBar)
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->useProgressBar] = useProgressBar;
+}
+
+void USDSceneBuilderOptions::SetTransformFormat(int option)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->transformFormat] = option;
+}
+
+TransformFormat USDSceneBuilderOptions::GetTransformFormat() const
+{
+    return static_cast<TransformFormat>(
+        VtDictionaryGet<int>(options, MaxUsdUsdSceneBuilderOptionsTokens->transformFormat));
 }
 
 void USDSceneBuilderOptions::SetMaterialLayerPath(const std::string& matPath)
@@ -665,6 +735,19 @@ bool USDSceneBuilderOptions::GetUseLastResortUSDPreviewSurfaceWriter() const
     return VtDictionaryGet<bool>(
         options, MaxUsdUsdSceneBuilderOptionsTokens->useLastResortUSDPreviewSurfaceWriter);
 }
+
+#ifdef USD_CURVES_SUPPORTED
+void USDSceneBuilderOptions::SetAnimationType(AnimationType animationType)
+{
+    options[MaxUsdUsdSceneBuilderOptionsTokens->animationType] = static_cast<int>(animationType);
+}
+
+USDSceneBuilderOptions::AnimationType USDSceneBuilderOptions::GetAnimationType() const
+{
+    return static_cast<AnimationType>(
+        VtDictionaryGet<int>(options, MaxUsdUsdSceneBuilderOptionsTokens->animationType));
+}
+#endif
 
 void USDSceneBuilderOptions::FetchAnimationRollupData(
     AnimationRollupData& animationRollupData) const

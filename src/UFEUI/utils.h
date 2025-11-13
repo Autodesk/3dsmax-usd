@@ -92,14 +92,19 @@ public:
         QTreeView*             treeView,
         const TreeItem*        subtreeRoot,
         TreeModel*             model,
-        QSortFilterProxyModel* proxyModel);
+        QSortFilterProxyModel* proxyModel,
+        // Optional path mapping for an item who's path has changed.
+        // This is to be able to recover the correct tree expand state when an item is
+        // renamed, for example.
+        const std::pair<Ufe::Path, Ufe::Path>& pathChange = {});
     ~ExpandStateGuard();
 
 private:
-    TreeModel*             _model = nullptr;
-    QSortFilterProxyModel* _proxyModel = nullptr;
-    QTreeView*             _treeView = nullptr;
-    std::vector<Ufe::Path> _expandedPaths;
+    TreeModel*                      _model = nullptr;
+    QSortFilterProxyModel*          _proxyModel = nullptr;
+    QTreeView*                      _treeView = nullptr;
+    std::vector<Ufe::Path>          _expandedPaths;
+    std::pair<Ufe::Path, Ufe::Path> _pathChange;
 };
 
 /**

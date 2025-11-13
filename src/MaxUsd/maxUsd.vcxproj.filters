@@ -627,28 +627,10 @@
     <ClInclude Include="Views\IUSDExportView.h">
       <Filter>Header Files\Views</Filter>
     </ClInclude>
-    <ClInclude Include="Views\UsdExportAdvancedRollup.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
-    <ClInclude Include="Views\UsdExportAnimationRollup.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
     <ClInclude Include="Views\USDExportCustomChannelMappingsDialog.h">
       <Filter>Header Files\Views</Filter>
     </ClInclude>
     <ClInclude Include="Views\USDExportDialog.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
-    <ClInclude Include="Views\UsdExportFileRollup.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
-    <ClInclude Include="Views\UsdExportGeneralSettingsRollup.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
-    <ClInclude Include="Views\UsdExportIncludeRollup.h">
-      <Filter>Header Files\Views</Filter>
-    </ClInclude>
-    <ClInclude Include="Views\UsdExportMaterialsRollup.h">
       <Filter>Header Files\Views</Filter>
     </ClInclude>
   </ItemGroup>
@@ -753,6 +735,24 @@
       <Filter>Header Files\Widgets</Filter>
     </QtMoc>
     <QtMoc Include="Widgets\ElidedLabel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportAdvancedRollup.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportAnimationRollup.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportFileRollup.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportGeneralSettingsRollup.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportIncludeRollup.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsdExportMaterialsRollup.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

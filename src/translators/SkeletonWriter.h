@@ -36,7 +36,8 @@ public:
 
     MaxUsd::XformSplitRequirement RequiresXformPrim() override
     {
-        return MaxUsd::XformSplitRequirement::Always;
+        return GetExportArgs().GetPreserveBoneMeshes() ? MaxUsd::XformSplitRequirement::Always
+                                                       : MaxUsd::XformSplitRequirement::Never;
     }
 
     MaxUsd::InstancingRequirement RequiresInstancing() override
@@ -55,6 +56,8 @@ public:
 
     Interval GetValidityInterval(const TimeValue& time) override;
 
+    bool PostExport(UsdPrim& targetPrim) override;
+
 private:
     // Inverse of GetJobContext().GetNodesToPrimsMap(), kept here to avoid recomputing it every
     // frame.
@@ -62,7 +65,7 @@ private:
     // Cache the joinOrder and topology.
     VtTokenArray    currentSkelJointsOrder;
     UsdSkelTopology topo;
-    bool            hasSkinModDependency = false;
+    bool            isMorpherNode = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

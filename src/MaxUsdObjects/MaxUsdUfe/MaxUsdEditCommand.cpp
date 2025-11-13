@@ -15,6 +15,8 @@
 //
 #include "MaxUsdEditCommand.h"
 
+#include <MaxUsdObjects/Objects/USDStageObject.h>
+
 #include <UFEUI/editCommand.h>
 
 #include <MaxUsd/Utilities/ListenerUtils.h>
@@ -86,11 +88,11 @@ void MaxUsdEditCommand::redo()
 
 pxr::UsdStageWeakPtr MaxUsdEditCommand::getStage()
 {
-    const auto prim = ufePathToPrim(itemPath());
-    if (!prim.IsValid()) {
+    auto stageObject = getUsdStageObjectFromPath(itemPath());
+    if (!stageObject) {
         return nullptr;
     }
-    return prim.GetStage();
+    return stageObject->GetUSDStage();
 }
 
 bool MaxUsdEditCommand::checkEditTarget()

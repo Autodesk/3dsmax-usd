@@ -60,6 +60,31 @@ USDLayerManager::~USDLayerManager()
 std::unordered_map<USDStageObject*, std::vector<pxr::SdfLayerHandle>>
 USDLayerManager::GetDirtyLayersToSave()
 {
+
+    auto getAllSublayersFromLayer
+        = [](const SdfLayerRefPtr& layer, std::set<SdfLayerRefPtr>& layerRefs) {
+              // Add the layer itself
+              layerRefs.insert(layer);
+
+              // Queue to process by depth
+              std::deque<SdfLayerRefPtr> processing;
+              processing.push_back(layer);
+
+              while (!processing.empty()) {
+                  auto layerToProcess = processing.front();
+                  processing.pop_front();
+
+                  SdfSubLayerProxy sublayerPaths = layerToProcess->GetSubLayerPaths();
+                  for (auto path : sublayerPaths) {
+                      SdfLayerRefPtr sublayer = SdfLayer::FindRelativeToLayer(layer, path);
+                      if (sublayer) {
+                          layerRefs.insert(sublayer);
+                          processing.push_back(sublayer);
+                      }
+                  }
+              }
+          };
+
     std::unordered_map<USDStageObject*, std::vector<pxr::SdfLayerHandle>> dirtyLayers;
 
     for (const auto& stageObject : StageObjectMap::GetInstance()->GetAllStageObjects()) {
@@ -75,10 +100,26 @@ USDLayerManager::GetDirtyLayersToSave()
             continue;
         }
 
-        const auto allLayers = usdStage->GetUsedLayers(true);
-        for (const auto& layer : allLayers) {
-            // TODO LE-EXTRACT Save anonymous layers..
-            if (!layer->IsAnonymous() && layer->IsDirty()) {
+        std::set<SdfLayerRefPtr> foundLayers;
+        // Start from the root and the session layer, find all the layers
+        // in their local layer stacks
+        // Note: we do this because the regular USD APIs for getting
+        // layers, such as "GetLayerStack()" do not return muted layers
+        getAllSublayersFromLayer(usdStage->GetRootLayer(), foundLayers);
+        getAllSublayersFromLayer(usdStage->GetSessionLayer(), foundLayers);
+
+        // Find the used layers of the stage -- this will have overlap with the above
+        // but also include non-local layers.
+        // Note: muted layers will not be returned by this function
+        const auto& usedLayers = usdStage->GetUsedLayers(true);
+
+        foundLayers.insert(usedLayers.begin(), usedLayers.end());
+
+        // Now check if the layers are either dirty OR anonymous
+        // (don't include session layer unless it's dirty).
+        for (const auto& layer : foundLayers) {
+            auto isSessionLayer = usdStage->GetSessionLayer() == layer;
+            if (layer->IsDirty() || (layer->IsAnonymous() && !isSessionLayer)) {
                 dirtyLayers[stageObject].push_back(layer);
             }
         }
@@ -111,9 +152,14 @@ bool USDLayerManager::HandleMaxSceneSave()
 
             std::vector<UsdLayerEditor::StageSavingInfo> stagesToSave;
             for (const auto& entry : stagesDirtyLayers) {
+                const auto stage = entry.first->GetUSDStage();
 
-                const auto        stage = entry.first->GetUSDStage();
-                const std::string stageName = MaxUsd::Ui::GetStageLabel(stage);
+                // Note: we are looping against "stagesDirtyLayers = GetDirtyLayersToSave();"
+                // which is based on StageObjects, which are nodes in the scene, so there should
+                // always be a referencing node in the scene to get the node name from.
+                auto              referencingNodes = MaxUsd::GetReferencingNodes(entry.first);
+                const std::string stageName
+                    = MaxUsd::MaxStringToUsdString(referencingNodes[0]->NodeName().data());
 
                 UsdLayerEditor::StageSavingInfo si { stage, stageName, true, false };
                 stagesToSave.push_back(si);
@@ -134,21 +180,29 @@ bool USDLayerManager::HandleMaxSceneSave()
             }
         }
     }
-    // In quiet mode - warn the user. Scripters are expected to figure out how to save
-    // the USD content themselves.
+    // In quiet mode
     else {
-        MaxUsd::Listener::Write(L"Warning : Saving the 3dsMax scene in quiet mode will not "
-                                L"save the following dirty USD layers :");
+        // if SaveAllEditsMax is not set - warn the user. Scripters are expected
+        // to figure out how to save the USD content themselves.
+        // (USDStageObjectclassDesc::Save function handles saving when SaveAllEditsMax is set)
+        if (saveMode != SaveMode::SaveAllEditsMax) {
+            MaxUsd::Listener::Write(L"Warning : Saving the 3dsMax scene in quiet mode will not "
+                                    L"save the following dirty USD layers:");
 
-        for (const auto& entry : stagesDirtyLayers) {
-            // At this point we know for sure at least one node is referencing this stage object.
-            const auto node = GetReferencingNodes(entry.first)[0];
-            auto       stageObjectMsg = node->GetName() + std::wstring(L":");
-            MaxUsd::Listener::Write(stageObjectMsg.data());
-            for (const auto layer : entry.second) {
-                std::wstring layerMsg = std::wstring(L"  -")
-                    + MaxUsd::UsdStringToMaxString(layer->GetDisplayName()).data();
-                MaxUsd::Listener::Write(layerMsg.data());
+            for (const auto& entry : stagesDirtyLayers) {
+                // At this point we know for sure at least one node is referencing this stage
+                // object.
+                const auto node = GetReferencingNodes(entry.first)[0];
+                auto       stageObjectMsg = node->GetName() + std::wstring(L":");
+                MaxUsd::Listener::Write(stageObjectMsg.data());
+                for (const auto layer : entry.second) {
+                    auto         layerDisplayName = layer->GetDisplayName();
+                    std::wstring layerMsg = std::wstring(L"  -")
+                        + MaxUsd::UsdStringToMaxString(
+                              !layerDisplayName.empty() ? layerDisplayName : layer->GetIdentifier())
+                              .data();
+                    MaxUsd::Listener::Write(layerMsg.data());
+                }
             }
         }
     }
@@ -191,7 +245,7 @@ void USDLayerManager::NotifyFileSave(void* param, NotifyInfo* info)
         break;
     }
     case NOTIFY_FILE_CHECK_STATUS: layerManager->isAutoSave = false; break;
-    case NOTIFY_FILE_POST_OPEN: layerManager->ClearMaxSceneDirtyLayers(); break;
+    case NOTIFY_FILE_POST_OPEN: layerManager->ClearLoadedLayersMap(); break;
     }
 }
 
@@ -199,9 +253,14 @@ SaveMode USDLayerManager::GetSaveMode() { return saveMode; }
 
 void USDLayerManager::SetSaveMode(SaveMode saveMode) { this->saveMode = saveMode; }
 
-void USDLayerManager::AddDirtyLayerFromMaxScene(const pxr::SdfLayerRefPtr dirtyLayer)
+const std::unordered_map<std::string, pxr::SdfLayerRefPtr>& USDLayerManager::GetLoadedLayerMap()
 {
-    dirtyLayersFromMaxScene.emplace_back(dirtyLayer);
+    return loadedLayerMap;
 }
 
-void USDLayerManager::ClearMaxSceneDirtyLayers() { dirtyLayersFromMaxScene.clear(); }
+void USDLayerManager::AddLoadedLayerMapping(std::string& oldId, pxr::SdfLayerRefPtr& newLayer)
+{
+    loadedLayerMap[oldId] = newLayer;
+}
+
+void USDLayerManager::ClearLoadedLayersMap() { loadedLayerMap.clear(); }

@@ -31,8 +31,10 @@
 #include <MaxUsd/Builders/MaxSceneBuilderOptions.h>
 #include <MaxUsd/Builders/UsdSceneBuilderOptions.h>
 #include <MaxUsd/MaxTokens.h>
+#include <MaxUsd/Translators/ShadingModeRegistry.h>
 
 #include <pxr/base/tf/diagnostic.h>
+#include <pxr/usdImaging/usdImaging/tokens.h>
 
 namespace MAXUSD_NS_DEF {
 namespace OptionUtils {
@@ -287,23 +289,80 @@ template <typename OptionsType> OptionsType LoadOptions(const MaxSDK::Util::Path
 
 MaxSceneBuilderOptions LoadImportOptions()
 {
-    return LoadOptions<MaxSceneBuilderOptions>(GetPathToUsdImportSettings());
+    auto       opts = LoadOptions<MaxSceneBuilderOptions>(GetPathToUsdImportSettings());
+    const auto version
+        = VtDictionaryGet<int>(opts.GetOptions(), MaxUsdMaxSceneBuilderOptionsTokens->version);
+    // From version 1 to 2, the default ShadingModes were changed.
+    // If the version is 1, and the ShadingMode is the previous default, update the options to the
+    // current default.
+    if (version == 1) {
+        const auto& shadingModes = opts.GetShadingModes();
+        if (shadingModes.size() == 1) {
+            const auto& shadingMode = shadingModes.front();
+            if (VtDictionaryIsHolding<TfToken>(shadingMode, MaxUsdShadingModesTokens->mode)) {
+                const auto mode
+                    = VtDictionaryGet<TfToken>(shadingMode, MaxUsdShadingModesTokens->mode);
+                const auto materialConversion = VtDictionaryGet<TfToken>(
+                    shadingMode, MaxUsdShadingModesTokens->materialConversion);
+                if (mode == MaxUsdShadingModeTokens->useRegistry
+                    && materialConversion == UsdImagingTokens->UsdPreviewSurface) {
+                    // This is a legacy import settings file, with the default shading mode.
+                    // Update the options to the current default.
+                    opts.SetDefaultShadingModes();
+                }
+            }
+        }
+    }
+
+    auto optionsDict = opts.GetOptions();
+    // Update the version to the current one.
+    optionsDict[MaxUsdMaxSceneBuilderOptionsTokens->version] = VtDictionaryGet<VtValue>(
+        MaxSceneBuilderOptions::GetDefaultDictionary(),
+        MaxUsdMaxSceneBuilderOptionsTokens->version);
+
+    opts.SetOptions(MaxSceneBuilderOptions { optionsDict });
+    return opts;
 }
 
 USDSceneBuilderOptions LoadExportOptions(const USDSceneBuilderOptions::Type& type)
 {
     // Export to stage options should initialize to the current "regular" export options, with
-    // only a different value for UseWorldSpaceRoot.
+    // only a different value for UseWorldSpaceRoot and root prim path.
     if (type == USDSceneBuilderOptions::Type::ToStage) {
         const auto exportSettingsPath = GetPathToUsdExportSettings(type);
         QFile      file(exportSettingsPath.GetString());
         if (!file.exists()) { // No saved options.
             USDSceneBuilderOptions opts = LoadExportOptions(USDSceneBuilderOptions::Type::ToFile);
             opts.SetUseWorldspaceRoot(true);
+            opts.SetRootPrimPath(SdfPath { MaxUsdExportTokens->DEFAULT_PRIM });
             return opts;
         }
     }
-    return LoadOptions<USDSceneBuilderOptions>(GetPathToUsdExportSettings(type));
+
+    auto opts = LoadOptions<USDSceneBuilderOptions>(GetPathToUsdExportSettings(type));
+    auto optionsDict = opts.GetOptions();
+
+    // Previously, the default value for RootPrimPath was /root, but that was changed when exporting
+    // to existing stages, to instead target the default prim. If we had options saved with "/root",
+    // assume this was simply the default, and update it.
+    if (type == USDSceneBuilderOptions::Type::ToStage) {
+        if (VtDictionaryIsHolding<int>(optionsDict, MaxUsdMaxSceneBuilderOptionsTokens->version)) {
+            const auto version
+                = VtDictionaryGet<int>(optionsDict, MaxUsdUsdSceneBuilderOptionsTokens->version);
+            if (version == 1) {
+                optionsDict[MaxUsdUsdSceneBuilderOptionsTokens->rootPrimPath]
+                    = SdfPath { MaxUsdExportTokens->DEFAULT_PRIM };
+            }
+        }
+    }
+
+    // Update the version to the current one.
+    optionsDict[MaxUsdUsdSceneBuilderOptionsTokens->version] = VtDictionaryGet<VtValue>(
+        USDSceneBuilderOptions::GetDefaultDictionary(),
+        MaxUsdUsdSceneBuilderOptionsTokens->version);
+
+    opts.SetOptions(USDSceneBuilderOptions { optionsDict });
+    return opts;
 }
 
 void SaveExportToStageExtraOptions(VtDictionary& options)

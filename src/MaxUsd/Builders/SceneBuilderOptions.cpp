@@ -92,7 +92,8 @@ bool MergeJobContexts(
                 // special treatment on a deprecated base option ('chaser')
                 if (k == MaxUsdSceneBuilderOptionsTokens->chaser) {
                     TF_WARN(TfStringPrintf(
-                        "Deprecated option key '%s' was found. Key shoud be replaced with '%s' unless otherwise required.",
+                        "Deprecated option key '%s' was found. Key shoud be replaced with '%s' "
+                        "unless otherwise required.",
                         MaxUsdSceneBuilderOptionsTokens->chaser,
                         MaxUsdSceneBuilderOptionsTokens->chaserNames));
                 }
@@ -254,6 +255,18 @@ void SceneBuilderOptions::SetJobContextOptions(
             + jobContext.GetString();
         options.SetValueAtPath(key, VtValue(ctxOptions));
     }
+}
+
+void SceneBuilderOptions::SetTransformFormat(TransformFormat newTransformFormat)
+{
+    options[MaxUsdSceneBuilderOptionsTokens->transformFormat]
+        = static_cast<int>(newTransformFormat);
+}
+
+TransformFormat SceneBuilderOptions::GetTransformFormat() const
+{
+    return static_cast<TransformFormat>(
+        VtDictionaryGet<int>(options, MaxUsdSceneBuilderOptionsTokens->transformFormat));
 }
 
 const std::vector<std::string>& SceneBuilderOptions::GetChaserNames() const

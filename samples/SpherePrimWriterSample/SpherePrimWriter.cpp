@@ -137,7 +137,7 @@ bool SpherePrimWriter::Write(
             GetExportArgs().GetMeshConversionOptions(),
             applyOffsetTransform,
             GetExportArgs().GetResolvedTimeConfig().IsAnimated(),
-            timeFrame);
+            timeFrame, GetExportArgs().GetTransformFormat());
     }
     return true;
 }

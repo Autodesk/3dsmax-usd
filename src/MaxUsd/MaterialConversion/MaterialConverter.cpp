@@ -55,4 +55,35 @@ pxr::UsdShadeMaterial MaterialConverter::ConvertToUSDMaterial(
     return usdShadeMaterial;
 }
 
+void MaterialConverter::ConvertToUSDMaterials(
+    const std::vector<Mtl*>&                    materials,
+    const pxr::UsdStageRefPtr&                  stage,
+    const std::string&                          fileName,
+    bool                                        isUSDZ,
+    const std::vector<pxr::SdfPath>&            targetPaths,
+    const USDSceneBuilderOptions&               options,
+    const std::vector<std::list<pxr::SdfPath>>& bindings)
+{
+    PXR_NAMESPACE_USING_DIRECTIVE
+    if (!TF_VERIFY(materials.size() == targetPaths.size()) || materials.empty()) {
+        return;
+    }
+    if (!bindings.empty()) {
+        if (!TF_VERIFY(materials.size() == bindings.size())) {
+            return;
+        }
+    }
+    for (size_t i = 0; i < materials.size(); ++i) {
+        const auto& material = materials[i];
+        if (material->IsMultiMtl()) {
+            continue;
+        }
+        const auto& targetPath = targetPaths[i];
+        const auto& matBindings = !bindings.empty() ? bindings[i] : std::list<pxr::SdfPath> {};
+
+        // Convert each material to USD.
+        ConvertToUSDMaterial(material, stage, fileName, isUSDZ, targetPath, options, matBindings);
+    }
+}
+
 } // namespace MAXUSD_NS_DEF

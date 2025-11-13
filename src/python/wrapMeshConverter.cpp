@@ -38,7 +38,8 @@ public:
         pxr::SdfPath                   path,
         USDSceneBuilderOptionsWrapper& options,
         bool                           applyOffsetTransform,
-        const MaxUsd::ExportTime&      time)
+        const MaxUsd::ExportTime&      time,
+        MaxUsd::TransformFormat        transformFormat = MaxUsd::TransformFormat::SingleMatrix)
     {
         INode*                node = GetCOREInterface()->GetINodeByHandle(nodeHandle);
         MaxUsd::MeshConverter converter;
@@ -49,7 +50,8 @@ public:
             options.GetMeshConversionOptions(),
             applyOffsetTransform,
             options.GetResolvedTimeConfig().IsAnimated(),
-            time);
+            time,
+            transformFormat);
     }
 };
 
@@ -60,6 +62,13 @@ void wrapMeshConverter()
     c.def(
          "ConvertToUSDMesh",
          &MeshConverterWrapper::ConvertToUSDMesh,
-         pyboost::args("node_handle", "stage", "path", "options", "applyOffsetTransform", "time"))
+         pyboost::args(
+             "node_handle",
+             "stage",
+             "path",
+             "options",
+             "applyOffsetTransform",
+             "time",
+             "transformFormat"))
         .staticmethod("ConvertToUSDMesh");
 }

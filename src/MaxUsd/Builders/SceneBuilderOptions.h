@@ -17,6 +17,7 @@
 
 #include <MaxUsd/Utilities/DictionaryOptionProvider.h>
 #include <MaxUsd/Utilities/Logging.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 
 #include <pxr/base/vt/dictionary.h>
 #include <pxr/usd/sdf/path.h>
@@ -36,7 +37,8 @@ PXR_NAMESPACE_OPEN_SCOPE
     (chaserArgs) \
     /* Log Options */ \
     (logPath) \
-    (logLevel)
+    (logLevel) \
+    (transformFormat)
 
 // clang-format on
 
@@ -161,6 +163,21 @@ public:
      */
     MaxUSDAPI void
     SetJobContextOptions(const pxr::TfToken& jobContext, const pxr::VtDictionary& options);
+
+    /**
+     * \brief Sets the transform format to be used on export.
+     * - Single Matrix: The transform is exported as a single transform matrix.
+     * - Split Transforms: The transform is exported as a split transform (translation,
+     * rotation, scale).
+     * \param newTransformFormat The transform format to be used on export
+     */
+    MaxUSDAPI void SetTransformFormat(TransformFormat newTransformFormat);
+
+    /**
+     * \brief Gets the transform format used on export.
+     * \return The transform format used on export
+     */
+    MaxUSDAPI TransformFormat GetTransformFormat() const;
 };
 
 } // namespace MAXUSD_NS_DEF

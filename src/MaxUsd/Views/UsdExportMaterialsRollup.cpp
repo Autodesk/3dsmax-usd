@@ -58,7 +58,11 @@ UsdExportMaterialsRollup::UsdExportMaterialsRollup(
             allMaterialConversions.find(material) != allMaterialConversions.end());
         connect(
             materialSelector,
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 3)
+            &QCheckBox::checkStateChanged,
+#else
             &QCheckBox::stateChanged,
+#endif
             this,
             &UsdExportMaterialsRollup::OnMaterialConversionStateChanged);
     }
@@ -81,6 +85,34 @@ UsdExportMaterialsRollup::UsdExportMaterialsRollup(
         ui->MaterialSwitcherExportStyleComboBox->setCurrentIndex(0);
     } else {
         ui->MaterialSwitcherExportStyleComboBox->setCurrentIndex(1);
+    }
+
+    connect(
+        ui->ShellMtlExportStyleComboBox,
+        qOverload<int>(&QComboBox::currentIndexChanged),
+        this,
+        &UsdExportMaterialsRollup::OnShellMtlExportStyleComboBoxChanged);
+
+    QStandardItemModel* shellExportStyleModel
+        = dynamic_cast<QStandardItemModel*>(ui->ShellMtlExportStyleComboBox->model());
+    shellExportStyleModel->item(0)->setToolTip(
+        tr("Exports only the baked material."));
+    shellExportStyleModel->item(1)->setToolTip(
+        tr("Exports only the original material."));
+    shellExportStyleModel->item(2)->setToolTip(
+        tr("Exports both materials with appropriate render purposes (original for render, baked for viewport)."));
+    
+    // Set current index based on the export style
+    switch (buildOptions.GetShellMtlExportStyle()) {
+    case MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Baked:
+        ui->ShellMtlExportStyleComboBox->setCurrentIndex(0);
+        break;
+    case MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Original:
+        ui->ShellMtlExportStyleComboBox->setCurrentIndex(1);
+        break;
+    case MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Both:
+        ui->ShellMtlExportStyleComboBox->setCurrentIndex(2);
+        break;
     }
 #else
     ui->MaterialSwitcherOptionWidget->hide();
@@ -194,7 +226,7 @@ void UsdExportMaterialsRollup::OnMaterialLayerPathChanged()
 
 void UsdExportMaterialsRollup::OnMaterialLayerClicked()
 {
-    const TCHAR* exportDir
+    const MSTR exportDir
         = MaxSDKSupport::GetString(IPathConfigMgr::GetPathConfigMgr()->GetDir(APP_EXPORT_DIR));
     QString qDir = QString::fromStdString(MaxUsd::MaxStringToUsdString(exportDir));
     QString materialFile = QFileDialog::getSaveFileName(
@@ -224,3 +256,25 @@ void UsdExportMaterialsRollup::OnMaterialSwitcherExportStyleComboBoxChanged(int 
     }
 }
 #endif
+
+void UsdExportMaterialsRollup::OnShellMtlExportStyleComboBoxChanged(int index)
+{
+    switch (index) {
+    case 0:
+        buildOptions.SetShellMtlExportStyle(
+            MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Baked);
+        break;
+    case 1:
+        buildOptions.SetShellMtlExportStyle(
+            MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Original);
+        break;
+    case 2:
+        buildOptions.SetShellMtlExportStyle(
+            MaxUsd::USDSceneBuilderOptions::ShellMtlExportStyle::Both);
+        break;
+    default:
+        DbgAssert(
+            false && "Invalid USD export Shell Material export style - this should not be hit!");
+        break;
+    }
+}

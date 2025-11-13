@@ -33,7 +33,7 @@ class MeshConverterDummyWriter(maxUsd.PrimWriter):
             path = "/foo/mesh"
             
             # Write the box somewhere with applyOffset = false
-            usdMesh = maxUsd.MeshConverter.ConvertToUSDMesh(nodeHandle, stage, path, opts, False, time)
+            usdMesh = maxUsd.MeshConverter.ConvertToUSDMesh(nodeHandle, stage, path, opts, False, time, opts.GetTransformFormat())
             
             meshPrim = usdMesh.GetPrim()
             rt.assert_true(meshPrim.IsValid())
@@ -51,7 +51,7 @@ class MeshConverterDummyWriter(maxUsd.PrimWriter):
 
             # Write the box somewhere else, with applyOffset = true
             path = "/bar/mesh"
-            usdMesh = maxUsd.MeshConverter.ConvertToUSDMesh(nodeHandle, stage, path, opts, True,  time)
+            usdMesh = maxUsd.MeshConverter.ConvertToUSDMesh(nodeHandle, stage, path, opts, True,  time, opts.GetTransformFormat())
             meshPrim = usdMesh.GetPrim()
             xformable = UsdGeom.Xformable(prim)
             ops = xformable.GetOrderedXformOps()

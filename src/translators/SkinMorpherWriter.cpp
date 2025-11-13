@@ -289,7 +289,8 @@ bool MaxUsdSkinMorpherWriter::Write(
                     meshConvertOptions,
                     applyOffsetTransform,
                     false,
-                    MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true });
+                    MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true },
+                    GetExportArgs().GetTransformFormat());
             }
         }
 
@@ -464,7 +465,8 @@ bool MaxUsdSkinMorpherWriter::Write(
                                     applyOffsetTransform,
                                     false,
                                     MaxUsd::ExportTime {
-                                        startTime, pxr::UsdTimeCode::Default(), true });
+                                        startTime, pxr::UsdTimeCode::Default(), true },
+                                    GetExportArgs().GetTransformFormat());
                             }
                             blendShape
                                 = CreateBlendShape(skinnedMesh, targetMeshPrim, morpherNames[i]);
@@ -536,14 +538,16 @@ bool MaxUsdSkinMorpherWriter::Write(
                         if (jointPath.GetCommonPrefix(skelRootPath) == SdfPath { "/" }) {
                             MaxUsd::Log::Error(
                                 "Max Node {} is trying to use an invalid root path {} for UsdSkel "
-                                "data. "
-                                "Set a valid root prim to export UsdSkelRoot.",
+                                "data. Set a valid root prim to export UsdSkelRoot.",
                                 MaxUsd::MaxStringToUsdString(sourceNode->GetName()),
                                 skelRootPath.GetString());
                             return false;
                         }
                         const auto jointSubPath = jointPath.MakeRelativePath(skelRootPath);
-                        jointsPaths.emplace_back(skelPath.AppendPath(jointSubPath).GetAsToken());
+                        auto skelJointToken = GetExportArgs().GetSimplifyBonePaths()
+                            ? jointSubPath.GetAsToken()
+                            : skelPath.AppendPath(jointSubPath).GetAsToken();
+                        jointsPaths.emplace_back(skelJointToken);
                     } else {
                         MaxUsd::Log::Warn(
                             "Prim {} relies on bone {} which is not being exported. Results might "
@@ -557,22 +561,27 @@ bool MaxUsdSkinMorpherWriter::Write(
             VtIntArray        jointsIndicesArray;
             VtFloatArray      jointsWeightsArray;
             ISkinContextData* skinData = skin->GetContextInterface(sourceNode);
+            int               maxAssignedBones = 0;
             if (skinData) {
                 const unsigned long long numOfPoints = skinData->GetNumPoints();
-                const int                numOfJoints = skin->GetNumBones();
-                jointsIndicesArray.resize(numOfPoints * numOfJoints);
-                jointsWeightsArray.resize(numOfPoints * numOfJoints);
+
+                // find the max number of bones assigned to any vertex
+                // There could be bones in the modifier that aren't being used.
+                // So it's possible to optimize the size of the usd arrays this way
+                for (unsigned int i = 0; i < numOfPoints; ++i) {
+                    maxAssignedBones = std::max(maxAssignedBones, skinData->GetNumAssignedBones(i));
+                }
+
+                jointsIndicesArray.resize(numOfPoints * maxAssignedBones);
+                jointsWeightsArray.resize(numOfPoints * maxAssignedBones);
                 for (unsigned int i = 0; i < numOfPoints; ++i) {
                     int numOfAssignedB = skinData->GetNumAssignedBones(i);
-                    for (int j = 0; j < numOfJoints; ++j) {
-                        jointsIndicesArray[i * numOfJoints + j] = j; // boneIndex;
-                    }
-
                     for (int b = 0; b < numOfAssignedB; ++b) {
                         const int   boneIndex = skinData->GetAssignedBone(i, b);
                         const float boneWeight = skinData->GetBoneWeight(i, b);
                         if (boneIndex >= 0) {
-                            jointsWeightsArray[i * numOfJoints + boneIndex] = boneWeight;
+                            jointsWeightsArray[i * maxAssignedBones + b] = boneWeight;
+                            jointsIndicesArray[i * maxAssignedBones + b] = boneIndex;
                         }
                     }
                 }
@@ -585,10 +594,8 @@ bool MaxUsdSkinMorpherWriter::Write(
             if (numberOfMeshVertices != numberOfSkinVertices) {
                 MaxUsd::Log::Error(
                     "The number of vertices on the exported mesh differs from the vertices on the "
-                    "skin "
-                    "modifier for "
-                    "node {}! This could be caused by a modifier higher on the stack and may cause "
-                    "unexpected results.",
+                    "skin modifier for node {}! This could be caused by a modifier higher on the "
+                    "stack and may cause unexpected results.",
                     MaxUsd::MaxStringToUsdString(sourceNode->GetName()));
 
                 const int diff
@@ -603,14 +610,14 @@ bool MaxUsdSkinMorpherWriter::Write(
                         }
                     }
                 } else {
-                    const auto deltaSize = diff * skin->GetNumBones();
+                    const auto deltaSize = diff * maxAssignedBones;
                     jointsIndicesArray.resize(jointsIndicesArray.size() - deltaSize);
                     jointsWeightsArray.resize(jointsWeightsArray.size() - deltaSize);
                 }
             }
 
             if (!UsdSkelSortInfluences(
-                    &jointsIndicesArray, &jointsWeightsArray, skin->GetNumBones())) {
+                    &jointsIndicesArray, &jointsWeightsArray, maxAssignedBones)) {
                 MaxUsd::Log::Warn("Couldn't sort influences for {} !", targetPrimName);
             }
 
@@ -619,15 +626,15 @@ bool MaxUsdSkinMorpherWriter::Write(
             }
 
             UsdGeomPrimvar jointsIndexAttribute
-                = binding.CreateJointIndicesPrimvar(false, skin->GetNumBones());
+                = binding.CreateJointIndicesPrimvar(false, maxAssignedBones);
             if (!jointsIndexAttribute.Set(jointsIndicesArray)) {
                 MaxUsd::Log::Error(
                     "Couldn't set indices attribute for {} !", targetPrim.GetName().GetString());
             }
 
             UsdGeomPrimvar jointsWeightAttribute
-                = binding.CreateJointWeightsPrimvar(false, skin->GetNumBones());
-            pxr::UsdSkelNormalizeWeights(jointsWeightsArray, skin->GetNumBones());
+                = binding.CreateJointWeightsPrimvar(false, maxAssignedBones);
+            pxr::UsdSkelNormalizeWeights(jointsWeightsArray, maxAssignedBones);
             if (!jointsWeightAttribute.Set(jointsWeightsArray)) {
                 MaxUsd::Log::Error(
                     "Couldn't set joints weights attribute for {} !",
@@ -708,7 +715,7 @@ bool MaxUsdSkinMorpherWriter::PostExport(UsdPrim& targetPrim)
                 extentAtTime.UnionWith(skelRange);
             }
 
-            // convert back from range to extent (array) to set  the attribute
+            // convert back from range to extend (array) to set  the attribute
             VtVec3fArray totalExtents
                 = { GfVec3f(extentAtTime.GetMin()), GfVec3f(extentAtTime.GetMax()) };
             skelRootExtents.Set(totalExtents, timeCode);
@@ -854,7 +861,8 @@ pxr::UsdGeomMesh MaxUsdSkinMorpherWriter::DisabledModsAndWriteMeshData(
         meshConvertOptions,
         applyOffsetTransform,
         false,
-        MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true });
+        MaxUsd::ExportTime { time.GetMaxTime(), pxr::UsdTimeCode::Default(), true },
+        GetExportArgs().GetTransformFormat());
 
     return prim;
 }
@@ -1040,7 +1048,8 @@ void MaxUsdSkinMorpherWriter::CreateInBetweens(
             meshConvertOptions,
             false,
             false,
-            MaxUsd::ExportTime { startTime, pxr::UsdTimeCode::Default(), true });
+            MaxUsd::ExportTime { startTime, pxr::UsdTimeCode::Default(), true },
+            GetExportArgs().GetTransformFormat());
 
         VtVec3fArray targetMeshPoints, targetNormals, deltaPoints, deltaNormals;
         progMorpherMesh.GetPointsAttr().Get(&targetMeshPoints);

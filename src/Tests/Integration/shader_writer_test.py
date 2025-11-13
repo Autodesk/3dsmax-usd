@@ -92,7 +92,7 @@ class BasicShaderWriter(maxUsd.ShaderWriter):
 
 # A shader writer used to test the registration of the Writer and the IsMaterialTargetAgnostic method in python.
 class AgnosticShaderWriter(maxUsd.ShaderWriter):
-    # Not really what we should do with a Shell material, but just for the purpose of testing :)
+    # Not really what we should do with a Blend material, but just for the purpose of testing :)
     def Write(self):
         # create the Shader prim
         nodeShader = UsdShade.Shader.Define(self.GetUsdStage(), self.GetUsdPath())
@@ -108,7 +108,7 @@ class AgnosticShaderWriter(maxUsd.ShaderWriter):
         
     def PostWrite(self):
         # verify the map of exported materials is functional
-        rt.assert_equal(str("/root/mtl/Shell"), str(self.GetMaterialsToPrimsMap()[self.GetMaterial()]))
+        rt.assert_equal(str("/root/mtl/Blend"), str(self.GetMaterialsToPrimsMap()[self.GetMaterial()]))
     
     @classmethod
     def CanExport(cls, exportArgs):
@@ -129,10 +129,10 @@ class TestShaderWriter(unittest.TestCase):
         pass
 
     def test_shader_writer(self):
-        maxUsd.ShaderWriter.Register(BasicShaderWriter, "Shell Material")
+        maxUsd.ShaderWriter.Register(BasicShaderWriter, "Blend")
         # Create a Box to export.
         boxNode = rt.Box()
-        boxNode.mat = rt.Shell_Material()
+        boxNode.mat = rt.Blend()
         
         test_usd_file_path = self.output_prefix + "test_shader_writer.usda"
         
@@ -156,7 +156,7 @@ class TestShaderWriter(unittest.TestCase):
         self.assertTrue(BasicShaderWriter.GetSubMtlDependencies_Called)
         self.assertTrue(BasicShaderWriter.PostWrite_Called)
         
-        maxUsd.ShaderWriter.Unregister(BasicShaderWriter, "Shell Material")
+        maxUsd.ShaderWriter.Unregister(BasicShaderWriter, "Blend")
     
     def test_shader_writer_from_json(self):
         pluginRegistry = Plug.Registry()
@@ -198,11 +198,11 @@ class TestShaderWriter(unittest.TestCase):
     # Test that when exporting a material that has been register as Target Agnostic, it does indeed not export multiple
     # targets and just the Material + its shader.
     def test_agnostic_material(self):
-        maxUsd.ShaderWriter.Register(AgnosticShaderWriter, "Shell Material")
+        maxUsd.ShaderWriter.Register(AgnosticShaderWriter, "Blend")
         # Create a Box to export.
         boxNode = rt.Box()
-        mat = rt.Shell_Material()
-        mat.name = "Shell"
+        mat = rt.Blend()
+        mat.name = "Blend"
         boxNode.mat = mat
 
         test_usd_file_path = self.output_prefix + "test_agnostic_shader_writer.usda"
@@ -216,12 +216,12 @@ class TestShaderWriter(unittest.TestCase):
 
         stage = Usd.Stage.Open(test_usd_file_path)
         self.assertIsInstance(stage, Usd.Stage)
-        shade = UsdShade.Shader.Get(stage, "/root/mtl/Shell/Shell")
+        shade = UsdShade.Shader.Get(stage, "/root/mtl/Blend/Blend")
         colorInput = shade.GetInput("diffuseColor")
         color = colorInput.Get()
         self.assertEqual(color, (1, 0, 0))
 
-        maxUsd.ShaderWriter.Unregister(AgnosticShaderWriter, "Shell Material")
+        maxUsd.ShaderWriter.Unregister(AgnosticShaderWriter, "Blend")
         
 rt.clearListener()
 def run_tests():

@@ -231,6 +231,35 @@ Explorer::~Explorer()
     }
 }
 
+// Proxy style customizing the drop indicator on our treeview, so to highlight the entire
+// row instead of a single cell.
+class RowDropIndicatorStyle : public QProxyStyle
+{
+public:
+    explicit RowDropIndicatorStyle(QStyle* style = nullptr)
+        : QProxyStyle(style)
+    {
+    }
+
+    void drawPrimitive(
+        PrimitiveElement    element,
+        const QStyleOption* option,
+        QPainter*           painter,
+        const QWidget*      widget) const override
+    {
+        if (element == QStyle::PE_IndicatorItemViewItemDrop && !option->rect.isNull()) {
+            QStyleOption opt(*option);
+            opt.rect.setLeft(0);
+            if (widget) {
+                opt.rect.setRight(widget->width());
+            }
+            QProxyStyle::drawPrimitive(element, &opt, painter, widget);
+            return;
+        }
+        QProxyStyle::drawPrimitive(element, option, painter, widget);
+    }
+};
+
 void Explorer::setupUiFromRootItem(const Ufe::SceneItem::Ptr& rootItem)
 {
     if (!rootItem) {
@@ -247,6 +276,12 @@ void Explorer::setupUiFromRootItem(const Ufe::SceneItem::Ptr& rootItem)
     _proxyModel->setFilterCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
     _ui->treeView->setModel(_proxyModel.get());
     _ui->treeView->expandToDepth(1);
+
+    _ui->treeView->setDragEnabled(true);
+    _ui->treeView->setAcceptDrops(true);
+    _ui->treeView->setDropIndicatorShown(true);
+    _ui->treeView->setDragDropMode(QAbstractItemView::DragDrop);
+    _ui->treeView->setStyle(new RowDropIndicatorStyle(_ui->treeView->style()));
 
     QHeaderView* treeHeader = _ui->treeView->header();
 
@@ -846,7 +881,9 @@ void Explorer::onTreeViewSelectionChanged(
         std::make_shared<ReplaceSelectionCommand>(newSelection));
 }
 
-void Explorer::rebuildSubtree(const TreeItem* item)
+void Explorer::rebuildSubtree(
+    const TreeItem*                        item,
+    const std::pair<Ufe::Path, Ufe::Path>& pathChange)
 {
     if (!item) {
         return;
@@ -861,8 +898,9 @@ void Explorer::rebuildSubtree(const TreeItem* item)
 
     {
         // Save and restore the tree expand state as much as possible.
-        auto expandGuard
-            = Utils::ExpandStateGuard { _ui->treeView, item, _treeModel.get(), _proxyModel.get() };
+        auto expandGuard = Utils::ExpandStateGuard {
+            _ui->treeView, item, _treeModel.get(), _proxyModel.get(), pathChange
+        };
 
         // As are rebuilding a subtree, selected indices may get removed, affecting the selection.
         // We do not want to react and unselect ufe items. Tree item selection is refreshed bellow
@@ -1146,6 +1184,60 @@ void Explorer::Observer::operator()(const Ufe::Notification& notification)
         _explorer->rebuildSubtree(parent);
         return;
     }
+
+    if (const auto orp = dynamic_cast<const Ufe::ObjectReparent*>(&notification)) {
+        if (!_explorer->isRelevantToExplorer(orp->previousPath())) {
+            return;
+        }
+
+        const auto oldParentPath = orp->previousPath().pop();
+        const auto oldParent = getTreeItem(oldParentPath);
+        if (oldParent) {
+            _explorer->rebuildSubtree(oldParent);
+        }
+
+        const auto newParentPath = orp->item()->path().pop();
+
+        // Optimization, no need to rebuild the new location's subtree if its under the old
+        // path, already done above.
+        if (newParentPath.startsWith(oldParentPath)) {
+            return;
+        }
+
+        const auto newParent = getTreeItem(newParentPath);
+        if (newParent) {
+            _explorer->rebuildSubtree(newParent);
+        }
+        return;
+    }
+
+    if (const auto rn = dynamic_cast<const Ufe::ObjectRename*>(&notification)) {
+        if (!_explorer->isRelevantToExplorer(rn->changedPath())) {
+            return;
+        }
+
+        const auto parentPath = rn->previousPath().pop();
+        const auto parent = getTreeItem(parentPath);
+        const auto item = rn->item();
+        if (!item) {
+            return;
+        }
+        // Rebuild the subtree from the parent to account for the new name.
+        // Pass the old/new name mapping so we can recover the treeview's expand state.
+        std::pair<Ufe::Path, Ufe::Path> remap = { rn->previousPath(), item->path() };
+        if (parent) {
+            _explorer->rebuildSubtree(parent, remap);
+        }
+
+        // Fix the selection to include the renamed item instead of the old one.
+        auto globalSelection = Ufe::GlobalSelection::get();
+        if (globalSelection->contains(rn->previousPath())) {
+            auto prev = Ufe::Hierarchy::createItem(rn->previousPath());
+            globalSelection->remove(prev);
+        }
+        globalSelection->append(rn->item());
+    }
+
     if (const auto si = dynamic_cast<const Ufe::SubtreeInvalidate*>(&notification)) {
         if (!_explorer->isRelevantToExplorer(si->changedPath())) {
             return;

@@ -414,6 +414,11 @@ MaxUsd::PrimvarMappingOptions& HdMaxRenderDelegate::GetPrimvarMappingOptions()
     return primvarMappingOptions;
 }
 
+void HdMaxRenderDelegate::SetPrimvarMappingOptions(MaxUsd::PrimvarMappingOptions& mapping)
+{
+    primvarMappingOptions = mapping;
+}
+
 std::shared_ptr<HdMaxMaterialCollection> HdMaxRenderDelegate::GetMaterialCollection()
 {
     return materialCollection;

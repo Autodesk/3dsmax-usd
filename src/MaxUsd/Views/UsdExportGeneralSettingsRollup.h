@@ -37,6 +37,7 @@ public:
 public Q_SLOTS:
     /// Qt callback functions based on named widgets in the associated .ui file
     void on_UpAxisComboBox_currentIndexChanged(int index);
+    void on_TransformFormatComboBox_currentIndexChanged(int index);
 
 private:
     /// Reference to the Qt UI View of the rollup

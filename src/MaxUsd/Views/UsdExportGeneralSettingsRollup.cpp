@@ -29,6 +29,15 @@ UsdExportGeneralSettingsRollup::UsdExportGeneralSettingsRollup(
 
     ui->UpAxisComboBox->setCurrentIndex(
         buildOptions.GetUpAxis() == MaxUsd::USDSceneBuilderOptions::UpAxis::Y ? 0 : 1);
+
+    static QStringList transformFormatToolTips
+        = { "Export transforms as separate 'Translate', 'Rotate', and 'Scale' attributes.",
+            "Export transforms as a single 'Transform' matrix attribute." };
+    ui->TransformFormatComboBox->setCurrentIndex(
+        static_cast<int>(buildOptions.GetTransformFormat()));
+    for (int i = 0; i < transformFormatToolTips.size(); ++i) {
+        ui->TransformFormatComboBox->setItemData(i, transformFormatToolTips[i], Qt::ToolTipRole);
+    }
 }
 
 UsdExportGeneralSettingsRollup::~UsdExportGeneralSettingsRollup() { }
@@ -40,4 +49,9 @@ void UsdExportGeneralSettingsRollup::on_UpAxisComboBox_currentIndexChanged(int i
     case 1: buildOptions.SetUpAxis(MaxUsd::USDSceneBuilderOptions::UpAxis::Z); break;
     default: DbgAssert(false && "Invalid USD Up Axis option - this should not be hit!"); break;
     }
+}
+
+void UsdExportGeneralSettingsRollup::on_TransformFormatComboBox_currentIndexChanged(int index)
+{
+    buildOptions.SetTransformFormat(index);
 }

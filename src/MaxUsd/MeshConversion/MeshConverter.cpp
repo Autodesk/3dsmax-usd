@@ -58,7 +58,8 @@ pxr::UsdGeomMesh MeshConverter::ConvertToUSDMesh(
     const MaxMeshConversionOptions& options,
     bool                            applyOffsetTransform,
     bool                            animated,
-    const ExportTime&               timeFrame)
+    const ExportTime&               timeFrame,
+    TransformFormat           transformFormat)
 {
     pxr::UsdGeomMesh usdMesh;
 
@@ -247,7 +248,8 @@ pxr::UsdGeomMesh MeshConverter::ConvertToUSDMesh(
         // The object offset is not animatable.
         if (applyOffsetTransform && !options.GetBakeObjectOffsetTransform()) {
             pxr::UsdGeomXformable xformable(usdMesh.GetPrim());
-            MaxUsd::ApplyObjectOffsetTransform(node, xformable, timeFrame.GetMaxTime());
+            MaxUsd::ApplyObjectOffsetTransform(
+                node, xformable, timeFrame.GetMaxTime(), transformFormat);
         }
     }
     return usdMesh;

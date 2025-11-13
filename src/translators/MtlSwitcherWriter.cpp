@@ -15,6 +15,7 @@
 //
 #include "MtlSwitcherWriter.h"
 #ifdef IS_MAX2024_OR_GREATER
+#include "MultiMaterialUtils.h"
 #include <MaxUsd/MeshConversion/MeshConverter.h>
 #include <MaxUsd/Translators/ShaderWriterRegistry.h>
 #include <MaxUsd/Translators/ShadingUtils.h>
@@ -63,7 +64,7 @@ void MtlSwitcherWriter::Write()
 
         // Discover if one of the material is a Multi material, the export flow will be different.
         for (const auto variant : variantMaterials) {
-            if (variant->IsMultiMtl()) {
+            if (MaxUsdMultiMaterialUtils::HasMultiSubDependency(variant)) {
                 hasMultiSubDependency = true;
                 break;
             }
@@ -73,7 +74,7 @@ void MtlSwitcherWriter::Write()
         MaxSDK::MtlSwitcherInterface* msi = static_cast<MaxSDK::MtlSwitcherInterface*>(
             GetMaterial()->GetInterface(MTL_SWITCHER_ACCESS_INTERFACE));
         Mtl* activeMtl = msi->GetActiveMtl();
-        if (activeMtl->IsMultiMtl()) {
+        if (MaxUsdMultiMaterialUtils::HasMultiSubDependency(activeMtl)) {
             hasMultiSubDependency = true;
         } else {
             auto references = usdMaterial.GetReferences();
@@ -104,68 +105,27 @@ void MtlSwitcherWriter::Write()
 
         // Used to keep track of the material IDs set discovered.
         std::vector<std::set<int>> matIDsSets;
-        for (auto& geomBindPath : geomBindPaths) {
-            auto geomPrim = GetUsdStage()->GetPrimAtPath(geomBindPath);
-
-            if (geomPrim.IsInstance()) {
-                auto protoPrim = geomPrim.GetPrototype().GetChildren().front();
-                if (std::find(geomBindPaths.begin(), geomBindPaths.end(), protoPrim.GetPath())
-                    != geomBindPaths.end()) {
-                    // Nothing to do for this instance.
-                    continue;
-                }
-                // This instance has a different material than its prototype, break it.
-                else {
-                    // Make sure the geom edit are done on the root layer. Could be that the current
-                    // target is a material sublayer. If not using the option, we can safely use the
-                    // current edit target.
-                    auto target = writeJobCtx.GetArgs().GetUseSeparateMaterialLayer()
-                        ? GetUsdStage()->GetRootLayer()
-                        : GetUsdStage()->GetEditTarget();
-
-                    UsdEditContext             editContext(GetUsdStage(), target);
-                    UsdShadeMaterialBindingAPI bindingAPI(protoPrim);
-                    auto                       subsetToCopy = bindingAPI.GetMaterialBindSubsets();
-                    if (!subsetToCopy.empty()) {
-                        geomPrim = MaxUsdShadingUtils::BreakInstancingAndCopySubset(
-                            GetUsdStage(), geomPrim, protoPrim, subsetToCopy);
-                        geomBindPath = geomPrim.GetPath();
-                    }
-                }
+        
+        // Use shared utility for material ID discovery and bundle creation
+        auto createVariantBundleCallback = [this](
+            const SdfPath& geomBindPath,
+            const std::set<int>& materialIdsSet,
+            std::vector<std::set<int>>& matIDsSets) {
+            const auto findIt = std::find(matIDsSets.begin(), matIDsSets.end(), materialIdsSet);
+            if (findIt != matIDsSets.end()) {
+                // The bundle for this matID set already exists, just add the binding path to it.
+                variantBundles[findIt - matIDsSets.begin()].geomBindPaths.push_back(geomBindPath);
+                return;
             }
-
-            std::set<int> materialIdsSet;
-            for (auto child : geomPrim.GetAllChildren()) {
-                if (child.IsA<UsdGeomSubset>()) {
-                    materialIdsSet.insert(
-                        MaxUsd::MeshConverter::GetMaterialIdFromCustomData(child));
-                }
-            }
-
-            if (materialIdsSet.empty()) {
-                // No geomSubSet, look for the MatID on the prim itself.
-                int matId = MaxUsd::MeshConverter::GetMaterialIdFromCustomData(geomPrim);
-                if (matId == -1) {
-                    // Didn't find the custom data, skip this Prim.
-                    continue;
-                }
-                materialIdsSet.insert(matId);
-            }
-            // A bundle is used to represent geometries that share the same Material IDs.
-            // In a 3dsMax scene with the following object :
-            //	2 boxes with MatIDs : 1-6
-            //	1 Sphere with MatID : 2
-            //	1 Box with all faces set to MatID : 2
-            // The process will end up with two bundles :
-            //	Bundle 1 for the boxes 1-6
-            //	Bundle 2 for the Sphere and the box using only matID 2.
-            // In this simple case the bundle idea is probably not needed because the material
-            // overflow behavior of 3dsMax can't go wrong. But in general if the switcher is
-            // assigned to multiple objects with different sets of Material IDs you can end up in
-            // cases where matID X on both object is not going to be represented by the same
-            // material.
-            CreateVariantBundle(geomBindPath, materialIdsSet, matIDsSets);
-        }
+            matIDsSets.push_back(materialIdsSet);
+            VariantBundle bundle;
+            bundle.geomBindPaths.push_back(geomBindPath);
+            bundle.matSetIdx = materialIdsSet;
+            variantBundles.emplace_back(bundle);
+        };
+        
+        MaxUsdMultiMaterialUtils::DiscoverMaterialIDsAndCreateBundles(
+            geomBindPaths, GetUsdStage(), writeJobCtx, matIDsSets, createVariantBundleCallback);
 
         int bundleCount = 0;
         for (auto& variantBundle : variantBundles) {
@@ -205,31 +165,13 @@ void MtlSwitcherWriter::GetSubMtlDependencies(std::vector<Mtl*>& subMtl) const
             return;
         }
 
-        if (activeMtl->IsMultiMtl()) {
-            for (int i = 0; i < activeMtl->NumSubMtls(); ++i) {
-                if (auto multiSubMtl = activeMtl->GetSubMtl(i)) {
-                    subMtl.push_back(multiSubMtl);
-                }
-            }
-        } else {
-            subMtl.push_back(activeMtl);
-        }
+        MaxUsdMultiMaterialUtils::AddMaterialDependencies(activeMtl, subMtl);
         return;
     }
 
     for (int i = 0; i < GetMaterial()->NumSubMtls(); ++i) {
         if (auto mtl = GetMaterial()->GetSubMtl(i)) {
-            if (mtl->IsMultiMtl()) {
-                // if the sub material is a Multi sub material, we need to export all the sub
-                // materials
-                for (int j = 0; j < mtl->NumSubMtls(); ++j) {
-                    if (auto multiSubMtl = mtl->GetSubMtl(j)) {
-                        subMtl.push_back(multiSubMtl);
-                    }
-                }
-            } else {
-                subMtl.push_back(mtl);
-            }
+            MaxUsdMultiMaterialUtils::AddMaterialDependencies(mtl, subMtl);
         }
     }
 }
@@ -250,23 +192,7 @@ void MtlSwitcherWriter::GetTopLevelMtlDependencies(std::vector<Mtl*>& subMtl) co
     __super::GetSubMtlDependencies(subMtl);
 }
 
-void MtlSwitcherWriter::CreateVariantBundle(
-    const SdfPath&              geomBindPath,
-    const std::set<int>&        materialIdsSet,
-    std::vector<std::set<int>>& matIDsSets)
-{
-    const auto findIt = std::find(matIDsSets.begin(), matIDsSets.end(), materialIdsSet);
-    if (findIt != matIDsSets.end()) {
-        // The bundle for this matID set already exist, just add the binding path to it.
-        variantBundles[findIt - matIDsSets.begin()].geomBindPaths.push_back(geomBindPath);
-        return;
-    }
-    matIDsSets.push_back(materialIdsSet);
-    VariantBundle bundle;
-    bundle.geomBindPaths.push_back(geomBindPath);
-    bundle.matSetIdx = materialIdsSet;
-    variantBundles.emplace_back(bundle);
-}
+
 
 void MtlSwitcherWriter::BindPlaceholderMatsToGeom()
 {
@@ -296,21 +222,6 @@ void MtlSwitcherWriter::BindPlaceholderMatsToGeom()
     }
 }
 
-void MtlSwitcherWriter::GetMatIDsFromMultiMat(Mtl* mat, std::set<int>& matIdSet)
-{
-    if (mat->IsMultiMtl()) {
-        // get material ids
-        IParamBlock2* mtlParamBlock2 = mat->GetParamBlockByID(0);
-        short         paramId = MaxUsd::FindParamId(mtlParamBlock2, L"materialIDList");
-        Interval      valid = FOREVER;
-        for (int subIdx = 0; subIdx < mat->NumSubs(); subIdx++) {
-            int matId;
-            mtlParamBlock2->GetValue(paramId, 0, matId, valid, subIdx);
-            matIdSet.insert(matId);
-        }
-    }
-}
-
 void MtlSwitcherWriter::BindVariantBundleToMat(
     const VariantBundle& variantBundle,
     Mtl*                 variant,
@@ -319,11 +230,7 @@ void MtlSwitcherWriter::BindVariantBundleToMat(
 {
     int subGeo = 0;
     for (int matID : variantBundle.matSetIdx) {
-        Mtl* subMat = variant;
-        if (variant->ClassID() == MULTI_MATERIAL_CLASS_ID) {
-            const auto matIdIter = matIdSet.find(matID % variant->NumSubMtls());
-            subMat = variant->GetSubMtl(*matIdIter);
-        }
+        Mtl* subMat = MaxUsdMultiMaterialUtils::GetSubMaterialByID(variant, matID, matIdSet);
 
         const auto matIter = writeJobCtx.GetMaterialsToPrimsMap().find(subMat);
         if (matIter == writeJobCtx.GetMaterialsToPrimsMap().end()) {
@@ -409,7 +316,7 @@ void MtlSwitcherWriter::PostWrite()
                 // Will be used to match the material id with the geom material ID, if the material
                 // is a Multi sub material
                 std::set<int> matIdSet;
-                GetMatIDsFromMultiMat(variant, matIdSet);
+                MaxUsdMultiMaterialUtils::GetMatIDsFromMultiMat(variant, matIdSet);
 
                 for (auto& variantBundle : variantBundles) {
                     BindVariantBundleToMat(variantBundle, variant, matIdSet, &variantSet);
@@ -428,7 +335,7 @@ void MtlSwitcherWriter::PostWrite()
             // Will be used to match the material id with the geom material ID, if the material is a
             // Multi sub material
             std::set<int> matIdSet;
-            GetMatIDsFromMultiMat(activeMtl, matIdSet);
+            MaxUsdMultiMaterialUtils::GetMatIDsFromMultiMat(activeMtl, matIdSet);
             for (auto& variantBundle : variantBundles) {
                 BindVariantBundleToMat(variantBundle, activeMtl, matIdSet);
             }

@@ -18,8 +18,8 @@
 
     <!-- HasImportedCommonProps is used as a flag to tell propertysheets or vcxproj inheriting from that the 3dsmax.common.settings.props has already been imported before. Propersheets importing this can use to flag to ignore importing a duplicate of this props and avoid the MSB4011 warning during compilation -->
     <HasImportedCommonProps>1</HasImportedCommonProps>
-    <VersionTarget Condition="'$(VersionTarget)'==''">2025</VersionTarget>
-    <BuildDir>$(RepoRootDir)build\sample\</BuildDir>    
+    <VersionTarget Condition="'$(VersionTarget)'==''">2026</VersionTarget>
+    <BuildDir>$(RepoRootDir)build\sample\</BuildDir>
     <ApplicationPluginsDir>$(BuildDir)\bin\$(Platform)\$(Configuration)\</ApplicationPluginsDir>
     <SrcDir>$(RepoRootDir)src\</SrcDir>
     <ContentsDir>$(ApplicationPluginsDir)$(ProjectName)</ContentsDir>
@@ -33,6 +33,7 @@
     <MaxSDK Condition="'$(MaxSDK)'==''">$(Artifacts)maxsdk</MaxSDK>
     <MaxSdkLibRelease>$(MaxSDK)\lib\$(Platform)\Release</MaxSdkLibRelease>
     <QTVER Condition=" '$(VersionTarget)'&gt;='2025' ">6.5.3</QTVER>
+    <QTVER Condition=" '$(VersionTarget)'&gt;'2026' ">6.8.3</QTVER>
     <QTVER Condition=" '$(VersionTarget)'&lt;='2024' ">5.15.1</QTVER>
   </PropertyGroup>
   <PropertyGroup Condition="'$(QtArtifacts)'=='' and '$(IsProjectInDevTree)'=='true'">

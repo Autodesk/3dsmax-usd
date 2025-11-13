@@ -64,6 +64,69 @@ public:
         return MaxUsd::MaterialConverter::ConvertToUSDMaterial(
             material, stage, filename, isUSDZ, path, options, mtlBindings);
     }
+
+    static void ConvertToUSDMaterials(
+        const pyboost::list&                 materials,
+        UsdStagePtr                          stage,
+        const std::string&                   filename,
+        bool                                 isUSDZ,
+        const pyboost::list&                 targetPaths,
+        const USDSceneBuilderOptionsWrapper& options,
+        const pyboost::list&                 bindings)
+    {
+        std::vector<Mtl*> mtlSet;
+        try {
+            for (int i = 0; i < pyboost::len(materials); ++i) {
+                Mtl* material = dynamic_cast<Mtl*>(
+                    Animatable::GetAnimByHandle(pyboost::extract<ULONG>(materials[i])));
+                if (!material) {
+                    MaxUsd::Log::Error("ConvertToUSDMaterials() failed. Invalid material handle.");
+                    return;
+                }
+                mtlSet.push_back(material);
+            }
+        } catch (...) {
+            MaxUsd::Log::Error("ConvertToUSDMaterials() failed. Invalid material list.");
+            return;
+        }
+
+        std::vector<SdfPath> paths;
+        try {
+            for (int i = 0; i < pyboost::len(targetPaths); ++i) {
+                const std::string pathStr = pyboost::extract<std::string>(targetPaths[i]);
+                if (!SdfPath::IsValidPathString(pathStr)) {
+                    auto msg = pathStr + std::string(" is not a valid prim path.");
+                    throw std::invalid_argument { msg };
+                }
+                paths.emplace_back(pathStr);
+            }
+        } catch (...) {
+            MaxUsd::Log::Error("ConvertToUSDMaterials() failed. Invalid target paths list.");
+            return;
+        }
+
+        std::vector<std::list<SdfPath>> mtlBindings;
+        try {
+            for (int i = 0; i < pyboost::len(bindings); ++i) {
+                std::list<SdfPath> bindingList;
+                for (int j = 0; j < pyboost::len(bindings[i]); ++j) {
+                    const std::string pathStr = pyboost::extract<std::string>(bindings[i][j]);
+                    if (!SdfPath::IsValidPathString(pathStr)) {
+                        auto msg = pathStr + std::string(" is not a valid prim path.");
+                        throw std::invalid_argument { msg };
+                    }
+                    bindingList.emplace_back(pathStr);
+                }
+                mtlBindings.emplace_back(bindingList);
+            }
+        } catch (...) {
+            MaxUsd::Log::Error("ConvertToUSDMaterials() failed. Invalid prim binding list.");
+            return;
+        }
+
+        MaxUsd::MaterialConverter::ConvertToUSDMaterials(
+            mtlSet, stage, filename, isUSDZ, paths, options, mtlBindings);
+    }
 };
 
 void wrapMaterialConverter()
@@ -82,5 +145,19 @@ void wrapMaterialConverter()
           pyboost::arg("bindings") = pyboost::list {}),
          "Converts a 3dsMax material to a UsdShadeMaterial prim (note that MultiMtls are not "
          "currently supported).")
-        .staticmethod("ConvertToUSDMaterial");
+        .staticmethod("ConvertToUSDMaterial")
+        .def(
+            "ConvertToUSDMaterials",
+            &MaterialConverterWrapper::ConvertToUSDMaterials,
+            (pyboost::arg("materials"),
+             pyboost::arg("stage"),
+             pyboost::arg("filename"),
+             pyboost::arg("isUSDZ"),
+             pyboost::arg("targetPaths"),
+             pyboost::arg("options"),
+             pyboost::arg("bindings") = pyboost::list {}),
+            "Converts a list of 3dsMax materials to UsdShadeMaterial prims (note that MultiMtls "
+            "are not "
+            "currently supported).")
+        .staticmethod("ConvertToUSDMaterials");
 }

@@ -15,9 +15,9 @@
 //
 #pragma once
 
-#include <usdUfe/ufe/UsdContextOps.h>
-
 #include <MaxUsd.h>
+
+#include <usdUfe/ufe/UsdContextOps.h>
 
 namespace MAXUSD_NS_DEF {
 namespace ufe {
@@ -41,6 +41,7 @@ public:
 
     Items                     getItems(const ItemPath& itemPath) const override;
     Ufe::UndoableCommand::Ptr doOpCmd(const ItemPath& itemPath) override;
+    Ufe::UndoableCommand::Ptr doBulkOpCmd(const ItemPath& itemPath) override;
 
 }; // MaxUsdContextOps
 

@@ -22,6 +22,9 @@
 #ifdef IS_MAX2025_OR_GREATER
 #include <pxr/usd/usdMtlx/utils.h>
 #endif
+#if PXR_VERSION > 2411
+#include <pxr/usd/usdMtlx/tokens.h>
+#endif
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usdImaging/usdImaging/primAdapter.h>
@@ -48,7 +51,7 @@ void AddMaterialBinding(MaterialBindings& bindings, Mtl* material, const SdfPath
     }
 }
 
-Mtl* _GetNodeMaterial(INode* exportedNode)
+Mtl* GetNodeMaterial(INode* exportedNode)
 {
     if (!exportedNode) {
         return nullptr;
@@ -226,13 +229,13 @@ void _AddInstancePrimsToMaterialMap(
             continue;
         }
 
-        Mtl* firstInstanceMaterial = _GetNodeMaterial(exportedNode);
+        Mtl* firstInstanceMaterial = GetNodeMaterial(exportedNode);
         for (auto it = std::next(instancePrims.begin()); it != instancePrims.end(); ++it) {
             auto nextExportedNode = GetNodeFromInstancePrim(*it);
             if (!nextExportedNode) {
                 continue;
             }
-            Mtl* nextInstanceMaterial = _GetNodeMaterial(nextExportedNode);
+            Mtl* nextInstanceMaterial = GetNodeMaterial(nextExportedNode);
             if (nextInstanceMaterial != firstInstanceMaterial) {
                 sameMaterialForAllInstances = false;
                 break;
@@ -308,7 +311,7 @@ void _AddInstancePrimsToMaterialMap(
                     continue;
                 }
 
-                Mtl* material = _GetNodeMaterial(exportedNode);
+                Mtl* material = GetNodeMaterial(exportedNode);
                 if (!material) {
                     continue;
                 }
@@ -360,7 +363,7 @@ MaterialBindings FetchMaterials(
         }
 
         INode* exportedNode = nodePrim.first;
-        Mtl*   material = _GetNodeMaterial(exportedNode);
+        Mtl*   material = GetNodeMaterial(exportedNode);
         if (!material) {
             // node without applied material
             continue;

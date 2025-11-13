@@ -59,6 +59,7 @@ public:
      * \param applyOffsetTransform Whether or not to apply the object offset transform onto the mesh.
      * \param animated True if the mesh is a being exported as part of an animation.
      * \param timeFrame The 3dsMax time to convert at, and associated target USD TimeCode.
+     * \param transformFormat The transform format to use when creating the xform ops.
      * \return The converted UsdGeomMesh.
      */
     pxr::UsdGeomMesh ConvertToUSDMesh(
@@ -68,7 +69,8 @@ public:
         const MaxMeshConversionOptions& options,
         bool                            applyOffsetTransform,
         bool                            animated,
-        const MaxUsd::ExportTime&       timeFrame);
+        const MaxUsd::ExportTime&       timeFrame,
+        TransformFormat           transformFormat);
 
     /**
      * \brief Converts a MNMesh to a UsdGeomMesh prim.

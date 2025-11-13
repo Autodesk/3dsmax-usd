@@ -154,6 +154,7 @@ bool MaxUsdTranslatorMaterial::AssignMaterial(
 void MaxUsdTranslatorMaterial::ExportMaterials(
     MaxUsdWriteJobContext&                                  writeJobContext,
     const pxr::TfHashSet<pxr::SdfPath, pxr::SdfPath::Hash>& primsToMaterialBind,
+    const std::vector<Mtl*>&                         materialsToExport,
     MaxUsd::MaxProgressBar&                                 progress)
 {
     const TfToken& shadingMode = writeJobContext.GetArgs().GetShadingMode();
@@ -163,7 +164,7 @@ void MaxUsdTranslatorMaterial::ExportMaterials(
 
     if (auto exporterCreator = MaxUsdShadingModeRegistry::GetExporter(shadingMode)) {
         if (auto exporter = exporterCreator()) {
-            exporter->DoExport(writeJobContext, primsToMaterialBind, progress);
+            exporter->DoExport(writeJobContext, primsToMaterialBind, materialsToExport, progress);
         } else {
             TF_RUNTIME_ERROR(
                 "Failed creating exporter for shadingMode '%s'.", shadingMode.GetText());

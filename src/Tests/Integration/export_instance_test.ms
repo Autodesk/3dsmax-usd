@@ -495,7 +495,7 @@ struct export_instance_test
         teapot2 = create_clone teapot1 #instance "teapot2"
         point1 = Point pos:[9,5,0] name:"point1"
         teapot1.parent = point1
-        
+
         exportPath = output_prefix + "test_export_instance_reuse_parent_prim_should_have_correct_transforms.usda"
         exportOptions = USDExporter.CreateOptions()
         exportOptions.FileFormat = #ascii
@@ -512,11 +512,64 @@ struct export_instance_test
         transform1 = xformOps[1].GetOpTransform(pyUsd.TimeCode.Default())
         transform2 = xformOps[2].GetOpTransform(pyUsd.TimeCode.Default())
         assert_undefined xformOps[3]
-        
+
         expectingOps1 = #(#(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(9, 5, 0, 1))
-        expectingOps2 = #(#(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(1000000, 5, 0, 1))
-        assert_true (compare2dMatrix expectingOps1 expectingOps1 4 4) message:"Unexpected transform"
-        assert_true (compare2dMatrix expectingOps2 expectingOps2 4 4) message:"Unexpected transform"    
+        expectingOps2 = #(#(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(1000001, 5, 0, 1))
+        assert_true (compare2dMatrix expectingOps1 transform1 4 4) message:"Unexpected transform"
+        assert_true (compare2dMatrix expectingOps2 transform2 4 4) message:"Unexpected transform"
+    ),
+
+    function test_export_instance_reuse_parent_prim_should_have_correct_split_transforms = (
+        teapot1 = Teapot name:"teapot1" pos:[1000009,10,0] width:10 length:10 height:10
+        teapot2 = create_clone teapot1 #instance "teapot2"
+        point1 = Point pos:[9,5,0] name:"point1"
+        teapot1.parent = point1
+
+        exportPath = output_prefix + "test_export_instance_reuse_parent_prim_should_have_correct_split_transforms.usda"
+        exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.TransformFormat = #splitComponents
+        exportOptions.RootPrimPath = "/"
+
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+
+        stage = pyUsd.Stage.Open(exportPath)
+        point1Prim = stage.GetPrimAtPath("/point1")
+
+        assert_true (point1Prim.IsInstance()) message:"point1 prim should be an instance."
+        point1XFormPrim = pyUsdGeom.Xformable(point1Prim)
+        xformOps = point1XFormPrim.GetOrderedXformOps()
+        t1 = xformOps[1].Get(pyUsd.TimeCode.Default())
+        r1 = xformOps[2].Get(pyUsd.TimeCode.Default())
+        s1 = xformOps[3].Get(pyUsd.TimeCode.Default())
+        t2 = xformOps[4].Get(pyUsd.TimeCode.Default())
+        r2 = xformOps[5].Get(pyUsd.TimeCode.Default())
+        s2 = xformOps[6].Get(pyUsd.TimeCode.Default())
+        assert_undefined xformOps[7]
+
+        assert_equal (xformOps[1].GetOpName()) "xformOp:translate"
+        assert_equal (xformOps[2].GetOpName()) "xformOp:rotateXYZ"
+        assert_equal (xformOps[3].GetOpName()) "xformOp:scale"
+        assert_equal (xformOps[4].GetOpName()) "xformOp:translate:t1"
+        assert_equal (xformOps[5].GetOpName()) "xformOp:rotateXYZ:r1"
+        assert_equal (xformOps[6].GetOpName()) "xformOp:scale:s1"
+
+        expect1 = #(9, 5, 0)
+        expect2 = #(0, 0, 0)
+        expect3 = #(1, 1, 1)
+        expect4 = #(1000001, 5, 0)
+        expect5 = #(0, -0, 0)
+        expect6 = #(1, 1, 1)
+
+        for i = 1 to 3 do
+        (
+            assert_equal expect1[i] t1[i]
+            assert_equal expect2[i] r1[i]
+            assert_equal expect3[i] s1[i]
+            assert_equal expect4[i] t2[i]
+            assert_equal expect5[i] r2[i]
+            assert_equal expect6[i] s2[i]
+        )
     ),
     
     function test_export_instance_not_reuse_parent_on_metadata_conflict = (
@@ -779,6 +832,7 @@ struct export_instance_test
         test_export_instance_not_reuse_parent_prim_when_more_than_one_child,
         test_export_instance_not_reuse_parent_prim_when_parent_is_not_a_point,
         test_export_instance_reuse_parent_prim_should_have_correct_transforms,
+        test_export_instance_reuse_parent_prim_should_have_correct_split_transforms,
         test_export_instance_not_reuse_parent_on_metadata_conflict,
         test_export_single_max_instance_does_not_create_usd_instance,
         test_instancing_inherit_class_prim

@@ -1,0 +1,19 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "MaxUsd": {
+                    "ShadingModePlugin": {},
+                    "ShaderReader": {
+                        "providesTranslator": [
+                            "ND_open_pbr_surface_surfaceshader",
+                            "ND_standard_surface_surfaceshader"
+                        ]
+                    }
+                }
+            },
+            "Name": "materialXRefShaderReader",
+            "Type": "python"
+        }
+    ]
+}

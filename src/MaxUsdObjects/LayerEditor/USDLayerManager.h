@@ -71,11 +71,18 @@ public:
     USDLayerManager& operator=(USDLayerManager&&) = delete;
 
     /**
-     * Adds a dirty layer to dirtyLayersFromMaxScene vector. Used to simply
-     * keep references to SdfLayers created in memory.
-     * @param dirtyLayer loaded from .max scene file
+     * Get the map of identifiers -> SdfLayer of loaded layers
+     * from the .max scene.
+     * @return The map of loaded sdf layers
      */
-    void AddDirtyLayerFromMaxScene(const pxr::SdfLayerRefPtr dirtyLayer);
+    const std::unordered_map<std::string, pxr::SdfLayerRefPtr>& GetLoadedLayerMap();
+
+    /**
+     * Add a mapping into the loadedLayerMap map.
+     * @param oldId the Id as it was stored into the .max scene on save
+     * @param newLayer the newly created layer based on the .usda string.
+     */
+    void AddLoadedLayerMapping(std::string& oldId, pxr::SdfLayerRefPtr& newLayer);
 
 private:
     USDLayerManager();
@@ -97,19 +104,18 @@ private:
     SaveMode saveMode;
 
     /**
-     * Clears the dirtyLayersFromMaxScene vector. Note this is called after
+     * Clears the loadedLayerMap map. Note this is called after
      * NOTIFY_FILE_POST_OPEN notification is sent.
      */
-    void ClearMaxSceneDirtyLayers();
+    void ClearLoadedLayersMap();
 
-    /// Storage of dirty layers found in the Max Scene file on load.
-    /**
-     * NOTE: This vector is used to drive the mechanism of loading layers from the .max scene on
-     * disk; first the layers are read from the .max scene file, then they are created as anonymous
-     * layers with the same identifiers as they had when they were saved, and finally,
-     * when the USD stages associated with the .max scene file are created, upon their
-     * creation, they will find SdfLayers that exist in memory with the same identifier
-     * and use them instead of the ones associated with the root .usd layer of the stage.
-     */
-    std::vector<pxr::SdfLayerRefPtr> dirtyLayersFromMaxScene;
+    // Holds the mapping of layer identifiers loaded from the .max scene
+    // onto the SdfLayer objects created as a result of ImportFromString calls.
+    // This is needed (1) to recreate the mapping of layers because anon layer
+    // identifiers cannot be set, so we recreate the same layer hierarchy based
+    // on the data in this structure.
+    // (2) Keep pointers to the layers of file-backed layers so that when
+    // UsdStageObject that has a file-backed root layer loaded, it will
+    // find the SdfLayer associated with the file's identifier and use it.
+    std::unordered_map<std::string, pxr::SdfLayerRefPtr> loadedLayerMap;
 };

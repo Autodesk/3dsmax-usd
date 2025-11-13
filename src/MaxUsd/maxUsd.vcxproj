@@ -101,6 +101,16 @@ if exist "$(MaterialXDir)/" (
     echo Warning: Missing 3ds Max MaterialX material plugin
 )
 if %errorlevel% geq 4 exit /b 1
+if $(VersionTarget) geq 2026 (
+	if exist "$(AdskAssetResolverBin)/" (
+		robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)" $(TargetDir)\..\plugin\adskassetresolver /XD "python"
+		if %errorlevel% geq 4 exit /b 1
+		robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)\python" $(TargetDir)\python /XD "__pycache__"
+		if %errorlevel% geq 4 exit /b 1
+	) else (
+		echo Warning: Missing Autodesk Asset Resolver plugin
+	)
+)
 
 powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-scripts\Prepare-PackageContents.ps1" -TargetVersion $(VersionTarget) -Distrib $(Distrib) -Config $(Configuration) -BuildNumber $(BuildNumber) -ComponentVersion $(ComponentVersion)</Command>
     </PostBuildEvent>

@@ -54,6 +54,7 @@ struct MaxUsdTranslatorMaterial
     MaxUSDAPI static void ExportMaterials(
         MaxUsdWriteJobContext&                                  writeJobContext,
         const pxr::TfHashSet<pxr::SdfPath, pxr::SdfPath::Hash>& primsToMaterialBind,
+        const std::vector<Mtl*>&                                materialsToExport,
         MaxUsd::MaxProgressBar&                                 progress);
 };
 

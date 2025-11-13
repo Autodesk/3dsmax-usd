@@ -23,21 +23,36 @@
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
 
+#include <MaxUsd/Utilities/ListenerUtils.h>
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/UiUtils.h>
 
 #include <UsdLayerEditor/layerLocking.h>
 #include <UsdLayerEditor/layerMuting.h>
 #include <UsdLayerEditor/utilFileSystem.h>
+#include <UsdLayerEditor/utilSerialization.h>
+#include <UsdLayerEditor/utilUI.h>
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/ufe/StagesSubject.h>
+
+#include <pxr/usd/usd/stageCache.h>
+#include <pxr/usd/usd/stageCacheContext.h>
 
 #include <Qt/QmaxDockWidget.h>
 #include <ufe/pathString.h>
 
+#include <IPathConfigMgr.h>
 #include <QtWidgets/QApplication>
 #include <max.h>
 #include <qpointer.h>
+
+#if _MSVC_LANG > 201402L
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
 
 std::unique_ptr<MaxLayerEditor> MaxLayerEditor::instance;
 
@@ -121,20 +136,6 @@ void MaxLayerEditor::Initialize()
     UsdLayerEditor::initializeQtUtils();
     UsdLayerEditor::getQtUtils()->setDpiScale(static_cast<double>(MaxSDK::GetUIScaleFactor()));
 
-    UsdLayerEditor::setLockedLayersSaveFunction([](const std::string& stageObjectPath) {
-        const auto ufePath = Ufe::PathString::path(stageObjectPath);
-        const auto object = StageObjectMap::GetInstance()->Get(ufePath);
-        object->SetLockedLayersState(UsdLayerEditor::getLockedLayersIdentifiers());
-    });
-
-    UsdLayerEditor::setMutedLayersSaveFunction([](const std::string& stageObjectPath) {
-        const auto ufePath = Ufe::PathString::path(stageObjectPath);
-        const auto object = StageObjectMap::GetInstance()->Get(ufePath);
-        if (auto stage = object->GetUSDStage()) {
-            object->SetMutedLayersState(stage->GetMutedLayers());
-        }
-    });
-
     UsdLayerEditor::FileSystem::setFileWriteAccessFunction([](const std::string& path) {
         const auto filePath = MaxUsd::UsdStringToMaxString(path);
         // Check for the file's existence, and write permission.
@@ -142,6 +143,64 @@ void MaxLayerEditor::Initialize()
             return false;
         }
         return true;
+    });
+
+    UsdLayerEditor::Serialization::setUpdateDCCObjectRootLayerFunction(
+        [](const std::string& stageObjectPath, const std::string& rootLayerPath) {
+            const auto ufePath = Ufe::PathString::path(stageObjectPath);
+            const auto object = StageObjectMap::GetInstance()->Get(ufePath);
+            const auto rootPath = MaxUsd::UsdStringToMaxString(rootLayerPath);
+
+            // Keep track of the muted layers of the stage object:
+            // we need to reset them to muted because we are recreating
+            // a new stage object and they won't carry over implicitly.
+            const auto mutedLayers = object->GetUSDStage()->GetMutedLayers();
+
+            SdfLayerRefPtr layerPtr = SdfLayer::FindOrOpen(rootLayerPath);
+            auto           updatedStage = UsdStage::UsdStage::Open(
+                layerPtr,
+                object->GetUSDStage()->GetSessionLayer(),
+                UsdStage::InitialLoadSet::LoadNone);
+
+            object->GetParamBlock(0)->SetValue(StageFile, GetCOREInterface()->GetTime(), rootPath);
+            object->GetParamBlock(0)->SetValue(StageMask, GetCOREInterface()->GetTime(), L"/");
+            object->SetUSDStage(updatedStage);
+
+            // Set the muted layers
+            UsdLayerEditor::LayerNameMap nameMap;
+            UsdLayerEditor::loadLayerMuteState(mutedLayers, nameMap, *updatedStage);
+
+            // Reset the AnonRootId to "", so that when we persist this param,
+            // on load, the code in USDAssetAccessor.h will not attempt to load
+            // an anonymous layer that may be serialized in the .max scene file
+            // (since this param is what drives reloading of anon root layers
+            // from the .max scenes).
+            // NOTE: the reason we reset it here is because this callback
+            // is called when an anonymous root layer is saved from the layer
+            // editor.
+            IParamBlock2* pb = object->GetParamBlock(0);
+            if (pb) {
+                pb->SetValue(PBParameterIds::AnonRootId, 0, L"");
+            }
+        });
+
+    UsdLayerEditor::FileSystem::setDCCSceneLocationFunc([]() -> std::string {
+        auto path = GetCOREInterface()->GetCurFilePath();
+        if (path == 0) {
+            return "";
+        }
+
+        return fs::path(MaxUsd::MaxStringToUsdString(path)).parent_path().string();
+    });
+
+    UsdLayerEditor::FileSystem::setDCCWorkspaceSceneLocationFunc([]() -> std::string {
+        const MSTR sceneDir
+            = MaxSDKSupport::GetString(IPathConfigMgr::GetPathConfigMgr()->GetDir(APP_SCENE_DIR));
+        return MaxUsd::MaxStringToUsdString(sceneDir);
+    });
+
+    UsdLayerEditor::UIUtils::setErrorDisplayCallbackFunction([](std::string str) {
+        MaxUsd::Listener::Write(MaxUsd::UsdStringToMaxString(str).data(), true);
     });
 
     // Force initialize the instance - hooks up to 3dsmax notifications.

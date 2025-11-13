@@ -27,41 +27,41 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
 
     def setUp(self):
         rt.resetMaxFile(rt.Name("noprompt"))
-        
+
     def tearDown(self):
         pass
 
     def test_options(self):
-                
+
         options = maxUsd.USDSceneBuilderOptions()
-        
+
         # Test all getters and setters.
         self.assertEqual(maxUsd.ContentSource.RootNode, options.GetContentSource())
         options.SetContentSource(maxUsd.ContentSource.Selection)
         self.assertEqual(maxUsd.ContentSource.Selection, options.GetContentSource())
         options.SetContentSource(maxUsd.ContentSource.NodeList)
         self.assertEqual(maxUsd.ContentSource.NodeList, options.GetContentSource())
-        
+
         self.assertEqual("useRegistry", options.GetShadingMode())
         options.SetShadingMode("foo")
         self.assertEqual("foo", options.GetShadingMode())
-        
+
         self.assertTrue(options.GetTranslateMeshes())
         options.SetTranslateMeshes(False)
         self.assertFalse(options.GetTranslateMeshes())
-        
+
         self.assertTrue(options.GetTranslateShapes())
         options.SetTranslateShapes(False)
         self.assertFalse(options.GetTranslateShapes())
-        
+
         self.assertTrue(options.GetTranslateLights())
         options.SetTranslateLights(False)
         self.assertFalse(options.GetTranslateLights())
-        
+
         self.assertTrue(options.GetTranslateCameras())
         options.SetTranslateCameras(False)
         self.assertFalse(options.GetTranslateCameras())
-        
+
         self.assertTrue(options.GetTranslateMaterials())
         options.SetTranslateMaterials(False)
         self.assertFalse(options.GetTranslateMaterials())
@@ -70,10 +70,22 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         options.SetTranslateSkin(True)
         self.assertTrue(options.GetTranslateSkin())
 
+        self.assertFalse(options.GetIncludeAllBones())
+        options.SetIncludeAllBones(True)
+        self.assertTrue(options.GetIncludeAllBones())
+
+        self.assertTrue(options.GetPreserveBoneMeshes())
+        options.SetPreserveBoneMeshes(False)
+        self.assertFalse(options.GetPreserveBoneMeshes())
+
+        self.assertFalse(options.GetSimplifyBonePaths())
+        options.SetSimplifyBonePaths(True)
+        self.assertTrue(options.GetSimplifyBonePaths())
+
         self.assertFalse(options.GetTranslateMorpher())
         options.SetTranslateMorpher(True)
         self.assertTrue(options.GetTranslateMorpher())
-        
+
         self.assertEqual("{'UsdPreviewSurface'}", str(options.GetAllMaterialConversions()))
         allMaterialConversions = {'foo', 'bar'}
         options.SetAllMaterialConversions(allMaterialConversions)
@@ -82,15 +94,15 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertTrue(options.GetUsdStagesAsReferences())
         options.SetUsdStagesAsReferences(False)
         self.assertFalse(options.GetUsdStagesAsReferences())
-        
+
         self.assertTrue(options.GetTranslateHidden())
         options.SetTranslateHidden(False)
         self.assertFalse(options.GetTranslateHidden())
-        
+
         self.assertFalse(options.GetUseUSDVisibility())
         options.SetUseUSDVisibility(True)
         self.assertTrue(options.GetUseUSDVisibility())
-        
+
         self.assertFalse(options.GetAllowNestedGprims())
         options.SetAllowNestedGprims(True)
         self.assertTrue(options.GetAllowNestedGprims())
@@ -98,11 +110,11 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertEqual(maxUsd.FileFormat.Binary, options.GetFileFormat())
         options.SetFileFormat(maxUsd.FileFormat.ASCII)
         self.assertEqual(maxUsd.FileFormat.ASCII, options.GetFileFormat())
-        
+
         self.assertEqual(maxUsd.NormalsMode.AsPrimvar, options.GetNormalsMode())
         options.SetNormalsMode(maxUsd.NormalsMode.AsAttribute)
         self.assertEqual(maxUsd.NormalsMode.AsAttribute, options.GetNormalsMode())        
-        
+
         self.assertEqual(maxUsd.MeshFormat.FromScene, options.GetMeshFormat())
         options.SetMeshFormat(maxUsd.MeshFormat.PolyMesh)
         self.assertEqual(maxUsd.MeshFormat.PolyMesh, options.GetMeshFormat())
@@ -114,7 +126,7 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertFalse(options.GetPreserveEdgeOrientation())
         options.SetPreserveEdgeOrientation(True)
         self.assertTrue(options.GetPreserveEdgeOrientation())
-                        
+
         self.assertEqual(options.GetChannelPrimvarType(1), maxUsd.PrimvarType.TexCoord2fArray)
         options.SetChannelPrimvarType(1, maxUsd.PrimvarType.Color3fArray)
         self.assertEqual(options.GetChannelPrimvarType(1), maxUsd.PrimvarType.Color3fArray)
@@ -138,7 +150,7 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertEqual(0, options.GetEndFrame())
         options.SetEndFrame(10)
         self.assertEqual(10, options.GetEndFrame())
-        
+
         self.assertEqual(1, options.GetSamplesPerFrame())
         options.SetSamplesPerFrame(5)
         self.assertEqual(5, options.GetSamplesPerFrame())
@@ -157,30 +169,30 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         options.SetRootPrimPath(rootPrimWithVarSelect)
         self.assertEqual(rootPrim, str(options.GetRootPrimPath(True)))
         self.assertEqual(rootPrimWithVarSelect, str(options.GetRootPrimPath(False)))
-        
+
         self.assertTrue("MaxUsdExport.log" in options.GetLogPath())
         logPath = "C:\\foo\\bar.log"
         options.SetLogPath(logPath)
         self.assertEqual(logPath, options.GetLogPath())        
-        
+
         self.assertEqual(maxUsd.LogLevel.Off, options.GetLogLevel())
         options.SetLogLevel(maxUsd.LogLevel.Error)
         self.assertEqual(maxUsd.LogLevel.Error, options.GetLogLevel())
-        
+
         self.assertFalse(options.GetOpenInUsdview())        
         options.SetOpenInUsdview(True)
         self.assertTrue(options.GetOpenInUsdview())
-        
+
         self.assertEqual("set()", str(options.GetChaserNames()))
         chasers = {"chaser1", "chaser2"}
         options.SetChaserNames(chasers)
         self.assertEqual(chasers, options.GetChaserNames())
-        
+
         self.assertEqual("set()", str(options.GetContextNames()))
         contexts = {"context1", "context2"}
         options.SetContextNames(contexts)
         self.assertEqual(contexts, options.GetContextNames())
-        
+
         # We have 2 overloads for SetAllChaserArgs, one taking in a dict, the other a list.
         self.assertEqual("{}", str(options.GetAllChaserArgs()))
         # Using dictionnary: 
@@ -191,7 +203,7 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         allChaserArgsList = ["chaser1", "param1", "1", "chaser1", "param2", "1"]
         options.SetAllChaserArgs(allChaserArgsList)
         self.assertEqual({'chaser1': {'param1': '1', 'param2': '1'}}, options.GetAllChaserArgs())
-        
+
         self.assertTrue(options.GetUseProgressBar())
         options.SetUseProgressBar(False)
         self.assertFalse(options.GetUseProgressBar())
@@ -207,7 +219,7 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertEqual("mtl", options.GetMaterialPrimPath())
         options.SetMaterialPrimPath("MyMaterials")
         self.assertEqual("MyMaterials", options.GetMaterialPrimPath())
-        
+
         self.assertTrue(options.GetUseLastResortUSDPreviewSurfaceWriter())
         options.SetUseLastResortUSDPreviewSurfaceWriter(False)
         self.assertFalse(options.GetUseLastResortUSDPreviewSurfaceWriter())
@@ -215,10 +227,26 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertFalse(options.GetUseWorldspaceRoot())
         options.SetUseWorldspaceRoot(True)
         self.assertTrue(options.GetUseWorldspaceRoot())
-        
+
+        self.assertTrue(options.GetTransformFormat() == maxUsd.TransformFormat.SingleMatrix)
+        options.SetTransformFormat(maxUsd.TransformFormat.SplitComponents)
+        self.assertTrue(options.GetTransformFormat() == maxUsd.TransformFormat.SplitComponents)
+
+        if Usd.GetVersion() >= (0, 24, 11):
+            self.assertEqual(maxUsd.AnimationType.TimeSamples, options.GetAnimationType())
+            options.SetAnimationType(maxUsd.AnimationType.Curves)
+            self.assertEqual(maxUsd.AnimationType.Curves, options.GetAnimationType())
+            options.SetAnimationType(maxUsd.AnimationType.Both)
+            self.assertEqual(maxUsd.AnimationType.Both, options.GetAnimationType())
+        self.assertEqual(maxUsd.ShellMtlExportStyle.Both, options.GetShellMtlExportStyle())
+        options.SetShellMtlExportStyle(maxUsd.ShellMtlExportStyle.Baked)
+        self.assertEqual(maxUsd.ShellMtlExportStyle.Baked, options.GetShellMtlExportStyle())
+        options.SetShellMtlExportStyle(maxUsd.ShellMtlExportStyle.Original)
+        self.assertEqual(maxUsd.ShellMtlExportStyle.Original, options.GetShellMtlExportStyle())
+
         # Test setting defaults.
         options.SetDefaults()
-        
+
         self.assertEqual(maxUsd.ContentSource.RootNode, options.GetContentSource())
         self.assertEqual("useRegistry", options.GetShadingMode())
         self.assertTrue(options.GetTranslateMeshes())
@@ -227,6 +255,9 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertTrue(options.GetTranslateCameras())
         self.assertTrue(options.GetTranslateMaterials())
         self.assertFalse(options.GetTranslateSkin())
+        self.assertFalse(options.GetIncludeAllBones())
+        self.assertTrue(options.GetPreserveBoneMeshes())
+        self.assertFalse(options.GetSimplifyBonePaths())
         self.assertFalse(options.GetTranslateMorpher())
         self.assertEqual("{'UsdPreviewSurface'}", str(options.GetAllMaterialConversions()))
         self.assertTrue(options.GetUsdStagesAsReferences())
@@ -259,7 +290,13 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         self.assertEqual("mtl", options.GetMaterialPrimPath())
         self.assertTrue(options.GetUseLastResortUSDPreviewSurfaceWriter())
         self.assertFalse(options.GetUseWorldspaceRoot())
-        
+        self.assertTrue(options.GetTransformFormat() == maxUsd.TransformFormat.SingleMatrix)
+
+        if Usd.GetVersion() >= (0, 24, 11):
+            self.assertTrue(options.GetAnimationType() == maxUsd.AnimationType.TimeSamples)
+
+        self.assertEqual(maxUsd.ShellMtlExportStyle.Both, options.GetShellMtlExportStyle())
+
         # Test copy construction
         options.SetRootPrimPath("/foo")
         optionsCopy = maxUsd.USDSceneBuilderOptions(options)
@@ -267,8 +304,8 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
         optionsCopy.SetRootPrimPath("/bar")
         self.assertEqual("/foo", str(options.GetRootPrimPath()))
         self.assertEqual("/bar", str(optionsCopy.GetRootPrimPath()))
-        
-        
+
+
 rt.clearListener()
 def run_tests():
     return unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(unittest.TestLoader().loadTestsFromTestCase(TestUSDSceneBuilderOptions))

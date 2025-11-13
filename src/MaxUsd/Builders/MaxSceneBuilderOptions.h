@@ -255,13 +255,13 @@ public:
      */
     MaxUSDAPI void SetUseProgressBar(bool useProgressBar);
 
-private:
     /**
      * \brief Returns the default dictionary for the importer options.
      * \return The default dictionary for the importer options.
      */
     static MaxUSDAPI const pxr::VtDictionary& GetDefaultDictionary();
 
+private:
     /**
      * \brief Returns the default dictionary for the importer shading modes.
      * \return The default dictionary for the importer shading modes.

@@ -63,6 +63,9 @@
     <ClCompile Include="systemtests_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="MaxUsdObjects.SubobjectClone.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

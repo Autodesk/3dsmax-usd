@@ -78,7 +78,8 @@ enum PBParameterIds
     GenerateCameras,
     GeneratePointInstancesDrawModes,
     PointInstancesDrawMode,
-    LightGizmoScale
+    LightGizmoScale,
+    AnonRootId
 };
 
 // These correspond to the different rollouts.
@@ -261,6 +262,7 @@ public:
     void
     Scale(TimeValue t, Matrix3& partm, Matrix3& tmAxis, Point3& val, BOOL /*localOrigin = FALSE*/)
         override;
+
     void TransformStart(TimeValue t) override;
     void TransformFinish(TimeValue t) override;
     void TransformHoldingFinish(TimeValue t) override;
@@ -331,13 +333,30 @@ public:
     pxr::UsdStageWeakPtr GetUSDStage() const override;
 
     /**
-     * \brief Clear the previous stage if needed, then load a new stage according to the layer path and mask values.
-     * \param fromStage Optional. Load from an existing USD stage instead.
-     * \param loadPayloads Whether to load payloads.
-     * \return The USD stage.
+     * \brief Sets a USD stage to the UsdStageObject.
+     * \param stage The USD stage to set.
+     * \return The set USD stage.
      */
-    pxr::UsdStageWeakPtr
-    LoadUSDStage(const pxr::UsdStageRefPtr& fromStage = nullptr, bool loadPayloads = true);
+    pxr::UsdStageWeakPtr SetUSDStage(const pxr::UsdStageRefPtr& stage);
+
+    /**
+     * \brief Load a USD stage into the USDStageObject from disk.
+     * \param rootPath The root layer path to be used in the stage creation.
+     * \param stageMaskPath The stage mask to be applied in the stage creation.
+     * \param loadPayloads Whether to load payloads.
+     * \return The loaded USD Stage.
+     */
+    pxr::UsdStageWeakPtr LoadUSDStage(
+        const std::string& rootPath,
+        const std::string& stageMaskPath,
+        bool               loadPayloads = true);
+
+    /**
+     * \brief Apply the loaded state that was saved into the .max scene.
+     * NOTE: This function is meant to be used once AND after the initial load
+     * of a .max file that contains USDStageObject(s) (with relevant state).
+     */
+    void ApplyLoadedStateFromMax();
 
     /**
      * \brief Creates and updates the render items necessary to display the USD stage's content in the Max
@@ -539,6 +558,13 @@ public:
     IOResult Save(ISave* isave) override;
 
     /**
+     * \brief Executed before save when specifying entity references
+     * \param referenceSaveManager Reference Save Manager
+     * \return bool if no errors processing
+     */
+    bool SpecifySaveReferences(ReferenceSaveManager& referenceSaveManager) override;
+
+    /**
      * \brief Set if the stage is being loaded from a 3ds Max load operation
      */
     void SetLoadingMaxFile(bool loading);
@@ -568,6 +594,13 @@ public:
         const wchar_t* rootLayer,
         const wchar_t* stageMask,
         bool           payloadsLoaded = true) override;
+
+    /**
+     * \brief Creates an in memory stage with a anonymous root layer. This
+     * function also sets the AnonRootId param to the identifier of the
+     * anonymous root layer of the creates stage.
+     */
+    void CreateInMemoryStage();
 
     /**
      * \brief Returns the multimaterial representing the UsdPreviewSurface materials in the stage.
@@ -813,6 +846,15 @@ public:
     INode* PromoteTo3dsMaxObject(const wchar_t* primPath, bool select) override;
 
     /**
+     * Sets the current stage to the stage in the USD cache pointed by
+     * the cache ID provided to this functions.
+     * @param cacheId The cache ID of the stage you want set from the
+     * the global stage cache.
+     * @return If the stage was successfully set.
+     */
+    bool SetStageFromCache(int cacheId) override;
+
+    /**
      * Simple struct to represent a subset of the USD Stage currently used as
      * source for a USDGeomObject.
      */
@@ -941,6 +983,24 @@ private:
         const Matrix3& axisTm,
         const Matrix3& transform) const;
 
+    /**
+     * Starts a clone operation. Typically initiated from TransformStart. Will clone the objects
+     * and replace the current selection with them.
+     * @param transformables The transformables being cloned. The function will update the vector to
+     * replace the entries with the cloned equivalents.
+     */
+    void PrimCloneStart(std::vector<Transformable>& transformables);
+
+    /**
+     * Completes a prim clone operation.
+     */
+    void PrimCloneFinish();
+
+    /**
+     * Cancels a prim clone operation, removing any temporarily cloned prims.
+     */
+    void PrimCloneCancel();
+
     /** Cleans up the prim attribute rollups for the current prim selection. */
     void CleanupPrimAttributeWidgets();
 
@@ -973,7 +1033,6 @@ private:
     std::unique_ptr<USDPickingRenderer> pickingRenderer;
     /// Handles for USD notices so that we can revoke them upon destruction.
     pxr::TfNotice::Key onStageChangeNotice;
-    pxr::TfNotice::Key onLayerMutingChangedNotice;
     /// Id of the stage in the stage cache.
     pxr::UsdStageCache::Id stageCacheId;
     /// A unique identifier for the USD Stage object. Used to map USD stages <-> 3dsMax objects.
@@ -1057,10 +1116,6 @@ private:
     NodeEventCallback               nodeEventCallback { this };
     /// Progress reporter for length operations, typically hooked up to some UI.
     MaxUsd::ProgressReporter progressReporter;
-    /// A reference to the session layer that was loaded from the max scene.
-    pxr::SdfLayerRefPtr sessionLayerFromMaxScene;
-    /// The Edit target that was saved to 3dsMax scene.
-    std::string editTargetFromMaxScene;
     /// The payload rules applied by the USD Explorer
     std::string savedPayloadRules;
 
@@ -1130,17 +1185,31 @@ private:
     // edit in subObjectManips.
     std::vector<std::unique_ptr<SubObjectManip>> subObjectManips;
 
+    // Indicates we are in the process of cloning USD prims.
+    bool inUsdCloneOp = false;
+
     /// UFE observer to react to changes in the selection.
     std::shared_ptr<SelectionObserver> selectionObserver;
 
     /// Flag to indicate that the selection display must be udpated upon the next draw.
     bool isSelectionDisplayDirty = false;
 
-    /// USD Layer states. The lock and mute states of USD layers are not saved in USD, the
-    /// USDStageObject must remember this information so that stages re-open in the same state
-    /// when the 3dsmax scenes are reloaded.
-    std::vector<std::string> lockedLayers;
-    std::vector<std::string> mutedLayers;
+    /// NOTE: These 4 structures are only used as "temporary" structures to hold onto the data
+    /// loaded from the ::Load() callback. Afterwards, after the pxr::UsdStage is created and
+    /// assigned to the USDStageObject using SetUsdStage, the caller can decide to call
+    /// LoadSavedStateFromMax() to apply this data onto the stage that is being set.
+
+    /// USD Layer states. The lock and mute states of USD layers are not saved in USD.
+    /// As such, we load these from a .max scene.
+    std::vector<std::string> lockedLayersFromMaxScene;
+    std::vector<std::string> mutedLayersFromMaxScene;
+
+    /// A reference to the session layer that was loaded from a saved .max scene.
+    pxr::SdfLayerRefPtr sessionLayerFromMaxScene;
+    /// The Edit target that was saved to .max scene.
+    std::string editTargetFromMaxScene;
+
+    // END NOTE
 
     // A registry of USD subtree roots for which the display is handled externally.
     // When a prim (and its descendants) are promoted to 3dsMax data and represented in
@@ -1164,4 +1233,11 @@ private:
     };
     // Flag indicating we are currently ignoring usd notices.
     bool pauseUsdNotices = false;
+
+    // Flag used to determine if the save should be interrupted.
+    // Currently, we use this flag to interrupt the save process
+    // from the ::Save() function, based on logic inside the
+    // ::SpecifySaveReferences() function (because there is no
+    // way to interrupt the save process from that function).
+    bool interruptSave = false;
 };
