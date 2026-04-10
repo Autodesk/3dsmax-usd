@@ -34,6 +34,7 @@
 #define IDS_EXPORT_CANCEL_CAPTION               15
 #define IDS_EXPORT_CANCEL_TEXT                  16
 #define IDS_EXPORT_POST_EXPORT_PROGRESS_MESSAGE 17
+#define IDS_IMPORT_MATERIALS_PROGRESS_MESSAGE   18
 
 // Next default values for new objects
 //

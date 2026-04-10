@@ -39,7 +39,7 @@ if ($ArtifactsXmlFile.Equals("")) {
 
 # Early bail out on error
 $ErrorActionPreference = "Stop"
-$UnstableSdk = @("2027")
+$UnstableSdk = @("2028")
 
 if ($Distrib -And $UnstableSdk -contains $TargetVersion) {
     [xml]$ArtifactsXmlDocument = Get-Content -Path $ArtifactsXmlFile
@@ -54,7 +54,7 @@ if ($Distrib -And $UnstableSdk -contains $TargetVersion) {
 
 function GetSeriesMinMaxVersion {
     Param(
-        [Parameter(Mandatory=$true, HelpMessage="Target Max Version (major) ex 2023")]
+        [Parameter(Mandatory=$true, HelpMessage="Target Max Version (major) ex 2024")]
         [String]$MaxMajorVersion,
         [Parameter(Mandatory=$true, HelpMessage="Target MaxSDK version ex. 24.0.0")]
         [String]$MaxSdkVersion,
@@ -128,13 +128,13 @@ function AddMenus {
     )
     $newMenuApixmlSnippet = @"
 
-    <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2026" />
+    <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2027" />
     <ComponentEntry ModuleName="./Contents/cui/usdMenu.mnx" />
   
 "@
     $legacyMenuApiXmlSnippet = @"
 
-        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2023" SeriesMax="2024" />
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2022" SeriesMax="2024" />
         <ComponentEntry ModuleName="./Contents/scripts/registerMenu.ms" />
   
 "@

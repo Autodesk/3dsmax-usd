@@ -258,11 +258,16 @@ TF_REGISTRY_FUNCTION(TfEnum)
     TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::CustomRange);
     TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::EndTime);
     TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::ImportTimeMode::StartTime);
+    
+    TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::Off);
+    TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::UnboundMaterials);
+    TF_ADD_ENUM_NAME(MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::AllMaterials);
 };
 
 void wrapMaxSceneBuilderOptions()
 {
     TfPyWrapEnum<MaxUsd::MaxSceneBuilderOptions::ImportTimeMode>("ImportTimeMode");
+    TfPyWrapEnum<MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling>("SlateMaterialHandling");
     // defined in wrapUSDSceneBuilderOptions
     // TfPyWrapEnum<MaxUsd::Log::Level>("LogLevel");
 
@@ -479,6 +484,16 @@ void wrapMaxSceneBuilderOptions()
             &MaxUsd::MaxSceneBuilderOptions::SetUseProgressBar,
             (pyboost::args("self", "useProgressBar")),
             "Sets if the 3ds Max progress bar should be used during export.")
+        .def(
+            "GetSlateMaterialHandling",
+            &MaxUsd::MaxSceneBuilderOptions::GetSlateMaterialHandling,
+            (pyboost::arg("self")),
+            "Get the Slate material handling mode.")
+        .def(
+            "SetSlateMaterialHandling",
+            &MaxUsd::MaxSceneBuilderOptions::SetSlateMaterialHandling,
+            (pyboost::args("self", "slateMaterialHandling")),
+            "Set the Slate material handling mode.")
         .def(
             "SetDefaults",
             &MaxUsd::MaxSceneBuilderOptions::SetDefaults,

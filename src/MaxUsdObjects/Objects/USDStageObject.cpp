@@ -966,7 +966,7 @@ static void NotifyClickCreate(void* param, NotifyInfo* info)
     // USDStageObject by clicking on the viewport, if the
     // root layer is anonymous.
     if (usdStageObject->GetUSDStage()->GetRootLayer()->IsAnonymous()) {
-        USDExplorer::Instance()->OpenStage(usdStageObject);
+        usdStageObject->OpenInUsdExplorer();
     }
 }
 
@@ -1974,20 +1974,21 @@ void USDStageObject::GenerateDrawModes()
     }
 
     // Draw modes are generated in an anonymous sublayer of the session layer.
-    auto              session = stage->GetSessionLayer();
-    auto              subLayers = session->GetSubLayerPaths();
-    const std::string reservedName = "MaxUsd_DrawModes_Reserved";
+    auto session = stage->GetSessionLayer();
+    auto subLayers = session->GetSubLayerPaths();
 
     pxr::SdfLayerRefPtr drawModesLayer;
     int                 layerIndex;
 
     for (layerIndex = 0; layerIndex < subLayers.size(); ++layerIndex) {
         std::string layerPath = subLayers[layerIndex];
-        if (layerPath.find(reservedName) != std::string::npos) {
+        if (layerPath.find(USDLayerManager::MaxUsdReservedDrawModeLayer) != std::string::npos) {
             // Identified this is our layer, however, if we are loading the max scene from disk, it
             // could no longer exist...
             if (auto layer = pxr::SdfLayer::FindOrOpen(subLayers[layerIndex])) {
                 drawModesLayer = layer;
+                // make sure to system lock it
+                UsdLayerEditor::addSystemLockedLayer(drawModesLayer);
                 break;
             }
             // Remove the "dead" layer. We will generate a new one below if required.
@@ -2022,7 +2023,8 @@ void USDStageObject::GenerateDrawModes()
     }
 
     if (!drawModesLayer) {
-        drawModesLayer = pxr::SdfLayer::CreateAnonymous(reservedName);
+        drawModesLayer
+            = pxr::SdfLayer::CreateAnonymous(USDLayerManager::MaxUsdReservedDrawModeLayer);
         if (!drawModesLayer) {
             return;
         }
@@ -3382,8 +3384,10 @@ void USDStageObject::ApplyLoadedStateFromMax()
 
     // Check if a sessionLayer was loaded from the max file
     if (sessionLayerFromMaxScene) {
-        stage->GetSessionLayer()->TransferContent(sessionLayerFromMaxScene);
-
+        if (!sessionLayerFromMaxScene->IsEmpty()) {
+            stage->GetSessionLayer()->TransferContent(sessionLayerFromMaxScene);
+            GenerateDrawModes();
+        }
         // No need to hold onto the layer once it is passed to the stage.
         sessionLayerFromMaxScene = nullptr;
     }
@@ -4294,20 +4298,21 @@ void USDStageObject::UpdateGeomObjectPurposesLayer()
 
     // Custom purposes to hide geometry handled by USDGeomObjects are setup
     // on a sublayer to the session layer.
-    auto              session = stage->GetSessionLayer();
-    auto              subLayers = session->GetSubLayerPaths();
-    const std::string reservedName = "MaxUsd_USDGeomObjects_Reserved";
+    auto session = stage->GetSessionLayer();
+    auto subLayers = session->GetSubLayerPaths();
 
     // Check we already have an existing layer.
     pxr::SdfLayerRefPtr geomObjectSourceLayer;
     int                 layerIndex;
     for (layerIndex = 0; layerIndex < subLayers.size(); ++layerIndex) {
         std::string layerPath = subLayers[layerIndex];
-        if (layerPath.find(reservedName) != std::string::npos) {
+        if (layerPath.find(USDLayerManager::MaxUsdReservedGeomObjectsLayer) != std::string::npos) {
             // Identified this is our layer, however, if we are loading the max scene from disk, it
             // could no longer exist...
             if (auto layer = pxr::SdfLayer::FindOrOpen(subLayers[layerIndex])) {
                 geomObjectSourceLayer = layer;
+                // make sure to system lock it
+                UsdLayerEditor::addSystemLockedLayer(geomObjectSourceLayer);
                 break;
             }
             // Remove the "dead" layer. We will generate a new one below if required.
@@ -4326,7 +4331,8 @@ void USDStageObject::UpdateGeomObjectPurposesLayer()
 
     // If the layer does not already exist, create it.
     if (!geomObjectSourceLayer) {
-        geomObjectSourceLayer = pxr::SdfLayer::CreateAnonymous(reservedName);
+        geomObjectSourceLayer
+            = pxr::SdfLayer::CreateAnonymous(USDLayerManager::MaxUsdReservedGeomObjectsLayer);
         if (!geomObjectSourceLayer) {
             return;
         }

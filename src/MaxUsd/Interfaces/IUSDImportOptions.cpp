@@ -61,6 +61,7 @@ FPInterfaceDesc IUSDImportOptionsDesc(
 	IUSDImportOptions::fnIdGetLogLevel, IUSDImportOptions::fnIdSetLogLevel, _T("LogLevel"), FP_NO_REDRAW, TYPE_ENUM, IUSDImportOptions::eIdLogLevel,
 	IUSDImportOptions::fnIdGetImportUnmappedPrimvars, IUSDImportOptions::fnIdSetImportUnmappedPrimvars, _T("ImportUnmappedPrimvars"), FP_NO_REDRAW, TYPE_BOOL, 
 	IUSDImportOptions::fnIdGetUseProgressBar, IUSDImportOptions::fnIdSetUseProgressBar, _T("UseProgressBar"), 0, TYPE_BOOL, 
+	IUSDImportOptions::fnIdGetSlateMaterialHandling, IUSDImportOptions::fnIdSetSlateMaterialHandling, _T("SlateMaterialHandling"), 0, TYPE_ENUM, IUSDImportOptions::eIdSlateMaterialHandling,
 	IUSDImportOptions::fnIdGetPreferredMaterial, IUSDImportOptions::fnIdSetPreferredMaterial, _T("PreferredMaterial"), 0, TYPE_STRING,
 	IUSDImportOptions::fnIdGetShadingModes, IUSDImportOptions::fnIdSetShadingModes, _T("ShadingModes"), 0, TYPE_VALUE, enums,
 	IUSDImportOptions::eIdTimeMode, 4,
@@ -80,6 +81,10 @@ FPInterfaceDesc IUSDImportOptionsDesc(
 		_T("kind"), MaxUsd::MetaData::Kind,
 		_T("purpose"), MaxUsd::MetaData::Purpose,
 		_T("hidden"), MaxUsd::MetaData::Hidden,
+	IUSDImportOptions::eIdSlateMaterialHandling, 3,
+		_T("Off"), MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::Off,
+		_T("UnboundMaterials"), MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::UnboundMaterials,
+		_T("AllMaterials"), MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling::AllMaterials,
 	p_end
 );
 // clang-format on
@@ -170,6 +175,26 @@ void IUSDImportOptions::SetTimeMode(int value)
 int IUSDImportOptions::GetTimeMode() const
 {
     return static_cast<int>(MaxSceneBuilderOptions::GetTimeMode());
+}
+
+void IUSDImportOptions::SetSlateMaterialHandling(int value)
+{
+    const auto slateMaterialHandling = static_cast<SlateMaterialHandling>(value);
+    // Make sure the value is valid.
+    if (slateMaterialHandling != SlateMaterialHandling::Off 
+        && slateMaterialHandling != SlateMaterialHandling::UnboundMaterials
+        && slateMaterialHandling != SlateMaterialHandling::AllMaterials) {
+        const WStr errorMsg(
+            L"Incorrect SlateMaterialHandling select for import. Accepted values are #Off, "
+            L"#UnboundMaterials and #AllMaterials.");
+        throw RuntimeError(errorMsg.data());
+    }
+    MaxSceneBuilderOptions::SetSlateMaterialHandling(slateMaterialHandling);
+}
+
+int IUSDImportOptions::GetSlateMaterialHandling() const
+{
+    return static_cast<int>(MaxSceneBuilderOptions::GetSlateMaterialHandling());
 }
 
 void IUSDImportOptions::SetInitialLoadSet(int value)

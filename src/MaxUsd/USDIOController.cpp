@@ -30,14 +30,18 @@
 #include "Utilities/VtDictionaryUtils.h"
 #include "Views/USDExportDialog.h"
 
-#include <usdufe/undo/UsdUndoBlock.h>
-
 #include <pxr/usd/sdf/copyUtils.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usd/stage.h>
+#if PXR_VERSION >= 2511
+#include <pxr/usd/sdf/usdFileFormat.h>
+#include <pxr/usd/sdf/usdaFileFormat.h>
+#include <pxr/usd/sdf/usdcFileFormat.h>
+#else
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdaFileFormat.h>
+#endif
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdUtils/dependencies.h>
 
@@ -265,6 +269,19 @@ int USDIOController::Export(const fs::path& filePath, const USDSceneBuilderOptio
         return IMPEXP_FAIL;
     }
     auto formatId = sdfFileFormat->GetFormatId();
+#if PXR_VERSION >= 2511
+    if (formatId == pxr::SdfUsdFileFormatTokens->Id) {
+        if (options.GetFileFormat() == USDSceneBuilderOptions::FileFormat::ASCII && !isUSDZExport) {
+            formatId = pxr::SdfUsdaFileFormatTokens->Id;
+        } else {
+            formatId = pxr::SdfUsdcFileFormatTokens->Id;
+        }
+    }
+
+    pxr::SdfLayer::FileFormatArguments fileFormatArguments {
+        { pxr::SdfUsdFileFormatTokens->FormatArg, formatId }
+    };
+#else
     if (formatId == pxr::UsdUsdFileFormatTokens->Id) {
         if (options.GetFileFormat() == USDSceneBuilderOptions::FileFormat::ASCII && !isUSDZExport) {
             formatId = pxr::UsdUsdaFileFormatTokens->Id;
@@ -276,6 +293,7 @@ int USDIOController::Export(const fs::path& filePath, const USDSceneBuilderOptio
     pxr::SdfLayer::FileFormatArguments fileFormatArguments {
         { pxr::UsdUsdFileFormatTokens->FormatArg, formatId }
     };
+#endif
     std::string exportStageFilePathStr = exportStageFilePath.u8string();
     if (MaxUsd::HasUnicodeCharacter(exportStageFilePathStr)) {
         MaxUsd::Log::Error(

@@ -65,7 +65,8 @@ UsdExportAnimationRollup::UsdExportAnimationRollup(
         }
     }
 #else
-    ui->AnimationTypeComboBox->setCurrentIndex(static_cast<int>(buildOptions.GetAnimationType()));
+    auto animationType = static_cast<int>(buildOptions.GetAnimationType());
+    ui->AnimationTypeComboBox->setCurrentIndex(animationType);
 #endif
 
     ui->FrameNumberDoubleSpinBox->setMinimum(-DBL_MAX);
@@ -277,13 +278,4 @@ void UsdExportAnimationRollup::SaveDialogState()
         buildOptions.SetEndFrame(animationRollupData.frameRangeEnd);
         break;
     }
-}
-
-
-void UsdExportAnimationRollup::on_AnimationTypeComboBox_currentIndexChanged(int index)
-{
-#ifdef USD_CURVES_SUPPORTED
-    buildOptions.SetAnimationType(
-        static_cast<MaxUsd::USDSceneBuilderOptions::AnimationType>(index));
-#endif
 }

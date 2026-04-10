@@ -425,6 +425,6 @@ def get_all_valid_udims_from_dir_for_filename(directory_name, target_filename, f
         udim_val = 1000 + (u + 1) + (v * 10)
 
     if len(list_of_valid_udims) == 0:
-        Warning("No valid udim files found in  \"\{0}\".".format(directory_name))
+        Warning("No valid udim files found in  \"{0}\".".format(directory_name))
 
     return list_of_valid_udims

@@ -17,7 +17,10 @@
 
 #include <MaxUsd/Builders/USDSceneBuilderOptions.h>
 
+#include <ui_UsdExportGeneralSettingsRollup.h>
 #include <QtWidgets/QWidget>
+
+class QComboBox;
 
 namespace Ui {
 class UsdExportGeneralSettingsRollup;
@@ -33,6 +36,8 @@ public:
         MaxUsd::USDSceneBuilderOptions& buildOptions,
         QWidget*                        parent = nullptr);
     virtual ~UsdExportGeneralSettingsRollup();
+
+    QComboBox* GetTransformFormatComboBox() const { return ui->TransformFormatComboBox; }
 
 public Q_SLOTS:
     /// Qt callback functions based on named widgets in the associated .ui file

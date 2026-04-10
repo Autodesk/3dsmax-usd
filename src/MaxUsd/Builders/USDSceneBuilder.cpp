@@ -29,6 +29,9 @@
 #include <MaxUsd/Utilities/MaxProgressBar.h>
 #include <MaxUsd/Utilities/MetaDataUtils.h>
 #include <MaxUsd/Utilities/ScopeGuard.h>
+#if PXR_VERSION > 2505
+#include <MaxUsd/Utilities/SplineUtils.h>
+#endif
 #include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/TypeUtils.h>
 #include <MaxUsd/resource.h>
@@ -43,12 +46,12 @@
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/tokens.h>
+#include <pxr/usd/usdGeom/xformOp.h>
 #include <pxr/usd/usdLux/cylinderLight.h>
 
 #include <maxscript/maxwrapper/mxsobjects.h>
 
 #include <Shlwapi.h>
-#include <geom/quat.h>
 #include <memory>
 #include <modstack.h>
 #include <stack>
@@ -1159,17 +1162,20 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                         = static_cast<int>(xFormPrim.GetOrderedXformOps(&resetsXformStack).size());
 
                     // When not exporting a single matrix, we export the translation, rotation and
-                    // scale together as a single op. When exporting as split components, instead of
-                    // having 1 matrix to account for the 3 ops, they are separate, hence why we
-                    // divide the number of ops/3 in that case.
-                    const bool isExportingSingleMatrix
+                    // scale together as a single op. This number changes when exporting as split
+                    // components because before usd 25.05 the split components for Rotation X, Y
+                    // and Z didn't exist separately - they only existed as RotationXYZ.
+                    // From 25.05+, it's possible to have them as RotateX, RotateY and RotateZ.
+                    const size_t numOfOps = GetDefaultSplitTransformOps().size();
+                    const bool   isExportingSingleMatrix
                         = buildOptions.GetTransformFormat() == TransformFormat::SingleMatrix;
-                    parentTransformData.numberOfOps = isExportingSingleMatrix ? numOps : numOps / 3;
+                    parentTransformData.numberOfOps
+                        = isExportingSingleMatrix ? numOps : numOps / numOfOps;
 
                     // To avoid spamming the log, we only log this error once per transform. If it's
                     // single matrix, that means each matrix, if it's split, that means each 3
                     // transform.
-                    bool shouldLogNonInvertible = isExportingSingleMatrix || numOps % 3 == 0;
+                    bool shouldLogNonInvertible = isExportingSingleMatrix || numOps % numOfOps == 0;
                     if (!parentTransformData.isTransformInvertible && shouldLogNonInvertible) {
                         MaxUsd::Log::Error(
                             std::wstring(L"The parent prim of ")
@@ -1223,80 +1229,165 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
 
                 } else {
 
-                    auto exportTranslationFunc = [parentTransformFunction](
-                                                     const MaxUsd::ExportTime& time,
-                                                     pxr::UsdGeomXformOp&      usdGeomXFormOp) {
-                        auto parentTransformData = parentTransformFunction(time);
+                    bool exportCurves = false;
+                    bool exportTimeSamples = false;
+#if PXR_VERSION > 2505
+                    // When a node has a target, it has to be exported as time samples because part
+                    // of its animation depends on its look at location and may not have the
+                    // animation keys and controllers.
+                    auto nodeTarget = context.node->GetTarget();
 
-                        if (parentTransformData.isTransformInvertible) {
-                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
-                                * parentTransformData.parentWorldTransform.GetInverse();
+                    auto tmController = node->GetTMController();
+                    bool isValidController = IsValidController(tmController);
 
-                            if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
-                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+                    auto animType = buildOptions.GetAnimationType();
+                    exportCurves
+                        = (animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
+                           || animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+                        && !nodeTarget && isValidController;
+                    exportTimeSamples
+                        = (animType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
+                           || animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+                        || nodeTarget || !isValidController;
 
-                                SetXForm(
-                                    transformMatrix,
-                                    parentTransformData.xformPrim,
-                                    usdGeomXFormOp,
-                                    pxr::UsdGeomXformOp::TypeTranslate,
-                                    pxr::UsdGeomXformOp::PrecisionDouble,
-                                    parentTransformData.numberOfOps,
-                                    time.GetUsdTime());
+                    if (exportCurves) {
+                        if (tmController) {
+                            Control* posCtrl = tmController->GetPositionController();
+                            Control* rotCtrl = tmController->GetRotationController();
+                            Control* scaleCtrl = tmController->GetScaleController();
+
+                            using ControllerGetter = Control* (Control::*)();
+                            using ComponentDef
+                                = std::pair<pxr::UsdGeomXformOp::Type, ControllerGetter>;
+
+                            // Helper lambda to add XYZ component splines for a given controller.
+                            // When a valueConverter is provided, uses float precision with the
+                            // converter applied. Otherwise, uses double precision with no
+                            // conversion.
+                            auto addComponentSplines
+                                = [&stage, &xFormPrim](
+                                      Control*                    controller,
+                                      const ComponentDef*         components,
+                                      std::function<float(float)> valueConverter = {}) {
+                                      if (!controller)
+                                          return;
+
+                                      for (size_t i = 0; i < 3; ++i) {
+                                          const auto& component = components[i];
+                                          auto subController = (controller->*component.second)();
+                                          auto precision = valueConverter
+                                              ? pxr::UsdGeomXformOp::PrecisionFloat
+                                              : pxr::UsdGeomXformOp::PrecisionDouble;
+                                          auto xformOp
+                                              = xFormPrim.AddXformOp(component.first, precision);
+
+                                          if (valueConverter) {
+                                              MaxUsd::WriteSplineAttribute<float>(
+                                                  stage,
+                                                  subController,
+                                                  xFormPrim.GetPrim(),
+                                                  xformOp.GetAttr(),
+                                                  valueConverter);
+                                          } else {
+                                              MaxUsd::WriteSplineAttribute<double>(
+                                                  stage,
+                                                  subController,
+                                                  xFormPrim.GetPrim(),
+                                                  xformOp.GetAttr());
+                                          }
+                                      }
+                                  };
+
+                            const ComponentDef translationComponents[] = {
+                                { pxr::UsdGeomXformOp::TypeTranslateX, &Control::GetXController },
+                                { pxr::UsdGeomXformOp::TypeTranslateY, &Control::GetYController },
+                                { pxr::UsdGeomXformOp::TypeTranslateZ, &Control::GetZController }
+                            };
+                            // The rotation order needs to be inverted in order to
+                            // properly work in the transform stack.
+                            const ComponentDef rotationComponents[]
+                                = { { pxr::UsdGeomXformOp::TypeRotateZ, &Control::GetZController },
+                                    { pxr::UsdGeomXformOp::TypeRotateY, &Control::GetYController },
+                                    { pxr::UsdGeomXformOp::TypeRotateX,
+                                      &Control::GetXController } };
+
+                            addComponentSplines(posCtrl, translationComponents);
+                            addComponentSplines(rotCtrl, rotationComponents, [](float rad) {
+                                return rad * (180.0f / static_cast<float>(M_PI));
+                            });
+
+                            if (scaleCtrl) {
+                                const std::pair<pxr::UsdGeomXformOp::Type, ScaleComponent>
+                                    scaleComponents[]
+                                    = { { pxr::UsdGeomXformOp::TypeScaleX, ScaleComponent::X },
+                                        { pxr::UsdGeomXformOp::TypeScaleY, ScaleComponent::Y },
+                                        { pxr::UsdGeomXformOp::TypeScaleZ, ScaleComponent::Z } };
+
+                                for (const auto& comp : scaleComponents) {
+                                    auto xformOp = xFormPrim.AddXformOp(
+                                        comp.first, pxr::UsdGeomXformOp::PrecisionFloat);
+                                    MaxUsd::WriteScaleSplineAttribute<float>(
+                                        stage,
+                                        scaleCtrl,
+                                        comp.second,
+                                        xFormPrim.GetPrim(),
+                                        xformOp.GetAttr());
+                                }
                             }
                         }
-                    };
+                    }
 
-                    auto exportScaleFunction = [parentTransformFunction](
-                                                   const MaxUsd::ExportTime& time,
-                                                   pxr::UsdGeomXformOp&      usdGeomXFormOp) {
-                        auto parentTransformData = parentTransformFunction(time);
+                    if (exportTimeSamples)
+#endif
+                    {
+                        auto createComponentExportFunc = [parentTransformFunction, exportCurves](
+                                                             pxr::UsdGeomXformOp::Type xformType,
+                                                             pxr::UsdGeomXformOp::Precision
+                                                                 xformPrecision) {
+                            return [parentTransformFunction,
+                                    xformType,
+                                    xformPrecision,
+                                    exportCurves](
+                                       const MaxUsd::ExportTime& time,
+                                       pxr::UsdGeomXformOp&      usdGeomXFormOp) {
+                                auto parentTransformData = parentTransformFunction(time);
 
-                        if (parentTransformData.parentWorldTransform.GetDeterminant() != 0.0) {
-                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
-                                * parentTransformData.parentWorldTransform.GetInverse();
+                                if (parentTransformData.isTransformInvertible) {
+                                    pxr::GfMatrix4d transformMatrix
+                                        = parentTransformData.nodeTransform
+                                        * parentTransformData.parentWorldTransform.GetInverse();
 
-                            if (!MathUtils::IsIdentity(transformMatrix)
-                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+                                    if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
+                                        || parentTransformData.resolvedTimeConfig.IsAnimated()) {
+                                        SetXForm(
+                                            transformMatrix,
+                                            parentTransformData.xformPrim,
+                                            usdGeomXFormOp,
+                                            xformType,
+                                            xformPrecision,
+                                            parentTransformData.numberOfOps,
+                                            time.GetUsdTime(),
+                                            exportCurves);
+                                    }
+                                } else {
+                                    MaxUsd::Log::Warn(
+                                        std::wstring(L"The parent prim of ")
+                                        + parentTransformData.maxNode->GetName()
+                                        + std::wstring(
+                                            L" has a non-invertible world transform matrix. "
+                                            L"Unable to compute its local transform at frame ")
+                                        + std::to_wstring(
+                                            double(time.GetMaxTime())
+                                            / double(GetTicksPerFrame())));
+                                }
+                            };
+                        };
 
-                                SetXForm(
-                                    transformMatrix,
-                                    parentTransformData.xformPrim,
-                                    usdGeomXFormOp,
-                                    pxr::UsdGeomXformOp::TypeScale,
-                                    pxr::UsdGeomXformOp::PrecisionFloat,
-                                    parentTransformData.numberOfOps,
-                                    time.GetUsdTime());
-                            }
+                        for (const auto& op : GetDefaultSplitTransformOps()) {
+                            animExportTask.AddTransformExportOp(
+                                createComponentExportFunc(op.first, op.second));
                         }
-                    };
-
-                    auto exportRotationFunc = [parentTransformFunction](
-                                                  const MaxUsd::ExportTime& time,
-                                                  pxr::UsdGeomXformOp&      usdGeomXFormOp) {
-                        auto parentTransformData = parentTransformFunction(time);
-
-                        if (parentTransformData.isTransformInvertible) {
-                            pxr::GfMatrix4d transformMatrix = parentTransformData.nodeTransform
-                                * parentTransformData.parentWorldTransform.GetInverse();
-                            if (!MaxUsd::MathUtils::IsIdentity(transformMatrix)
-                                || parentTransformData.resolvedTimeConfig.IsAnimated()) {
-
-                                SetXForm(
-                                    transformMatrix,
-                                    parentTransformData.xformPrim,
-                                    usdGeomXFormOp,
-                                    pxr::UsdGeomXformOp::TypeRotateXYZ,
-                                    pxr::UsdGeomXformOp::PrecisionFloat,
-                                    parentTransformData.numberOfOps,
-                                    time.GetUsdTime());
-                            }
-                        }
-                    };
-
-                    animExportTask.AddTransformExportOp(exportTranslationFunc);
-                    animExportTask.AddTransformExportOp(exportRotationFunc);
-                    animExportTask.AddTransformExportOp(exportScaleFunction);
+                    }
                 }
             }
 

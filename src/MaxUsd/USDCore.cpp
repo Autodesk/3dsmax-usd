@@ -41,6 +41,10 @@
 
 void USDCore::initialize()
 {
+    // Starting with 0.25.11 the scene index (hydra 2) code path is enabled by default. 
+    // However, we still rely on the scene delegate / legacy code path for picking in the viewport.
+    _putenv_s("USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX", "0");
+
 #if CREATE_DEBUG_CONSOLE
     if (AllocConsole()) {
         // Create stdin and stdout/err file handles

@@ -63,8 +63,7 @@ pushd $(RepoRootDir)usd-layer-editor\buildForMax$(VersionTarget)
 set qt_version=$(QTVER)
 set qt_major_version=%qt_version:~0,1%
 
-cmake  ^
-  -DPXR_USD_LOCATION=$(PxrUsdRoot) ^
+set cmake_definitions=-DPXR_USD_LOCATION=$(PxrUsdRoot) ^
   -DUFE_INCLUDE_ROOT=$(UfeInc) ^
   -DUFE_LIB_ROOT=$(UfeLib) ^
   -DUSDUFE_ROOT_DIR=$(UsdUfeDir) ^
@@ -75,8 +74,16 @@ cmake  ^
   -DPython3_FIND_REGISTRY=NEVER ^
   -DQT_VERSION=%qt_major_version% ^
   -DCMAKE_PREFIX_PATH=$(QtInstall)/lib/cmake/Qt%qt_major_version% ^
-  -DCMAKE_INSTALL_PREFIX=$(UsdLayerEditorDir) ^
-  .. 
+  -DCMAKE_INSTALL_PREFIX=$(UsdLayerEditorDir)
+
+if $(VersionTarget) GTR 2026 (
+    REM additional definitions are required with USD 0.25.11
+    cmake %cmake_definitions% -DTBB_DIR=$(PxrUsdRoot)/lib/CMake/TBB ^
+                              -DOpenSubdiv_DIR=$(PxrUsdRoot)/lib/CMake/OpenSubdiv ^
+                              ..
+) else (
+    cmake %cmake_definitions% .. 
+)
 
 cmake --build . --config RelWithDebInfo --target install
 

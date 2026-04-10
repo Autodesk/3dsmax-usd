@@ -37,8 +37,14 @@ public:
 
     /// Get the options from the dialog UI
     const UsdPreferenceOptions getOptions() const;
+    
+Q_SIGNALS:
+    void geometryChanged(const QRect& geometry);
 
 protected:
+    void moveEvent(QMoveEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+
     /// Load the options into the dialog UI
     void loadOptions(const UsdPreferenceOptions& options);
 

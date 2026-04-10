@@ -18,12 +18,12 @@
 #include <MaxUsd/Translators/primWriter.h>
 #include <MaxUsd/Translators/writeJobContext.h>
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <MaxUsd/Utilities/SplineUtils.h>
 
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/timeCode.h>
-#include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdLux/boundableLightBase.h>
 #include <pxr/usd/usdLux/cylinderLight.h>
 #include <pxr/usd/usdLux/diskLight.h>
@@ -284,6 +284,22 @@ bool MaxUsdPhotometricLightWriter::Write(
         }
     }
 
+#ifdef USD_CURVES_SUPPORTED
+    const auto animationType = GetExportArgs().GetAnimationType();
+    const bool exportTimeSamples
+        = (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
+           || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both);
+    const bool exportCurves
+        = (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
+           || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+        && time.IsFirstFrame();
+
+    const auto lightPB = maxPhotometricLight->GetParamBlockByID(LightscapeLight::PB_GENERAL);
+    const auto lightExtPB = maxPhotometricLight->GetParamBlockByID(LightscapeLight::PB_EXT);
+#else
+    const bool exportTimeSamples = true;
+#endif
+
     // Write animatable properties at the requested time.
 
     // If not on the first frame, we haven't fetched the light yet, do it now.
@@ -301,10 +317,23 @@ bool MaxUsdPhotometricLightWriter::Write(
         && maxPhotometricLight->GetDistribution() != LightscapeLight::ISOTROPIC_DIST) {
         // note: since point lights have a fixed radius, there is no need
         // to have those light types treated inside this conditional block
-
         pxr::UsdLuxDiskLight discLight = (pxr::UsdLuxDiskLight)usdLightPrim;
+        auto                 radiusAttribute = discLight.CreateRadiusAttr();
         float                radius = maxPhotometricLight->GetRadius(timeVal);
-        discLight.CreateRadiusAttr().Set(radius, usdTimeCode);
+        if (exportTimeSamples) {
+            radiusAttribute.Set(radius, usdTimeCode);
+        }
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    lightExtPB->GetControllerByID(LightscapeLight::PB_DISCLIGHT_RADIUS),
+                    targetPrim,
+                    radiusAttribute)) {
+                radiusAttribute.Set(radius);
+            }
+        }
+#endif
     } else if (
         (photometricLightType == LS_LINEAR_LIGHT_ID
          || photometricLightType == LS_LINEAR_LIGHT_TARGET_ID
@@ -316,11 +345,40 @@ bool MaxUsdPhotometricLightWriter::Write(
         if (photometricLightType == LS_AREA_LIGHT_ID
             || photometricLightType == LS_AREA_LIGHT_TARGET_ID) {
             // applies only to area (rectangle) lights as the line lights have fixed width
+            auto  widthAttribute = rectangleLight.CreateWidthAttr();
             float width = maxPhotometricLight->GetWidth(timeVal);
-            rectangleLight.CreateWidthAttr().Set(width, usdTimeCode);
+            if (exportTimeSamples) {
+                widthAttribute.Set(width, usdTimeCode);
+            }
+#ifdef USD_CURVES_SUPPORTED
+            if (exportCurves) {
+                if (!MaxUsd::WriteSplineAttribute<float>(
+                        stage,
+                        lightExtPB->GetControllerByID(LightscapeLight::PB_AREALIGHT_WIDTH),
+                        targetPrim,
+                        widthAttribute)) {
+                    widthAttribute.Set(width);
+                }
+            }
+#endif
         }
+        auto  heightAttribute = rectangleLight.CreateHeightAttr();
         float height = maxPhotometricLight->GetLength(timeVal);
-        rectangleLight.CreateHeightAttr().Set(height, usdTimeCode);
+        if (exportTimeSamples) {
+            heightAttribute.Set(height, usdTimeCode);
+        }
+
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    lightExtPB->GetControllerByID(LightscapeLight::PB_AREALIGHT_LENGTH),
+                    targetPrim,
+                    heightAttribute)) {
+                heightAttribute.Set(height);
+            }
+        }
+#endif
     } else if (
         photometricLightType == LS_SPHERE_LIGHT_ID
         || photometricLightType == LS_SPHERE_LIGHT_TARGET_ID
@@ -329,10 +387,24 @@ bool MaxUsdPhotometricLightWriter::Write(
             && maxPhotometricLight->GetDistribution() == LightscapeLight::ISOTROPIC_DIST)) {
         // note: since point lights have a fixed radius, there is no need
         // to have those light types treated inside this conditional block
-
         pxr::UsdLuxSphereLight sphereLight = (pxr::UsdLuxSphereLight)usdLightPrim;
+        auto                   radiusAttribute = sphereLight.CreateRadiusAttr();
         float                  radius = maxPhotometricLight->GetRadius(timeVal);
-        sphereLight.CreateRadiusAttr().Set(radius, usdTimeCode);
+        if (exportTimeSamples) {
+            radiusAttribute.Set(radius, usdTimeCode);
+        }
+
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    lightExtPB->GetControllerByID(LightscapeLight::PB_DISCLIGHT_RADIUS),
+                    targetPrim,
+                    radiusAttribute)) {
+                radiusAttribute.Set(radius);
+            }
+        }
+#endif
     } else if (
         photometricLightType == LS_CYLINDER_LIGHT_ID
         || photometricLightType == LS_CYLINDER_LIGHT_TARGET_ID
@@ -342,18 +414,63 @@ bool MaxUsdPhotometricLightWriter::Write(
              || photometricLightType == LS_AREA_LIGHT_TARGET_ID)
             && maxPhotometricLight->GetDistribution() == LightscapeLight::ISOTROPIC_DIST)) {
         pxr::UsdLuxCylinderLight cylinderLight = (pxr::UsdLuxCylinderLight)usdLightPrim;
+        auto                     lengthAttribute = cylinderLight.CreateLengthAttr();
         float                    length = maxPhotometricLight->GetLength(timeVal);
-        cylinderLight.CreateLengthAttr().Set(length, usdTimeCode);
+        if (exportTimeSamples) {
+            lengthAttribute.Set(length, usdTimeCode);
+        }
+
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    lightExtPB->GetControllerByID(LightscapeLight::PB_AREALIGHT_LENGTH),
+                    targetPrim,
+                    lengthAttribute)) {
+                lengthAttribute.Set(length);
+            }
+        }
+#endif
 
         if (photometricLightType == LS_AREA_LIGHT_ID
             || photometricLightType == LS_AREA_LIGHT_TARGET_ID) {
+            auto  radiusAttribute = cylinderLight.CreateRadiusAttr();
             float radius = maxPhotometricLight->GetWidth(timeVal) / 2.f;
-            cylinderLight.CreateRadiusAttr().Set(radius, usdTimeCode);
+            if (exportTimeSamples) {
+                radiusAttribute.Set(radius, usdTimeCode);
+            }
+
+#ifdef USD_CURVES_SUPPORTED
+            if (exportCurves) {
+                if (!MaxUsd::WriteSplineAttribute<float>(
+                        stage,
+                        lightExtPB->GetControllerByID(LightscapeLight::PB_AREALIGHT_WIDTH),
+                        targetPrim,
+                        radiusAttribute)) {
+                    radiusAttribute.Set(radius);
+                }
+            }
+#endif
         } else if (
             photometricLightType == LS_CYLINDER_LIGHT_ID
             || photometricLightType == LS_CYLINDER_LIGHT_TARGET_ID) {
+            auto  radiusAttribute = cylinderLight.CreateRadiusAttr();
             float radius = maxPhotometricLight->GetRadius(timeVal);
-            cylinderLight.CreateRadiusAttr().Set(radius, usdTimeCode);
+            if (exportTimeSamples) {
+                radiusAttribute.Set(radius, usdTimeCode);
+            }
+
+#ifdef USD_CURVES_SUPPORTED
+            if (exportCurves) {
+                if (!MaxUsd::WriteSplineAttribute<float>(
+                        stage,
+                        lightExtPB->GetControllerByID(LightscapeLight::PB_CYLINDERLIGHT_RADIUS),
+                        targetPrim,
+                        radiusAttribute)) {
+                    radiusAttribute.Set(radius);
+                }
+            }
+#endif
         }
         // else, line lights have fixed width
     }
@@ -361,24 +478,51 @@ bool MaxUsdPhotometricLightWriter::Write(
     // Light color
     if (maxPhotometricLight->GetUseKelvin()) {
         // USD expects Kelvin range values from 1000 to 10000
+        auto  colorTemperatureAttribute = usdLightPrim.CreateColorTemperatureAttr();
         float originalKelvinValue = maxPhotometricLight->GetKelvin(timeVal);
         float clampedKelvinValue = std::min(std::max(1000.f, originalKelvinValue), 10000.f);
-        usdLightPrim.CreateColorTemperatureAttr().Set(clampedKelvinValue, usdTimeCode);
-        if (originalKelvinValue != clampedKelvinValue) {
-            MaxUsd::Log::Warn(
-                L"Light '{0}' temperature value was clamped to '{1}' from '{2}' to match USD "
-                L"specifications.",
-                sourceNode->GetName(),
-                clampedKelvinValue,
-                originalKelvinValue);
+        if (exportTimeSamples) {
+            colorTemperatureAttribute.Set(clampedKelvinValue, usdTimeCode);
+            if (originalKelvinValue != clampedKelvinValue) {
+                MaxUsd::Log::Warn(
+                    L"Light '{0}' temperature value was clamped to '{1}' from '{2}' to match USD "
+                    L"specifications.",
+                    sourceNode->GetName(),
+                    clampedKelvinValue,
+                    originalKelvinValue);
+            }
         }
 
-        // add light filter color
+        // Add light filter color - This can't be export as spline, so always export time sampled
         Point3       maxFilteLightColor = maxPhotometricLight->GetRGBFilter(timeVal);
         pxr::GfVec3f usdLightColor { maxFilteLightColor[0],
                                      maxFilteLightColor[1],
                                      maxFilteLightColor[2] };
         usdLightPrim.CreateColorAttr().Set(usdLightColor, usdTimeCode);
+
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    lightPB->GetControllerByID(LightscapeLight::PB_KELVIN),
+                    targetPrim,
+                    colorTemperatureAttribute,
+                    [sourceNode](float originalColorTemperature) {
+                        float clampedKelvinValue
+                            = std::min(std::max(1000.f, originalColorTemperature), 10000.f);
+                        MaxUsd::Log::Warn(
+                            L"Light '{0}' spline temperature value was clamped to '{1}' from '{2}' "
+                            L"to "
+                            L"match USD specifications.",
+                            sourceNode->GetName(),
+                            clampedKelvinValue,
+                            originalColorTemperature);
+                        return clampedKelvinValue;
+                    })) {
+                colorTemperatureAttribute.Set(clampedKelvinValue);
+            }
+        }
+#endif
     } else {
         // When not using color temperature (Kelvin) to specify light color,
         // light color is then a composition of the specified light and filter color
@@ -389,7 +533,8 @@ bool MaxUsdPhotometricLightWriter::Write(
     }
 
     // Shadow color
-    // note: The shadow color is not exposed in the Photometric light interface (but thru maxscript)
+    // note: The shadow color is not exposed in the Photometric light interface (but thru
+    // maxscript)
     pxr::UsdLuxShadowAPI usdLightShadowProperties(usdLightPrim);
     Point3               maxLightShadowColor = maxPhotometricLight->GetShadColor(timeVal);
     pxr::GfVec3f         usdLightShadowColor(
@@ -401,45 +546,111 @@ bool MaxUsdPhotometricLightWriter::Write(
     // if (maxPhotometricLight->GetUseAtten())
     //{
     //	usdLightShadowProperties.CreateFalloffLightFilerWhateverAttr().Set(
-    //			maxPhotometricLight->GetAtten(timeVal, ATTEN_START, FOREVER), usdTimeCode);
-    //	usdLightShadowProperties.CreateFalloffLightFilerWhateverAttr().Set(
-    //			maxPhotometricLight->GetAtten(timeVal, ATTEN_END, FOREVER), usdTimeCode);
+    //			maxPhotometricLight->GetAtten(timeVal, ATTEN_START, FOREVER),
+    // usdTimeCode); 	usdLightShadowProperties.CreateFalloffLightFilerWhateverAttr().Set(
+    //			maxPhotometricLight->GetAtten(timeVal, ATTEN_END, FOREVER),
+    // usdTimeCode);
     //}
 
     // Light intensity
     {
+        auto intensityAttribute = usdLightPrim.CreateIntensityAttr();
+
         // based on the Arnold translator (MAXtoA)
         //
         // the effective intensity in candelas
-        float lightIntensity = maxPhotometricLight->GetIntensity(timeVal);
-        if (maxPhotometricLight->GetDistribution() == LightscapeLight::WEB_DIST) {
-            lightIntensity = lightIntensity / maxPhotometricLight->GetOriginalIntensity() * 1000.f;
+        auto getIntensity = [&maxPhotometricLight](TimeValue time) -> float {
+            float lightIntensity = maxPhotometricLight->GetIntensity(time);
+            if (maxPhotometricLight->GetDistribution() == LightscapeLight::WEB_DIST) {
+                lightIntensity
+                    = lightIntensity / maxPhotometricLight->GetOriginalIntensity() * 1000.f;
+            }
+
+            // take care of a dimmed intensity
+            if (maxPhotometricLight->GetUseMultiplier()) {
+                lightIntensity *= maxPhotometricLight->GetDimmerValue(time) * 0.01f;
+            }
+
+            lightIntensity
+                /= 1500; // TODO - need
+                         // GetRenderSessionContext().GetRenderSettings().GetPhysicalScale(translationTime,
+                         // newValidity)
+
+            // ZAP's magic adjustment
+            lightIntensity *= static_cast<float>(M_PI);
+            // scale to system units.
+            lightIntensity /= static_cast<float>(
+                GetSystemUnitScale(UNITS_METERS) * GetSystemUnitScale(UNITS_METERS));
+
+            return lightIntensity;
+        };
+        if (exportTimeSamples) {
+            intensityAttribute.Set(getIntensity(timeVal), usdTimeCode);
         }
 
-        // take care of a dimmed intensity
-        if (maxPhotometricLight->GetUseMultiplier()) {
-            lightIntensity *= maxPhotometricLight->GetDimmerValue(timeVal) * 0.01f;
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            auto intensitySpline = MaxUsd::CreateSplineFromControl<float>(
+                stage,
+                lightPB->GetControllerByID(LightscapeLight::PB_INTENSITY),
+                [maxPhotometricLight](float intensity) {
+                    if (maxPhotometricLight->GetDistribution() == LightscapeLight::WEB_DIST) {
+                        intensity
+                            = intensity / maxPhotometricLight->GetOriginalIntensity() * 1000.f;
+                    }
+
+                    intensity /= 1500;
+                    intensity *= static_cast<float>(M_PI);
+                    intensity /= static_cast<float>(
+                        GetSystemUnitScale(UNITS_METERS) * GetSystemUnitScale(UNITS_METERS));
+
+                    return intensity;
+                });
+
+            const auto knots = intensitySpline.GetKnots();
+            if (!knots.empty()) {
+                if (maxPhotometricLight->GetUseMultiplier()) {
+                    auto multiplierSpline = MaxUsd::CreateSplineFromControl<float>(
+                        stage, lightPB->GetControllerByID(LightscapeLight::PB_DIMMER));
+                    auto combinedSpline = MaxUsd::CombineSplines<float>(
+                        intensitySpline, multiplierSpline, [](float intensity, float multiplier) {
+                            return intensity * multiplier * 0.01f;
+                        });
+                    intensityAttribute.SetSpline(combinedSpline);
+                } else {
+                    intensityAttribute.SetSpline(intensitySpline);
+                }
+            } else {
+                intensityAttribute.Set(getIntensity(timeVal));
+            }
         }
-
-        lightIntensity
-            /= 1500; // TODO - need
-                     // GetRenderSessionContext().GetRenderSettings().GetPhysicalScale(translationTime,
-                     // newValidity)
-
-        // ZAP's magic adjustment
-        lightIntensity *= static_cast<float>(M_PI);
-        // scale to system units.
-        lightIntensity /= static_cast<float>(
-            GetSystemUnitScale(UNITS_METERS) * GetSystemUnitScale(UNITS_METERS));
-        usdLightPrim.CreateIntensityAttr().Set(lightIntensity, usdTimeCode);
+#endif
     }
 
     LightscapeLight::DistTypes maxLightDistType = maxPhotometricLight->GetDistribution();
+    float                      beamAngle = maxPhotometricLight->GetHotspot(timeVal);
     if (maxLightDistType == LightscapeLight::SPOTLIGHT_DIST) {
         // TODO - the falloff of the spot is not directly the angle value from 3ds Max
-        float                 beamAngle = maxPhotometricLight->GetHotspot(timeVal);
         pxr::UsdLuxShapingAPI usdLightShape(usdLightPrim);
-        usdLightShape.CreateShapingConeAngleAttr().Set(beamAngle, usdTimeCode);
+        auto shapingConeAngleAttribute = usdLightShape.CreateShapingConeAngleAttr();
+        if (exportTimeSamples) {
+            shapingConeAngleAttribute.Set(beamAngle, usdTimeCode);
+        }
+
+#ifdef USD_CURVES_SUPPORTED
+        if (exportCurves) {
+            const auto spotlightPb
+                = maxPhotometricLight->GetParamBlockByID(LightscapeLight::PB_SPOT);
+            if (!MaxUsd::WriteSplineAttribute<float>(
+                    stage,
+                    spotlightPb->GetControllerByID(LightscapeLight::PB_BEAM_ANGLE),
+                    targetPrim,
+                    shapingConeAngleAttribute)) {
+                // If failed to author spline, write default value
+                shapingConeAngleAttribute.Set(beamAngle);
+            }
+        }
+#endif
     }
 
     return true;

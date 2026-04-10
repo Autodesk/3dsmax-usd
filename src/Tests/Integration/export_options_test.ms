@@ -276,6 +276,23 @@ struct export_options_test
         assert_true uiExportOptions.UseProgressBar message:"UseProgressBar property was not properly reset to defaults (true)."
         assert_true uiExportOptions.UseLastResortUSDPreviewSurfaceWriter message:"UseLastResortUSDPreviewSurfaceWriter property was not properly reset to default (true)."
         assert_false uiExportOptions.UseWorldspaceRoot message:"UseWorldspaceRoot property was not properly reset to defaults (false)"
+
+        -- Testing specific cases for transform format and animation type
+        if supportCurves then (
+            uiExportOptions.TransformFormat = #singleMatrix
+            uiExportOptions.animationType = #curves
+
+            assert_equal #curves uiExportOptions.AnimationType message:"AnimationType property was not properly set to #curves."
+            assert_equal #splitComponents uiExportOptions.TransformFormat message:"TransformFormat should've been set to #splitComponents when animationType is set to #curves."
+
+            uiExportOptions.TransformFormat = #singleMatrix
+            assert_equal #splitComponents uiExportOptions.TransformFormat message:"TransformFormat should've remained as #splitComponents when animationType is set to #curves."
+
+            uiExportOptions.animationType = #timeSamples
+            uiExportOptions.TransformFormat = #singleMatrix
+            assert_equal #singleMatrix uiExportOptions.TransformFormat message:"TransformFormat should've remained as #singleMatrix."
+            assert_equal #timeSamples uiExportOptions.AnimationType message:"AnimationType should've been set to #timeSamples."
+        )
     ),
     
     -- on top of the classic material option settings

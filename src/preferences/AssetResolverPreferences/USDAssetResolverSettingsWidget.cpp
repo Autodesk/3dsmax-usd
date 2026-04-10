@@ -21,14 +21,18 @@
 #include "ui_USDAssetResolverSettingsWidget.h"
 
 #include <qaction.h>
+#include <qboxlayout.h>
 #include <qevent.h>
 #include <qfiledialog.h>
+#include <qlabel.h>
+#include <qlineedit.h>
 #include <qlistview.h>
-#include <qlistwidget.h>
 #include <qpainter.h>
+#include <qpointer.h>
 #include <qsplitter.h>
-#include <qstringlistmodel>
+#include <qstringlistmodel.h>
 #include <qstyleditemdelegate.h>
+#include <qtimer.h>
 #include <qtoolbutton.h>
 
 namespace Adsk {
@@ -74,6 +78,16 @@ public:
         QRect r = visualRect(indexAt(event->pos()));
         viewport()->update(r);
     }
+
+    void paintEvent(QPaintEvent* e)
+    {
+        QListView::paintEvent(e);
+        if (model() && model()->rowCount(rootIndex()) > 0)
+            return;
+        // The view is empty.
+        QPainter p(this->viewport());
+        p.drawText(rect(), Qt::AlignCenter, tr("No paths"));
+    }
 };
 
 class StringListModel : public QStringListModel
@@ -104,11 +118,22 @@ class ListPanelItemDelegate : public QStyledItemDelegate
 public:
     ListPanelItemDelegate(QListView* parent = nullptr, bool editable = false)
         : QStyledItemDelegate(parent)
-        , listview(parent)
         , editable(editable)
+        , listview(parent)
     {
     }
+    QPointer<QWidget> activeEditor = nullptr; // Added to track the active editor
 
+    // Close the currently active editor (if any), committing its data first.
+    void closeCurrentEditor()
+    {
+        if (!activeEditor)
+            return;
+        // Commit via the composite editor widget so the view can map it correctly.
+        commitData(activeEditor);
+        closeEditor(activeEditor, QAbstractItemDelegate::SubmitModelCache);
+        activeEditor = nullptr;
+    }
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
     {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
@@ -117,13 +142,112 @@ public:
     }
 
     void updateEditorGeometry(
-        QWidget*                    editor,
-        const QStyleOptionViewItem& option,
-        const QModelIndex&          index) const override
+        QWidget* editor,
+        const QStyleOptionViewItem&,
+        const QModelIndex& index) const override
     {
-        QStyleOptionViewItem opt = option;
-        initStyleOption(&opt, index);
-        editor->setGeometry(opt.rect);
+        // The option.rect may not be accurate as it reports the string width and
+        // not the width of the displayed string. We need to get the visual rect
+        // from the listview and adjust the width to match the view's viewport width.
+        QRect itemRect = listview->visualRect(index);
+        itemRect.setWidth(listview->viewport()->width());
+        editor->setGeometry(itemRect);
+    }
+
+    QWidget*
+    createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
+    {
+        const auto& host = ApplicationHost::instance();
+        const int   itemHeight = host.pm(ApplicationHost::PixelMetric::ItemHeight);
+        const int   tinyPadding = host.pm(ApplicationHost::PixelMetric::TinyPadding);
+        const int   s = itemHeight - tinyPadding * 2;
+
+        QWidget* editor = new QWidget(parent);
+        auto*    layout = new QHBoxLayout(editor);
+        layout->setSpacing(0);
+        layout->setContentsMargins(tinyPadding, 0, tinyPadding, 0);
+        layout->setAlignment(Qt::AlignVCenter);
+        QLineEdit* edit = new QLineEdit(editor);
+        edit->setObjectName("lineEdit");
+        edit->setFixedHeight(s);
+        edit->setFocusPolicy(Qt::StrongFocus);
+        QToolButton* deleteButton = new QToolButton(editor);
+        deleteButton->setObjectName("deleteButton");
+        deleteButton->setIcon(host.icon(ApplicationHost::IconName::Delete));
+        deleteButton->setFixedSize(s, s);
+        deleteButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        QToolButton* browseButton = new QToolButton(editor);
+        browseButton->setObjectName("browseButton");
+        browseButton->setIcon(host.icon(ApplicationHost::IconName::OpenFile));
+        browseButton->setFixedSize(s, s);
+        browseButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+        layout->addWidget(edit, 1);
+        layout->addWidget(browseButton);
+        layout->addWidget(deleteButton);
+        // Forward focus to the internal QLineEdit so the composite editor behaves
+        // like a regular editor (entering edit mode immediately).
+        editor->setFocusProxy(edit);
+        editor->setAutoFillBackground(true);
+        editor->setBackgroundRole(QPalette::NoRole);
+        editor->updateGeometry();
+
+        // Delete handler: remove the row and close the editor
+        QObject::connect(deleteButton, &QToolButton::clicked, this, [this, editor]() {
+            int                 row = editor->property("editingRow").toInt();
+            QAbstractItemModel* model = listview ? listview->model() : nullptr;
+            if (model && row >= 0) {
+                deleteRow(model, model->index(row, 0));
+            }
+            const_cast<ListPanelItemDelegate*>(this)->closeEditor(
+                editor, QAbstractItemDelegate::NoHint);
+        });
+
+        // Browse handler: open folder dialog and set model data via editor
+        QObject::connect(browseButton, &QToolButton::clicked, this, [this, editor]() {
+            QAbstractItemModel* model = listview ? listview->model() : nullptr;
+            int                 row = editor->property("editingRow").toInt();
+            if (!model || row < 0)
+                return;
+            QModelIndex idx = model->index(row, 0);
+            browseAndSetPath(model, idx, editor);
+        });
+
+        // Track the active composite editor so we can close/commit it from elsewhere.
+        const_cast<ListPanelItemDelegate*>(this)->activeEditor = editor;
+        QObject::connect(
+            editor, &QObject::destroyed, const_cast<ListPanelItemDelegate*>(this), [this]() {
+                const_cast<ListPanelItemDelegate*>(this)->activeEditor = nullptr;
+            });
+
+        return editor;
+    }
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+        QLineEdit* edit = editor->findChild<QLineEdit*>("lineEdit");
+        // store editing row for the editor's buttons
+        editor->setProperty("editingRow", index.row());
+        if (!edit)
+            return;
+        QVariant vText = index.model()->data(index, Qt::EditRole);
+        edit->setText(vText.toString());
+        edit->setFocus();
+        edit->selectAll();
+    }
+
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index)
+        const override
+    {
+        QLineEdit* edit = editor->findChild<QLineEdit*>("lineEdit");
+        if (!edit)
+            return;
+        if (edit->text().isEmpty()) {
+            // do not leave an empty row in the list
+            deleteRow(model, index);
+            return;
+        }
+        model->setData(index, edit->text(), Qt::EditRole);
     }
 
     void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index)
@@ -191,33 +315,73 @@ public:
                 const int    itemHeight = host.pm(ApplicationHost::PixelMetric::ItemHeight);
                 const int    tinyPadding = host.pm(ApplicationHost::PixelMetric::TinyPadding);
                 const int    s = itemHeight - tinyPadding * 2;
-                QRect        delButtonRect(
-                    option.rect.right() - itemHeight, option.rect.top() + tinyPadding, s, s);
-                if (delButtonRect.contains(me->pos())) {
-                    // Remove this item
-                    model->removeRow(index.row(), index.parent());
+
+                // The option.rect may not be accurate as it reports the string width and
+                // not the width of the displayed string. We need to get the visual rect
+                // from the listview and adjust the width to match the view's viewport width.
+                QRect itemRect = listview->visualRect(index);
+                itemRect.setWidth(listview->viewport()->width());
+
+                // Same button rects as in paint().
+                // first the delete button
+                QRect buttonRect(itemRect.right() - itemHeight, itemRect.top() + tinyPadding, s, s);
+                if (buttonRect.contains(me->pos())) {
+                    deleteRow(model, index);
                     return true;
                 }
-                QRect browseButtonRect(
-                    option.rect.right() - itemHeight * 2 + tinyPadding,
-                    option.rect.top() + tinyPadding,
-                    s,
-                    s);
-                if (browseButtonRect.contains(me->pos())) {
-                    // Browse for a new path
-                    QString dir = QFileDialog::getExistingDirectory(
-                        listview,
-                        tr("Select Directory"),
-                        model->data(index, Qt::DisplayRole).toString(),
-                        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-                    if (!dir.isEmpty()) {
-                        model->setData(index, dir, Qt::EditRole);
-                    }
+
+                // second the browse button
+                buttonRect.moveLeft(buttonRect.left() - (itemHeight - tinyPadding));
+                if (buttonRect.contains(me->pos())) {
+                    browseAndSetPath(model, index);
                     return true;
                 }
             }
         }
         return QStyledItemDelegate::editorEvent(event, model, option, index);
+    }
+
+    // Helper: remove a row from the model.
+    void deleteRow(QAbstractItemModel* model, const QModelIndex& index) const
+    {
+        if (model)
+            model->removeRow(index.row(), index.parent());
+    }
+
+    // Helper: open a directory dialog and set the path in the model.
+    // Optionally update a QLineEdit widget with the selected path.
+    void browseAndSetPath(
+        QAbstractItemModel* model,
+        const QModelIndex&  index,
+        QWidget*            editor = nullptr) const
+    {
+        if (!model)
+            return;
+        QString start = model->data(index, Qt::DisplayRole).toString();
+        QString dir = QFileDialog::getExistingDirectory(
+            listview,
+            tr("Select Directory"),
+            start,
+            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        if (dir.isEmpty())
+            return;
+
+        if (editor) {
+            // We're inside an active editor: update only the editor widget's
+            // QLineEdit to avoid triggering model/view updates that can cause
+            // the view to re-layout or recreate widgets (which hid the icons).
+            QLineEdit* edit = editor->findChild<QLineEdit*>("lineEdit");
+            if (edit) {
+                edit->setText(dir);
+                edit->setCursorPosition(edit->text().length());
+                // leave setModelData for when the editor is closed to persist
+                // the value into the model (prevents view re-layouts).
+            }
+            return;
+        }
+
+        // Not editing: update the model directly.
+        model->setData(index, dir, Qt::EditRole);
     }
 
 private:
@@ -271,15 +435,21 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
     // Add a browse action to the mapping file path line edit
     QAction* browseAction
         = new QAction(host.icon(ApplicationHost::IconName::OpenFile), tr("Browse..."), this);
-    connect(&host, &ApplicationHost::iconsChanged, this, [this, browseAction]() {
+    connect(&host, &ApplicationHost::iconsChanged, this, [browseAction]() {
         browseAction->setIcon(
             ApplicationHost::instance().icon(ApplicationHost::IconName::OpenFile));
     });
 
-    browseAction->setToolTip(tr("Browse for a mapping file"));
+    browseAction->setToolTip(tr("Browse to select a mapping file that contains data to be used by "
+                                "the resolver, such as search paths and tokens."));
     connect(browseAction, &QAction::triggered, this, [this, d]() {
+        QString startDir;
+        if (!d->mappingFilePath.isEmpty()) {
+            QFileInfo fileInfo(d->mappingFilePath);
+            startDir = fileInfo.absoluteDir().path();
+        }
         QString filePath = QFileDialog::getOpenFileName(
-            this, tr("Select Mapping File"), QString(), tr("USD Files (*.usda);;All Files (*.*)"));
+            this, tr("Select Mapping File"), startDir, tr("USD Files (*.usda);;All Files (*.*)"));
         if (!filePath.isEmpty()) {
             if (filePath != d->mappingFilePath) {
                 d->ui->mappingFilePath->setText(filePath);
@@ -320,13 +490,20 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
         auto headerLayout = new QHBoxLayout(d->userPathsHeader);
         d->userPathsHeaderLabel
             = new QLabel(tr("%1 User Paths").arg(userPathsFirst() ? tr("1.") : tr("2.")));
+        d->userPathsHeaderLabel->setToolTip(
+            tr("Define your own custom search paths for the Asset Resolver."));
         headerLayout->addWidget(d->userPathsHeaderLabel, 1);
         headerLayout->addSpacing(tiny_padding);
         headerLayout->setContentsMargins(tiny_padding, 0, tiny_padding, 0);
 
         auto listview = new ListView(user_paths);
         listview->setUniformItemSizes(true);
-        listview->setItemDelegate(new ListPanelItemDelegate(listview, true));
+        auto* delegate = new ListPanelItemDelegate(listview, true);
+        listview->setItemDelegate(delegate);
+        // Ensure any existing editor is closed when the user presses another item.
+        connect(listview, &QListView::pressed, delegate, [delegate](const QModelIndex&) {
+            delegate->closeCurrentEditor();
+        });
         listview->setHorizontalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
         listview->setVerticalScrollMode(QListView::ScrollMode::ScrollPerPixel);
         listview->setTextElideMode(Qt::TextElideMode::ElideMiddle);
@@ -341,18 +518,27 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
 
         auto addButton = new QToolButton(d->userPathsHeader);
         addButton->setIcon(ApplicationHost::instance().icon(ApplicationHost::IconName::Add));
-        addButton->setToolTip(tr("Add User Path"));
-        connect(addButton, &QToolButton::clicked, this, [this, listview]() {
+        addButton->setToolTip(tr("Adds a new blank row where you can enter a custom search path."));
+        connect(addButton, &QToolButton::clicked, this, [this, listview, delegate]() {
             Q_D(USDAssetResolverSettingsWidget);
+            // Close any active editor before inserting a new editable row.
+            if (delegate) {
+                delegate->closeCurrentEditor();
+            }
+
             d->aboutToAddUserPath = true;
             if (d->userPathsModel->insertRow(d->userPathsModel->rowCount())) {
                 d->currentlyAddingNewUserPath
                     = d->userPathsModel->index(d->userPathsModel->rowCount() - 1);
                 d->userPathsModel->setData(d->currentlyAddingNewUserPath, tr(""));
-                listview->scrollTo(d->currentlyAddingNewUserPath);
+                QModelIndex newIndex = d->currentlyAddingNewUserPath;
+                listview->scrollTo(newIndex);
                 listview->setFocus();
-                listview->edit(d->currentlyAddingNewUserPath);
-                listview->update();
+                // Defer the edit call so any active editor can finish closing first.
+                QTimer::singleShot(0, listview, [listview, newIndex]() {
+                    listview->edit(newIndex);
+                    listview->update();
+                });
             } else {
                 // TODO: show error?
                 d->aboutToAddUserPath = false;
@@ -363,7 +549,7 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
             listview->itemDelegate(),
             &QAbstractItemDelegate::closeEditor,
             this,
-            [this, d](QWidget* editor, QAbstractItemDelegate::EndEditHint hint) {
+            [this](QWidget* editor, QAbstractItemDelegate::EndEditHint hint) {
                 Q_D(USDAssetResolverSettingsWidget);
                 if (d->currentlyAddingNewUserPath.isValid()) {
                     QModelIndex index = d->currentlyAddingNewUserPath;
@@ -380,9 +566,10 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
         headerLayout->addWidget(addButton);
 
         auto addBrowseButton = new QToolButton(d->userPathsHeader);
-        addBrowseButton->setIcon(host.icon(ApplicationHost::IconName::OpenFile));
-        addBrowseButton->setToolTip(tr("Add User Path with the browser"));
-        connect(addBrowseButton, &QToolButton::clicked, this, [this, listview]() {
+        addBrowseButton->setIcon(host.icon(ApplicationHost::IconName::AddFolder));
+        addBrowseButton->setToolTip(
+            tr("Opens a file browser to select a directory and add it to the list."));
+        connect(addBrowseButton, &QToolButton::clicked, this, [this]() {
             Q_D(USDAssetResolverSettingsWidget);
             QString filePath
                 = QFileDialog::getExistingDirectory(this, tr("Select User Path to Add"));
@@ -398,6 +585,9 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
         headerLayout->addWidget(addBrowseButton);
 
         d->userPathsFirstButton = new QToolButton(d->userPathsHeader);
+        d->userPathsFirstButton->setToolTip(
+            tr("Reorder user-defined paths to control their search priority relative to extension "
+               "and environment variable paths."));
         d->userPathsFirstButton->setIcon(ApplicationHost::instance().icon(
             userPathsFirst() ? ApplicationHost::IconName::MoveDown
                              : ApplicationHost::IconName::MoveUp));
@@ -411,6 +601,9 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
         headerLayout->addWidget(line);
 
         d->userPathsOnlyCheckBox = new QCheckBox(tr("User Paths Only"), d->userPathsHeader);
+        d->userPathsOnlyCheckBox->setToolTip(tr(
+            "Enable this option to restrict the Asset Resolver to search only within user-defined "
+            "paths. When on, paths from extensions and environment variables are ignored."));
         connect(d->userPathsOnlyCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
             setUserPathsOnly(checked);
         });
@@ -458,9 +651,12 @@ USDAssetResolverSettingsWidget::USDAssetResolverSettingsWidget(QWidget* parent)
         d->extAndEnvPathsHeader = new HeaderWidget(
             tr("%1 Extension & Environment Paths").arg(userPathsFirst() ? tr("2.") : tr("1.")),
             d->extAndEnvPathsWidget);
+        d->extAndEnvPathsHeader->setToolTip(tr(
+            "Lists paths added automatically through mapping file or environment variables. These "
+            "entries are read-only and cannot be reordered, but you can copy them for reference."));
         layout->addWidget(d->extAndEnvPathsHeader, 0);
 
-        auto listview = new QListView(d->extAndEnvPathsWidget);
+        auto listview = new ListView(d->extAndEnvPathsWidget);
         layout->addWidget(listview, 1);
         listview->setUniformItemSizes(true);
         listview->setItemDelegate(new ListPanelItemDelegate(listview));

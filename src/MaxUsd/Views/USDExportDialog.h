@@ -25,6 +25,7 @@
 class QStandardItem;
 class QKeyEvent;
 class UsdExportAnimationRollup;
+class UsdExportGeneralSettingsRollup;
 
 namespace Ui {
 class ExportDialog;
@@ -128,6 +129,7 @@ protected:
     /// Reference to the Qt UI View of the dialog:
     std::unique_ptr<Ui::ExportDialog> ui;
     UsdExportAnimationRollup*         animationRollup;
+    UsdExportGeneralSettingsRollup*   generalSettingsRollup;
 
     /// USD Scene build configuration options:
     MaxUsd::USDSceneBuilderOptions buildOptions;
@@ -137,6 +139,9 @@ protected:
     // Default size of the dialog, needs to be overriden in derived classes.
     int dialogHeight = 0;
     int dialogWidth = 0;
+
+    /// Transform format last selected by the user in the export UI
+    MaxUsd::TransformFormat transformFormat;
 };
 
 /**

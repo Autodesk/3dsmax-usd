@@ -15,8 +15,6 @@
 //
 #include "UsdExportGeneralSettingsRollup.h"
 
-#include "ui_UsdExportGeneralSettingsRollup.h"
-
 #include <MaxUsd/Translators/ShadingModeRegistry.h>
 
 UsdExportGeneralSettingsRollup::UsdExportGeneralSettingsRollup(
@@ -33,8 +31,22 @@ UsdExportGeneralSettingsRollup::UsdExportGeneralSettingsRollup(
     static QStringList transformFormatToolTips
         = { "Export transforms as separate 'Translate', 'Rotate', and 'Scale' attributes.",
             "Export transforms as a single 'Transform' matrix attribute." };
-    ui->TransformFormatComboBox->setCurrentIndex(
-        static_cast<int>(buildOptions.GetTransformFormat()));
+#ifdef USD_CURVES_SUPPORTED
+    // For the initial configuration, make sure that the AnimationType is not set to TimeSamples
+    // before setting
+    auto animationType = buildOptions.GetAnimationType();
+    ui->TransformFormatComboBox->setEnabled(
+        animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples);
+    if (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
+        || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both) {
+        ui->TransformFormatComboBox->setCurrentIndex(
+            static_cast<int>(MaxUsd::TransformFormat::SplitComponents));
+    } else {
+        ui->TransformFormatComboBox->setCurrentIndex(
+            static_cast<int>(buildOptions.GetTransformFormat()));
+    }
+#endif
+
     for (int i = 0; i < transformFormatToolTips.size(); ++i) {
         ui->TransformFormatComboBox->setItemData(i, transformFormatToolTips[i], Qt::ToolTipRole);
     }

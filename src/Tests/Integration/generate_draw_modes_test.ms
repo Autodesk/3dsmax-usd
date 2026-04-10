@@ -23,6 +23,8 @@ pyUsdGeom = python.import("pxr.UsdGeom")
 pyUsdUtils = python.import("pxr.UsdUtils")
 pySdf = python.import("pxr.Sdf")
 
+pyUsdLayerEditor = python.import("UsdLayerEditor")
+
 testDataDir = (getFilenamePath (getThisScriptFilename())) + @"data\"
     
 output_prefix = pathConfig.appendPath (getDir #temp) "/GENERATE_DRAW_MODE_TESTS_"
@@ -264,6 +266,61 @@ struct generate_draw_modes_test
             
         assert_equal 1 sublayers.count
         assert_defined (pySdf.Layer.FindOrOpen(sublayers[1]))
+    ),
+
+    function point_instancer_draw_modes_locked_layer_test = (
+        
+        -- Ensure full reset to avoid still-in-memory layers.
+        resetMaxFile #noPrompt
+        
+        -- Tests that the generated draw modes layer is locked and remains locked after save/load.
+
+        instancer_file = (testDataDir + @"point_instancer_draw_modes.usda")
+
+        local stage_object = USDStageObject()
+        stage_object.SetRootLayer instancer_file
+
+        local stageCache = pyUsdUtils.StageCache.Get()
+        local stage = stageCache.Find(pyUsd.StageCache.Id.FromLongInt(stage_object.cacheId))
+
+        sublayers = (stage.GetSessionLayer()).subLayerPaths
+
+        -- Should find one sublayer (the draw modes layer)
+        assert_equal 1 sublayers.count
+
+        -- Get the draw modes layer and verify it's locked
+        local drawModesLayer = pySdf.Layer.FindOrOpen(sublayers[1])
+        assert_defined drawModesLayer
+        pyUsdLayerEditor.isLayerSystemLocked(drawModesLayer)
+
+        -- Verify draw modes are working (should see boxes)
+        render_mesh = snapshotasmesh stage_object renderMesh:true
+        assert_equal 96 render_mesh.numVerts
+
+        -- Save the max scene to output folder
+        local maxSceneSavePath = output_prefix + "drawModesLockedLayer.max"
+        saveMaxFile maxSceneSavePath quiet:true
+
+        resetMaxFile #noPrompt
+
+        -- Load the saved .max scene
+        loadMaxFile maxSceneSavePath
+
+        stage_object = $UsdStage001
+        local stage = stageCache.Find(pyUsd.StageCache.Id.FromLongInt(stage_object.cacheId))
+        sublayers = (stage.GetSessionLayer()).subLayerPaths
+
+        -- Verify the draw modes layer still exists
+        assert_equal 1 sublayers.count
+
+        -- Get the draw modes layer and verify it's still locked
+        local reloadedDrawModesLayer = pySdf.Layer.FindOrOpen(sublayers[1])
+        assert_defined reloadedDrawModesLayer
+        pyUsdLayerEditor.isLayerSystemLocked(reloadedDrawModesLayer)
+
+        -- Verify draw modes still work as expected (should see boxes)
+        render_mesh = snapshotasmesh stage_object renderMesh:true
+        assert_equal 96 render_mesh.numVerts
     ),        
     
     function teardown = (
@@ -278,7 +335,8 @@ struct generate_draw_modes_test
         point_instancer_draw_modes_generate_function,
         point_instancer_draw_modes_no_authored_kinds,
         point_instancer_draw_modes_user_authored_kinds,
-        point_instancer_draw_modes_sublayer_setup
+        point_instancer_draw_modes_sublayer_setup,
+        point_instancer_draw_modes_locked_layer_test
     )
 )
 

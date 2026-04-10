@@ -84,6 +84,10 @@ public:
      */
     void AddLoadedLayerMapping(std::string& oldId, pxr::SdfLayerRefPtr& newLayer);
 
+    // Identifiers for the reserved sublayers to the session layer used by MaxUsd.
+    static const std::string MaxUsdReservedGeomObjectsLayer;
+    static const std::string MaxUsdReservedDrawModeLayer;
+
 private:
     USDLayerManager();
 

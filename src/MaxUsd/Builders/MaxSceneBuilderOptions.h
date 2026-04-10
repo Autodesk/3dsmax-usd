@@ -42,7 +42,8 @@ PXR_NAMESPACE_OPEN_SCOPE
 	(primvarMappingOptions) \
 	(shadingModes) \
 	(startTimeCode) \
-	(endTimeCode)
+	(endTimeCode) \
+	(slateMaterialHandling)
 
 
 #define PXR_MAXUSD_SHADING_MODES_TOKENS \
@@ -84,6 +85,16 @@ public:
         CustomRange,
         StartTime,
         EndTime
+    };
+
+    /**
+     * \brief Enum for Slate material handling modes
+     */
+    enum class MaxUSDAPI SlateMaterialHandling
+    {
+        Off = 0,          /// Don't add materials to Slate view
+        UnboundMaterials, /// Add only unbound materials to Slate view
+        AllMaterials      /// Add all materials to Slate view
     };
 
     /**
@@ -254,6 +265,18 @@ public:
      * \brief Sets whether to use the progress bar.
      */
     MaxUSDAPI void SetUseProgressBar(bool useProgressBar);
+
+    /**
+     * \brief Gets the Slate material handling mode.
+     * \return The Slate material handling mode.
+     */
+    MaxUSDAPI SlateMaterialHandling GetSlateMaterialHandling() const;
+
+    /**
+     * \brief Sets the Slate material handling mode.
+     * \param slateMaterialHandling The Slate material handling mode to set.
+     */
+    MaxUSDAPI void SetSlateMaterialHandling(SlateMaterialHandling slateMaterialHandling);
 
     /**
      * \brief Returns the default dictionary for the importer options.

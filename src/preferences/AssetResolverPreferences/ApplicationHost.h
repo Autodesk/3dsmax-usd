@@ -34,11 +34,11 @@ public:
     enum class IconName
     {
         Add,
+        AddFolder,
         OpenFile,
         Delete,
         MoveUp,
-        MoveDown,
-
+        MoveDown
     };
     virtual QIcon icon(const IconName& name) const;
 

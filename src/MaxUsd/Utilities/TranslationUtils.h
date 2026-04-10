@@ -244,7 +244,18 @@ MaxUSDAPI bool SetXForm(
     pxr::UsdGeomXformOp::Type      xformType,
     pxr::UsdGeomXformOp::Precision xformPrecision,
     size_t                         opsIdentifier = 0,
-    const pxr::UsdTimeCode&        time = pxr::UsdTimeCode::Default());
+    const pxr::UsdTimeCode&        time = pxr::UsdTimeCode::Default(),
+    bool                           checkExisingOp = false);
+
+/**
+ * \brief Returns the default transform operations configuration for split component transforms.
+ * The default number of operation changes depending on the USD version. Before 25.05, there were no
+ * operations for RotateX, RotateY, RotateZ. This changed in newer versions.
+ * \return A const reference to a vector of pairs, where each pair contains a UsdGeomXformOp::Type
+ * and its corresponding UsdGeomXformOp::Precision.
+ */
+const std::vector<std::pair<pxr::UsdGeomXformOp::Type, pxr::UsdGeomXformOp::Precision>>&
+GetDefaultSplitTransformOps();
 
 /**
  * \brief Utility class to ensure every name is unique.

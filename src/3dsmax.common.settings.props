@@ -68,11 +68,9 @@
     <PySideLibraries Condition=" '$(VersionTarget)'&gt;='2025' ">shiboken6.cp311-win_amd64.lib;pyside6.cp311-win_amd64.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'&gt;'2026' ">shiboken6.abi3.lib;pyside6.abi3.lib</PySideLibraries>
     <PySideLibraries Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.lib;pyside2.abi3.lib</PySideLibraries>
-    <PySideLibraries Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.lib;pyside2.cp39-win_amd64.lib</PySideLibraries>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'&gt;='2025' ">shiboken6.cp311-win_amd64.dll</PySideDelayLoadDLL>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'&gt;'2026' ">shiboken6.abi3.dll</PySideDelayLoadDLL>
     <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2024' ">shiboken2.abi3.dll</PySideDelayLoadDLL>
-    <PySideDelayLoadDLL Condition=" '$(VersionTarget)'=='2023' ">shiboken2.cp39-win_amd64.dll</PySideDelayLoadDLL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
     <QtMsBuild>$(Artifacts)$(VersionTarget)\QtMsBuild</QtMsBuild>

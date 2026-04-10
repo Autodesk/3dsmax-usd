@@ -457,6 +457,11 @@ public:
                     if (shaderReader->Read()) {
                         material
                             = shaderReader->GetCreatedMaterial(*context, surfaceShader.GetPrim());
+                        if (material) {
+                            auto matName
+                                = MaxUsd::UsdStringToMaxString(shadeMaterial.GetPath().GetName());
+                            material->SetName(matName);
+                        }
                     }
                 }
             }

@@ -40,6 +40,11 @@ SelectionRenderItem::SelectionRenderItem(
 {
     // Initialize the effect, when the first usd render item is created.
     std::call_once(initSelectionEffect, [this] {
+        // When running in network render mode, there is no graphics driver setup,
+        // initializing shaders would crash, and we do not need them.
+        if (GetCOREInterface()->IsNetworkRenderServer()) {
+            return;
+        }
         selectionEffect.InitializeWithResource(
             IDR_PRIM_SELECTION_SHADER, MaxSDK::GetHInstance(), L"SHADER");
         selectionEffectInstance = selectionEffect.CreateEffectInstance();

@@ -18,9 +18,9 @@ The C++ version of the plugins need to be compiled using the same requirements a
 well, the rest of the sample will still work regardless (analogous to the UserDataImportChaserSample, that does not have any Qt dependency).
 
 ## Requirements
-The requirements for using this 3ds Max USD SDK are the same as the [3ds Max SDK](https://help.autodesk.com/view/MAXDEV/2023/ENU/?guid=sdk_requirements). 
+The requirements for using this 3ds Max USD SDK are the same as the [3ds Max SDK](https://help.autodesk.com/view/MAXDEV/2027/ENU/?guid=sdk_requirements). 
 
-The Qt library as described in the official [3ds Max SDK documentation](https://help.autodesk.com/view/MAXDEV/2025/ENU/?guid=sdk_requirements).  
+The Qt library as described in the official [3ds Max SDK documentation](https://help.autodesk.com/view/MAXDEV/2027/ENU/?guid=sdk_requirements).  
 We also recommend to install the _QtVSTools for Visual Studio_ to automatically use the QtMSBuild tools provided by this extension. It may be required to choose the appropriate Qt installation in the project settings - based on your targeted version of 3dsMax.
 
 > The 3ds Max USD component devkit includes pre-builds of the component's dependencies. The devkit is found within an installed 3ds Max USD component.
@@ -33,7 +33,7 @@ Plugins need to minimally link against the `maxsdk`, `openusd` and the `maxUsd` 
 
 > The  `openusd` libraries are included in the devkit.
 
-> The requirements for using this SDK are the same as the  [3ds Max SDK](https://help.autodesk.com/view/MAXDEV/2023/ENU/?guid=sdk_requirements).
+> The requirements for using this SDK are the same as the  [3ds Max SDK](https://help.autodesk.com/view/MAXDEV/2027/ENU/?guid=sdk_requirements).
 
 ## Registering a plugin
 

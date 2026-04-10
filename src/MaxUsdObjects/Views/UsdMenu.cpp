@@ -43,6 +43,10 @@
 #include <QFileInfo>
 #include <notify.h>
 
+#include <pxr/base/vt/dictionary.h>
+
+PXR_NAMESPACE_USING_DIRECTIVE
+
 BOOL USDMenuCreateStageFromFileActionItem::ExecuteAction()
 {
     theHold.Begin();
@@ -98,6 +102,52 @@ BOOL USDMenuPreferencesActionItem::ExecuteAction()
     const UsdPreferenceOptions&           options = PreferencesManagement::GetUsdPreferences();
     std::unique_ptr<UsdPreferencesDialog> usdPreferencesDialog
         = std::make_unique<UsdPreferencesDialog>(options, GetCOREInterface()->GetQmaxMainWindow());
+
+   QRect savedGeometry = QRect(-1, -1, -1, -1);
+    {
+        VtDictionary dict;
+        MaxUsd::OptionUtils::LoadUiOptions("USD Preferences", dict);
+        auto           it = dict.find("Dialog Geometry");
+        VtArray<float> val = { -1.0, -1.0, -1.0, -1.0 };
+        if (it != dict.end()) {
+            if (it->second.IsHolding<VtArray<float>>()) {
+                val = it->second.GetWithDefault<VtArray<float>>(val);
+            } else if (it->second.CanCast<VtArray<float>>()) {
+                val = it->second.Cast<VtArray<float>>().GetWithDefault<VtArray<float>>(val);
+            }
+        }
+        if (val.size() == 4 && val[2] >= 0.0f) {
+            savedGeometry = QRect(
+                MaxSDK::UIScaled(val[0]),
+                MaxSDK::UIScaled(val[1]),
+                MaxSDK::UIScaled(val[2]),
+                MaxSDK::UIScaled(val[3]));
+            usdPreferencesDialog->setGeometry(savedGeometry);
+        }
+    }
+
+    QRect dialogGeometry = savedGeometry;
+    QObject::connect(
+        usdPreferencesDialog.get(),
+        &UsdPreferencesDialog::geometryChanged,
+        [&dialogGeometry](const QRect& geometry) {
+            dialogGeometry = geometry;
+        });
+
+    QObject::connect(
+        usdPreferencesDialog.get(), &QDialog::finished, [&dialogGeometry, &savedGeometry]() {
+        if (dialogGeometry != savedGeometry) {
+            VtDictionary   dict;
+            VtArray<float> val
+                = { MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.left())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.top())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.width())),
+                    MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.height())) };
+            dict["Dialog Geometry"] = val;
+            MaxUsd::OptionUtils::SaveUiOptions("USD Preferences", dict);
+        }
+    });
+
     if (usdPreferencesDialog->exec() == QDialog::Accepted) {
         auto newOptions = usdPreferencesDialog->getOptions();
         PreferencesManagement::ApplyUsdPreferences(options, newOptions);

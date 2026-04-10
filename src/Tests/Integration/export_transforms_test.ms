@@ -351,6 +351,304 @@ struct export_transforms_test
         )
     ),
 
+    function test_export_transform_with_spline_animation = (
+        -- Check if USD version supports splines (24.11+)
+        usdVersion = pyUsd.GetVersion()
+        local supportCurves = (usdVersion[2] > 24)
+        if not supportCurves then (
+            format "Skipping test_export_transform_with_spline_animation: USD version % does not support curves\n" usdVersion
+            return undefined
+        )
+
+        -- Import the Ts module for spline validation
+        pyTs = python.import("pxr.Ts")
+
+        -- Create a box with animated transforms
+        local boxNode = box name:"animated_box"
+        
+        -- Set up animation range
+        animationRange = interval 0 100
+        
+        -- Animate position (translation) using keyframes
+        with animate on (
+            at time 0 (boxNode.pos = [0, 0, 0])
+            at time 50 (boxNode.pos = [100, 50, 25])
+            at time 100 (boxNode.pos = [200, 100, 50])
+        )
+
+        local posCtrl = boxNode.pos.controller
+        local xCtrl = posCtrl[1]  -- X position controller
+
+        for k in xCtrl.keys do (
+            k.inTangentType = #custom
+            k.outTangentType = #custom
+            k.inTangent = 2.0
+            k.outTangent = 2.0
+            k.inTangentLength = 0.333
+            k.outTangentLength = 0.333
+        )
+
+        -- Animate rotation using keyframes
+        with animate on (
+            at time 0 (boxNode.rotation = quat 0 0 0 1)
+            at time 50 (boxNode.rotation = eulerAngles 45 30 15)
+            at time 100 (boxNode.rotation = eulerAngles 90 60 30)
+        )
+
+        local rotationXControl = boxNode.rotation.controller[1]
+        for k in rotationXControl.keys do (
+            k.inTangentType = #step
+            k.outTangentType = #step
+        )
+
+        local rotationYControl = boxNode.rotation.controller[2]
+        for k in rotationYControl.keys do (
+            k.inTangentType = #smooth
+            k.outTangentType = #smooth
+        )
+        
+        -- Animate scale using keyframes
+        with animate on (
+            at time 0 (boxNode.scale = [1, 1, 1])
+            at time 50 (boxNode.scale = [2, 1.5, 1.25])
+            at time 100 (boxNode.scale = [3, 2, 1.5])
+        )
+        
+        -- Configure export options for spline animation
+        local curveExportOptions = USDExporter.CreateOptions()
+        curveExportOptions.FileFormat = #ascii
+        curveExportOptions.RootPrimPath = "/"
+        curveExportOptions.UpAxis = #z -- Keep Max's Z-up coordinate system to avoid axis conversion
+        curveExportOptions.TimeMode = #frameRange
+        curveExportOptions.StartFrame = 0
+        curveExportOptions.EndFrame = 100
+        curveExportOptions.AnimationType = #curves
+        curveExportOptions.TransformFormat = #splitComponents -- Required for spline export
+        
+        local exportPath = output_prefix + "test_export_transform_spline_animation.usda"
+        
+        -- Export with spline animation
+        assert_true (USDExporter.ExportFile exportPath exportOptions:curveExportOptions) message:"Export with spline animation failed"
+        
+        -- Open the exported stage and validate splines
+        local stage = pyUsd.Stage.Open(exportPath)
+        assert_true (stage != undefined) message:"Failed to open exported USD stage"
+        
+        local boxPrim = stage.GetPrimAtPath("/animated_box")
+        assert_true (pyUsd.Prim.IsValid(boxPrim)) message:"Missing animated_box prim"
+        
+        -- Validate that transform attributes have splines
+        local xformable = pyUsdGeom.Xformable(boxPrim)
+        local xformOps = xformable.GetOrderedXformOps()
+        
+        -- We expect split components: translateX/Y/Z, rotateX/Y/Z, scaleX/Y/Z
+        assert_true (xformOps.count == 9) message:"Missing split components in transform"
+        
+        -- Helper function to validate a spline attribute exists and has knots
+        fn validateSplineAttribute prim attrName expectedKnotCount = (
+            local attr = prim.GetAttribute(attrName)
+            if attr == undefined or not attr.IsValid() then (
+                return false
+            )
+            local spline = attr.GetSpline()
+            local knots = spline.GetKnots()
+            return knots.count == expectedKnotCount
+        )
+        
+        -- Validate translation splines (3 keyframes = 3 knots each)
+        assert_true (validateSplineAttribute boxPrim "xformOp:translateX" 3) message:"translateX spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:translateY" 3) message:"translateY spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:translateZ" 3) message:"translateZ spline should have 3 knots"
+        
+        -- Validate rotation splines (3 keyframes = 3 knots each)
+        assert_true (validateSplineAttribute boxPrim "xformOp:rotateX" 3) message:"rotateX spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:rotateY" 3) message:"rotateY spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:rotateZ" 3) message:"rotateZ spline should have 3 knots"
+        
+        -- Validate scale splines (3 keyframes = 3 knots each)
+        assert_true (validateSplineAttribute boxPrim "xformOp:scaleX" 3) message:"scaleX spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:scaleY" 3) message:"scaleY spline should have 3 knots"
+        assert_true (validateSplineAttribute boxPrim "xformOp:scaleZ" 3) message:"scaleZ spline should have 3 knots"
+        
+        -- Validate spline values at keyframe times
+        -- Check translateX values at key times
+        translateXAttr = boxPrim.GetAttribute("xformOp:translateX")
+        translateXSpline = translateXAttr.GetSpline()
+        local translateXKnots = translateXSpline.GetKnots()
+        
+        -- Knots should be at times 0, 50, 100 with values 0, 100, 200
+        local knot0 = translateXKnots[1]
+        local knot50 = translateXKnots[51]
+        local knot100 = translateXKnots[101]
+        local knot0Value = knot0.GetValue()
+        local knot50Value = knot50.GetValue()
+        local knot100Value = knot100.GetValue()
+        assert_true (compareFloats knot0Value 0.0) message:("translateX knot at time 0: expected 0.0, got " + (knot0Value as string))
+        assert_true (compareFloats knot50Value 82.358825) message:("translateX knot at time 50: expected 82.3588, got " + (knot50Value as string))
+        assert_true (compareFloats knot100Value 120.892959) message:("translateX knot at time 100: expected 120.8929, got " + (knot100Value as string))
+        
+        -- Validate tangent width and slope values on knots
+        -- First knot (time 1) - should have post tangent data
+        local knot0PreWidth = knot0.GetPreTanWidth()
+        local knot0PreSlope = knot0.GetPreTanSlope()
+        local knot0PostWidth = knot0.GetPostTanWidth()
+        local knot0PostSlope = knot0.GetPostTanSlope()
+        assert_true (compareFloats knot0PreWidth 0.0) message:("First knot pre tangent width should be 0.0, got " + (knot0PreWidth as string))
+        assert_true (compareFloats knot0PreSlope 0.0) message:("First knot pre tangent slope should be 0.0, got " + (knot0PreSlope as string))
+
+        -- First knot should use curve interpolation (not held)
+        local knot0Interp = knot0.GetNextInterpolation()
+        assert_true (knot0Interp == pyTs.InterpCurve) message:("First knot should have InterpCurve interpolation, got " + (knot0Interp as string))
+        
+        -- Middle knot (time 51) - should have both pre and post tangent data
+        local knot50 = translateXKnots[51]
+        local knot50PreWidth = knot50.GetPreTanWidth()
+        local knot50PreSlope = knot50.GetPreTanSlope()
+        local knot50PostWidth = knot50.GetPostTanWidth()
+        local knot50PostSlope = knot50.GetPostTanSlope()
+        assert_true (compareFloats knot50PreWidth 16.649999) message:("Middle knot pre tangent width should be 16.649999, got " + (knot50PreWidth as string))
+        assert_true (compareFloats knot50PostWidth 16.649999) message:("Middle knot post tangent width should be 16.649999, got " + (knot50PostWidth as string))
+        assert_true (compareFloats knot50PreSlope -10.666667) message:("Middle knot pre tangent slope should be 10.666667, got " + (knot50PreSlope as string))
+        assert_true (compareFloats knot50PostSlope 10.666667) message:("Middle knot post tangent slope should be 10.666667, got " + (knot50PostSlope as string))
+        -- Middle knot should use curve interpolation (not held)
+        local knot50Interp = knot50.GetNextInterpolation()
+        assert_true (knot50Interp == pyTs.InterpCurve) message:("Middle knot should have InterpCurve interpolation, got " + (knot50Interp as string))
+        
+        -- Last knot (time 101) - should have pre tangent data
+        local knot100PreWidth = knot100.GetPreTanWidth()
+        local knot100PreSlope = knot100.GetPreTanSlope()
+        local knot100PostWidth = knot100.GetPostTanWidth()
+        local knot100PostSlope = knot100.GetPostTanSlope()
+        assert_true (compareFloats knot100PreWidth 16.649999) message:("Last knot pre tangent width should be 16.649999, got " + (knot100PreWidth as string))
+        assert_true (compareFloats knot100PreSlope -10.666667) message:("Last knot pre tangent slope should be 10.666667, got " + (knot100PreSlope as string))
+        assert_true (compareFloats knot100PostWidth 0.0) message:("Last knot post tangent width should be 0.0, got " + (knot100PostWidth as string))
+        assert_true (compareFloats knot100PostSlope 0.0) message:("Last knot post tangent slope should be 0.0, got " + (knot100PostSlope as string))
+        -- Last knot should use held interpolation (no more keyframes after)
+        local knot100Interp = knot100.GetNextInterpolation()
+        assert_true (knot100Interp == pyTs.InterpHeld) message:("Last knot should have InterpHeld interpolation, got " + (knot100Interp as string))
+
+        -- Validate rotation spline interpolation types
+        -- rotateX was set with #step tangent type - should map to InterpHeld
+        local rotateXAttr = boxPrim.GetAttribute("xformOp:rotateX")
+        local rotateXSpline = rotateXAttr.GetSpline()
+        local rotateXKnots = rotateXSpline.GetKnots()
+        local rotateXKnot0 = rotateXKnots[1]
+        local rotateXKnot0Interp = rotateXKnot0.GetNextInterpolation()
+        assert_true (rotateXKnot0Interp == pyTs.InterpHeld) message:("rotateX first knot should have InterpHeld (step) interpolation, got " + (rotateXKnot0Interp as string))
+        local rotateXKnot50 = rotateXKnots[51]
+        local rotateXKnot50Interp = rotateXKnot50.GetNextInterpolation()
+        assert_true (rotateXKnot50Interp == pyTs.InterpHeld) message:("rotateX middle knot should have InterpHeld (step) interpolation, got " + (rotateXKnot50Interp as string))
+
+        -- rotateY was set with #smooth tangent type - should map to InterpCurve
+        local rotateYAttr = boxPrim.GetAttribute("xformOp:rotateY")
+        local rotateYSpline = rotateYAttr.GetSpline()
+        local rotateYKnots = rotateYSpline.GetKnots()
+        local rotateYKnot0 = rotateYKnots[1]
+        local rotateYKnot0Interp = rotateYKnot0.GetNextInterpolation()
+        assert_true (rotateYKnot0Interp == pyTs.InterpCurve) message:("rotateY first knot should have InterpCurve (smooth) interpolation, got " + (rotateYKnot0Interp as string))
+        local rotateYKnot50 = rotateYKnots[51]
+        local rotateYKnot50Interp = rotateYKnot50.GetNextInterpolation()
+        assert_true (rotateYKnot50Interp == pyTs.InterpCurve) message:("rotateY middle knot should have InterpCurve (smooth) interpolation, got " + (rotateYKnot50Interp as string))
+
+        -- Test export with #both option (curves + time samples)
+        curveExportOptions.AnimationType = #both
+        local exportPathBoth = output_prefix + "test_export_transform_spline_animation_both.usda"
+        assert_true (USDExporter.ExportFile exportPathBoth exportOptions:curveExportOptions) message:"Export with both animation types failed"
+        
+        -- Validate that both splines and time samples exist
+        local stageBoth = pyUsd.Stage.Open(exportPathBoth)
+        local boxPrimBoth = stageBoth.GetPrimAtPath("/animated_box")
+        assert_true (pyUsd.Prim.IsValid(boxPrimBoth)) message:"Missing animated_box prim when AnimationType is #both"
+
+        local xformableBoth = pyUsdGeom.Xformable(boxPrimBoth)
+        local xformOpsBoth = xformableBoth.GetOrderedXformOps()
+        assert_true (xformOpsBoth.Count == 9) message:"Wrong number of transforms when AnimationType is #both"
+
+        expectedOps = #("xformOp:translateX", "xformOp:translateY", "xformOp:translateZ", "xformOp:rotateZ", "xformOp:rotateY", "xformOp:rotateX", "xformOp:scaleX", "xformOp:scaleY", "xformOp:scaleZ")
+        for i in 1 to expectedOps.Count do (
+            assert_true (((xformOpsBoth[i]).GetName()) == (expectedOps[i]))
+        )
+
+        -- Validate that the time samples are exported correctly
+        local translateXAttrBoth = boxPrimBoth.GetAttribute("xformOp:translateX")
+        local timeSamplesBoth = translateXAttrBoth.GetTimeSamples()
+        assert_true (timeSamplesBoth.Count == 101)
+    ),
+
+    function test_target_camera_exports_time_samples = (
+        usdVersion = pyUsd.GetVersion()
+        local supportCurves = (usdVersion[2] > 24)
+        if not supportCurves then (
+            format "Skipping test_target_camera_exports_time_samples: USD version % does not support curves\n" usdVersion
+            return undefined
+        )
+
+        -- Test that a camera with a target exports as time samples even when AnimationType is curves
+        b = box height:20 width:20 lenght:20 pos:[25, 25, 0]
+        local cam = (TargetCamera height:10 length:10 width:10 pos:[100, 100, 0] target:b)
+
+        with animate on (
+            at time 0 (b.pos = [0, 100, 0])
+            at time 5 (b.pos = [100, 100, 0])
+            at time 10 (b.pos = [200, 100, 0])
+        )
+
+        local curveExportOptions = USDExporter.CreateOptions()
+        curveExportOptions.FileFormat = #ascii
+        curveExportOptions.RootPrimPath = "/"
+        curveExportOptions.TimeMode = #frameRange
+        curveExportOptions.StartFrame = 0
+        curveExportOptions.EndFrame = 10
+        curveExportOptions.AnimationType = #curves
+        curveExportOptions.TransformFormat = #splitComponents
+
+        local exportPath = output_prefix + "test_target_camera_time_samples.usda"
+
+        assert_true (USDExporter.ExportFile exportPath exportOptions:curveExportOptions) message:"Export with target camera failed"
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        local cameraPrim = stage.GetPrimAtPath("/Camera001")
+
+        -- Validate that the camera has time samples (not splines) even though AnimationType is curves
+        -- A camera with a target should always export as time samples because its rotation depends on the target
+        local xformable = pyUsdGeom.Xformable(cameraPrim)
+        local xformOps = xformable.GetOrderedXformOps()
+
+        for i = 1 to xformOps.Count do (
+            local attr = (xformOps[i]).GetAttr()
+            local timeSamples = attr.GetTimeSamples()
+            assert_true (timeSamples.Count > 0) message:("Camera with target should have time samples when AnimationType is curves, found " + (timeSamples.Count as string) + " time samples on " + attr.GetName())
+            assert_false (attr.HasSpline()) message:("Camera with target should not have splines when AnimationType is curves, found spline on " + attr.GetName())
+        )
+    ),
+
+    function test_biped_curves_export_test = (
+        usdVersion = pyUsd.GetVersion()
+        local supportCurves = (usdVersion[2] > 24)
+        if not supportCurves then (
+            format "Skipping test_biped_curves_export_test: USD version % does not support curves\n" usdVersion
+            return undefined
+        )
+
+        biped.createNew 100 0 [0,0,0]
+        
+        local curveExportOptions = USDExporter.CreateOptions()
+        curveExportOptions.FileFormat = #ascii
+        curveExportOptions.RootPrimPath = "/"
+        curveExportOptions.TimeMode = #frameRange
+        curveExportOptions.StartFrame = 0
+        curveExportOptions.EndFrame = 10
+        curveExportOptions.AnimationType = #curves
+        curveExportOptions.TransformFormat = #splitComponents
+        
+        local exportPath = output_prefix + "test_biped_curves.usda"
+        
+        assert_true (USDExporter.ExportFile exportPath exportOptions:curveExportOptions) message:"Biped export with curves failed"
+        
+        local stage = pyUsd.Stage.Open(exportPath)
+        assert_true (stage != undefined) message:"Failed to open exported USD stage"
+    ),
+
     function teardown = (
     ),
 
@@ -358,7 +656,10 @@ struct export_transforms_test
         test_object_without_prim_creator,
         export_object_with_wsm_test,
         test_worldspaceroot_on,
-        test_worldspaceroot_off
+        test_worldspaceroot_off,
+        test_export_transform_with_spline_animation,
+        test_target_camera_exports_time_samples,
+        test_biped_curves_export_test
     )
 )
 

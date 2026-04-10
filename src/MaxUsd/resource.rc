@@ -31,6 +31,7 @@ BEGIN
     IDS_IMPORT_CANCEL_CAPTION "Cancel import"
     IDS_IMPORT_CANCEL_TEXT  "Are you sure you want to cancel the file import?" 
     IDS_IMPORT_CHASERS_PROGRESS_MESSAGE "Running chasers..."
+    IDS_IMPORT_MATERIALS_PROGRESS_MESSAGE "Importing materials..."
     IDS_EXPORT_PROGRESS_TITLE "USD Export"
     IDS_EXPORT_OBJECTS_PROGRESS_MESSAGE "Objects..."
     IDS_EXPORT_FRAMES_PROGRESS_MESSAGE "Frames..."

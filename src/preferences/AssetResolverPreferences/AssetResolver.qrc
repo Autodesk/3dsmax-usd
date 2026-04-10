@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/AdskUSDAssetResolver">
+        <file>icons/dark/add_folder_100.png</file>
+        <file>icons/dark/add_folder_150.png</file>
+        <file>icons/dark/add_folder_200.png</file>
+        <file>icons/light/add_folder_100.png</file>
+        <file>icons/light/add_folder_150.png</file>
+        <file>icons/light/add_folder_200.png</file>
+    </qresource>
+</RCC>

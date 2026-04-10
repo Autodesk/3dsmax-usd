@@ -17,5 +17,5 @@
 
 // Components of version number for the USD component
 #define COMPONENT_VERSION_MAJOR 0
-#define COMPONENT_VERSION_MINOR 13
+#define COMPONENT_VERSION_MINOR 14
 #define COMPONENT_VERSION_MICRO 0

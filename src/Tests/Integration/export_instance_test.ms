@@ -539,36 +539,64 @@ struct export_instance_test
         assert_true (point1Prim.IsInstance()) message:"point1 prim should be an instance."
         point1XFormPrim = pyUsdGeom.Xformable(point1Prim)
         xformOps = point1XFormPrim.GetOrderedXformOps()
-        t1 = xformOps[1].Get(pyUsd.TimeCode.Default())
-        r1 = xformOps[2].Get(pyUsd.TimeCode.Default())
-        s1 = xformOps[3].Get(pyUsd.TimeCode.Default())
-        t2 = xformOps[4].Get(pyUsd.TimeCode.Default())
-        r2 = xformOps[5].Get(pyUsd.TimeCode.Default())
-        s2 = xformOps[6].Get(pyUsd.TimeCode.Default())
-        assert_undefined xformOps[7]
 
-        assert_equal (xformOps[1].GetOpName()) "xformOp:translate"
-        assert_equal (xformOps[2].GetOpName()) "xformOp:rotateXYZ"
-        assert_equal (xformOps[3].GetOpName()) "xformOp:scale"
-        assert_equal (xformOps[4].GetOpName()) "xformOp:translate:t1"
-        assert_equal (xformOps[5].GetOpName()) "xformOp:rotateXYZ:r1"
-        assert_equal (xformOps[6].GetOpName()) "xformOp:scale:s1"
+        maxver = maxversion()
+        if maxver[1] >= 29000 then (
+            -- 3ds Max 2027+ uses individual component transforms
+            expectedOps1 = #(
+                "xformOp:translateX", "xformOp:translateY", "xformOp:translateZ",
+                "xformOp:rotateZ", "xformOp:rotateY", "xformOp:rotateX",
+                "xformOp:scaleX", "xformOp:scaleY", "xformOp:scaleZ"
+            )
+            expectedOps2 = #(
+                "xformOp:translateX:tx1", "xformOp:translateY:ty1", "xformOp:translateZ:tz1",
+                "xformOp:rotateZ:rz1", "xformOp:rotateY:ry1", "xformOp:rotateX:rx1",
+                "xformOp:scaleX:sx1", "xformOp:scaleY:sy1", "xformOp:scaleZ:sz1"
+            )
 
-        expect1 = #(9, 5, 0)
-        expect2 = #(0, 0, 0)
-        expect3 = #(1, 1, 1)
-        expect4 = #(1000001, 5, 0)
-        expect5 = #(0, -0, 0)
-        expect6 = #(1, 1, 1)
+            for i = 1 to 9 do (
+                assert_equal (xformOps[i].GetOpName()) expectedOps1[i]
+                assert_equal (xformOps[i+9].GetOpName()) expectedOps2[i]
+            )
+            assert_undefined xformOps[19]
 
-        for i = 1 to 3 do
-        (
-            assert_equal expect1[i] t1[i]
-            assert_equal expect2[i] r1[i]
-            assert_equal expect3[i] s1[i]
-            assert_equal expect4[i] t2[i]
-            assert_equal expect5[i] r2[i]
-            assert_equal expect6[i] s2[i]
+            expectedValues1 = #(9.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+            expectedValues2 = #(1000001.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+
+            for i = 1 to 9 do (
+                assert_equal (xformOps[i].Get(pyUsd.TimeCode.Default())) expectedValues1[i]
+                assert_equal (xformOps[i+9].Get(pyUsd.TimeCode.Default())) expectedValues2[i]
+            )
+        )
+        else (
+            -- 3ds Max versions before 2027 use combined transforms
+            expectedOps = #(
+                "xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale",
+                "xformOp:translate:t1", "xformOp:rotateXYZ:r1", "xformOp:scale:s1"
+            )
+
+            -- Verify operation names
+            for i = 1 to 6 do (
+                assert_equal (xformOps[i].GetOpName()) expectedOps[i]
+            )
+            assert_undefined xformOps[7]
+
+            -- Verify transform values
+            expectedTransforms = #(
+                #(9, 5, 0),
+                #(0, 0, 0),
+                #(1, 1, 1),
+                #(1000001, 5, 0),
+                #(0, 0, 0),
+                #(1, 1, 1)
+            )
+
+            for opIdx = 1 to 6 do (
+                opValue = xformOps[opIdx].Get(pyUsd.TimeCode.Default())
+                for componentIdx = 1 to 3 do (
+                    assert_equal expectedTransforms[opIdx][componentIdx] opValue[componentIdx]
+                )
+            )
         )
     ),
     
