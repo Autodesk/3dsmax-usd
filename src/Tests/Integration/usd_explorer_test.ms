@@ -24,11 +24,14 @@ struct usd_explorer_test
     private 
     originalFileFormatOption,
     exportMaterialTestOptions = USDExporter.CreateOptions(),
+    originalQuietMode,
     
     public 
     function setup =
     (
         quickReset()
+        originalQuietMode = GetQuietMode()
+        SetQuietMode(false)
     ),
 
     function findUsdExplorer = (
@@ -74,6 +77,7 @@ struct usd_explorer_test
     
     function teardown =
     (
+        SetQuietMode(originalQuietMode)
     ),    
 
     Tests = #(

@@ -101,7 +101,10 @@ void UsdGeomObjectIncludesRollup::UpdatePurposesUI()
 
 void UsdGeomObjectIncludesRollup::UpdatePurposeConfigConflictWarning() const
 {
-    const auto             stageNode = geomObject->GetStageNode();
+    const auto stageNode = geomObject->GetStageNode();
+    if (!stageNode) {
+        return;
+    }
     FindUSDGeomObjectsProc proc(stageNode);
     stageNode->DoEnumDependents(&proc);
 

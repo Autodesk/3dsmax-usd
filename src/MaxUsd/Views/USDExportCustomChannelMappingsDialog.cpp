@@ -17,7 +17,11 @@
 
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
 
+#if PXR_VERSION >= 2511
+#include <pxr/usd/sdf/usdFileFormat.h>
+#else
 #include <pxr/usd/usd/usdFileFormat.h>
+#endif
 
 #include <Qt/QmaxMainWindow.h>
 

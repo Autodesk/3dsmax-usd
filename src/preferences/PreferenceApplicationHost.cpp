@@ -22,9 +22,9 @@
 PreferenceApplicationHost* PreferenceApplicationHost::s_instance = nullptr;
 
 PreferenceApplicationHost::PreferenceApplicationHost(QObject* parent)
-	: Adsk::ApplicationHost(parent)
+    : Adsk::ApplicationHost(parent)
 {
-	Adsk::ApplicationHost::injectInstance(this);
+    Adsk::ApplicationHost::injectInstance(this);
 }
 
 void PreferenceApplicationHost::CreateInstance(QObject* parent)
@@ -39,12 +39,24 @@ float PreferenceApplicationHost::uiScale() const { return MaxSDK::GetUIScaleFact
 QIcon PreferenceApplicationHost::icon(const IconName& name) const
 {
     switch (name) {
-    case IconName::Add: return MaxSDK::LoadMaxMultiResIcon(QString("Common/%1").arg("Plus"));
-    case IconName::OpenFile: return MaxSDK::LoadMaxMultiResIcon(QString("Common/%1").arg("Folder"));
-    case IconName::Delete: return MaxSDK::LoadMaxMultiResIcon(QString("Common/%1").arg("Delete"));
-    case IconName::MoveUp: return MaxSDK::LoadMaxMultiResIcon(QString("Common/%1").arg("ArrowUp"));
-    case IconName::MoveDown:
-        return MaxSDK::LoadMaxMultiResIcon(QString("Common/%1").arg("ArrowDown"));
+    case IconName::Add: return MaxSDK::LoadMaxMultiResIcon("Common/Plus");
+    case IconName::AddFolder: {
+        QString theme = []() {
+            if (auto colorman = GetColorManager()) {
+                return colorman->GetAppFrameColorTheme()
+                        == IColorManager::AppFrameColorTheme::kDarkTheme
+                    ? "dark"
+                    : "light";
+            }
+            return "dark";
+        }();
+        return MaxSDK::LoadMaxMultiResIcon(
+            QString(":/AdskUSDAssetResolver/icons/%1/add_folder").arg(theme));
+    }
+    case IconName::OpenFile: return MaxSDK::LoadMaxMultiResIcon("Common/Folder");
+    case IconName::Delete: return MaxSDK::LoadMaxMultiResIcon("Common/Delete");
+    case IconName::MoveUp: return MaxSDK::LoadMaxMultiResIcon("Common/ArrowUp");
+    case IconName::MoveDown: return MaxSDK::LoadMaxMultiResIcon("Common/ArrowDown");
 
     default: return QIcon();
     }
@@ -52,17 +64,12 @@ QIcon PreferenceApplicationHost::icon(const IconName& name) const
 
 int PreferenceApplicationHost::pm(const PixelMetric& metric) const
 {
-	const float scale = uiScale();
-	switch (metric) {
-	case PixelMetric::TinyPadding:
-		return static_cast<int>(2 * scale);
-	case PixelMetric::ResizableActiveAreaSize:
-		return static_cast<int>(8 * scale);
-	case PixelMetric::ResizableContentMargin:
-		return static_cast<int>(4 * scale);
-	case PixelMetric::ItemHeight:
-		return static_cast<int>(24 * scale);
-	default:
-		return 0;
-	}
+    const float scale = uiScale();
+    switch (metric) {
+    case PixelMetric::TinyPadding: return static_cast<int>(2 * scale);
+    case PixelMetric::ResizableActiveAreaSize: return static_cast<int>(8 * scale);
+    case PixelMetric::ResizableContentMargin: return static_cast<int>(4 * scale);
+    case PixelMetric::ItemHeight: return static_cast<int>(24 * scale);
+    default: return 0;
+    }
 }

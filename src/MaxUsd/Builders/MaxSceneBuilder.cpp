@@ -22,6 +22,7 @@
 #include <MaxUsd/Translators/PrimReaderRegistry.h>
 #include <MaxUsd/Translators/ShadingModeImporter.h>
 #include <MaxUsd/Translators/ShadingModeRegistry.h>
+#include <MaxUsd/Translators/TranslatorMaterial.h>
 #include <MaxUsd/Translators/TranslatorXformable.h>
 #include <MaxUsd/Utilities/MaxProgressBar.h>
 #include <MaxUsd/Utilities/MetaDataUtils.h>
@@ -29,6 +30,12 @@
 #include <MaxUsd/Utilities/UiUtils.h>
 #include <MaxUsd/resource.h>
 
+#include <pxr/usd/usdShade/material.h>
+
+#include <maxscript/maxscript.h>
+
+#include <algorithm>
+#include <cwctype>
 #include <iInstanceMgr.h> // for IInstanceMgr::GetAutoMtlPropagation()
 
 PXR_NAMESPACE_USING_DIRECTIVE
@@ -360,6 +367,9 @@ int MaxSceneBuilder::Build(
         pInstanceMgr->SetAutoMtlPropagation(true);
     }
 
+    // Handle materials for Slate Material Editor based on SlateMaterialHandling option
+    HandleSlateMaterials(buildOptions, stage, context, progressBar);
+
     // Report that we are running chasers...
     progressBar.UpdateProgress(
         progressBar.GetTotal(), false, GetString(IDS_IMPORT_CHASERS_PROGRESS_MESSAGE));
@@ -389,6 +399,183 @@ int MaxSceneBuilder::Build(
     }
 
     return IMPEXP_SUCCESS;
+}
+
+void MaxSceneBuilder::HandleSlateMaterials(
+    const MaxSceneBuilderOptions& buildOptions,
+    const pxr::UsdStageRefPtr&    stage,
+    MaxUsdReadJobContext&         context,
+    MaxProgressBar&               progressBar)
+{
+    // Skip material import if the option is set to None
+    auto slateMaterialHandling = buildOptions.GetSlateMaterialHandling();
+    if (slateMaterialHandling == MaxSceneBuilderOptions::SlateMaterialHandling::Off) {
+        return;
+    }
+
+    // Skip material import if shading mode is set empty
+    if (buildOptions.GetShadingModes().empty()) {
+        return;
+    }
+
+    // Check if the first shading mode is "none"
+    const auto& firstShadingMode = buildOptions.GetShadingModes().front();
+    if (VtDictionaryIsHolding<TfToken>(firstShadingMode, MaxUsdShadingModesTokens->mode)
+        && VtDictionaryGet<TfToken>(firstShadingMode, MaxUsdShadingModesTokens->mode)
+            == MaxUsdShadingModeTokens->none) {
+        return;
+    }
+
+    // Find all UsdShadeMaterial prims in the stage
+    std::vector<UsdShadeMaterial> materials;
+    auto                          predicates = !pxr::UsdPrimIsAbstract && pxr::UsdPrimIsDefined;
+    pxr::UsdPrimRange             range = UsdPrimRange(stage->GetPseudoRoot(), predicates);
+
+    for (auto primIt = range.begin(); primIt != range.end(); ++primIt) {
+        if (primIt->IsA<UsdShadeMaterial>()) {
+            materials.emplace_back(*primIt);
+        }
+    }
+
+    if (materials.empty()) {
+        return;
+    }
+
+    // Update progress bar to show material import phase
+    progressBar.UpdateProgress(
+        progressBar.GetTotal(), false, GetString(IDS_IMPORT_MATERIALS_PROGRESS_MESSAGE));
+
+    MaxUsd::Log::Info("Importing {} materials", materials.size());
+
+    // Get the stage name for the SME view
+    std::string stageName = "USD_Materials";
+    if (stage->GetRootLayer()) {
+        auto layerPath = stage->GetRootLayer()->GetRealPath();
+        if (!layerPath.empty()) {
+            // Extract filename without extension
+            auto filename = layerPath.substr(layerPath.find_last_of("/\\") + 1);
+            auto dotPos = filename.find_last_of('.');
+            if (dotPos != std::string::npos) {
+                filename = filename.substr(0, dotPos);
+            }
+            stageName = filename;
+        }
+    }
+
+    // Import each material and collect them for SME based on the import mode
+    std::vector<Mtl*> importedMaterials;
+    int               smeCount = 0;
+
+    for (const auto& material : materials) {
+        // Import the material using the standard Read method
+        Mtl* maxMtl
+            = MaxUsdTranslatorMaterial::Read(buildOptions, material, UsdGeomGprim(), context);
+
+        if (maxMtl) {
+            // Check if this material is bound to any geometry
+            bool isBound = context.IsMaterialBound(maxMtl);
+
+            // Filter materials based on the slate material handling mode
+            bool addToSlateView = false;
+
+            switch (slateMaterialHandling) {
+            case MaxSceneBuilderOptions::SlateMaterialHandling::AllMaterials:
+                addToSlateView = true;
+                break;
+            case MaxSceneBuilderOptions::SlateMaterialHandling::UnboundMaterials:
+                addToSlateView = !isBound;
+                break;
+            case MaxSceneBuilderOptions::SlateMaterialHandling::Off:
+            default: addToSlateView = false; break;
+            }
+
+            if (addToSlateView) {
+                smeCount++;
+                importedMaterials.push_back(maxMtl);
+            }
+        }
+    }
+
+    // Create SME view and add materials to it
+    CreateSMEViewWithMaterials(stageName, importedMaterials);
+
+    MaxUsd::Log::Info("Successfully added {} materials to SME view '{}'", smeCount, stageName);
+}
+
+void MaxSceneBuilder::CreateSMEViewWithMaterials(
+    const std::string&       viewName,
+    const std::vector<Mtl*>& materials)
+{
+    if (materials.empty()) {
+        return;
+    }
+
+    try {
+        // Build MaxScript command to create/find SME view and add materials
+        std::wstring scriptCommand = L"(\n";
+
+        // Ensure SME is opened at least once.
+        // Manipulating the views when it was never opened during the session doesn't work.
+        static bool smeOpened = false;
+        if (!smeOpened) {
+            scriptCommand += L"if not sme.IsOpen() then (\n";
+            scriptCommand += L"    sme.Open()\n";
+            scriptCommand += L"    sme.Close()\n";
+            scriptCommand += L")\n";
+            smeOpened = true;
+        }
+
+        // Convert view name to wide string and sanitize for MaxScript
+        std::wstring wViewName(MaxUsd::UsdStringToMaxString(viewName).data());
+
+        // Sanitize the view name to prevent MaxScript injection
+        auto sanitize = [](std::wstring& s) {
+            s.erase(
+                std::remove_if(
+                    s.begin(),
+                    s.end(),
+                    [](wchar_t c) { return !(std::iswalnum(c) || c == L'_' || c == L' '); }),
+                s.end());
+        };
+        sanitize(wViewName);
+
+        // Find or create the view
+        scriptCommand += L"local view = undefined\n";
+        scriptCommand += L"local viewIdx = sme.getViewByName \"" + wViewName + L"\"\n";
+        scriptCommand += L"view = sme.getView viewIdx\n";
+
+        // Create view if it doesn't exist
+        scriptCommand += L"if view == undefined then (\n";
+        scriptCommand += L"    viewIdx = sme.CreateView \"" + wViewName + L"\"\n";
+        scriptCommand += L"    view = sme.getView viewIdx \n";
+        scriptCommand += L")\n";
+
+        // Add materials to the view
+        scriptCommand += L"if view != undefined then (\n";
+        scriptCommand += L"    local pos = [0, 0]\n";
+
+        for (size_t i = 0; i < materials.size(); ++i) {
+            // Get material handle for MaxScript
+            auto handle = Animatable::GetHandleByAnim(materials[i]);
+            scriptCommand += L"    local mat = getAnimByHandle " + std::to_wstring(handle) + L"\n";
+            scriptCommand += L"    if mat != undefined then (\n";
+            scriptCommand += L"        view.CreateNode mat pos\n";
+            scriptCommand += L"    )\n";
+        }
+        scriptCommand += L"    view.LayoutAll()\n";
+        scriptCommand += L"    sme.activeView = viewIdx\n";
+        scriptCommand += L")\n";
+        scriptCommand += L")";
+
+        // Execute the MaxScript command
+        ExecuteMAXScriptScript(scriptCommand.c_str(), MAXScript::ScriptSource::Dynamic);
+
+        MaxUsd::Log::Info("Created SME view '{}' with {} materials", viewName, materials.size());
+    } catch (const std::exception& e) {
+        MaxUsd::Log::Error("Failed to create SME view '{}': {}", viewName, e.what());
+    } catch (...) {
+        MaxUsd::Log::Error("Failed to create SME view '{}': Unknown error", viewName);
+    }
 }
 
 } // namespace MAXUSD_NS_DEF

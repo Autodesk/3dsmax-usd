@@ -26,7 +26,6 @@
     <ClInclude Include="ShapeWriter.h" />
     <ClInclude Include="SkeletonWriter.h" />
     <ClInclude Include="SkinMorpherWriter.h" />
-    <ClInclude Include="SplineUtils.h" />
     <ClInclude Include="StageWriter.h" />
     <ClInclude Include="SunPositionerWriter.h" />
   </ItemGroup>

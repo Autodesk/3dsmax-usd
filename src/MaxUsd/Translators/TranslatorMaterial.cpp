@@ -56,6 +56,10 @@ Mtl* MaxUsdTranslatorMaterial::Read(
         }
         if (mat) {
             importContext.AddCreatedMaterial(shadeMaterial.GetPrim(), mat);
+            if (boundPrim.GetPrim().IsValid()) {
+                context.RegisterBoundMaterial(mat, boundPrim.GetPath());
+            }
+
             return mat;
         }
     }
@@ -75,8 +79,6 @@ bool MaxUsdTranslatorMaterial::AssignMaterial(
         if (!mat) {
             return false;
         }
-        auto matName = MaxUsd::UsdStringToMaxString(meshMaterial.GetPath().GetName());
-        mat->SetName(matName);
 
         // assign material to mesh
         node->SetMtl(mat);
@@ -104,7 +106,7 @@ bool MaxUsdTranslatorMaterial::AssignMaterial(
                 if (matId >= 0) {
                     auto multiMat = dynamic_cast<MultiMtl*>(node->GetMtl());
                     if (multiMat) {
-                        multiMat->SetSubMtlAndName(matId, mat, matName);
+                        multiMat->SetSubMtlAndName(matId, mat, mat->GetName());
                     }
                 }
             }
@@ -130,8 +132,6 @@ bool MaxUsdTranslatorMaterial::AssignMaterial(
             if (!mat) {
                 continue;
             }
-            auto matName = MaxUsd::UsdStringToMaxString(meshMaterial.GetPath().GetName());
-            mat->SetName(matName);
 
             // assign material to proper INode submtl
             MultiMtl* multiMat = dynamic_cast<MultiMtl*>(node->GetMtl());
@@ -154,7 +154,7 @@ bool MaxUsdTranslatorMaterial::AssignMaterial(
 void MaxUsdTranslatorMaterial::ExportMaterials(
     MaxUsdWriteJobContext&                                  writeJobContext,
     const pxr::TfHashSet<pxr::SdfPath, pxr::SdfPath::Hash>& primsToMaterialBind,
-    const std::vector<Mtl*>&                         materialsToExport,
+    const std::vector<Mtl*>&                                materialsToExport,
     MaxUsd::MaxProgressBar&                                 progress)
 {
     const TfToken& shadingMode = writeJobContext.GetArgs().GetShadingMode();

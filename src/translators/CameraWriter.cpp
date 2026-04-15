@@ -15,11 +15,10 @@
 //
 #include "CameraWriter.h"
 
-#include "splineUtils.h"
-
 #include <MaxUsd/Translators/primWriter.h>
 #include <MaxUsd/Translators/writeJobContext.h>
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <MaxUsd/Utilities/SplineUtils.h>
 
 #include <pxr/base/tf/token.h>
 #include <pxr/pxr.h>
@@ -125,7 +124,7 @@ bool MaxUsdCameraWriter::Write(
 #ifdef USD_CURVES_SUPPORTED
             if (exportCurves) {
                 if (specifyFocus) {
-                    MaxSDKSupport::WriteSplineAttribute<float>(
+                    MaxUsd::WriteSplineAttribute<float>(
                         stage,
                         camParamBlock->GetControllerByID(9 /*pb_focus_distance*/),
                         targetPrim,
@@ -159,8 +158,8 @@ bool MaxUsdCameraWriter::Write(
                     // This param block doesn't match the "effective focal length" function
                     // call. Thus, create the spline then replace the knot values with the
                     // "correct" one.
-                    TsSpline focalLengthSpline = MaxSDKSupport::CreateSplineFromControl<float>(
-                        stage, focalLengthController);
+                    TsSpline focalLengthSpline
+                        = MaxUsd::CreateSplineFromControl<float>(stage, focalLengthController);
                     auto focalLengthKnots = focalLengthSpline.GetKnots();
                     for (auto& knot : focalLengthKnots) {
                         auto knotTime = MaxUsd::GetTimeValueFromFrame(knot.GetTime());
@@ -198,10 +197,10 @@ bool MaxUsdCameraWriter::Write(
         {
             if (exportCurves) {
                 if (auto fovController = camParamBlock->GetControllerByID(20 /*pb_fov*/)) {
-                    TsSpline focalLengthSpline = MaxSDKSupport::CreateSplineFromControl<float>(
+                    TsSpline focalLengthSpline = MaxUsd::CreateSplineFromControl<float>(
                         stage, camParamBlock->GetControllerByID(5 /*pb_focal_length_mm*/));
                     horizontalApertureSpline
-                        = MaxSDKSupport::CreateSplineFromControl<float>(stage, fovController);
+                        = MaxUsd::CreateSplineFromControl<float>(stage, fovController);
                     TsKnotMap verticalApertureKnots;
                     auto      horizontalApertureKnots = horizontalApertureSpline.GetKnots();
                     for (auto& knot : horizontalApertureKnots) {
@@ -260,7 +259,7 @@ bool MaxUsdCameraWriter::Write(
 #ifdef USD_CURVES_SUPPORTED
             if (exportCurves) {
                 if (auto fStopController = camParamBlock->GetControllerByID(6 /*pb_f_stop*/)) {
-                    MaxSDKSupport::WriteSplineAttribute<float>(
+                    MaxUsd::WriteSplineAttribute<float>(
                         stage, fStopController, targetPrim, fStopAttribute);
                 } else {
                     fStopAttribute.Set(maxPhysicalCamera->GetLensApertureFNumber(timeVal, valid));
@@ -289,14 +288,14 @@ bool MaxUsdCameraWriter::Write(
                 case 2:   // PBShutterType_Degrees
                 case 3: { // PBShutterType_Frames
                     if (offsetEnabled) {
-                        shutterOffsetSpline = MaxSDKSupport::CreateSplineFromControl<double>(
+                        shutterOffsetSpline = MaxUsd::CreateSplineFromControl<double>(
                             stage,
                             camParamBlock->GetControllerByID(16 /*pb_shutter_offset_relative*/),
                             [MaxFrameToUSDTime](double shutterOffset) {
                                 return MaxFrameToUSDTime(shutterOffset);
                             });
                     }
-                    shutterDurationSpline = MaxSDKSupport::CreateSplineFromControl<double>(
+                    shutterDurationSpline = MaxUsd::CreateSplineFromControl<double>(
                         stage,
                         camParamBlock->GetControllerByID(15 /*pb_shutter_length_relative*/),
                         [MaxFrameToUSDTime](double shutterLength) {
@@ -308,7 +307,7 @@ bool MaxUsdCameraWriter::Write(
                 case 1: // PBShutterType_Seconds
                 default: {
                     if (offsetEnabled) {
-                        shutterOffsetSpline = MaxSDKSupport::CreateSplineFromControl<double>(
+                        shutterOffsetSpline = MaxUsd::CreateSplineFromControl<double>(
                             stage,
                             camParamBlock->GetControllerByID(14 /*pb_shutter_offset_absolute*/),
                             [MaxFrameToUSDTime](double shutterOffset) {
@@ -316,7 +315,7 @@ bool MaxUsdCameraWriter::Write(
                                     shutterOffset * static_cast<double>(GetFrameRate()));
                             });
                     }
-                    shutterDurationSpline = MaxSDKSupport::CreateSplineFromControl<double>(
+                    shutterDurationSpline = MaxUsd::CreateSplineFromControl<double>(
                         stage,
                         camParamBlock->GetControllerByID(13 /*pb_shutter_length_absolute*/),
                         [MaxFrameToUSDTime](double duration) {
@@ -332,11 +331,10 @@ bool MaxUsdCameraWriter::Write(
                 }
 
                 if (!shutterDurationSpline.GetKnots().empty()) {
-                    usdCamera.CreateShutterCloseAttr().SetSpline(
-                        MaxSDKSupport::CombineSplines<double>(
-                            shutterOffsetSpline,
-                            shutterDurationSpline,
-                            [](double v1, double v2) -> double { return v1 + v2; }));
+                    usdCamera.CreateShutterCloseAttr().SetSpline(MaxUsd::CombineSplines<double>(
+                        shutterOffsetSpline,
+                        shutterDurationSpline,
+                        [](double v1, double v2) -> double { return v1 + v2; }));
                 }
             }
 
@@ -364,7 +362,7 @@ bool MaxUsdCameraWriter::Write(
             if (exportCurves) {
                 if (auto exposureController
                     = camParamBlock->GetControllerByID(24 /*pb_exposure_value*/)) {
-                    MaxSDKSupport::WriteSplineAttribute<float>(
+                    MaxUsd::WriteSplineAttribute<float>(
                         stage, exposureController, targetPrim, exposureAttribute);
                 } else {
                     exposureAttribute.Set(maxPhysicalCamera->GetEffectiveEV(timeVal, valid));
@@ -399,7 +397,7 @@ bool MaxUsdCameraWriter::Write(
                     }
                 };
 
-                auto lensHorizontalShiftSpline = MaxSDKSupport::CreateSplineFromControl<float>(
+                auto lensHorizontalShiftSpline = MaxUsd::CreateSplineFromControl<float>(
                     stage,
                     camParamBlock->GetControllerByID(39 /*pb_lens_horizontal_shift*/),
                     [](float horizontalShift) { return -horizontalShift; });
@@ -409,7 +407,7 @@ bool MaxUsdCameraWriter::Write(
                         lensHorizontalShiftSpline);
                 }
 
-                auto lensVerticalShiftSpline = MaxSDKSupport::CreateSplineFromControl<float>(
+                auto lensVerticalShiftSpline = MaxUsd::CreateSplineFromControl<float>(
                     stage,
                     camParamBlock->GetControllerByID(40 /*pb_lens_vertical_shift*/),
                     [](float verticalShift) { return -verticalShift; });
@@ -537,8 +535,8 @@ bool MaxUsdCameraWriter::Write(
                 };
                 if (auto focalLengthController = maxCamera->GetFOVControl()) {
 
-                    TsSpline focalLengthSpline = MaxSDKSupport::CreateSplineFromControl<float>(
-                        stage, focalLengthController);
+                    TsSpline focalLengthSpline
+                        = MaxUsd::CreateSplineFromControl<float>(stage, focalLengthController);
                     auto focalLengthKnots = focalLengthSpline.GetKnots();
                     for (auto& knot : focalLengthKnots) {
                         auto knotTime = MaxUsd::GetTimeValueFromFrame(knot.GetTime());

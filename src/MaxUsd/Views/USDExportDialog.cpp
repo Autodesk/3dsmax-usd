@@ -33,21 +33,17 @@
 #include <MaxUsd/Utilities/UiUtils.h>
 
 #include <pxr/base/tf/token.h>
-#include <pxr/usd/usd/usdFileFormat.h>
 
 #include <Qt/QmaxMainWindow.h>
 #include <Qt/QmaxRollup.h>
 #include <Qt/QmaxRollupContainer.h>
 #include <Qt/QmaxToolClips.h>
 
-#include <IPathConfigMgr.h>
 #include <QtGui/qevent.h>
 #include <QtGui/qscreen.h>
-#include <QtGui/qstandarditemmodel.h>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/qabstractspinbox.h>
 #include <QtWidgets/qcombobox.h>
-#include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qstyle.h>
 #include <QtWidgets/qwhatsthis.h>
@@ -95,6 +91,8 @@ USDExportDialog::USDExportDialog(const MaxUsd::IUSDExportOptions& buildOptions)
             qobject_cast<QWidget*>(object)->setFocusPolicy(Qt::StrongFocus);
         }
     });
+
+    transformFormat = buildOptions.GetTransformFormat();
 }
 
 void USDExportDialog::addRollup(QWidget* w, bool open)
@@ -427,8 +425,38 @@ void USDExportToFileDialog::setupRollups()
     addRollup(new UsdExportMaterialsRollup(this->buildOptions));
     animationRollup = new UsdExportAnimationRollup(this->buildOptions);
     addRollup(animationRollup, false);
-    addRollup(new UsdExportGeneralSettingsRollup(this->buildOptions), false);
+    generalSettingsRollup = new UsdExportGeneralSettingsRollup(this->buildOptions);
+    addRollup(generalSettingsRollup, false);
     addRollup(new UsdExportAdvancedRollup(this->buildOptions), false);
+
+#ifdef USD_CURVES_SUPPORTED
+    connect(
+        animationRollup->GetAnimationTypeComboBox(),
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        [&](int index) {
+            auto selectedAnimationType
+                = static_cast<MaxUsd::USDSceneBuilderOptions::AnimationType>(index);
+            auto transformFormatComboBox = generalSettingsRollup->GetTransformFormatComboBox();
+            if (selectedAnimationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
+                || selectedAnimationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both) {
+                // Only cache the old transform format if we are switching away from time samples.
+                // The user could be switching between "Curves" and "Both".
+                if (buildOptions.GetAnimationType()
+                    == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples) {
+
+                    transformFormat = buildOptions.GetTransformFormat();
+                }
+                transformFormatComboBox->setCurrentIndex(
+                    static_cast<int>(MaxUsd::TransformFormat::SplitComponents));
+                transformFormatComboBox->setEnabled(false);
+            } else {
+                transformFormatComboBox->setCurrentIndex(static_cast<int>(transformFormat));
+                transformFormatComboBox->setEnabled(true);
+            }
+            buildOptions.SetAnimationType(selectedAnimationType);
+        });
+#endif
 }
 
 const QString& USDExportToFileDialog::GetRollupCategory()

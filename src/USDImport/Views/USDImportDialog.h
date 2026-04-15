@@ -147,6 +147,12 @@ protected:
     void OnTranslateMaterialsStateChanged(bool checked);
 
     /**
+     * \brief Callback executed upon changing the "Slate Material Handling" combobox selection.
+     * \param index The new index selected in the combobox.
+     */
+    void OnSlateMaterialHandlingChanged(int index);
+
+    /**
      * \brief Callback for file browsing log path
      */
     void OnLogPathBrowseClicked();

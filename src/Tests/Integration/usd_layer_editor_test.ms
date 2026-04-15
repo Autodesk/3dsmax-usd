@@ -21,9 +21,15 @@ setupUsdPlugins()
 
 struct usd_layer_editor_test
 (  
+    private
+    originalQuietMode,
+
+    public
     function setup =
     (
         quickReset()
+        originalQuietMode = GetQuietMode()
+        SetQuietMode(false)
     ),
 
     function findUsdLayerEditor = (
@@ -59,6 +65,7 @@ struct usd_layer_editor_test
     
     function teardown =
     (
+        SetQuietMode(originalQuietMode)
     ),    
 
     Tests = #(

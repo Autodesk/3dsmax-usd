@@ -1,6 +1,66 @@
 ## Changelog
 
 
+### v0.14.0
+
+#### What's New:
+- New public release - version 0.14.0
+
+#### Fixes:
+- Fixed an issue where lights could lose non-animated attributes when exported with Animation Curves option.
+- Fixed environment search path enable/disable state not properly taken into account in asset resolver preferences.
+- Fixed saving of USD preferences window position and scale.
+- Fixed an issue when exporting split transform would cause the transform stack to have more transforms than intended.
+- Prevented empty paths from being added to the user search paths list in the USD preferences window.
+- Fixed the DrawModes_Reserved layer not preserving its lock state when saving USD edits into the Max file.
+- Fixed stages not re-loading in the USD Explorer after re-opening a scene if the USD Stage has an anonymous root.
+- Fixed file-backed sublayers going missing when a USD Stage with an anonymous root layer is saved to disk.
+
+### v0.13.6
+
+#### What's New:
+- Added support for USD Animation curves of lights when exporting to USD. Note that USD animation curve support is not yet available in USD for colors, so light colors still export as timesamples.
+
+#### Fixes:
+- Fixed the USD Layer Editor to not show the session layer as being dirty when reloading a scene with a USD Stage Object.
+- Fixed unexpected prompt to save a USD Layer when saving a Max scene when a USD Prim had been promoted to a USDGeometryObject.
+- Fixed the USD Asset Resolver icons becoming unresponsive after adding long paths to the Search Paths.
+- Fixed the USD Explorer to not open when 3ds Max is running in headless mode.
+- Fixed a crash in 3ds Max USD when rendering with Deadline if there is a USDGeomObject in the scene.
+- Fixed the Browse and Delete buttons not appearing on new search paths in the USD Asset Resolver Search Paths.
+- Fixed the path field not being in focus automatically when adding a new Search Path to the USD Asset Resolver.
+- Updated the Add User Path button in the USD Asset Resolver UI.
+
+### v0.13.5
+
+#### What's New:
+- Added support for exporting animation curves on transforms for USD 25.11+.
+
+### v0.13.4
+
+#### What's New:
+- Updated the USD Asset Resolver to refresh and re-resolve when changes are made to the Asset Resolver Settings. Previously, a user had to reset 3ds Max.
+
+### v0.13.3
+
+#### Fixes:
+- Fixed EXCEPTION_ACCESS_VIOLATION error when trying to export with contentSource set to #nodeAndMaterialList and no nodes where passed in the function.
+- Fixed USD View rendering for version 2025.
+- Fixed crash due to reserved layer being treated as anonymous when serializing to 3ds Max file.
+
+### v0.13.2
+
+#### What's New:
+- Added support for importing materials in a USD file that are not bound to imported geometry. Previously, you could only import materials bound to geometry.
+
+#### Fixes:
+- Fixed a crash related to deleting stage with a promoted object with USD edits.
+
+### v0.13.1
+
+#### What's New:
+- Compatibility release for 3ds Max Beta N2347-69.19 release.
+
 ### v0.13.0
 
 #### What's New:

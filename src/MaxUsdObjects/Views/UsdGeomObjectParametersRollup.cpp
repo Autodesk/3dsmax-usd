@@ -80,7 +80,10 @@ void UsdGeomObjectParametersRollup::UpdateUI(const TimeValue t)
 
 void UsdGeomObjectParametersRollup::UpdateShowSourceConflictWarning() const
 {
-    const auto             stageNode = geomObject->GetStageNode();
+    const auto stageNode = geomObject->GetStageNode();
+    if (!stageNode) {
+        return;
+    }
     FindUSDGeomObjectsProc proc(stageNode);
     stageNode->DoEnumDependents(&proc);
 

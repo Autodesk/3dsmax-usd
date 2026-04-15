@@ -22,7 +22,6 @@
 #include <MaxUsd/Utilities/VtDictionaryUtils.h>
 
 #include <pxr/usd/sdf/path.h>
-#include <pxr/usd/usd/usdcFileFormat.h>
 #include <pxr/usdImaging/usdImaging/tokens.h>
 
 using namespace MaxUsd;
@@ -101,6 +100,7 @@ const pxr::VtDictionary& MaxSceneBuilderOptions::GetDefaultDictionary()
 
         defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->startTimeCode] = 0.0;
         defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->endTimeCode] = 0.0;
+        defaultDict[MaxUsdMaxSceneBuilderOptionsTokens->slateMaterialHandling] = static_cast<int>(SlateMaterialHandling::Off);
     });
     // Purposefully left out of the call_once in order to always fetch the latest value for
     // "APP_TEMP_DIR", it might change during the session.
@@ -351,7 +351,7 @@ pxr::TfToken MaxSceneBuilderOptions::GetMaterialConversion() const
     return shadingModes.empty()
         ? TfToken()
         : VtDictionaryGet<TfToken>(
-              shadingModes.front(), MaxUsdShadingModesTokens->materialConversion);
+            shadingModes.front(), MaxUsdShadingModesTokens->materialConversion);
 }
 
 void MaxSceneBuilderOptions::SetPreferredMaterial(const pxr::TfToken& targetMaterial)
@@ -445,6 +445,17 @@ bool MaxSceneBuilderOptions::GetUseProgressBar() const
 void MaxSceneBuilderOptions::SetUseProgressBar(bool useProgressBar)
 {
     options[MaxUsdMaxSceneBuilderOptionsTokens->useProgressBar] = useProgressBar;
+}
+
+MaxSceneBuilderOptions::SlateMaterialHandling MaxSceneBuilderOptions::GetSlateMaterialHandling() const
+{
+    return static_cast<SlateMaterialHandling>(VtDictionaryGet<int>(
+        options, MaxUsdMaxSceneBuilderOptionsTokens->slateMaterialHandling, VtDefault = static_cast<int>(SlateMaterialHandling::Off)));
+}
+
+void MaxSceneBuilderOptions::SetSlateMaterialHandling(SlateMaterialHandling slateMaterialHandling)
+{
+    options[MaxUsdMaxSceneBuilderOptionsTokens->slateMaterialHandling] = static_cast<int>(slateMaterialHandling);
 }
 
 } // namespace MAXUSD_NS_DEF

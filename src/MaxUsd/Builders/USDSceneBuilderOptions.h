@@ -24,8 +24,13 @@
 
 #include <pxr/base/tf/staticTokens.h>
 #include <pxr/base/tf/token.h>
+#if PXR_VERSION >= 2511
+#include <pxr/usd/sdf/usdFileFormat.h>
+#include <pxr/usd/sdf/usdcFileFormat.h>
+#else
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
+#endif
 
 PXR_NAMESPACE_OPEN_SCOPE
 // clang-format off
@@ -784,11 +789,12 @@ public:
     // and that data is not kept between exports otherwise
     struct MaxUSDAPI AnimationRollupData
     {
-        bool   frameNumberDefault { true };
-        double frameNumber;
-        bool   frameRangeDefault { true };
-        double frameRangeStart;
-        double frameRangeEnd;
+        bool          frameNumberDefault { true };
+        double        frameNumber;
+        bool          frameRangeDefault { true };
+        double        frameRangeStart;
+        double        frameRangeEnd;
+        AnimationType animationType { AnimationType::TimeSamples };
     };
 
     /**

@@ -42,6 +42,7 @@ class TestMaterialImport(unittest.TestCase):
         Usd.ModelAPI(self.root).SetKind(Kind.Tokens.component)
         self.import_options = RT.USDImporter.CreateOptions()
         self.import_options.PreferredMaterial = "maxUsdPreviewSurface"
+        self.import_options.SlateMaterialHandling = RT.Name("Off")
 
     def tearDown(self) -> None:
         self.import_options.PreferredMaterial = "maxUsdPreviewSurface"
@@ -708,6 +709,151 @@ class TestMaterialImport(unittest.TestCase):
         RT.USDImporter.ImportFile(test_usd_file_path,importOptions=self.import_options)
 
         self.assertEqual(len(RT.sceneMaterials), 0)
+
+    def test_unbound_material_import_with_unbound_materials_mode(self):
+        """Test that unbound materials are imported when SlateMaterialHandling is set to UnboundMaterials."""
+        test_bitmap_path = os.path.join(os.path.dirname(__file__), "USDLogoDocs.png")
+
+        # Create unbound material (no geometry binding)
+        bbmaterial = UsdShade.Material.Define(self.stage, '/root/unboundMaterial')
+        pbrShader = UsdShade.Shader.Define(self.stage, '/root/unboundMaterial/PBRShader')
+
+        roughness_value = 0.6
+        metallic_value = 0.8
+        diffuseColor_value = (200.0, 100.0, 50.0)
+
+        pbrShader.CreateIdAttr("UsdPreviewSurface")
+        pbrShader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness_value)
+        pbrShader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic_value)
+        pbrShader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set((diffuseColor_value[0]/255.0, diffuseColor_value[1]/255.0, diffuseColor_value[2]/255.0))
+
+        bbmaterial.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
+
+        # Add texture
+        diffuseTextureSampler = UsdShade.Shader.Define(self.stage,'/root/unboundMaterial/diffuseTexture')
+        diffuseTextureSampler.CreateIdAttr('UsdUVTexture')
+        diffuseTextureSampler.CreateInput('file', Sdf.ValueTypeNames.Asset).Set(test_bitmap_path)
+        pbrShader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(diffuseTextureSampler.ConnectableAPI(), 'rgb')
+
+        test_name = "test_unbound_material_import_with_unbound_materials_mode"
+        test_usd_file_path = "{0}{1}.usda".format(self.output_prefix, test_name)
+        self.import_options.LogPath = "{0}{1}_LOG.txt".format(self.output_prefix, test_name)
+        self.stage.GetRootLayer().Export(test_usd_file_path)
+
+        # Enable UnboundMaterials mode
+        self.import_options.SlateMaterialHandling = RT.Name("UnboundMaterials")
+        RT.USDImporter.ImportFile(test_usd_file_path, importOptions=self.import_options)
+        viewIdx = RT.sme.getViewByName("IMPORT_MATERIAL_PYMXS_TEST_" + test_name)
+        self.assertEqual(viewIdx, 2)
+        view = RT.sme.getView(viewIdx)
+        matNode = view.GetNode(2)
+        self.assertEqual(matNode.name, "unboundMaterial")
+        texNode = view.GetNode(1)
+        self.assertEqual(texNode.name, "diffuseTexture")
+
+    def test_unbound_material_import_with_none_mode(self):
+        """Test that unbound materials are NOT imported when SlateMaterialHandling is set to Off."""
+        # Create unbound material (no geometry binding)
+        bbmaterial = UsdShade.Material.Define(self.stage, '/root/unboundMaterial2')
+        pbrShader = UsdShade.Shader.Define(self.stage, '/root/unboundMaterial2/PBRShader')
+
+        pbrShader.CreateIdAttr("UsdPreviewSurface")
+        pbrShader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.5)
+        pbrShader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(0.2)
+
+        bbmaterial.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
+
+        test_name = "test_unbound_material_import_with_none_mode"
+        test_usd_file_path = "{0}{1}.usda".format(self.output_prefix, test_name)
+        self.stage.GetRootLayer().Export(test_usd_file_path)
+
+        RT.USDImporter.ImportFile(test_usd_file_path, importOptions=self.import_options)
+
+        viewIdx = RT.sme.getViewByName("{0}{1}".format(self.output_prefix, test_name))
+        self.assertEqual(viewIdx, 0)
+
+
+    def test_slate_material_handling_dependency_on_materials_disabled(self):
+        """Test that when Materials are disabled (shading mode = none), SlateMaterialHandling has no effect."""
+        # Create unbound material
+        bbmaterial = UsdShade.Material.Define(self.stage, '/root/testMaterial')
+        pbrShader = UsdShade.Shader.Define(self.stage, '/root/testMaterial/PBRShader')
+
+        pbrShader.CreateIdAttr("UsdPreviewSurface")
+        pbrShader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.5)
+        
+        bbmaterial.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
+
+        test_name = "test_slate_material_handling_dependency_on_materials_disabled"
+        test_usd_file_path = "{0}{1}.usda".format(self.output_prefix, test_name)
+        self.stage.GetRootLayer().Export(test_usd_file_path)
+
+        # Disable materials by setting shading mode to 'none'
+        self.import_options.ShadingModes = [["none", "none"]]
+        # Enable AllMaterials mode (should have no effect since materials are disabled)
+        self.import_options.SlateMaterialHandling = RT.Name("AllMaterials")
+        
+        RT.USDImporter.ImportFile(test_usd_file_path, importOptions=self.import_options)
+
+        viewIdx = RT.sme.getViewByName("{0}{1}".format(self.output_prefix, test_name))
+        self.assertEqual(viewIdx, 0)
+
+    def test_slate_material_handling_with_materials_enabled_but_none_mode(self):
+        """Test that when Materials are enabled but SlateMaterialHandling is Off, unbound materials are not imported."""
+        # Create unbound material
+        bbmaterial = UsdShade.Material.Define(self.stage, '/root/testMaterial2')
+        pbrShader = UsdShade.Shader.Define(self.stage, '/root/testMaterial2/PBRShader')
+
+        pbrShader.CreateIdAttr("UsdPreviewSurface")
+        pbrShader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.7)
+        
+        bbmaterial.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
+
+        test_name = "test_slate_material_handling_with_materials_enabled_but_none_mode"
+        test_usd_file_path = "{0}{1}.usda".format(self.output_prefix, test_name)
+        self.stage.GetRootLayer().Export(test_usd_file_path)
+
+        # Enable materials (use default shading modes)
+        self.import_options.ShadingModes = [["useRegistry", "UsdPreviewSurface"]]
+        
+        RT.USDImporter.ImportFile(test_usd_file_path, importOptions=self.import_options)
+
+        viewIdx = RT.sme.getViewByName("{0}{1}".format(self.output_prefix, test_name))
+        self.assertEqual(viewIdx, 0)
+
+    def test_all_materials_slate_handling_mode(self):
+        """Test that both bound and unbound materials are imported when SlateMaterialHandling is set to AllMaterials."""
+        # Create bound material (with geometry binding)
+        billboard = UsdGeom.Mesh.Define(self.stage, "/root/billboard")
+        boundMaterial = UsdShade.Material.Define(self.stage, '/root/boundMaterial')
+        pbrShader1 = UsdShade.Shader.Define(self.stage, '/root/boundMaterial/PBRShader')
+        pbrShader1.CreateIdAttr("UsdPreviewSurface")
+        pbrShader1.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.3)
+        boundMaterial.CreateSurfaceOutput().ConnectToSource(pbrShader1.ConnectableAPI(), "surface")
+        UsdShade.MaterialBindingAPI(billboard).Bind(boundMaterial)
+
+        # Create unbound material (no geometry binding)
+        unboundMaterial = UsdShade.Material.Define(self.stage, '/root/unboundMaterial')
+        pbrShader2 = UsdShade.Shader.Define(self.stage, '/root/unboundMaterial/PBRShader')
+        pbrShader2.CreateIdAttr("UsdPreviewSurface")
+        pbrShader2.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.7)
+        unboundMaterial.CreateSurfaceOutput().ConnectToSource(pbrShader2.ConnectableAPI(), "surface")
+
+        test_name = "test_all_materials_slate_handling_mode"
+        test_usd_file_path = "{0}{1}.usda".format(self.output_prefix, test_name)
+        self.import_options.LogPath = "{0}{1}_LOG.txt".format(self.output_prefix, test_name)
+        self.stage.GetRootLayer().Export(test_usd_file_path)
+
+        # Enable AllMaterials mode
+        self.import_options.SlateMaterialHandling = RT.Name("AllMaterials")
+        RT.USDImporter.ImportFile(test_usd_file_path, importOptions=self.import_options)
+        
+        # Check that SME view was created with both materials
+        viewIdx = RT.sme.getViewByName("IMPORT_MATERIAL_PYMXS_TEST_" + test_name)
+        self.assertNotEqual(viewIdx, 0)  # View should exist
+        view = RT.sme.getView(viewIdx)
+        # Should have both bound and unbound materials
+        self.assertGreaterEqual(view.GetNumNodes(), 2)
 
     def test_invalid_texture_name_material(self):
         billboard = UsdGeom.Mesh.Define(self.stage, "/root/billboard")

@@ -71,6 +71,7 @@ struct import_options_test
         assert_equal "UsdPreviewSurface" importOptions.ShadingModes[2][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
         assert_equal "useRegistry" importOptions.ShadingModes[1][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
         assert_equal "MaterialXReference" importOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
+        assert_equal #Off importOptions.SlateMaterialHandling message:"The SlateMaterialHandling property was not properly initialized to Off (default)"
         
         -- Set them all to non-default values
         importOptions.StageMask = #("/foo")
@@ -82,6 +83,7 @@ struct import_options_test
         importOptions.LogPath = (output_prefix + "log_path.txt")
         importOptions.ImportUnmappedPrimvars = false
         importOptions.PreferredMaterial = "MaxUsdPreviewSurface"
+        importOptions.SlateMaterialHandling = #AllMaterials
 
         -- Setting a ShadingMode to 'none' inside an array should set only 'none' as the ShadingModes
         importOptions.ShadingModes = #(#("useRegistry", "MaterialX"), #("none", "VRayMaterial"))
@@ -115,6 +117,14 @@ struct import_options_test
         assert_equal "MaterialX" uiImportOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly set."
         assert_equal "useRegistry" uiImportOptions.ShadingModes[2][1] message:"The ShadingModes property was not properly set."
         assert_equal "VRayMaterial" uiImportOptions.ShadingModes[2][2] message:"The ShadingModes property was not properly set."
+        assert_equal #AllMaterials uiImportOptions.SlateMaterialHandling message:"The SlateMaterialHandling property was not properly set to AllMaterials."
+
+        -- Test all enum values
+        uiImportOptions.SlateMaterialHandling = #UnboundMaterials
+        assert_equal #UnboundMaterials uiImportOptions.SlateMaterialHandling message:"The SlateMaterialHandling property was not properly set to UnboundMaterials."
+        
+        uiImportOptions.SlateMaterialHandling = #Off
+        assert_equal #Off uiImportOptions.SlateMaterialHandling message:"The SlateMaterialHandling property was not properly set to Off."
 
         -- Reset & test
         uiImportOptions.Reset()
@@ -135,6 +145,7 @@ struct import_options_test
         assert_equal "UsdPreviewSurface" uiImportOptions.ShadingModes[2][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
         assert_equal "useRegistry" uiImportOptions.ShadingModes[1][1] message:"The ShadingModes property was not properly initialized with expected 'mode'."
         assert_equal "MaterialXReference" uiImportOptions.ShadingModes[1][2] message:"The ShadingModes property was not properly initialized with expected 'materialConversion'."
+        assert_equal #Off uiImportOptions.SlateMaterialHandling message:"The SlateMaterialHandling property was not properly reset to Off (default)."
     ),
 
     function test_stage_mask_option = (

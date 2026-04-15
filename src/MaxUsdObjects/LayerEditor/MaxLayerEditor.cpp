@@ -156,11 +156,18 @@ void MaxLayerEditor::Initialize()
             // a new stage object and they won't carry over implicitly.
             const auto mutedLayers = object->GetUSDStage()->GetMutedLayers();
 
+            IParamBlock2* pb = object->GetParamBlock(0);
+            BOOL          payloadsLoaded = false;
+            Interval      valid;
+            pb->GetValue(
+                PBParameterIds::LoadPayloads, GetCOREInterface()->GetTime(), payloadsLoaded, valid);
+
             SdfLayerRefPtr layerPtr = SdfLayer::FindOrOpen(rootLayerPath);
             auto           updatedStage = UsdStage::UsdStage::Open(
                 layerPtr,
                 object->GetUSDStage()->GetSessionLayer(),
-                UsdStage::InitialLoadSet::LoadNone);
+                payloadsLoaded ? UsdStage::InitialLoadSet::LoadAll
+                                         : UsdStage::InitialLoadSet::LoadNone);
 
             object->GetParamBlock(0)->SetValue(StageFile, GetCOREInterface()->GetTime(), rootPath);
             object->GetParamBlock(0)->SetValue(StageMask, GetCOREInterface()->GetTime(), L"/");
@@ -178,7 +185,6 @@ void MaxLayerEditor::Initialize()
             // NOTE: the reason we reset it here is because this callback
             // is called when an anonymous root layer is saved from the layer
             // editor.
-            IParamBlock2* pb = object->GetParamBlock(0);
             if (pb) {
                 pb->SetValue(PBParameterIds::AnonRootId, 0, L"");
             }
@@ -209,6 +215,10 @@ void MaxLayerEditor::Initialize()
 
 void MaxLayerEditor::Open()
 {
+    if (GetCOREInterface()->GetQuietMode()) {
+        return;
+    }
+
     const auto dock = getLayerEditorDockWidget();
     dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
     dock->show();
@@ -223,6 +233,10 @@ void MaxLayerEditor::Close()
 
 void MaxLayerEditor::OpenStage(USDStageObject* stageObject)
 {
+    if (GetCOREInterface()->GetQuietMode()) {
+        return;
+    }
+
     if (!stageObject) {
         Open();
         return;

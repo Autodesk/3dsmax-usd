@@ -50,6 +50,9 @@
     <ClInclude Include="DLLEntry.h" />
     <ClInclude Include="PreferencesExport.h" />
   </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="AssetResolverPreferences\AssetResolver.qrc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>MaxUsd_Preferences</ProjectName>
     <Keyword>QtVS_v302</Keyword>

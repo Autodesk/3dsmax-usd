@@ -62,6 +62,13 @@ QIcon ApplicationHost::icon(const IconName& name) const
 {
     switch (name) {
     case IconName::Add: return QIcon::fromTheme("list-add");
+    case IconName::AddFolder: {
+        QIcon icon;
+        icon.addFile(":/AdskUSDAssetResolver/icons/dark/add_folder_100.png");
+        icon.addFile(":/AdskUSDAssetResolver/icons/dark/add_folder_150.png");
+        icon.addFile(":/AdskUSDAssetResolver/icons/dark/add_folder_200.png");
+        return icon;
+    }
     case IconName::OpenFile: return QIcon::fromTheme("document-open");
     case IconName::Delete: return QIcon::fromTheme("edit-delete");
     case IconName::MoveUp: return QIcon::fromTheme("go-up");
@@ -85,7 +92,7 @@ int ApplicationHost::pm(const PixelMetric& metric) const
     case PixelMetric::TinyPadding: return 2;             // Default implementation
     case PixelMetric::ResizableActiveAreaSize: return 8; // Default implementation
     case PixelMetric::ResizableContentMargin: return 4;  // Default implementation
-    case PixelMetric::ItemHeight: return 24;           // Default implementation
+    case PixelMetric::ItemHeight: return 24;             // Default implementation
     default: return 0;
     }
 };

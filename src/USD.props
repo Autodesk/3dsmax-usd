@@ -35,10 +35,9 @@
 		<PythonVersion Condition="'$(VersionTarget)'&gt;'2026'">313</PythonVersion>
 		<PythonVersion Condition="'$(VersionTarget)'&gt;='2025' and '$(VersionTarget)'&lt;='2026'">311</PythonVersion>
 		<PythonVersion Condition="'$(VersionTarget)'=='2024'">310</PythonVersion>
-		<PythonVersion Condition="'$(VersionTarget)'=='2023'">39</PythonVersion>
 		<PyOpenGLDir Condition="'$(PyOpenGLDir)'==''">$(Artifacts)$(VersionTarget)\PyOpenGL</PyOpenGLDir>
 	</PropertyGroup>
-	<PropertyGroup Condition="$(VersionTarget)&gt;=2023">
+	<PropertyGroup>
 	    <ExternalIncludePath>$(Pixar_USDInc);$(VC_IncludePath);$(WindowsSDK_IncludePath)</ExternalIncludePath>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
@@ -51,7 +50,6 @@
 			<AdditionalIncludeDirectories>$(SolutionDir);$(BoostInc);$(TBBInclude);$(PythonInc);$(Pixar_USDInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;NOMINMAX=;TBB_SUPPRESS_DEPRECATED_MESSAGES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2025">BOOST_ALL_NO_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2023">_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<DisableSpecificWarnings>4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
 			<AdditionalOptions Condition="$(VersionTarget)&gt;=2024">/Zc:__cplusplus</AdditionalOptions>
 		</ClCompile>

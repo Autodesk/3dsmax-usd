@@ -19,8 +19,10 @@
 
 #include <MaxUsd/Translators/PrimReader.h>
 #include <MaxUsd/Translators/ReadJobContext.h>
+#include <MaxUsd/Utilities/MaxProgressBar.h>
 
 #include <pxr/usd/usd/primRange.h>
+#include <pxr/usd/usd/stage.h>
 
 #include <GetCOREInterface.h>
 
@@ -123,6 +125,28 @@ protected:
      * \return True if the prim type is to be excluded, false otherwise
      */
     bool ExcludedPrimNode(const pxr::UsdPrim& prim);
+
+    /**
+     * \brief Handle materials for Slate Material Editor based on SlateMaterialHandling option
+     * \param buildOptions Options for the translation of USD content into 3ds Max content
+     * \param stage The USD stage containing the materials to import
+     * \param context The read job context being used in the current import job
+     * \param progressBar Progress bar for reporting import progress
+     */
+    void HandleSlateMaterials(
+        const MaxSceneBuilderOptions& buildOptions,
+        const pxr::UsdStageRefPtr&    stage,
+        pxr::MaxUsdReadJobContext&    context,
+        MaxProgressBar&               progressBar);
+
+    /**
+     * \brief Create a view in the Slate Material Editor and add materials to it
+     * \param viewName Name of the SME view to create or find
+     * \param materials Vector of materials to add to the view
+     */
+    void CreateSMEViewWithMaterials(
+        const std::string&       viewName,
+        const std::vector<Mtl*>& materials);
 
     /// Reference to the Core Interface to use to interface with 3ds Max:
     Interface17* coreInterface { GetCOREInterface17() };

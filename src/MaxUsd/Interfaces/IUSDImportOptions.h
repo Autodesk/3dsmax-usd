@@ -105,6 +105,18 @@ public:
     int GetTimeMode() const;
 
     /**
+     * \brief Sets the slate material handling mode that will be used when importing USD.
+     * \param value The new slate material handling mode value. SlateMaterialHandling::Off (0), 
+     * SlateMaterialHandling::UnboundMaterials (1), or SlateMaterialHandling::AllMaterials (2)
+     */
+    void SetSlateMaterialHandling(int value);
+
+    /**
+     * \brief Gets the slate material handling mode that will be used when importing USD.
+     */
+    int GetSlateMaterialHandling() const;
+
+    /**
      * \brief Sets the USD Stage initial load set to use for the import of content into 3ds Max.
      * \param The USD Stage initial load set to use for the import of content into 3ds Max.
      */
@@ -199,7 +211,8 @@ public:
         fnIdGetImportUnmappedPrimvars, fnIdSetImportUnmappedPrimvars,
         fnIdGetTranslateMaterials,
         fnIdGetUseProgressBar, fnIdSetUseProgressBar,
-        fidSerialize
+        fidSerialize,
+        fnIdSetSlateMaterialHandling, fnIdGetSlateMaterialHandling,
     };
 
     enum
@@ -208,6 +221,7 @@ public:
         eIdLogLevel,
         eIdMetaData,
         eIdTimeMode,
+        eIdSlateMaterialHandling,
     };
 
     BEGIN_FUNCTION_MAP
@@ -216,6 +230,7 @@ public:
         PROP_FNS(fnIdGetStartTimeCode, GetStartTimeCode, fnIdSetStartTimeCode, SetStartTimeCode, TYPE_DOUBLE);
         PROP_FNS(fnIdGetEndTimeCode, GetEndTimeCode, fnIdSetEndTimeCode, SetEndTimeCode, TYPE_DOUBLE);
         PROP_FNS(fnIdGetTimeMode, GetTimeMode, fnIdSetTimeMode, SetTimeMode, TYPE_ENUM);
+        PROP_FNS(fnIdGetSlateMaterialHandling, GetSlateMaterialHandling, fnIdSetSlateMaterialHandling, SetSlateMaterialHandling, TYPE_ENUM);
         PROP_FNS(fnIdGetInitialLoadSet, GetInitialLoadSet, fnIdSetInitialLoadSet, SetInitialLoadSet, TYPE_ENUM);
         PROP_FNS(fnIdGetLogPath, logInterface.GetLogPath, fnIdSetLogPath, logInterface.SetLogPath, TYPE_STRING);
         PROP_FNS(fnIdGetLogLevel, logInterface.GetLogLevel, fnIdSetLogLevel, logInterface.SetLogLevel, TYPE_ENUM);

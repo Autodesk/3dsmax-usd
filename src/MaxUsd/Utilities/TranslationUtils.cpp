@@ -101,32 +101,12 @@ void ApplyObjectOffsetTransform(
                 UsdGeomXformOp::PrecisionDouble,
                 nbOfOps);
         } else {
-            // Divide by 3 since each op is now composed by 3 elements instead of just 1 when
-            // compared to the single matrix export type.
-            nbOfOps = nbOfOps / 3;
-
-            pxr::UsdGeomXformOp transOp, rotOp, scaleOp;
-            SetXForm(
-                usdTransform,
-                xformable,
-                transOp,
-                UsdGeomXformOp::TypeTranslate,
-                UsdGeomXformOp::PrecisionDouble,
-                nbOfOps);
-            SetXForm(
-                usdTransform,
-                xformable,
-                rotOp,
-                UsdGeomXformOp::TypeRotateXYZ,
-                UsdGeomXformOp::PrecisionFloat,
-                nbOfOps);
-            SetXForm(
-                usdTransform,
-                xformable,
-                scaleOp,
-                UsdGeomXformOp::TypeScale,
-                UsdGeomXformOp::PrecisionFloat,
-                nbOfOps);
+            const auto& transformOps = GetDefaultSplitTransformOps();
+            for (const auto& op : transformOps) {
+                pxr::UsdGeomXformOp xformOp;
+                SetXForm(
+                    usdTransform, xformable, xformOp, op.first, op.second, transformOps.size());
+            }
         }
     }
 }
@@ -310,7 +290,8 @@ bool SetXForm(
     pxr::UsdGeomXformOp::Type      xformType,
     pxr::UsdGeomXformOp::Precision xformPrecision,
     size_t                         opsIdentifier,
-    const pxr::UsdTimeCode&        time)
+    const pxr::UsdTimeCode&        time,
+    bool                           checkExisingOp)
 {
     pxr::VtValue value;
     std::string  suffix;
@@ -324,12 +305,28 @@ bool SetXForm(
     // like 1.0000002 when it could have been 1.0
     transformMatrix.Factor(&rotR, &scale, &rotU, &translate, &project, 1E-6);
 
+    // Helper lambda to extract individual components from vectors
+    auto setComponentValue = [&value, &suffix](
+                                 const pxr::GfVec3d& vec,
+                                 int                 component,
+                                 const std::string&  suffixStr,
+                                 bool                useFloat = true) {
+        suffix = suffixStr;
+        value = useFloat ? pxr::VtValue(static_cast<float>(vec[component]))
+                         : pxr::VtValue(vec[component]);
+    };
+
     switch (xformType) {
-    case pxr::UsdGeomXformOp::TypeTranslate: {
+    case pxr::UsdGeomXformOp::TypeTranslate:
         suffix = "t";
         value = pxr::VtValue(translate);
         break;
-    }
+
+#if PXR_VERSION > 2505
+    case pxr::UsdGeomXformOp::TypeTranslateX: setComponentValue(translate, 0, "tx", false); break;
+    case pxr::UsdGeomXformOp::TypeTranslateY: setComponentValue(translate, 1, "ty", false); break;
+    case pxr::UsdGeomXformOp::TypeTranslateZ: setComponentValue(translate, 2, "tz", false); break;
+#endif
     case pxr::UsdGeomXformOp::TypeRotateXYZ: {
         suffix = "r";
         auto decompRot = rotU.DecomposeRotation(
@@ -341,32 +338,108 @@ bool SetXForm(
             static_cast<float>(decompRot[0])));
         break;
     }
-    case pxr::UsdGeomXformOp::TypeScale: {
+#if PXR_VERSION > 2505
+    case pxr::UsdGeomXformOp::TypeRotateX:
+    case pxr::UsdGeomXformOp::TypeRotateY:
+    case pxr::UsdGeomXformOp::TypeRotateZ: {
+        // Decompose rotation once for all rotation components
+        auto decompRot = rotU.DecomposeRotation(
+            pxr::GfVec3f::ZAxis(), pxr::GfVec3f::YAxis(), pxr::GfVec3f::XAxis());
+        // decompRot indices: [0]=Z, [1]=Y, [2]=X
+        if (xformType == pxr::UsdGeomXformOp::TypeRotateX) {
+            suffix = "rx";
+            value = pxr::VtValue(static_cast<float>(decompRot[2]));
+        } else if (xformType == pxr::UsdGeomXformOp::TypeRotateY) {
+            suffix = "ry";
+            value = pxr::VtValue(static_cast<float>(decompRot[1]));
+        } else { // TypeRotateZ
+            suffix = "rz";
+            value = pxr::VtValue(static_cast<float>(decompRot[0]));
+        }
+        break;
+    }
+#endif
+
+    case pxr::UsdGeomXformOp::TypeScale:
         suffix = "s";
         value = pxr::VtValue(pxr::GfVec3f(
             static_cast<float>(scale[0]),
             static_cast<float>(scale[1]),
             static_cast<float>(scale[2])));
         break;
-    }
 
+#if PXR_VERSION > 2505
+    case pxr::UsdGeomXformOp::TypeScaleX: setComponentValue(scale, 0, "sx"); break;
+    case pxr::UsdGeomXformOp::TypeScaleY: setComponentValue(scale, 1, "sy"); break;
+    case pxr::UsdGeomXformOp::TypeScaleZ: setComponentValue(scale, 2, "sz"); break;
+#endif
     case pxr::UsdGeomXformOp::TypeTransform:
-    default: {
+    default:
         suffix = "tr";
         value = pxr::VtValue(transformMatrix);
         break;
     }
+
+#if PXR_VERSION > 2505
+    // When exporting transforms animation with time samples the following things happen
+    // (simplified):
+    // - USDSceneBuilder calls AddTransformExportOp passing in a lambda to each transform op
+    // exported
+    // - Later, the animExportTask will call this lambda for each time sample to create the op when
+    // it doesn't exist, then set the value. This step can be seen below with the
+    // xformOp.IsDefined() check.
+    //
+    // However, with the addition of being able to with spline animated data, the ops are
+    // created prior to the animExportTask running, because we don't have to query the values on
+    // each time sample.
+    // Because the ops were already created, the value of the opsIdentifier will be higher than it
+    // was previously expected (because it is based on the number of ops in the prim). Because by
+    // default there weren't going to be any transform op added when the animTask ran for the first
+    // time. So, now, when exporting time sample, it is now required to also check if the op was
+    // previously created by the spline export, otherwise there will be more transform ops than it
+    // should have.
+    if (checkExisingOp) {
+        xformOp = xformPrim.GetXformOp(
+            xformType,
+            static_cast<int>(opsIdentifier) - 1 > 0 // static cast to avoid wrapping
+                ? TfToken(suffix + std::to_string(opsIdentifier))
+                : TfToken());
     }
+#endif
 
     if (!xformOp.IsDefined()) {
         xformOp = xformPrim.AddXformOp(
             xformType,
             xformPrecision,
-            opsIdentifier > 0 ? pxr::TfToken(suffix + std::to_string(opsIdentifier))
-                              : pxr::TfToken());
+            opsIdentifier > 0 ? TfToken(suffix + std::to_string(opsIdentifier)) : TfToken());
     }
 
     return xformOp.Set(value, time);
+}
+
+const std::vector<std::pair<pxr::UsdGeomXformOp::Type, pxr::UsdGeomXformOp::Precision>>&
+GetDefaultSplitTransformOps()
+{
+#if PXR_VERSION > 2505
+    static const std::vector<std::pair<pxr::UsdGeomXformOp::Type, pxr::UsdGeomXformOp::Precision>>
+        transformOps
+        = { { pxr::UsdGeomXformOp::TypeTranslateX, pxr::UsdGeomXformOp::PrecisionDouble },
+            { pxr::UsdGeomXformOp::TypeTranslateY, pxr::UsdGeomXformOp::PrecisionDouble },
+            { pxr::UsdGeomXformOp::TypeTranslateZ, pxr::UsdGeomXformOp::PrecisionDouble },
+            { pxr::UsdGeomXformOp::TypeRotateZ, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeRotateY, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeRotateX, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeScaleX, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeScaleY, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeScaleZ, pxr::UsdGeomXformOp::PrecisionFloat } };
+#else
+    static const std::vector<std::pair<pxr::UsdGeomXformOp::Type, pxr::UsdGeomXformOp::Precision>>
+        transformOps
+        = { { pxr::UsdGeomXformOp::TypeTranslate, pxr::UsdGeomXformOp::PrecisionDouble },
+            { pxr::UsdGeomXformOp::TypeRotateXYZ, pxr::UsdGeomXformOp::PrecisionFloat },
+            { pxr::UsdGeomXformOp::TypeScale, pxr::UsdGeomXformOp::PrecisionFloat } };
+#endif
+    return transformOps;
 }
 
 std::string UniqueNameGenerator::GetName(const std::string& name)

@@ -42,6 +42,11 @@ HdMaxInstanceGen::HdMaxInstanceGen()
 {
     // Initialize the selection effects, when the first usd render item is created.
     std::call_once(initSelectionMat, [this] {
+        // When running in network render mode, there is no graphics driver setup,
+        // initializing shaders would crash, and we do not need them.
+        if (GetCOREInterface()->IsNetworkRenderServer()) {
+            return;
+        }
         instanceSelectMaterial.InitializeWithResource(
             IDR_PRIM_SELECTION_SHADER, MaxSDK::GetHInstance(), L"SHADER");
         instanceSelectMaterial.SetActiveTechniqueName(L"Shaded_Instanced");

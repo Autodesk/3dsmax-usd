@@ -297,6 +297,10 @@ USDExplorer* USDExplorer::Instance()
 
 void USDExplorer::Open()
 {
+    if (GetCOREInterface()->GetQuietMode()) {
+        return;
+    }
+
     const auto dock = getHostDockWidget();
     dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
     dock->show();
@@ -311,6 +315,10 @@ void USDExplorer::Close()
 
 void USDExplorer::OpenStage(USDStageObject* stageObject)
 {
+    if (GetCOREInterface()->GetQuietMode()) {
+        return;
+    }
+
     if (!stageObject) {
         return;
     }

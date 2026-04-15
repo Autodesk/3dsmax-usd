@@ -49,6 +49,7 @@ class materialXRefShaderReader(maxUsd.ShaderReader):
             
             shader = UsdShade.Shader(self.GetUsdPrim())
             parentPrim = self.GetUsdPrim().GetParent()
+            refMatPrim = parentPrim
             matName = parentPrim.GetName()
             # Assumed structure that comes out of UsdMtlx module
             while parentPrim.GetName() != "Materials":
@@ -71,7 +72,7 @@ class materialXRefShaderReader(maxUsd.ShaderReader):
             mat.importMaterial(mtlFilePath, matName=matName)
             if mat:
                 self.RegisterCreatedMaterial(shader.GetPath(), rt.GetHandleByAnim(mat))
-
+                
         except Exception as e:
             # Quite useful to debug errors in a Python callback
             print('MaterialXRefShaderReader Read() - Warning: %s' % str(e))

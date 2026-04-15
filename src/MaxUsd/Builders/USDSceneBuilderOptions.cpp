@@ -681,6 +681,14 @@ void USDSceneBuilderOptions::SetUseProgressBar(bool useProgressBar)
 
 void USDSceneBuilderOptions::SetTransformFormat(int option)
 {
+#ifdef USD_CURVES_SUPPORTED
+    if (this->GetAnimationType() != AnimationType::TimeSamples
+        && static_cast<TransformFormat>(option) == TransformFormat::SingleMatrix) {
+        TF_WARN("Transform format 'Single Matrix' is only applicable when using "
+                "Time Samples animation type. New TransformFormat value has not been set.");
+        return;
+    }
+#endif
     options[MaxUsdUsdSceneBuilderOptionsTokens->transformFormat] = option;
 }
 
@@ -740,6 +748,14 @@ bool USDSceneBuilderOptions::GetUseLastResortUSDPreviewSurfaceWriter() const
 void USDSceneBuilderOptions::SetAnimationType(AnimationType animationType)
 {
     options[MaxUsdUsdSceneBuilderOptionsTokens->animationType] = static_cast<int>(animationType);
+
+    if (animationType != AnimationType::TimeSamples
+        && this->GetTransformFormat() == TransformFormat::SingleMatrix) {
+        this->SetTransformFormat(static_cast<int>(TransformFormat::SplitComponents));
+        TF_WARN(
+            "The new animation type doesn't work with the transform format 'Single Matrix'. The "
+            "transform format has been changed to SplitComponents.");
+    }
 }
 
 USDSceneBuilderOptions::AnimationType USDSceneBuilderOptions::GetAnimationType() const
@@ -757,6 +773,7 @@ void USDSceneBuilderOptions::FetchAnimationRollupData(
     animationRollupData.frameRangeDefault = this->animationRollupData.frameRangeDefault;
     animationRollupData.frameRangeStart = this->animationRollupData.frameRangeStart;
     animationRollupData.frameRangeEnd = this->animationRollupData.frameRangeEnd;
+    animationRollupData.animationType = this->animationRollupData.animationType;
 }
 
 void USDSceneBuilderOptions::SaveAnimationRollupData(const AnimationRollupData& animationRollupData)
@@ -766,5 +783,6 @@ void USDSceneBuilderOptions::SaveAnimationRollupData(const AnimationRollupData& 
     this->animationRollupData.frameRangeDefault = animationRollupData.frameRangeDefault;
     this->animationRollupData.frameRangeStart = animationRollupData.frameRangeStart;
     this->animationRollupData.frameRangeEnd = animationRollupData.frameRangeEnd;
+    this->animationRollupData.animationType = animationRollupData.animationType;
 }
 } // namespace MAXUSD_NS_DEF

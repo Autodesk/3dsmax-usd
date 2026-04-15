@@ -118,6 +118,20 @@ USDImportDialog::USDImportDialog(
         this,
         &USDImportDialog::OnTranslateMaterialsStateChanged);
 
+    ui->slateMaterialHandlingComboBox->setCurrentIndex(static_cast<int>(buildOptions.GetSlateMaterialHandling()));
+    ui->slateMaterialHandlingComboBox->setEnabled(buildOptions.GetTranslateMaterials());
+    ui->slateMaterialHandlingLabel->setEnabled(buildOptions.GetTranslateMaterials());
+    QObject::connect(
+        ui->slateMaterialHandlingComboBox,
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        &USDImportDialog::OnSlateMaterialHandlingChanged);
+
+    // Set individual tooltips for each combobox item
+    ui->slateMaterialHandlingComboBox->setItemData(0, "Leaves Slate unchanged.", Qt::ToolTipRole);
+    ui->slateMaterialHandlingComboBox->setItemData(1, "Adds materials not assigned to geometry to a new Slate view.", Qt::ToolTipRole);
+    ui->slateMaterialHandlingComboBox->setItemData(2, "Adds all imported materials to a new Slate view.", Qt::ToolTipRole);
+
     // These calls must come after the UI is initialized via "setupUi()":
     treeModel = MaxUsd::TreeModelFactory::CreateFromStage(stage, this);
     proxyModel = std::make_unique<QSortFilterProxyModel>(this);
@@ -490,6 +504,15 @@ void USDImportDialog::OnTranslateMaterialsStateChanged(bool checked)
     } else {
         buildOptions.SetDefaultShadingModes();
     }
+
+    // Enable/disable the Slate material handling combobox based on materials checkbox state
+    ui->slateMaterialHandlingComboBox->setEnabled(checked);
+    ui->slateMaterialHandlingLabel->setEnabled(checked);
+}
+
+void USDImportDialog::OnSlateMaterialHandlingChanged(int index)
+{
+    buildOptions.SetSlateMaterialHandling(static_cast<MaxUsd::MaxSceneBuilderOptions::SlateMaterialHandling>(index));
 }
 
 void USDImportDialog::OnLogPathBrowseClicked()

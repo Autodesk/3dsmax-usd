@@ -19,9 +19,14 @@
 #include <MaxUsd/MaxUSDAPI.h>
 
 #include <pxr/pxr.h>
+#include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/common.h>
 
+#include <map>
 #include <ref.h>
+#include <set>
+
+class Mtl;
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -78,6 +83,22 @@ public:
     ///	The rescaling uses the stage units and the current max units to
     MaxUSDAPI void RescaleRegisteredNodes() const;
 
+    /// \brief Register a 3ds Max material as being bound to geometry.
+    /// This is used to efficiently determine which materials are unbound during import.
+    /// \param maxMaterial The 3ds Max material that was created
+    /// \param boundPrimPath The path of the prim the material is bound to
+    MaxUSDAPI void RegisterBoundMaterial(Mtl* maxMaterial, const SdfPath& boundPrimPath);
+
+    /// \brief Check if a 3ds Max material is bound to any geometry.
+    /// \param maxMaterial The 3ds Max material to check
+    /// \return true if the material is bound to geometry, false otherwise
+    MaxUSDAPI bool IsMaterialBound(Mtl* maxMaterial) const;
+
+    /// \brief Get the bound prim paths for a 3ds Max material.
+    /// \param maxMaterial The 3ds Max material to check
+    /// \return Reference to set of SdfPaths if found, to an empty set otherwise
+    MaxUSDAPI const std::set<SdfPath>& GetBoundPrimPaths(Mtl* maxMaterial) const;
+
 private:
     // Args for the import (any & all export options).
     const MaxUsd::MaxSceneBuilderOptions& args;
@@ -90,6 +111,10 @@ private:
 
     // imported stage reference
     const UsdStageRefPtr stage;
+
+    // Map of 3ds Max materials to their bound prim paths (one material can be bound to multiple
+    // prims)
+    std::map<Mtl*, std::set<SdfPath>> boundMaterials;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

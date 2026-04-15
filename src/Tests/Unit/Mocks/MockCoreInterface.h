@@ -581,6 +581,19 @@ public:
         int /*dupMtlAction*/ = MERGE_DUP_MTL_PROMPT,
         int /*reparentAction*/ = MERGE_REPARENT_PROMPT,
         BOOL /*includeFullGroup*/ = FALSE) override
+#elif MAX_RELEASE >= 28900
+    int MergeFromFile(
+        const MCHAR* /*name*/,
+        BOOL /*mergeAll*/ = FALSE,
+        BOOL /*selMerged*/ = FALSE,
+        BOOL /*refresh*/ = TRUE,
+        int /*dupAction*/ = MERGE_DUPS_PROMPT,
+        NameTab* /*mrgList*/ = NULL,
+        int /*dupMtlAction*/ = MERGE_DUP_MTL_PROMPT,
+        int /*reparentAction*/ = MERGE_REPARENT_PROMPT,
+        BOOL /*includeFullGroup*/ = FALSE,
+        MaxSDK::Array<MaxRefEntryData>* /*dataList*/ = nullptr,
+        BOOL mergeNodesByLayer = FALSE) override
 #else
     int MergeFromFile(
         const MCHAR* /*name*/,
@@ -597,6 +610,15 @@ public:
     {
         return 0;
     }
+
+#if MAX_RELEASE >= 28900
+    bool Interface17::GetSuppressStartupDialogs(void) const override { return FALSE; };
+#endif
+#if MAX_RELEASE >= 29000
+    MSTR GetSceneSaveDirectory() const override { return SomeMSTR; }
+    void SetSceneSaveDirectory(const MSTR& filePath) override {};
+#endif
+
     BOOL FileImport() override { return FALSE; }
     BOOL FileExport() override { return FALSE; }
     BOOL ImportFromFile(

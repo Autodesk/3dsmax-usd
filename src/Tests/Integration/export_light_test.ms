@@ -964,6 +964,439 @@ struct export_light_test
         assert_true(compare2dMatrix exportedWorldTransform expectedTransform 4 4) message:"Incorrect sun direction in world."
     ),
 
+    -- Helper function to check if USD version supports spline/curves export (24.11+)
+    -- Returns true if supported, false otherwise (and prints skip message)
+    fn supportsSplineCurves testName = (
+        usdVersion = pyUsd.GetVersion()
+        local supportCurves = (usdVersion[2] > 24)
+        if not supportCurves then (
+            format "Skipping %: USD version % does not support curves\n" testName usdVersion
+        )
+        return supportCurves
+    ),
+
+    -- Helper function to create export options for spline animation tests
+    fn createSplineExportOptions animationType:#curves = (
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Lights = true
+        exportOptions.TimeMode = #frameRange
+        exportOptions.StartFrame = 0
+        exportOptions.EndFrame = 10
+        exportOptions.AnimationType = animationType
+        return exportOptions
+    ),
+
+    -- Helper function to get the spline knot count for an attribute, returns -1 if no spline
+    fn getSplineKnotCount prim attrName = (
+        local attr = prim.GetAttribute(attrName)
+        if attr == undefined or not attr.IsValid() then (
+            return -1
+        )
+        local spline = attr.GetSpline()
+        if spline == undefined then (
+            return -1
+        )
+        local knots = spline.GetKnots()
+        return knots.count
+    ),
+
+    -- Helper function to get the spline knot value at a specific index, returns undefined if not found
+    fn getSplineKnotValue prim attrName knotIndex = (
+        local attr = prim.GetAttribute(attrName)
+        if attr == undefined or not attr.IsValid() then (
+            return undefined
+        )
+        local spline = attr.GetSpline()
+        if spline == undefined then (
+            return undefined
+        )
+        local knots = spline.GetKnots()
+        local knot = knots[knotIndex]
+        if knot == undefined then (
+            return undefined
+        )
+        return knot.GetValue()
+    ),
+
+    -- Helper function to validate spline knot count with detailed message
+    fn assertSplineKnotCount prim attrName expectedKnotCount lightName = (
+        local actualCount = getSplineKnotCount prim attrName
+        local message = lightName + " attribute '" + attrName + "' spline knot count: expected " + (expectedKnotCount as string) + ", got " + (actualCount as string)
+        assert_equal expectedKnotCount actualCount message:message
+    ),
+
+    -- Helper function to validate spline knot value with detailed message
+    fn assertSplineKnotValue prim attrName knotIndex expectedValue lightName tolerance:0.001 = (
+        local actualValue = getSplineKnotValue prim attrName knotIndex
+        local message = lightName + " attribute '" + attrName + "' at knot " + (knotIndex as string) + ": expected " + (expectedValue as string) + ", got " + (if actualValue != undefined then (actualValue as string) else "undefined")
+        if actualValue == undefined then (
+            assert_true false message:message
+        ) else (
+            local isClose = (abs(actualValue - expectedValue) < tolerance)
+            assert_true isClose message:message
+        )
+    ),
+
+    -- Test exporting disk light attributes as USD splines
+    function photometric_disk_light_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_disk_light_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+        local diskLight = free_light()
+        diskLight.type = #Free_Disc
+        diskLight.distribution = 2 -- uniform hemispherical/diffuse (exports as DiskLight)
+        diskLight.radius = 10
+
+        with animate on (
+            at time 0 diskLight.radius = 10
+            at time 5 diskLight.radius = 25
+            at time 10 diskLight.radius = 50
+        )
+
+        local exportPath = output_prefix + "test_photometric_disk_light_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + diskLight.name
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.DiskLight)) message:(diskLight.name + " light was not properly exported to a USD LuxDiskLight.")
+
+        -- Validate that radius attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:radius" 3 diskLight.name
+
+        -- Validate the spline knot values
+        assertSplineKnotValue objPrim "inputs:radius" 1 10.0 diskLight.name
+        assertSplineKnotValue objPrim "inputs:radius" 6 25.0 diskLight.name
+        assertSplineKnotValue objPrim "inputs:radius" 11 50.0 diskLight.name
+    ),
+
+    -- Test exporting sphere light attributes as USD splines
+    function photometric_sphere_light_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_sphere_light_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+
+        local sphereLight1 = free_light()
+        sphereLight1.type = #Free_Sphere
+        sphereLight1.distribution = 0 -- uniform spherical (exports as SphereLight)
+        sphereLight1.radius = 5
+        sphereLight1.useKelvin = true
+        sphereLight1.kelvin = 3000
+        sphereLight1.useMultiplier = false -- test intensity without dimmer
+
+        local sphereLight2 = free_light()
+        sphereLight2.type = #Free_Sphere
+        sphereLight2.distribution = 0 -- uniform spherical (exports as SphereLight)
+        sphereLight2.radius = 8
+        sphereLight2.useKelvin = false -- use RGB color instead of Kelvin
+        sphereLight2.useMultiplier = true -- enable dimmer to test combined intensity+multiplier spline
+
+        with animate on (
+            -- Animate radius
+            at time 0 sphereLight1.radius = 5
+            at time 5 sphereLight1.radius = 15
+            at time 10 sphereLight1.radius = 30
+            at time 0 sphereLight2.radius = 8
+            at time 5 sphereLight2.radius = 16
+            at time 10 sphereLight2.radius = 24
+            -- Animate color temperature (Kelvin)
+            at time 0 sphereLight1.kelvin = 3000
+            at time 5 sphereLight1.kelvin = 5500
+            at time 10 sphereLight1.kelvin = 8000
+            -- Animate intensity
+            at time 0 sphereLight1.intensity = 500
+            at time 5 sphereLight1.intensity = 1000
+            at time 10 sphereLight1.intensity = 2000
+            at time 0 sphereLight2.intensity = 1000
+            at time 5 sphereLight2.intensity = 2000
+            at time 10 sphereLight2.intensity = 1000
+            -- Animate multiplier (dimmer percentage)
+            at time 0 sphereLight2.multiplier = 100
+            at time 5 sphereLight2.multiplier = 50
+            at time 10 sphereLight2.multiplier = 100
+        )
+
+        local exportPath = output_prefix + "test_photometric_sphere_light_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path1 = "/" + sphereLight1.name
+        local usd_light_path2 = "/" + sphereLight2.name
+        local objPrim1 = stage.GetPrimAtPath usd_light_path1
+        local objPrim2 = stage.GetPrimAtPath usd_light_path2
+        assert_true (objPrim1.IsA(pyUsdLux.SphereLight))
+        assert_true (objPrim2.IsA(pyUsdLux.SphereLight))
+
+        -- Validate radius attribute spline
+        assertSplineKnotCount objPrim1 "inputs:radius" 3 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:radius" 1 5.0 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:radius" 6 15.0 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:radius" 11 30.0 sphereLight1.name
+
+        -- Validate colorTemperature attribute spline (useKelvin=true)
+        assertSplineKnotCount objPrim1 "inputs:colorTemperature" 3 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:colorTemperature" 1 3000.0 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:colorTemperature" 6 5500.0 sphereLight1.name
+        assertSplineKnotValue objPrim1 "inputs:colorTemperature" 11 8000.0 sphereLight1.name
+
+        assertSplineKnotCount objPrim1 "inputs:intensity" 3 sphereLight1.name
+
+        local usd_light_path2 = "/" + sphereLight2.name
+        local objPrim2 = stage.GetPrimAtPath usd_light_path2
+        assert_true (objPrim2.IsA(pyUsdLux.SphereLight))
+
+        -- Validate enableColorTemperature is false (useKelvin=false)
+        local usdLight2 = pyUsdLux.BoundableLightBase.Get stage usd_light_path2
+        local enableColorTempAttr2 = usdLight2.GetEnableColorTemperatureAttr()
+        local enableColorTemp2 = enableColorTempAttr2.Get()
+        assert_false enableColorTemp2
+
+        -- Validate radius attribute spline
+        assertSplineKnotCount objPrim2 "inputs:radius" 3 sphereLight2.name
+        assertSplineKnotValue objPrim2 "inputs:radius" 1 8.0 sphereLight2.name
+        assertSplineKnotValue objPrim2 "inputs:radius" 6 16.0 sphereLight2.name
+        assertSplineKnotValue objPrim2 "inputs:radius" 11 24.0 sphereLight2.name
+
+        -- Validate intensity attribute has a spline (useMultiplier=true, combined intensity+multiplier spline)
+        local intensityKnotCount = getSplineKnotCount objPrim2 "inputs:intensity"
+        assert_true (intensityKnotCount > 0) message:(sphereLight2.name + " should have intensity spline when useMultiplier=true, got " + (intensityKnotCount as string) + " knots")
+    ),
+
+    -- Test exporting cylinder light attributes as USD splines
+    function photometric_cylinder_light_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_cylinder_light_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+        local cylinderLight = free_light()
+        cylinderLight.type = #Free_Cylinder
+        cylinderLight.distribution = 0 -- uniform spherical (exports as CylinderLight)
+        cylinderLight.length = 20
+        cylinderLight.radius = 3
+        cylinderLight.intensity = 2000
+
+        with animate on (
+            at time 0 (
+                cylinderLight.length = 20
+                cylinderLight.radius = 3
+            )
+            at time 5 (
+                cylinderLight.length = 40
+                cylinderLight.radius = 6
+            )
+            at time 10 (
+                cylinderLight.length = 80
+                cylinderLight.radius = 12
+            )
+        )
+
+        local exportPath = output_prefix + "test_photometric_cylinder_light_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        -- Cylinder lights need xform transformation, so the light is under an xform prim
+        local usd_light_path = "/" + cylinderLight.name + "/" + cylinderLight.name + "_Light"
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.CylinderLight)) message:(cylinderLight.name + " light was not properly exported to a USD LuxCylinderLight.")
+
+        -- Validate that length attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:length" 3 cylinderLight.name
+        -- Validate that radius attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:radius" 3 cylinderLight.name
+
+        -- Validate the length spline knot values
+        assertSplineKnotValue objPrim "inputs:length" 1 20.0 cylinderLight.name
+        assertSplineKnotValue objPrim "inputs:length" 6 40.0 cylinderLight.name
+        assertSplineKnotValue objPrim "inputs:length" 11 80.0 cylinderLight.name
+
+        -- Validate the radius spline knot values
+        assertSplineKnotValue objPrim "inputs:radius" 1 3.0 cylinderLight.name
+        assertSplineKnotValue objPrim "inputs:radius" 6 6.0 cylinderLight.name
+        assertSplineKnotValue objPrim "inputs:radius" 11 12.0 cylinderLight.name
+
+        -- Validate that static intensity is present (not animated, so no spline, but should have a value)
+        local usdLight = pyUsdLux.CylinderLight.Get stage usd_light_path
+        local intensityAttr = usdLight.GetIntensityAttr()
+        assert_true (intensityAttr.IsValid()) message:(cylinderLight.name + " should have a valid intensity attribute.")
+        assert_true (intensityAttr.IsAuthored()) message:(cylinderLight.name + " static intensity should be authored even with spline export.")
+        local intensityValue = intensityAttr.Get()
+        assert_true (intensityValue > 0) message:(cylinderLight.name + " static intensity should have a value > 0, got " + (intensityValue as string))
+    ),
+
+    -- Test exporting rectangle light attributes as USD splines
+    function photometric_rect_light_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_rect_light_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+        local rectLight = free_light()
+        rectLight.type = #Free_Rectangle
+        rectLight.distribution = 2 -- uniform hemispherical/diffuse (exports as RectLight)
+        rectLight.width = 10
+        rectLight.length = 15
+
+        with animate on (
+            at time 0 (
+                rectLight.width = 10
+                rectLight.length = 15
+            )
+            at time 5 (
+                rectLight.width = 20
+                rectLight.length = 30
+            )
+            at time 10 (
+                rectLight.width = 40
+                rectLight.length = 60
+            )
+        )
+
+        local exportPath = output_prefix + "test_photometric_rect_light_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + rectLight.name
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.RectLight)) message:(rectLight.name + " light was not properly exported to a USD LuxRectLight.")
+
+        -- Validate that width attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:width" 3 rectLight.name
+        -- Validate that height attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:height" 3 rectLight.name
+
+        -- Validate the width spline knot values
+        assertSplineKnotValue objPrim "inputs:width" 1 10.0 rectLight.name
+        assertSplineKnotValue objPrim "inputs:width" 6 20.0 rectLight.name
+        assertSplineKnotValue objPrim "inputs:width" 11 40.0 rectLight.name
+
+        -- Validate the height spline knot values (maps from 3ds Max 'length')
+        assertSplineKnotValue objPrim "inputs:height" 1 15.0 rectLight.name
+        assertSplineKnotValue objPrim "inputs:height" 6 30.0 rectLight.name
+        assertSplineKnotValue objPrim "inputs:height" 11 60.0 rectLight.name
+    ),
+
+    -- Test exporting spotlight beam angle as USD spline
+    function photometric_spotlight_beam_angle_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_spotlight_beam_angle_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+        local spotLight = free_light()
+        spotLight.type = #Free_Point
+        spotLight.distribution = 1 -- spotlight distribution (exports as DiskLight with ShapingAPI)
+        spotLight.beamAngle = 30
+        spotLight.intensity = 1500
+
+        with animate on (
+            at time 0 spotLight.beamAngle = 30
+            at time 5 spotLight.beamAngle = 45
+            at time 10 spotLight.beamAngle = 60
+        )
+
+        local exportPath = output_prefix + "test_photometric_spotlight_beam_angle_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + spotLight.name
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.DiskLight)) message:(spotLight.name + " light was not properly exported to a USD LuxDiskLight.")
+
+        -- Validate that shaping:cone:angle attribute has a spline with 3 knots
+        assertSplineKnotCount objPrim "inputs:shaping:cone:angle" 3 spotLight.name
+
+        -- Validate the shaping:cone:angle spline knot values
+        assertSplineKnotValue objPrim "inputs:shaping:cone:angle" 1 30.0 spotLight.name
+        assertSplineKnotValue objPrim "inputs:shaping:cone:angle" 6 45.0 spotLight.name
+        assertSplineKnotValue objPrim "inputs:shaping:cone:angle" 11 60.0 spotLight.name
+
+        -- Validate that static intensity is present (not animated, so no spline, but should have a value)
+        local usdLight = pyUsdLux.DiskLight.Get stage usd_light_path
+        local intensityAttr = usdLight.GetIntensityAttr()
+        assert_true (intensityAttr.IsValid()) message:(spotLight.name + " should have a valid intensity attribute.")
+        assert_true (intensityAttr.IsAuthored()) message:(spotLight.name + " static intensity should be authored even with spline export.")
+        local intensityValue = intensityAttr.Get()
+        assert_true (intensityValue > 0) message:(spotLight.name + " static intensity should have a value > 0, got " + (intensityValue as string))
+    ),
+
+    -- Test exporting line light attributes (as RectLight) with USD splines
+    function photometric_line_light_spline_animation_export_test = (
+        if not (supportsSplineCurves "photometric_line_light_spline_animation_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions()
+        local lineLight = free_light()
+        lineLight.type = #Free_Line
+        lineLight.distribution = 2 -- uniform hemispherical/diffuse (exports as RectLight)
+        lineLight.length = 30
+        lineLight.intensity = 1800
+
+        with animate on (
+            at time 0 lineLight.length = 30
+            at time 5 lineLight.length = 60
+            at time 10 lineLight.length = 120
+        )
+
+        local exportPath = output_prefix + "test_photometric_line_light_spline_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + lineLight.name
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.RectLight)) message:(lineLight.name + " light was not properly exported to a USD LuxRectLight.")
+
+        -- Validate that height attribute has a spline with 3 knots (line light length maps to height)
+        assertSplineKnotCount objPrim "inputs:height" 3 lineLight.name
+
+        -- Validate the height spline knot values
+        assertSplineKnotValue objPrim "inputs:height" 1 30.0 lineLight.name
+        assertSplineKnotValue objPrim "inputs:height" 6 60.0 lineLight.name
+        assertSplineKnotValue objPrim "inputs:height" 11 120.0 lineLight.name
+
+        -- Validate that static intensity is present (not animated, so no spline, but should have a value)
+        local usdLight = pyUsdLux.RectLight.Get stage usd_light_path
+        local intensityAttr = usdLight.GetIntensityAttr()
+        assert_true (intensityAttr.IsValid()) message:(lineLight.name + " should have a valid intensity attribute.")
+        assert_true (intensityAttr.IsAuthored()) message:(lineLight.name + " static intensity should be authored even with spline export.")
+        local intensityValue = intensityAttr.Get()
+        assert_true (intensityValue > 0) message:(lineLight.name + " static intensity should have a value > 0, got " + (intensityValue as string))
+    ),
+
+    -- Test exporting light with both time samples and splines (AnimationType = #both)
+    function photometric_light_both_animation_types_export_test = (
+        if not (supportsSplineCurves "photometric_light_both_animation_types_export_test") then return undefined
+
+        local exportOptions = createSplineExportOptions animationType:#both
+        local sphereLight = free_light()
+        sphereLight.type = #Free_Sphere
+        sphereLight.distribution = 0 -- uniform spherical
+        sphereLight.radius = 5
+
+        with animate on (
+            at time 0 sphereLight.radius = 5
+            at time 5 sphereLight.radius = 15
+            at time 10 sphereLight.radius = 30
+        )
+
+        local exportPath = output_prefix + "test_photometric_light_both_animation_export.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + sphereLight.name
+        local objPrim = stage.GetPrimAtPath usd_light_path
+        assert_true (objPrim.IsA(pyUsdLux.SphereLight)) message:(sphereLight.name + " light was not properly exported to a USD LuxSphereLight.")
+
+        -- Validate that radius attribute has both a spline and time samples
+        local radiusAttr = objPrim.GetAttribute("inputs:radius")
+        assert_true (radiusAttr.IsValid()) message:(sphereLight.name + " light should have a valid radius attribute.")
+
+        -- Check that spline exists
+        local spline = radiusAttr.GetSpline()
+        local splineKnotCount = if spline != undefined then (spline.GetKnots()).count else 0
+        assert_true (spline != undefined) message:(sphereLight.name + " light radius should have a spline when AnimationType is #both, got " + (splineKnotCount as string) + " knots")
+
+        -- Check that time samples also exist
+        local timeSamples = radiusAttr.GetTimeSamples()
+        local timeSampleCount = timeSamples.count
+        assert_true (timeSampleCount > 0) message:(sphereLight.name + " light radius should have time samples when AnimationType is #both, got " + (timeSampleCount as string) + " samples")
+    ),
+
     function teardown = (
         units.SystemType = initialUnits
         units.SystemScale = initialScale
@@ -983,7 +1416,15 @@ struct export_light_test
         photometric_cylinder_light_attributes_animation_export_test,
         photometric_rect_light_attributes_export_test,
         photometric_rect_light_attributes_animation_export_test,
-        photometric_sun_positioner_export_test
+        photometric_sun_positioner_export_test,
+        -- Spline/Curves animation tests (require USD 24.11+)
+        photometric_disk_light_spline_animation_export_test,
+        photometric_sphere_light_spline_animation_export_test,
+        photometric_cylinder_light_spline_animation_export_test,
+        photometric_rect_light_spline_animation_export_test,
+        photometric_spotlight_beam_angle_spline_animation_export_test,
+        photometric_line_light_spline_animation_export_test,
+        photometric_light_both_animation_types_export_test
     )
 )
 

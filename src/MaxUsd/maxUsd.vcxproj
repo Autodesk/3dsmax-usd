@@ -82,9 +82,7 @@ if %errorlevel% geq 4 exit /b 1
 if $(VersionTarget) geq 2025 (
 	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) deflate.dll
 	if %errorlevel% geq 4 exit /b 1
-	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-3_3.dll
-	if %errorlevel% geq 4 exit /b 1
-	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-3_1.dll
+	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-3_*.dll
 	if %errorlevel% geq 4 exit /b 1
 ) else (
 	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) *-2_3.dll
@@ -166,10 +164,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClCompile Include="Translators\ShadingModeImporter.cpp" />
     <ClCompile Include="Translators\TranslatorLight.cpp" />
     <ClCompile Include="Translators\TranslatorMaterial.cpp" />
-    <ClCompile Include="Translators\RegistryHelper.cpp">
-      <PrecompiledHeader Condition="'$(VersionTarget)'=='2023'">NotUsing</PrecompiledHeader>
-      <ForcedIncludeFiles Condition="'$(VersionTarget)'=='2023'">$(ProjectDir)/maxusd_banned.h</ForcedIncludeFiles>
-    </ClCompile>
+    <ClCompile Include="Translators\RegistryHelper.cpp" />
     <ClCompile Include="Translators\ShaderWriter.cpp" />
     <ClCompile Include="Translators\ShaderWriterRegistry.cpp" />
     <ClCompile Include="Translators\ShadingModeExporter.cpp" />
@@ -275,6 +270,7 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClInclude Include="Utilities\HydraUtils.h" />
     <ClInclude Include="Utilities\MaxRestrictedSupportUtils.h" />
     <ClInclude Include="Utilities\OptionUtils.h" />
+    <ClInclude Include="Utilities\SplineUtils.h" />
     <ClInclude Include="Utilities\TimeUtils.h" />
     <ClInclude Include="Translators\PrimReader.h" />
     <ClInclude Include="Translators\ReadJobContext.h" />

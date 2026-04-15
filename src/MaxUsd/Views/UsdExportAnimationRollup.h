@@ -18,6 +18,7 @@
 #include <MaxUsd/Builders/USDSceneBuilderOptions.h>
 
 #include <QtWidgets/QWidget>
+#include <ui_UsdExportAnimationRollup.h>
 
 namespace Ui {
 class UsdExportAnimationRollup;
@@ -38,9 +39,11 @@ public:
     // from the user selections; specifically for the frame range selections
     void SaveDialogState();
 
+    // Getter for animation type checkbox
+    QComboBox* GetAnimationTypeComboBox() const { return ui->AnimationTypeComboBox; }
+
 public Q_SLOTS:
     /// Qt callback functions based on named widgets in the associated .ui file
-    void on_AnimationTypeComboBox_currentIndexChanged(int index);
     void on_AnimationRangeRadioButton_clicked(bool checked);
     void on_CurrentFrameRadioButton_clicked(bool checked);
     void on_FrameNumberRadioButton_clicked(bool checked);

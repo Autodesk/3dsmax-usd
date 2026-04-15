@@ -167,4 +167,21 @@ void MaxUsdReadJobContext::RescaleRegisteredNodes() const
     }
 }
 
+void MaxUsdReadJobContext::RegisterBoundMaterial(Mtl* maxMaterial, const SdfPath& boundPrimPath)
+{
+    boundMaterials[maxMaterial].insert(boundPrimPath);
+}
+
+bool MaxUsdReadJobContext::IsMaterialBound(Mtl* maxMaterial) const
+{
+    return boundMaterials.find(maxMaterial) != boundMaterials.end();
+}
+
+const std::set<SdfPath>& MaxUsdReadJobContext::GetBoundPrimPaths(Mtl* maxMaterial) const
+{
+    static const auto emptySet = std::set<SdfPath>();
+    auto it = boundMaterials.find(maxMaterial);
+    return (it != boundMaterials.end()) ? it->second : emptySet;
+}
+
 PXR_NAMESPACE_CLOSE_SCOPE

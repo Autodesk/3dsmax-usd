@@ -25,7 +25,7 @@ if ($Args.Count -eq 0) {
     Write-Output "USAGE:"
     Write-Output "./RunUsdTool.ps1 <usd_tool> [--python-exe C:path/to/3dsmax/python.exe] <args...>"
     Write-Output "Example:"
-    Write-Output "./RunUsdTool.ps1 usdview --python-exe 'C:/Program Files/Autodesk/3ds Max 2023/python/python.exe' path_to_usd.usda"
+    Write-Output "./RunUsdTool.ps1 usdview --python-exe 'C:/Program Files/Autodesk/3ds Max 2027/python/python.exe' path_to_usd.usda"
     Write-Output "./RunUsdTool.ps1 usdview path_to_usd.usda"
     Write-Output "./RunUsdTool.ps1 usdcat -o output_path.usd --usdFormat usda path_tp_usdz_file.usdz"
     exit
@@ -56,10 +56,10 @@ else {
   	
 	$IntVer = [int]$version
 	switch ($IntVer) {
-		2023 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\25.0" }
 		2024 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\26.0" }
 		2025 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\27.0" }
 		2026 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\28.0" }
+		2027 { $RegistryPath = "HKLM:\SOFTWARE\Autodesk\3dsMax\29.0" }
 		default { 
 			Write-Output "3dsMax version not supported : $IntVer."
 			exit

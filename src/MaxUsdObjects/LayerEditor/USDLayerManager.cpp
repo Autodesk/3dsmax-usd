@@ -33,6 +33,10 @@
 
 std::unique_ptr<USDLayerManager> USDLayerManager::instance;
 
+const std::string USDLayerManager::MaxUsdReservedGeomObjectsLayer
+    = "MaxUsd_USDGeomObjects_Reserved";
+const std::string USDLayerManager::MaxUsdReservedDrawModeLayer = "MaxUsd_DrawModes_Reserved";
+
 USDLayerManager* USDLayerManager::Instance()
 {
     if (!instance) {
@@ -118,8 +122,22 @@ USDLayerManager::GetDirtyLayersToSave()
         // Now check if the layers are either dirty OR anonymous
         // (don't include session layer unless it's dirty).
         for (const auto& layer : foundLayers) {
-            auto isSessionLayer = usdStage->GetSessionLayer() == layer;
-            if (layer->IsDirty() || (layer->IsAnonymous() && !isSessionLayer)) {
+
+            // The session layer is handled separately.
+            // TODO : We should remove the "legacy" session layer mechanism and handle
+            // all layers the same.
+            if (usdStage->GetSessionLayer() == layer) {
+                continue;
+            }
+
+            // MaxUsd reserved layers are not meant to be saved.
+            std::string id = layer->GetIdentifier();
+            if (id.find(MaxUsdReservedDrawModeLayer) != std::string::npos
+                || id.find(MaxUsdReservedGeomObjectsLayer) != std::string::npos) {
+                continue;
+            }
+
+            if (layer->IsDirty() || layer->IsAnonymous()) {
                 dirtyLayers[stageObject].push_back(layer);
             }
         }

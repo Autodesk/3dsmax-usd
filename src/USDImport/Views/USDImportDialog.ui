@@ -220,6 +220,87 @@ QFrame{border: 1px solid rgb(0, 173, 229)}
          </widget>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="slateMaterialHandlingLayout">
+          <item>
+           <spacer name="slateMaterialHandlingSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="slateMaterialHandlingLabel">
+            <property name="text">
+             <string>Slate Material Handling:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="slateMaterialHandlingMiddleSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QComboBox" name="slateMaterialHandlingComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <item>
+             <property name="text">
+              <string>None</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Add Unassigned to New View</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Add All to New View</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <spacer name="slateMaterialHandlingRightSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QSplitter" name="splitter">
           <property name="orientation">
            <enum>Qt::Vertical</enum>

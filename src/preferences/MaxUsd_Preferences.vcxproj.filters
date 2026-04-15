@@ -51,4 +51,9 @@
     <ClInclude Include="PreferenceApplicationHost.h" />
     <ClInclude Include="PreferencesManagement.h" />
   </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="AssetResolverPreferences\AssetResolver.qrc">
+      <Filter>AssetResolverPreferences</Filter>
+    </QtRcc>
+  </ItemGroup>
 </Project>

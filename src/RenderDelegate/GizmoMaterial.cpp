@@ -31,6 +31,12 @@ MaxSDK::Graphics::HLSLMaterialHandle GizmoMaterial::gizmoMtlInstanced;
 
 MaxSDK::Graphics::BaseMaterialHandle GizmoMaterial::Get(const GizmoMaterialType& type)
 {
+    // When running in network render mode, there is no graphics driver setup,
+    // initializing shaders would crash, and we do not need them.
+    if (GetCOREInterface()->IsNetworkRenderServer()) {
+        return {};
+    }
+
     if (type == Normal) {
         if (!gizmoMtl.IsValid()) {
             gizmoMtl.InitializeWithResource(

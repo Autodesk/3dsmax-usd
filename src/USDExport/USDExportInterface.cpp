@@ -87,14 +87,14 @@ public:
                 || exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
                 || (nodesToExport && nodesToExport->Count() > 0)) {
-                exportOptions->SetNodesToExport(*nodesToExport);
+                exportOptions->SetNodesToExport(nodesToExport ? *nodesToExport : Tab<INode*>());
             }
             if (exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
                 || exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
                 || (mtlsToExport && mtlsToExport->Count() > 0)) {
-                exportOptions->SetMaterialsToExport(*mtlsToExport);
+                exportOptions->SetMaterialsToExport(mtlsToExport ? *mtlsToExport : Tab<Mtl*>());
             }
             res = USDExporter::ExportFile(filePath, (*exportOptions), true, "usd");
         }
@@ -146,14 +146,14 @@ public:
                 || exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
                 && (nodesToExport && nodesToExport->Count() > 0)) {
-                exportOptions->SetNodesToExport(*nodesToExport);
+                exportOptions->SetNodesToExport(nodesToExport ? *nodesToExport : Tab<INode*>());
             }
             if (exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::MaterialList
                 || exportOptions->GetContentSource()
                     == MaxUsd::USDSceneBuilderOptions::ContentSource::NodeAndMaterialList
                 && (mtlsToExport && mtlsToExport->Count() > 0)) {
-                exportOptions->SetMaterialsToExport(*mtlsToExport);
+                exportOptions->SetMaterialsToExport(mtlsToExport ? *mtlsToExport : Tab<Mtl*>());
             }
             res = MaxUsd::GetUSDIOController()->Export(
                 stage, *exportOptions, allowOverwrite, rootTransform);

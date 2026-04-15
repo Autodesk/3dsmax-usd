@@ -633,6 +633,9 @@
     <ClInclude Include="Views\USDExportDialog.h">
       <Filter>Header Files\Views</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities\SplineUtils.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

@@ -66,6 +66,18 @@ UsdPreferencesDialog::UsdPreferencesDialog(const UsdPreferenceOptions& options, 
 
 UsdPreferencesDialog::~UsdPreferencesDialog() { }
 
+void UsdPreferencesDialog::moveEvent(QMoveEvent* event)
+{
+    QDialog::moveEvent(event);
+    Q_EMIT geometryChanged(geometry());
+}
+
+void UsdPreferencesDialog::resizeEvent(QResizeEvent* event)
+{
+    QDialog::resizeEvent(event);
+    Q_EMIT geometryChanged(geometry());
+}
+
 void UsdPreferencesDialog::loadOptions(const UsdPreferenceOptions& options)
 {
     if (assetResolverSettingsWidget) {

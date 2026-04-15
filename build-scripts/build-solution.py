@@ -52,7 +52,7 @@ def parse_arguments() -> argparse.Namespace:
                         choices=['release', 'hybrid'],
                         default='release',
                         help="The build configuration type.")
-    parser.add_argument("target", choices=[2023, 2024, 2025, 2026], help="The 3ds Max version to target.", type=int)
+    parser.add_argument("target", choices=[2024, 2025, 2026, 2027], help="The 3ds Max version to target.", type=int)
     parser.add_argument("-b", "--build", help="The build number coming from the pipeline.", default=0, type=int)
     parser.add_argument("-v", "--version", help="The 3ds Max USD component version being built.", default='0.0.0')
     parser.add_argument("-w", "--warnaserror", help="Enable the compiler to treat all warnings as errors.", action='store_true')

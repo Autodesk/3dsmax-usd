@@ -95,6 +95,15 @@ class TestMaxSceneBuilderOptions(unittest.TestCase):
         options.SetUseProgressBar(False)
         self.assertFalse(options.GetUseProgressBar())
 
+        self.assertEqual(maxUsd.SlateMaterialHandling.Off, options.GetSlateMaterialHandling())
+        
+        # Test all enum values
+        options.SetSlateMaterialHandling(maxUsd.SlateMaterialHandling.UnboundMaterials)
+        self.assertEqual(maxUsd.SlateMaterialHandling.UnboundMaterials, options.GetSlateMaterialHandling())
+        
+        options.SetSlateMaterialHandling(maxUsd.SlateMaterialHandling.AllMaterials)
+        self.assertEqual(maxUsd.SlateMaterialHandling.AllMaterials, options.GetSlateMaterialHandling())
+
         # We have 2 overloads for SetAllChaserArgs, one taking in a dict, the other a list.
         self.assertEqual("{}", str(options.GetAllChaserArgs()))
         # Using dictionnary: 
@@ -136,6 +145,7 @@ class TestMaxSceneBuilderOptions(unittest.TestCase):
         self.assertEqual("set()", str(options.GetContextNames()))        
         self.assertEqual("{}", str(options.GetAllChaserArgs()))
         self.assertTrue(options.GetUseProgressBar())
+        self.assertEqual(maxUsd.SlateMaterialHandling.Off, options.GetSlateMaterialHandling())
         
         # Test copy construction
         options.SetStageMaskPaths(["/foo"])
