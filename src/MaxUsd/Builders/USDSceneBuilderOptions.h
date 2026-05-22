@@ -153,8 +153,7 @@ public:
     enum class MaxUSDAPI AnimationType
     {
         TimeSamples,
-        Curves,
-        Both
+        Curves
     };
 
     static MaxUSDAPI const double MIN_SAMPLES_PER_FRAME;

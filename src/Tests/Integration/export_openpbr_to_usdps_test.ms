@@ -47,13 +47,28 @@ struct openPBR_to_usdps_test
 
         local scriptDir = getFilenamePath (getThisScriptFilename())
         local uvCheckerPath = (scriptDir + @"data\uv_checker.png")
+        local normalMapPath = (scriptDir + @"data\orangepeel_normal.png")
 
         local teapot001 = teapot name:"teapot001"
         local mtl1 = OpenPBR()
         mtl1.name = "matTeapot001"
+        
+        -- Base color map
         checker = BitmapTexture()
         checker.filename = uvCheckerPath
         mtl1.base_color_map = checker
+
+        -- Opacity map
+        opacityTex = BitmapTexture()
+        opacityTex.filename = uvCheckerPath
+        mtl1.geometry_opacity_map = opacityTex
+
+        -- Normal map through Normal_Bump
+        normalTex = BitmapTexture()
+        normalTex.filename = normalMapPath
+        normalBump = Normal_Bump()
+        normalBump.normal_map = normalTex
+        mtl1.bump_map = normalBump
 
         teapot001.material = mtl1
         local exportOptions = USDExporter.CreateOptions()
@@ -76,8 +91,14 @@ struct openPBR_to_usdps_test
         assert_equal ((shaderPrim.GetAttribute "info:id").Get()) "UsdPreviewSurface"
         assert_equal ((((usdShader.GetInput "diffuseColor").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/matTeapot001/Bitmaptexture")
         assert_equal ((usdShader.GetInput "metallic").Get()) 0
-        assert_equal ((usdShader.GetInput "roughness").Get()) 0
+        assert_equal ((usdShader.GetInput "roughness").Get()) 0.3
         assert_equal ((usdShader.GetInput "specularColor").Get()) (pyGf.Vec3f 1 1 1)
+        
+        -- Validate opacity is connected
+        assert_equal ((((usdShader.GetInput "opacity").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/matTeapot001/Bitmaptexture_1")
+        
+        -- Validate normal is connected
+        assert_equal ((((usdShader.GetInput "normal").GetConnectedSource())[1].GetPath())) (pysdf.Path "/root/mtl/matTeapot001/Bitmaptexture_2")
 
         -- Validate NodeGraph Prim
         local nodeGraphPrim = stage.GetPrimAtPath("/root/mtl/matTeapot001/Bitmaptexture")

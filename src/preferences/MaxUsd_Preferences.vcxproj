@@ -11,12 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AssetResolverPreferences\ApplicationHost.cpp" />
-    <ClCompile Include="AssetResolverPreferences\HeaderWidget.cpp" />
-    <ClCompile Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.cpp" />
     <ClCompile Include="PreferenceApplicationHost.cpp" />
     <ClCompile Include="PreferencesManagement.cpp" />
-    <ClCompile Include="PreferencesOptions.cpp" />
     <ClInclude Include="$(UI_DIR)\ui_PreferencesDialog.h" />
     <ClCompile Include="DllEntry.cpp" />
     <ClCompile Include="maxusdpreferences_pch.cpp">
@@ -25,22 +21,11 @@
     <ClCompile Include="PreferencesDialog.cpp" />
     <ClInclude Include="PreferenceApplicationHost.h" />
     <ClInclude Include="PreferencesManagement.h" />
-    <ClInclude Include="PreferencesOptions.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="MaxUsd_Preferences.def" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="AssetResolverPreferences\ApplicationHost.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="AssetResolverPreferences\HeaderWidget.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtUic Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.ui" />
     <QtUic Include="PreferencesDialog.ui" />
   </ItemGroup>
   <ItemGroup>
@@ -49,9 +34,6 @@
   <ItemGroup>
     <ClInclude Include="DLLEntry.h" />
     <ClInclude Include="PreferencesExport.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtRcc Include="AssetResolverPreferences\AssetResolver.qrc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>MaxUsd_Preferences</ProjectName>
@@ -88,10 +70,10 @@
     <Link>
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
       <AdditionalDependencies Condition="'$(VersionTarget)'&lt;'2026'">maxUsd.lib;maxutil.lib;core.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;='2026'">maxUsd.lib;maxutil.lib;core.lib;Shlwapi.lib;AdskAssetResolver.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;='2026'">maxUsd.lib;maxutil.lib;core.lib;Shlwapi.lib;AdskAssetResolver.lib;AssetResolverPreferences.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&lt;'2026'">$(LibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;='2026'">$(LibDir);$(AdskAssetResolverLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs Condition="'$(VersionTarget)'&gt;='2026'">AdskAssetResolver.dll;</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(VersionTarget)'&gt;='2026'">AssetResolverPreferences.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

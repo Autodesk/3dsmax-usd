@@ -15,14 +15,18 @@
 //
 
 #include "PreferencesExport.h"
-#include "PreferencesOptions.h"
-#include "PreferenceApplicationHost.h"
+#include <MaxUsd/Utilities/MaxSupportUtils.h> // needed before the 3ds Max version check macros
 
+#ifdef IS_MAX2026_OR_GREATER
+#include <AssetResolverPreferences/AssetResolverSettings.h>
+#endif
 #include <QDialog>
 
+#ifdef IS_MAX2026_OR_GREATER
 namespace Adsk{
     class USDAssetResolverSettingsWidget;
 } // namespace Adsk
+#endif
 namespace Ui {
 class PreferencesDialog;
 } // namespace Ui
@@ -32,12 +36,14 @@ class MaxUsdPreferencesAPI UsdPreferencesDialog : public QDialog
 {
 	Q_OBJECT
 public:
-    UsdPreferencesDialog(const UsdPreferenceOptions& options, QWidget* parent = nullptr);
+    UsdPreferencesDialog(QWidget* parent = nullptr);
     ~UsdPreferencesDialog() override;
 
+#ifdef IS_MAX2026_OR_GREATER
     /// Get the options from the dialog UI
-    const UsdPreferenceOptions getOptions() const;
-    
+    const Adsk::AssetResolverSettings getOptions() const;
+#endif
+
 Q_SIGNALS:
     void geometryChanged(const QRect& geometry);
 
@@ -45,11 +51,10 @@ protected:
     void moveEvent(QMoveEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 
-    /// Load the options into the dialog UI
-    void loadOptions(const UsdPreferenceOptions& options);
-
     /// Reference to the Qt UI View of the dialog:
     std::unique_ptr<Ui::PreferencesDialog> ui { std::make_unique<Ui::PreferencesDialog>() };
 
+#ifdef IS_MAX2026_OR_GREATER
     Adsk::USDAssetResolverSettingsWidget* assetResolverSettingsWidget { nullptr };
+#endif
 };

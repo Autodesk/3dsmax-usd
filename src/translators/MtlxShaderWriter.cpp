@@ -519,12 +519,22 @@ void MtlxShaderWriter::Write()
         TF_WARN("Error reading MaterialX document: %s", e.what());
         return;
     }
+
+    // Sanitize the material name using the same logic as with the MaterialX component
+    // to match the node name produced by the MaterialX exporter. createValidName
+    // does not guard against leading digits.
     auto mtlxMatName
         = MaterialX::createValidName(MaxUsd::MaxStringToUsdString(GetMaterial()->GetName()));
+    if (!mtlxMatName.empty()
+        && std::isdigit(static_cast<unsigned char>(mtlxMatName[0]))) {
+        mtlxMatName = "_" + mtlxMatName;
+    }
     // surfaceMaterialNode
     auto MaterialNode = mtlxDoc->getNode(mtlxMatName);
     if (MaterialNode == nullptr) {
-        TF_WARN("Material Node '%s' not found in the MaterialX Document", GetMaterial()->GetName());
+        TF_WARN(
+            "Material Node '%s' not found in the MaterialX Document",
+            mtlxMatName.c_str());
         return;
     }
     // Collection of the MaterialX nodes already processed, to avoid processing them again.

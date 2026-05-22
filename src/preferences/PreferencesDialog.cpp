@@ -16,9 +16,8 @@
 
 #include "PreferencesDialog.h"
 
-#include "AssetResolverPreferences/USDAssetResolverSettingsWidget.h"
 #include "PreferenceApplicationHost.h"
-#include "PreferencesOptions.h"
+#include "PreferencesManagement.h"
 #include "ui_PreferencesDialog.h"
 
 #include <MaxUsd/Utilities/PluginUtils.h>
@@ -27,10 +26,14 @@
 #include <Qt/QmaxMainWindow.h>
 #include <Qt/QmaxToolClips.h>
 
+#ifdef IS_MAX2026_OR_GREATER
+#include <AssetResolverPreferences/AssetResolverSettingsManagement.h>
+#include <AssetResolverPreferences/USDAssetResolverSettingsWidget.h>
+#endif
 #include <QStyle>
 #include <maxapi.h>
 
-UsdPreferencesDialog::UsdPreferencesDialog(const UsdPreferenceOptions& options, QWidget* parent)
+UsdPreferencesDialog::UsdPreferencesDialog(QWidget* parent)
     : QDialog { parent }
 {
     setWindowFlags(windowFlags());
@@ -42,6 +45,7 @@ UsdPreferencesDialog::UsdPreferencesDialog(const UsdPreferenceOptions& options, 
 
     ui->version_label->setText(QString::fromStdString(MaxUsd::GetPluginDisplayVersion()));
 
+#ifdef IS_MAX2026_OR_GREATER
     auto margins = ui->MainLayout->contentsMargins();
     ui->MainLayout->setContentsMargins(
         margins.left(),
@@ -51,17 +55,38 @@ UsdPreferencesDialog::UsdPreferencesDialog(const UsdPreferenceOptions& options, 
 
     // asset resolver group and widgets
     auto assetResolverGroup = new QGroupBox(this);
-    assetResolverSettingsWidget = new Adsk::USDAssetResolverSettingsWidget(this);
+    assetResolverSettingsWidget = new Adsk::USDAssetResolverSettingsWidget(
+        Adsk::AssetResolverSettingsManagement::FillSettingsWithExtensions(), parent);
     assetResolverGroup->setTitle(tr("Asset Resolver"));
     auto layout = new QHBoxLayout(assetResolverGroup);
     layout->addWidget(assetResolverSettingsWidget);
-    ui->MainLayout->insertWidget(0, assetResolverGroup, 1);
+    ui->MainLayout->addWidget(assetResolverGroup);
+#endif
+
+    QWidget*     saveAndCloseWidget = new QWidget(this);
+    QHBoxLayout* saveAndCloselayout = new QHBoxLayout(saveAndCloseWidget);
+    QPushButton* saveButton = new QPushButton(tr("Save && Close"), this);
+    saveButton->setDefault(false);
+    saveButton->setAutoDefault(false);
+    saveButton->setFocusPolicy(Qt::NoFocus);
+    saveButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    saveButton->setToolTip(tr("Save settings"));
+    saveAndCloselayout->addWidget(saveButton);
+    QPushButton* closeButton = new QPushButton(tr("Close"), this);
+    closeButton->setDefault(false);
+    closeButton->setAutoDefault(false);
+    closeButton->setFocusPolicy(Qt::NoFocus);
+    closeButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    saveAndCloselayout->addWidget(closeButton);
+    ui->MainLayout->addWidget(saveAndCloseWidget);
+
+    // Connect only the action signals (save and close)
+    QObject::connect(saveButton, &QPushButton::clicked, this, &QDialog::accept);
+    QObject::connect(closeButton, &QPushButton::clicked, this, &QDialog::reject);
 
     // 3ds Max toolclips do not behave so well (linger and do not disappear or move with the
     // dialog). Disable until these issues are fixed.
     MaxUsd::Ui::DisableMaxToolClipsRecursively(this);
-
-    loadOptions(options);
 }
 
 UsdPreferencesDialog::~UsdPreferencesDialog() { }
@@ -78,45 +103,9 @@ void UsdPreferencesDialog::resizeEvent(QResizeEvent* event)
     Q_EMIT geometryChanged(geometry());
 }
 
-void UsdPreferencesDialog::loadOptions(const UsdPreferenceOptions& options)
+#ifdef IS_MAX2026_OR_GREATER
+const Adsk::AssetResolverSettings UsdPreferencesDialog::getOptions() const
 {
-    if (assetResolverSettingsWidget) {
-        assetResolverSettingsWidget->setIncludeProjectTokens(options.IsUsingProjectTokens());
-        assetResolverSettingsWidget->setMappingFilePath(
-            QString::fromStdString(options.GetMappingFile().string()));
-
-        assetResolverSettingsWidget->setUserPathsFirst(options.IsUsingUserSearchPathsFirst());
-        assetResolverSettingsWidget->setUserPathsOnly(!options.IsIncludingEnvironmentSearchPaths());
-        QStringList qUserPaths;
-        for (const auto& path : options.GetUserSearchPaths()) {
-            qUserPaths.append(QString::fromStdString(path));
-        }
-        assetResolverSettingsWidget->setUserPaths(qUserPaths);
-
-        QStringList qEnvPaths;
-        for (const auto& path : options.GetEnvironmentSearchPaths()) {
-            qEnvPaths.append(QString::fromStdString(path));
-        }
-        assetResolverSettingsWidget->setExtAndEnvPaths(qEnvPaths);
-    }
+    return assetResolverSettingsWidget->getSettings();
 }
-
-const UsdPreferenceOptions UsdPreferencesDialog::getOptions() const
-{
-    UsdPreferenceOptions options;
-
-    if (assetResolverSettingsWidget) {
-        options.SetUsingProjectTokens(assetResolverSettingsWidget->includeProjectTokens());
-        options.SetMappingFile(assetResolverSettingsWidget->mappingFilePath().toStdString());
-
-        std::vector<std::string> userPaths;
-        for (auto qPath : assetResolverSettingsWidget->userPaths()) {
-            userPaths.push_back(qPath.toStdString());
-        }
-        options.SetUserSearchPaths(userPaths);
-        options.SetUsingUserSearchPathsFirst(assetResolverSettingsWidget->userPathsFirst());
-        options.SetIncludingEnvironmentSearchPaths(!assetResolverSettingsWidget->userPathsOnly());
-    }
-
-    return options;
-}
+#endif

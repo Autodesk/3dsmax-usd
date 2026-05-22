@@ -59,52 +59,79 @@ std::unique_ptr<MaxLayerEditor> MaxLayerEditor::instance;
 namespace {
 
 /**
- * Builds (if needed) and returns a 3dsMax dock widget with QMaxMainWindow behavior
- * containing the USD Layer Editor.
- * @return the doc widget.
+ * Creates the MaxLayerEditorWindow inside the dock widget if it hasn't been
+ * created yet. This defers MaxSessionState notification registration until
+ * the Layer Editor is actually needed, preventing it from interacting with
+ * stages during passive dock widget creation.
+ */
+void ensureLayerEditorContent(MaxSDK::QmaxDockWidget* dockWidget)
+{
+    if (dockWidget->widget()) {
+        return;
+    }
+
+    auto layerEditorMainWindow
+        = new MaxLayerEditorWindow("USD Layer Editor", dockWidget, Qt::Widget);
+
+    dockWidget->setWidget(layerEditorMainWindow);
+    dockWidget->setFocusProxy(layerEditorMainWindow->centralWidget());
+    dockWidget->setFocusPolicy(Qt::StrongFocus);
+
+    auto treeViews = dockWidget->findChildren<QTreeView*>();
+    for (const auto& treeView : treeViews) {
+        MaxUsd::Ui::DisableMaxAcceleratorsOnFocus(treeView, false);
+    }
+}
+
+/**
+ * Builds (if needed) and returns a 3dsMax dock widget for the USD Layer Editor.
+ * On first creation, attempts to restore the dock widget's position, size, and
+ * docking state from the 3dsMax workspace layout. Falls back to floating with
+ * a default size if no saved state exists.
+ *
+ * The dock widget is created without content; the MaxLayerEditorWindow
+ * (and its MaxSessionState notifications) are deferred until the editor
+ * is actually shown, to avoid interacting with stages prematurely.
+ * @return The dock widget.
  */
 MaxSDK::QmaxDockWidget* getLayerEditorDockWidget()
 {
-
     static MaxSDK::QmaxDockWidget* dockWidget = [] {
         auto maxMainWindow = GetCOREInterface()->GetQmaxMainWindow();
 
         auto layerEditorDockWidget = new MaxSDK::QmaxDockWidget(
             "USD Layer Editor", QObject::tr("USD Layer Editor"), maxMainWindow);
+        layerEditorDockWidget->setAllowedAreas(Qt::AllDockWidgetAreas);
         layerEditorDockWidget->setProperty("QmaxDockMinMaximizable", true);
 
-        auto layerEditorMainWindow
-            = new MaxLayerEditorWindow("USD Layer Editor", layerEditorDockWidget, Qt::Widget);
+        // Restore the dock widget's saved state from the 3dsMax workspace layout.
+        // If no saved state is found (first-time use), fall back to floating
+        // with a default size.
+        const QSize defaultFloatingSize(MaxSDK::UIScaled(280), MaxSDK::UIScaled(440));
+        if (!maxMainWindow->restoreDockWidget(layerEditorDockWidget)) {
+            // For some reason, we need to add the dock widget to the main window,
+            // at least once, so that it can be restored in future sessions.
+            maxMainWindow->addDockWidget(Qt::RightDockWidgetArea, layerEditorDockWidget);
+            layerEditorDockWidget->setHidden(true);
+            layerEditorDockWidget->setFloating(true);
+            layerEditorDockWidget->resize(defaultFloatingSize);
+        }
 
-        layerEditorDockWidget->setWidget(layerEditorMainWindow);
+        // If the workspace restored the dock widget as visible, create the
+        // Layer Editor content now so the user doesn't see an empty panel.
+        if (!layerEditorDockWidget->isHidden()) {
+            ensureLayerEditorContent(layerEditorDockWidget);
+        }
 
-        layerEditorDockWidget->setFocusProxy(layerEditorMainWindow->centralWidget());
-        layerEditorDockWidget->setFocusPolicy(Qt::StrongFocus);
-
-        // Workaround to trick 3dsmax into properly docking this widget.
-        maxMainWindow->addDockWidget(Qt::RightDockWidgetArea, layerEditorDockWidget);
-
-        // We want our dock-widget to float with native window behavior
-        layerEditorDockWidget->setFloating(true);
-        // Arbitrary default size...
-        layerEditorDockWidget->resize(MaxSDK::UIScaled(280), MaxSDK::UIScaled(440));
-
-        // Set back default size when un-docking.
-        QSize floatingSize = layerEditorDockWidget->size();
+        // Reset to the default size when un-docking.
         QObject::connect(
             layerEditorDockWidget,
             &MaxSDK::QmaxDockWidget::topLevelChanged,
-            [floatingSize, layerEditorDockWidget](bool topLevel) {
+            [defaultFloatingSize, layerEditorDockWidget](bool topLevel) {
                 if (topLevel) {
-                    layerEditorDockWidget->resize(floatingSize);
+                    layerEditorDockWidget->resize(defaultFloatingSize);
                 }
             });
-
-        // We want the 3dsMax hotkeys to work while we are focused on the layer treeView.
-        auto treeViews = layerEditorDockWidget->findChildren<QTreeView*>();
-        for (const auto& treeView : treeViews) {
-            MaxUsd::Ui::DisableMaxAcceleratorsOnFocus(treeView, false);
-        }
 
         return layerEditorDockWidget;
     }();
@@ -213,6 +240,8 @@ void MaxLayerEditor::Initialize()
     USDLayerManager::Instance();
 }
 
+void MaxLayerEditor::EnsureDockWidgetCreated() { getLayerEditorDockWidget(); }
+
 void MaxLayerEditor::Open()
 {
     if (GetCOREInterface()->GetQuietMode()) {
@@ -220,8 +249,9 @@ void MaxLayerEditor::Open()
     }
 
     const auto dock = getLayerEditorDockWidget();
-    dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
+    ensureLayerEditorContent(dock);
     dock->show();
+    dock->setWindowState((dock->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     dock->raise();
 }
 
@@ -247,12 +277,13 @@ void MaxLayerEditor::OpenStage(USDStageObject* stageObject)
         return;
     }
     const auto dock = getLayerEditorDockWidget();
-    auto       layerEditor = static_cast<MaxLayerEditorWindow*>(dock->widget());
+    ensureLayerEditorContent(dock);
+    auto layerEditor = static_cast<MaxLayerEditorWindow*>(dock->widget());
 
     layerEditor->selectDccObject(MaxUsd::ufe::getUsdStageObjectPath(stageObject).string().c_str());
 
     dock->show();
-    dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
+    dock->setWindowState((dock->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     dock->raise();
 }
 

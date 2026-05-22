@@ -49,6 +49,15 @@ public:
      */
     void OpenStage(USDStageObject* stageObject);
 
+    /**
+     * \brief Ensures the Layer Editor dock widget is created and its workspace
+     * state is restored. Safe to call multiple times; only the first call has
+     * an effect. Should be called when a USD stage first becomes available in
+     * the session, so the dock widget can restore its saved visibility and
+     * position from the 3dsMax workspace layout.
+     */
+    static void EnsureDockWidgetCreated();
+
     // Delete the copy/move constructors assignment operators.
     MaxLayerEditor(const MaxLayerEditor&) = delete;
     MaxLayerEditor& operator=(const MaxLayerEditor&) = delete;

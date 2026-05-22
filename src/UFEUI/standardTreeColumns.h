@@ -35,7 +35,7 @@ class UFEUIAPI NameColumn : public UfeUi::TreeColumn
 public:
     NameColumn(int visualIndex);
 
-    NameColumn(const QString& rootAlias, int visualIndex);
+    NameColumn(const QString& rootAlias, int visualIndex, bool editable = true);
 
     QVariant columnHeader(int role) const override;
 
@@ -52,6 +52,7 @@ public:
 private:
     // An alias for the root item in the hierarchy.
     QString _rootAlias;
+    bool _editable = true;
 };
 
 /**

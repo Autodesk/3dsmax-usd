@@ -202,10 +202,6 @@ if __name__ == "__main__":
 	if os.path.exists(cmd + '.exe'):
 		exePath = cmd + '.exe'
 
-		# Usd checker has changed to require a new arg to enable the new validation framework
-		if cmd.lower() == "usdchecker":
-			newArgs.append("--useNewValidationFramework")
-
 	# If an .exe version of the tool exists (newer OpenUSD releases converted some python tools to native exes)
 	if exePath:
 		import subprocess

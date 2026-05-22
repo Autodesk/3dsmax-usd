@@ -15,8 +15,13 @@
 //
 #pragma once
 
-#include "AssetResolverPreferences/ApplicationHost.h"
 #include "PreferencesExport.h"
+
+#include <MaxUsd/Utilities/MaxSupportUtils.h>
+
+#ifdef IS_MAX2026_OR_GREATER
+
+#include <AssetResolverPreferences/ApplicationHost.h>
 
 class MaxUsdPreferencesAPI PreferenceApplicationHost : public Adsk::ApplicationHost
 {
@@ -25,11 +30,13 @@ public:
 
     float uiScale() const override;
     QIcon icon(const IconName& name) const override;
-    int pm(const PixelMetric& metric) const override;
- 
- protected:
+    int   pm(const PixelMetric& metric) const override;
+
+protected:
     PreferenceApplicationHost(QObject* parent = nullptr);
     ~PreferenceApplicationHost() override = default;
 
     static PreferenceApplicationHost* s_instance;
 };
+
+#endif // IS_MAX2026_OR_GREATER

@@ -438,10 +438,8 @@ void USDExportToFileDialog::setupRollups()
             auto selectedAnimationType
                 = static_cast<MaxUsd::USDSceneBuilderOptions::AnimationType>(index);
             auto transformFormatComboBox = generalSettingsRollup->GetTransformFormatComboBox();
-            if (selectedAnimationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
-                || selectedAnimationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both) {
+            if (selectedAnimationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves) {
                 // Only cache the old transform format if we are switching away from time samples.
-                // The user could be switching between "Curves" and "Both".
                 if (buildOptions.GetAnimationType()
                     == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples) {
 

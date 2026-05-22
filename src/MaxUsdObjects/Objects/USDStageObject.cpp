@@ -869,6 +869,10 @@ static void NotifyNodeAdded(void* param, NotifyInfo* info)
     if (GetParamBlockBool(usdStageObject->GetParamBlock(0), IsOpenInExplorer)) {
         USDExplorer::Instance()->OpenStage(usdStageObject);
     }
+
+    // Ensure the Layer Editor dock widget exists so that its saved workspace
+    // state (visibility, position, docking) can be restored.
+    MaxLayerEditor::EnsureDockWidgetCreated();
 }
 
 static void NotifyNodePreClone(void* param, NotifyInfo* info)

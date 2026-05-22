@@ -2,18 +2,8 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="maxusdpreferences_pch.cpp" />
-    <ClCompile Include="AssetResolverPreferences\ApplicationHost.cpp">
-      <Filter>AssetResolverPreferences</Filter>
-    </ClCompile>
-    <ClCompile Include="AssetResolverPreferences\HeaderWidget.cpp">
-      <Filter>AssetResolverPreferences</Filter>
-    </ClCompile>
-    <ClCompile Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.cpp">
-      <Filter>AssetResolverPreferences</Filter>
-    </ClCompile>
     <ClCompile Include="PreferencesDialog.cpp" />
     <ClCompile Include="DllEntry.cpp" />
-    <ClCompile Include="PreferencesOptions.cpp" />
     <ClCompile Include="PreferenceApplicationHost.cpp" />
     <ClCompile Include="PreferencesManagement.cpp" />
   </ItemGroup>
@@ -21,39 +11,16 @@
     <None Include="MaxUsd_Preferences.def" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="AssetResolverPreferences">
-      <UniqueIdentifier>{0b4f412c-1092-4774-8840-876c6e2e052d}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="AssetResolverPreferences\ApplicationHost.h">
-      <Filter>AssetResolverPreferences</Filter>
-    </QtMoc>
-    <QtMoc Include="AssetResolverPreferences\HeaderWidget.h">
-      <Filter>AssetResolverPreferences</Filter>
-    </QtMoc>
-    <QtMoc Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.h">
-      <Filter>AssetResolverPreferences</Filter>
-    </QtMoc>
     <QtMoc Include="PreferencesDialog.h" />
   </ItemGroup>
   <ItemGroup>
-    <QtUic Include="AssetResolverPreferences\USDAssetResolverSettingsWidget.ui">
-      <Filter>AssetResolverPreferences</Filter>
-    </QtUic>
     <QtUic Include="PreferencesDialog.ui" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PreferencesExport.h" />
     <ClInclude Include="DLLEntry.h" />
     <ClInclude Include="$(UI_DIR)\ui_PreferencesDialog.h" />
-    <ClInclude Include="PreferencesOptions.h" />
     <ClInclude Include="PreferenceApplicationHost.h" />
     <ClInclude Include="PreferencesManagement.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtRcc Include="AssetResolverPreferences\AssetResolver.qrc">
-      <Filter>AssetResolverPreferences</Filter>
-    </QtRcc>
   </ItemGroup>
 </Project>

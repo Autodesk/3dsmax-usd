@@ -14,20 +14,16 @@
 #pragma once
 
 #include "PreferencesExport.h"
-
-class UsdPreferenceOptions;
+#include <MaxUsd/Utilities/MaxSupportUtils.h> // needed before the 3ds Max version check macros
 
 namespace PreferencesManagement {
+
+#ifdef IS_MAX2026_OR_GREATER
 // Initialize the USD Preferences system, must be called once at startup
 MaxUsdPreferencesAPI void InitializeUsdPreferences();
+#endif
 
-// Get the current USD Preferences
-MaxUsdPreferencesAPI const UsdPreferenceOptions GetUsdPreferences();
+// Display the USD Preferences dialog
+MaxUsdPreferencesAPI void ShowPreferencesDialog();
 
-// Apply newOptions to asset resolver context, only changing values that differ
-MaxUsdPreferencesAPI
-void ApplyUsdPreferences(const UsdPreferenceOptions& options, const UsdPreferenceOptions& newOptions);
-
-// Save the USD Preferences to disk
-MaxUsdPreferencesAPI void SaveUsdPreferences(const UsdPreferenceOptions& options);
 } // namespace PreferencesManagement

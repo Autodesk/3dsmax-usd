@@ -37,9 +37,10 @@ NameColumn::NameColumn(int visualIndex)
 {
 }
 
-NameColumn::NameColumn(const QString& rootItemAlias, int visualIndex)
+NameColumn::NameColumn(const QString& rootItemAlias, int visualIndex, bool editable)
     : TreeColumn::TreeColumn(visualIndex)
-    , _rootAlias { rootItemAlias }
+    , _rootAlias (rootItemAlias)
+    , _editable (editable)
 {
 }
 
@@ -151,9 +152,8 @@ void NameColumn::flags(const UfeUi::TreeItem* treeItem, Qt::ItemFlags& flags)
 {
     const auto parent = treeItem->parentItem();
     const bool isRootItem = !parent || parent->sceneItem() == nullptr;
-    if (!isRootItem) {
-        flags |= Qt::ItemIsEditable;
-    }
+
+    flags.setFlag(Qt::ItemIsEditable, !isRootItem && _editable);
 }
 
 bool NameColumn::setData(const UfeUi::TreeItem* treeItem, const QVariant& value, int role)

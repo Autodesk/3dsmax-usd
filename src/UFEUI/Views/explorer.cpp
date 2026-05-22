@@ -438,11 +438,6 @@ bool Explorer::isRelevantToExplorer(const Ufe::Path& path) const
 
 void Explorer::updateTreeSelection()
 {
-    // Clear the current index as we will update the selection.
-    // QT sometimes hold on to indices longer than it should in the current index as
-    // the model indices get destroyed.
-    _ui->treeView->selectionModel()->clearCurrentIndex();
-
     auto currentHighlightExtend = _parentHighlightExtend;
     _parentHighlightExtend.clear();
 
