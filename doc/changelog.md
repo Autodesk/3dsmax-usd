@@ -1,6 +1,53 @@
 ## Changelog
 
 
+### v0.15.0
+
+#### What's New:
+- New public release - version 0.15.0
+
+### v0.14.5
+
+#### Fixes:
+- Prevent accidental prim reparenting during selection from the prim picker dialog.
+
+### v0.14.4
+
+#### What's New:
+- USD Explorer and USD Layer Editor now retain their docked or floating position and size when reopening a scene, with automatic reset to a visible default location if previously placed off-screen.
+
+#### Fixes:
+- Fixed a situation in which the USD Explorer could open over the file picker when creating a stage from a file.
+- Removed the "Both" animation export option to prevent conflicting spline and time sample authoring, aligning with USD behaviour where time samples take priority and splines are ignored.
+- Fixed a bug that allowed the Prim Picker to edit prims name.
+- Improved rename performance and reliability.
+
+### v0.14.3
+
+#### What's New:
+- USD Explorer and USD Layer Editor now retain their docked or floating position and size when reopening a scene, with automatic reset to a visible default location if previously placed off-screen.
+
+#### Fixes:
+- Removed the "Both" animation export option to prevent conflicting spline and time sample authoring, aligning with USD behaviour where time samples take priority and splines are ignored.
+- Improved rename performance and reliability.
+
+### v0.14.2
+
+#### What's New:
+- Compatibility release for 3ds Max Beta A519-71.2 release.
+- Resolved conversion issues between OpenPBR and USD Preview Surface on export.
+
+#### Fixes:
+- Exporting light now properly respects the On/Off state.
+- Fixed a potential Gimbal Lock issue when exporting data to USD with Split transform feature enabled.
+- Fixed an issue where camera with animated targets wouldn't get animated when exporting with Curves.
+- Fixed an issue where 3ds Max would crash when exporting biped with Animation curves.
+
+### v0.14.1
+
+#### Fixes:
+- Fixed an issue where animated transforms didn't match the original when exporting with Y-up and animation curves.
+
 ### v0.14.0
 
 #### What's New:
