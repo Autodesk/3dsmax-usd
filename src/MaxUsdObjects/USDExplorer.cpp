@@ -191,25 +191,26 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
         dockWidget->setFocusProxy(explorerHost);
         dockWidget->setFocusPolicy(Qt::StrongFocus);
 
-        // Workaround to trick 3dsmax into properly docking this widget.
-        max_main_window->addDockWidget(Qt::RightDockWidgetArea, dockWidget);
-        // We added it as a dock widget and that would show the widget, but at this point we just
-        // want to set it up, not necessarily show it.
-        dockWidget->hide();
+        // Restore the dock widget's saved state from the 3dsMax workspace layout.
+        // If no saved state is found (first-time use), fall back to floating
+        // with a default size.
+        const QSize defaultFloatingSize(MaxSDK::UIScaled(280), MaxSDK::UIScaled(440));
+        if (!max_main_window->restoreDockWidget(dockWidget)) {
+            // For some reason, we need to add the dock widget to the main window,
+            // at least once, so that it can be restored in future sessions.
+            max_main_window->addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+            dockWidget->setFloating(true);
+            dockWidget->resize(defaultFloatingSize);
+            dockWidget->setHidden(true);
+        }
 
-        // We want our dock-widget to float with native window behavior
-        dockWidget->setFloating(true);
-        // Arbitrary default size, similar to the Scene Explorer.
-        dockWidget->resize(MaxSDK::UIScaled(280), MaxSDK::UIScaled(440));
-
-        // Set back default size when un-docking.
-        QSize floatingSize = dockWidget->size();
+        // Reset to the default size when un-docking.
         QObject::connect(
             dockWidget,
             &MaxSDK::QmaxDockWidget::topLevelChanged,
-            [floatingSize, dockWidget](bool topLevel) {
+            [defaultFloatingSize, dockWidget](bool topLevel) {
                 if (topLevel) {
-                    dockWidget->resize(floatingSize);
+                    dockWidget->resize(defaultFloatingSize);
                 }
             });
 
@@ -302,8 +303,8 @@ void USDExplorer::Open()
     }
 
     const auto dock = getHostDockWidget();
-    dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
     dock->show();
+    dock->setWindowState((dock->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     dock->raise();
 }
 
@@ -437,7 +438,7 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
     for (const auto& treeView : treeViews) {
         MaxUsd::Ui::DisableMaxAcceleratorsOnFocus(treeView, false);
     }
-    dock->setWindowState(dock->windowState() & ~Qt::WindowMinimized | Qt::WindowActive);
+    dock->setWindowState((dock->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     dock->raise();
 }
 

@@ -19,6 +19,8 @@
 #include <maxicon.h>
 #include <winutil.h>
 
+#ifdef IS_MAX2026_OR_GREATER
+
 PreferenceApplicationHost* PreferenceApplicationHost::s_instance = nullptr;
 
 PreferenceApplicationHost::PreferenceApplicationHost(QObject* parent)
@@ -38,38 +40,58 @@ float PreferenceApplicationHost::uiScale() const { return MaxSDK::GetUIScaleFact
 
 QIcon PreferenceApplicationHost::icon(const IconName& name) const
 {
+    auto          colorman = GetColorManager();
+    const QString theme = colorman
+        ? colorman->GetAppFrameColorTheme() == IColorManager::AppFrameColorTheme::kDarkTheme
+            ? "dark"
+            : "light"
+        : "dark";
     switch (name) {
     case IconName::Add: return MaxSDK::LoadMaxMultiResIcon("Common/Plus");
     case IconName::AddFolder: {
-        QString theme = []() {
-            if (auto colorman = GetColorManager()) {
-                return colorman->GetAppFrameColorTheme()
-                        == IColorManager::AppFrameColorTheme::kDarkTheme
-                    ? "dark"
-                    : "light";
-            }
-            return "dark";
-        }();
-        return MaxSDK::LoadMaxMultiResIcon(
-            QString(":/AdskUSDAssetResolver/icons/%1/add_folder").arg(theme));
+        QIcon icon;
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/addFolder_100.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/addFolder_150.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/addFolder_200.png").arg(theme));
+        return icon;
     }
     case IconName::OpenFile: return MaxSDK::LoadMaxMultiResIcon("Common/Folder");
     case IconName::Delete: return MaxSDK::LoadMaxMultiResIcon("Common/Delete");
-    case IconName::MoveUp: return MaxSDK::LoadMaxMultiResIcon("Common/ArrowUp");
-    case IconName::MoveDown: return MaxSDK::LoadMaxMultiResIcon("Common/ArrowDown");
-
+    case IconName::MoveUp: {
+        QIcon icon;
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveUp_100.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveUp_150.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveUp_200.png").arg(theme));
+        return icon;
+    }
+    case IconName::MoveDown: {
+        QIcon icon;
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveDown_100.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveDown_150.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/moveDown_200.png").arg(theme));
+        return icon;
+    }
+    case IconName::Gripper: {
+        QIcon icon;
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_100.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_150.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_200.png").arg(theme));
+        return icon;
+    }
+    case IconName::GripperActive: {
+        QIcon icon;
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_active_100.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_active_150.png").arg(theme));
+        icon.addFile(QString(":/AdskAssetResolver/icons/%1/gripper_active_200.png").arg(theme));
+        return icon;
+    }
     default: return QIcon();
     }
 }
 
 int PreferenceApplicationHost::pm(const PixelMetric& metric) const
 {
-    const float scale = uiScale();
-    switch (metric) {
-    case PixelMetric::TinyPadding: return static_cast<int>(2 * scale);
-    case PixelMetric::ResizableActiveAreaSize: return static_cast<int>(8 * scale);
-    case PixelMetric::ResizableContentMargin: return static_cast<int>(4 * scale);
-    case PixelMetric::ItemHeight: return static_cast<int>(24 * scale);
-    default: return 0;
-    }
+    return static_cast<int>(uiScale() * ApplicationHost::pm(metric));
 }
+
+#endif // IS_MAX2026_OR_GREATER

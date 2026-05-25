@@ -37,8 +37,7 @@ UsdExportGeneralSettingsRollup::UsdExportGeneralSettingsRollup(
     auto animationType = buildOptions.GetAnimationType();
     ui->TransformFormatComboBox->setEnabled(
         animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples);
-    if (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
-        || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both) {
+    if (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves) {
         ui->TransformFormatComboBox->setCurrentIndex(
             static_cast<int>(MaxUsd::TransformFormat::SplitComponents));
     } else {

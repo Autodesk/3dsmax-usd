@@ -116,7 +116,7 @@ PyObject* _pickItems(
     dialog->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     dialog->setLayout(new QVBoxLayout());
 
-    UfeUi::TreeColumns columns { std::make_shared<NameColumn>("root", 0),
+    UfeUi::TreeColumns columns { std::make_shared<NameColumn>("root", 0, false),
                                  std::make_shared<TypeColumn>(1) };
 
     const UfeUi::Explorer::ColorScheme colors = {
@@ -180,6 +180,9 @@ PyObject* _pickItems(
         colors,
         dialog);
     dialog->layout()->addWidget(explorer);
+
+    // Disable drag-and-drop to prevent reparenting in the prim picker.
+    explorer->treeView()->setDragDropMode(QAbstractItemView::NoDragDrop);
 
     QPointer<QDialogButtonBox> buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);

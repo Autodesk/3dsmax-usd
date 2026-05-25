@@ -92,6 +92,10 @@ if $(VersionTarget) geq 2025 (
 )
 robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) MaterialX*.dll
 if %errorlevel% geq 4 exit /b 1
+if $(VersionTarget) geq 2026 (
+	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) openjph*.dll
+	if %errorlevel% geq 4 exit /b 1
+)
 if exist "$(MaterialXDir)/" (
     robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(MaterialXDir)" $(TargetDir)\..\MaterialX_plugin /XF "ARTIFACT"
     if %errorlevel% geq 4 exit /b 1

@@ -143,10 +143,9 @@ FPInterfaceDesc IUSDExportOptionsDesc(
 		_T("activeMaterial"), USDSceneBuilderOptions::MtlSwitcherExportStyle::ActiveMaterialOnly,
 #endif
 #ifdef USD_CURVES_SUPPORTED
-        IUSDExportOptions::eIdAnimationType, 3,
+        IUSDExportOptions::eIdAnimationType, 2,
                 _T("timeSamples"), USDSceneBuilderOptions::AnimationType::TimeSamples,
                 _T("curves"), USDSceneBuilderOptions::AnimationType::Curves,
-                _T("both"), USDSceneBuilderOptions::AnimationType::Both,
 #endif
 	IUSDExportOptions::eIdShellMtlExportStyle, 3,
 		_T("baked"), USDSceneBuilderOptions::ShellMtlExportStyle::Baked,

@@ -201,7 +201,7 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>Select how animations should be stored: Time Samples, Animation Curves, or both. Animation Curves are not fully supported. Where unsupported, the system falls back to Time Samples.</string>
+        <string>Select how animations should be stored: Time Samples or Animation Curves. Animation Curves are not fully supported. Where unsupported, the system falls back to Time Samples.</string>
        </property>
        <property name="text">
         <string>Animation Type</string>
@@ -220,7 +220,7 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>Select how animations should be stored: Time Samples, Animation Curves, or both. Animation Curves are not fully supported. Where unsupported, the system falls back to Time Samples.</string>
+        <string>Select how animations should be stored: Time Samples or Animation Curves. Animation Curves are not fully supported. Where unsupported, the system falls back to Time Samples.</string>
        </property>
        <item>
         <property name="text">
@@ -230,11 +230,6 @@
        <item>
         <property name="text">
          <string>Animation Curves</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Both Samples and Curves</string>
         </property>
        </item>
       </widget>

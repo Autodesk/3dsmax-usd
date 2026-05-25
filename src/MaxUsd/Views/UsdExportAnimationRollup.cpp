@@ -65,8 +65,17 @@ UsdExportAnimationRollup::UsdExportAnimationRollup(
         }
     }
 #else
-    auto animationType = static_cast<int>(buildOptions.GetAnimationType());
-    ui->AnimationTypeComboBox->setCurrentIndex(animationType);
+    auto animationType = buildOptions.GetAnimationType();
+
+    // Check if there's an invalid result coming from the json export settings, if so reset to the
+    // default value
+    if (animationType < MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
+        || animationType > MaxUsd::USDSceneBuilderOptions::AnimationType::Curves) {
+        animationType = MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples;
+        buildOptions.SetAnimationType(animationType);
+    }
+
+    ui->AnimationTypeComboBox->setCurrentIndex(static_cast<int>(animationType));
 #endif
 
     ui->FrameNumberDoubleSpinBox->setMinimum(-DBL_MAX);

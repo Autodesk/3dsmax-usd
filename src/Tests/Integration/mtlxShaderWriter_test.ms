@@ -166,12 +166,47 @@ struct mtlx_shader_writer_test
         assert_equal ((shader.GetInput "transmission_weight").Get()) 0
     ),
 
+    -- Validate that a material with a name starting with a digit exports properly.
+    -- The MtlxShaderWriter must prepend '_' to the name when looking up the node
+    -- in the MaterialX document, matching the behavior of createValidName + leading digit fix.
+    function test_export_material_leading_digit_name = (
+        maxver = maxVersion()
+        -- OpenPBR is only 2025.3 and above
+        if maxver[1] < 27900 then (
+            return 0
+        )
+
+        local teapot001 = teapot name:"teapot001"
+        local mtl1 = OpenPBR()
+        mtl1.name = "1matTeapot001"
+        teapot001.material = mtl1
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.AllMaterialTargets = #("MaterialX")
+
+        local exportPath = output_prefix + "testLeadingDigitMaterial.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        -- The material name starts with a digit. TfMakeValidIdentifier replaces the
+        -- leading digit with '_', so "1matTeapot001" becomes "_matTeapot001".
+        local mtlPrim = stage.GetPrimAtPath("/root/mtl/_matTeapot001")
+        assert_true (mtlPrim.IsValid())
+        -- Validate the shader prim exists under the sanitized name
+        local shaderPrim = stage.GetPrimAtPath("/root/mtl/_matTeapot001/_matTeapot001")
+        assert_true (shaderPrim.IsValid())
+        assert_true (shaderPrim.IsA(pyShade.Shader))
+        local shader = pyShade.Shader(shaderPrim)
+        assert_equal ((shaderPrim.GetAttribute "info:id").Get()) "ND_open_pbr_surface_surfaceshader"
+    ),
+
     function teardown = (
     ),
 
     Tests = #(
         test_export_physical_material,
-        test_export_OpenPBR_material
+        test_export_OpenPBR_material,
+        test_export_material_leading_digit_name
         )
 )
 

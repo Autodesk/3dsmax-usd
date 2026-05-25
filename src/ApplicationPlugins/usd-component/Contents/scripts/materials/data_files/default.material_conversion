@@ -450,9 +450,9 @@
                     "use_map_parameter": "base_metalness_map_on"
                 },
                 "roughness": {
-                    "value_parameter": "base_diffuse_roughness",
-                    "map_parameter": "base_diffuse_roughness_map",
-                    "use_map_parameter": "base_diffuse_roughness_map_on"
+                    "value_parameter": "specular_roughness",
+                    "map_parameter": "specular_roughness_map",
+                    "use_map_parameter": "specular_roughness_map_on"
                 },
                 "specularColor": {
                     "value_parameter": "specular_color",
@@ -462,6 +462,10 @@
                 "opacity": {
                     "map_parameter": "geometry_opacity_map",
                     "use_map_parameter": "geometry_opacity_map_on"
+                },
+                "normal": {
+                    "map_parameter": "bump_map",
+                    "use_map_parameter": "bump_map_on"
                 }
             }
         }

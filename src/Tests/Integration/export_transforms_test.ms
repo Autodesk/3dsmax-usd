@@ -549,30 +549,6 @@ struct export_transforms_test
         local rotateYKnot50 = rotateYKnots[51]
         local rotateYKnot50Interp = rotateYKnot50.GetNextInterpolation()
         assert_true (rotateYKnot50Interp == pyTs.InterpCurve) message:("rotateY middle knot should have InterpCurve (smooth) interpolation, got " + (rotateYKnot50Interp as string))
-
-        -- Test export with #both option (curves + time samples)
-        curveExportOptions.AnimationType = #both
-        local exportPathBoth = output_prefix + "test_export_transform_spline_animation_both.usda"
-        assert_true (USDExporter.ExportFile exportPathBoth exportOptions:curveExportOptions) message:"Export with both animation types failed"
-        
-        -- Validate that both splines and time samples exist
-        local stageBoth = pyUsd.Stage.Open(exportPathBoth)
-        local boxPrimBoth = stageBoth.GetPrimAtPath("/animated_box")
-        assert_true (pyUsd.Prim.IsValid(boxPrimBoth)) message:"Missing animated_box prim when AnimationType is #both"
-
-        local xformableBoth = pyUsdGeom.Xformable(boxPrimBoth)
-        local xformOpsBoth = xformableBoth.GetOrderedXformOps()
-        assert_true (xformOpsBoth.Count == 9) message:"Wrong number of transforms when AnimationType is #both"
-
-        expectedOps = #("xformOp:translateX", "xformOp:translateY", "xformOp:translateZ", "xformOp:rotateZ", "xformOp:rotateY", "xformOp:rotateX", "xformOp:scaleX", "xformOp:scaleY", "xformOp:scaleZ")
-        for i in 1 to expectedOps.Count do (
-            assert_true (((xformOpsBoth[i]).GetName()) == (expectedOps[i]))
-        )
-
-        -- Validate that the time samples are exported correctly
-        local translateXAttrBoth = boxPrimBoth.GetAttribute("xformOp:translateX")
-        local timeSamplesBoth = translateXAttrBoth.GetTimeSamples()
-        assert_true (timeSamplesBoth.Count == 101)
     ),
 
     function test_target_camera_exports_time_samples = (
@@ -649,6 +625,189 @@ struct export_transforms_test
         assert_true (stage != undefined) message:"Failed to open exported USD stage"
     ),
 
+    function test_export_transform_with_spline_animation_y_up = (
+        -- Check if USD version supports splines (24.11+)
+        usdVersion = pyUsd.GetVersion()
+        local supportCurves = (usdVersion[2] > 24)
+        if not supportCurves then (
+            format "Skipping test_export_transform_with_spline_animation_y_up: USD version % does not support curves\n" usdVersion
+            return undefined
+        )
+
+        -- Import the Ts module for spline validation
+        pyTs = python.import("pxr.Ts")
+
+        -- Create a box with animated transforms
+        local boxNode = box name:"animated_box_yup"
+
+        with animate on (
+            at time 0 (boxNode.pos = [10, 20, 30])
+            at time 0 (boxNode.rotation = eulerAngles 0 0 0)
+            at time 0 (boxNode.scale = [1, 2, 3])
+
+            at time 5 (boxNode.pos = [100, 200, 300])
+            at time 5 (boxNode.rotation = eulerAngles 15 30 45)
+            at time 5 (boxNode.scale = [1.5, 2.5, 3.5])
+
+            at time 10 (boxNode.pos = [1000, 2000, 3000])
+            at time 10 (boxNode.rotation = eulerAngles 30 60 90)
+            at time 10 (boxNode.scale = [2, 3, 4])
+        )
+
+        local curveExportOptions = USDExporter.CreateOptions()
+        curveExportOptions.FileFormat = #ascii
+        curveExportOptions.RootPrimPath = "/"
+        curveExportOptions.UpAxis = #y
+        curveExportOptions.TimeMode = #frameRange
+        curveExportOptions.StartFrame = 0
+        curveExportOptions.EndFrame = 10
+        curveExportOptions.AnimationType = #both
+        --curveExportOptions.TransformFormat = #splitComponents -- Required for spline export
+        
+        local exportPath = output_prefix + "test_export_transform_spline_animation_yup.usda"
+        
+        -- Export with spline animation and Y-up
+        assert_true (USDExporter.ExportFile exportPath exportOptions:curveExportOptions) message:"Export with spline animation (Y-up) failed"
+        
+        -- Open the exported stage and validate splines
+        local stage = pyUsd.Stage.Open(exportPath)
+        assert_true (stage != undefined) message:"Failed to open exported USD stage (Y-up)"
+        
+        -- Verify the stage is set to Y-up
+        local stageUpAxis = pyUsdGeom.GetStageUpAxis(stage)
+        assert_true (stageUpAxis == pyUsdGeom.Tokens.y) message:("Stage should have Y-up axis, got " + (stageUpAxis as string))
+        
+        local boxPrim = stage.GetPrimAtPath("/animated_box_yup")
+        assert_true (pyUsd.Prim.IsValid(boxPrim)) message:"Missing animated_box_yup prim"
+        
+        -- Validate that transform attributes have splines with correct axis mapping
+        local xformable = pyUsdGeom.Xformable(boxPrim)
+        local xformOps = xformable.GetOrderedXformOps()
+        assert_true (xformOps.count == 9) message:"Missing split components in transform (Y-up)"
+
+        -- Validate that both splines and time samples were exported (AnimationType = #both)
+        -- Compare spline knot values with time sample values at keyframe positions
+        local attrNames = #(
+            "xformOp:translateX", "xformOp:translateY", "xformOp:translateZ",
+            "xformOp:rotateX", "xformOp:rotateY", "xformOp:rotateZ",
+            "xformOp:scaleX", "xformOp:scaleY", "xformOp:scaleZ"
+        )
+
+        keyframeTimes = #(1, 6, 11)
+
+        for attrName in attrNames do (
+            attr = boxPrim.GetAttribute(attrName)
+            assert_true (attr.IsValid()) message:("Missing attribute: " + attrName)
+
+            spline = attr.GetSpline()
+            assert_true (spline != undefined) message:("Missing spline for attribute: " + attrName)
+            local knots = spline.GetKnots()
+            assert_true (knots.count == 3) message:(attrName + " should have 3 knots, got " + (knots.count as string))
+
+            local timeSamples = attr.GetTimeSamples()
+            assert_true (timeSamples.Count == 11) message:(attrName + " should have 11 time samples, got " + (timeSamples.Count as string))
+            print((knots[1]).GetValue())
+            for knotTime in keyframeTimes do (
+                local knot = knots[knotTime]
+                assert_true (knot != undefined) message:(attrName + " should have a knot at time " + (knotTime as string))
+                
+                local splineValue = knot.GetValue()
+                local timeSampleValue = attr.Get(knotTime)
+                
+                local valuesMatch = compareFloats splineValue timeSampleValue
+                assert_true valuesMatch message:("Spline and time sample mismatch for " + attrName + " at time " + (knotTime as string) + ": spline=" + (splineValue as string) + ", timeSample=" + (timeSampleValue as string))
+            )
+        )
+    ),
+
+    function test_rotation_unwrapping = (
+        local boxNode = box name:"rotating_box"
+        
+        animationRange = interval 0 100
+        
+        with animate on (
+            at time 0 (boxNode.rotation = eulerAngles 0 0 0)
+            at time 25 (boxNode.rotation = eulerAngles 90 0 0)
+            at time 50 (boxNode.rotation = eulerAngles 180 0 0)
+            at time 75 (boxNode.rotation = eulerAngles 270 0 0)
+            at time 100 (boxNode.rotation = eulerAngles 360 0 0)
+        )
+        
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.TimeMode = #frameRange
+        exportOptions.StartFrame = 0
+        exportOptions.EndFrame = 100
+        exportOptions.TransformFormat = #splitComponents
+        
+        local exportPath = output_prefix + "test_rotation_unwrapping.usda"
+        
+        assert_true (USDExporter.ExportFile exportPath exportOptions:exportOptions) message:"Export with rotation unwrapping failed"
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        local boxPrim = stage.GetPrimAtPath("/rotating_box")
+        assert_true (pyUsd.Prim.IsValid(boxPrim)) message:"Missing rotating_box prim"
+
+        usdVersion = pyUsd.GetVersion()
+        local supportsIndividualRotation = (usdVersion[2] > 24)
+
+        local prevRotation = undefined
+        local maxJump = 0.0
+        
+        if supportsIndividualRotation then (
+            local rotateXAttr = boxPrim.GetAttribute("xformOp:rotateX")
+            assert_true (rotateXAttr != undefined and rotateXAttr.IsValid()) message:"Missing rotateX attribute"
+            
+            local timeSamples = rotateXAttr.GetTimeSamples()
+            assert_true (timeSamples.Count > 0) message:"No time samples found for rotateX"
+            
+            for i = 1 to timeSamples.Count do (
+                local time = timeSamples[i]
+                local rotation = rotateXAttr.Get(time)
+                
+                if prevRotation != undefined then (
+                    local diff = abs(rotation - prevRotation)
+                    if diff > maxJump then (
+                        maxJump = diff
+                    )
+                    
+                    assert_true (diff < 180.0) message:("Rotation discontinuity detected at frame " + (time as string) + ": jump of " + (diff as string) + " degrees from " + (prevRotation as string) + " to " + (rotation as string))
+                )
+                
+                prevRotation = rotation
+            )
+        ) else (
+            local rotateAttr = boxPrim.GetAttribute("xformOp:rotateXYZ")
+            assert_true (rotateAttr != undefined and rotateAttr.IsValid()) message:"Missing rotate attribute"
+            
+            local timeSamples = rotateAttr.GetTimeSamples()
+            assert_true (timeSamples.Count > 0) message:"No time samples found for rotate"
+            
+            for i = 1 to timeSamples.Count do (
+                local time = timeSamples[i]
+                local rotation = rotateAttr.Get(time)
+                
+                if prevRotation != undefined then (
+                    local diffX = abs(rotation[1] - prevRotation[1])
+                    local diffY = abs(rotation[2] - prevRotation[2])
+                    local diffZ = abs(rotation[3] - prevRotation[3])
+                    local maxDiff = amax #(diffX, diffY, diffZ)
+                    
+                    if maxDiff > maxJump then (
+                        maxJump = maxDiff
+                    )
+                    
+                    assert_true (diffX < 180.0) message:("X rotation discontinuity detected at frame " + (time as string) + ": jump of " + (diffX as string) + " degrees")
+                    assert_true (diffY < 180.0) message:("Y rotation discontinuity detected at frame " + (time as string) + ": jump of " + (diffY as string) + " degrees")
+                    assert_true (diffZ < 180.0) message:("Z rotation discontinuity detected at frame " + (time as string) + ": jump of " + (diffZ as string) + " degrees")
+                )
+                
+                prevRotation = rotation
+            )
+        )
+    ),
+
     function teardown = (
     ),
 
@@ -659,7 +818,8 @@ struct export_transforms_test
         test_worldspaceroot_off,
         test_export_transform_with_spline_animation,
         test_target_camera_exports_time_samples,
-        test_biped_curves_export_test
+        test_biped_curves_export_test,
+        test_rotation_unwrapping
     )
 )
 

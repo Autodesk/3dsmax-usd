@@ -236,8 +236,6 @@ class TestUSDSceneBuilderOptions(unittest.TestCase):
             self.assertEqual(maxUsd.AnimationType.TimeSamples, options.GetAnimationType())
             options.SetAnimationType(maxUsd.AnimationType.Curves)
             self.assertEqual(maxUsd.AnimationType.Curves, options.GetAnimationType())
-            options.SetAnimationType(maxUsd.AnimationType.Both)
-            self.assertEqual(maxUsd.AnimationType.Both, options.GetAnimationType())
         self.assertEqual(maxUsd.ShellMtlExportStyle.Both, options.GetShellMtlExportStyle())
         options.SetShellMtlExportStyle(maxUsd.ShellMtlExportStyle.Baked)
         self.assertEqual(maxUsd.ShellMtlExportStyle.Baked, options.GetShellMtlExportStyle())

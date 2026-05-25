@@ -118,7 +118,7 @@ struct export_light_test
         pointLight.useKelvin = true
         pointLight.shadowColor = color 255 255 255
         pointLight.baseobject.castShadows = false
-        pointLight.on = false -- turning the light off should not affect the export to USD
+        pointLight.on = false -- turning the light off zeroes out diffuse and specular in USD
             
         local exportPath = output_prefix + "test_photometric_light_gen_attr_export.usda"
         USDExporter.ExportFile exportPath exportOptions:exportOptions
@@ -149,6 +149,55 @@ struct export_light_test
         assert_float_equal 1.0 lightShadowAPI_ShadowColor[1] message:(pointLight.name + " light shadow color value (R) should be at 1.0")
         assert_float_equal 1.0 lightShadowAPI_ShadowColor[2] message:(pointLight.name + " light shadow color value (G) should be at 1.0")
         assert_float_equal 1.0 lightShadowAPI_ShadowColor[3] message:(pointLight.name + " light shadow color value (B) should be at 1.0")
+    ),
+
+    -- Test that when the photometric light "On" property is set to false,
+    -- both diffuse and specular are exported as 0 in USD, regardless of the
+    -- affectDiffuse/affectSpecular settings.
+    function photometric_light_on_off_export_test = (
+        local exportPath = output_prefix + "test_photometric_light_on_off_export.usda"
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.RootPrimPath = "/"
+        exportOptions.Lights = true
+
+        -- Create a point light with default diffuse/specular settings (both enabled)
+        local pointLight = free_light()
+        pointLight.type = #Free_Point
+        pointLight.distribution = 2 -- uniform hemispherical/diffuse
+
+        -- Verify defaults: affectDiffuse and affectSpecular are on
+        assert_true pointLight.affectDiffuse message:"affectDiffuse should default to true"
+        assert_true pointLight.affectSpecular message:"affectSpecular should default to true"
+
+        -- Turn the light off
+        pointLight.on = false
+
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local usd_light_path = "/" + pointLight.name
+        local usd_light = pyUsdLux.BoundableLightBase.Get stage usd_light_path
+
+        -- When the light is off, both diffuse and specular should be 0
+        local lightDiffuseAttr = usd_light.GetDiffuseAttr()
+        assert_float_equal 0.0 (lightDiffuseAttr.Get()) message:(pointLight.name + " light with 'on' set to false should export diffuse as 0.")
+        local lightSpecularAttr = usd_light.GetSpecularAttr()
+        assert_float_equal 0.0 (lightSpecularAttr.Get()) message:(pointLight.name + " light with 'on' set to false should export specular as 0.")
+
+        -- Now turn the light back on and verify diffuse/specular are at their defaults (1.0)
+        pointLight.on = true
+
+        local exportPathOn = output_prefix + "test_photometric_light_on_off_on_export.usda"
+        USDExporter.ExportFile exportPathOn exportOptions:exportOptions
+        local stageOn = pyUsd.Stage.Open(exportPathOn)
+
+        local usd_light_on = pyUsdLux.BoundableLightBase.Get stageOn usd_light_path
+
+        local lightDiffuseAttrOn = usd_light_on.GetDiffuseAttr()
+        assert_float_equal 1.0 (lightDiffuseAttrOn.Get()) message:(pointLight.name + " light with 'on' set to true should export diffuse as 1.0.")
+        local lightSpecularAttrOn = usd_light_on.GetSpecularAttr()
+        assert_float_equal 1.0 (lightSpecularAttrOn.Get()) message:(pointLight.name + " light with 'on' set to true should export specular as 1.0.")
     ),
 
     function photometric_point_light_attributes_export_test = (
@@ -1358,45 +1407,6 @@ struct export_light_test
         assert_true (intensityValue > 0) message:(lineLight.name + " static intensity should have a value > 0, got " + (intensityValue as string))
     ),
 
-    -- Test exporting light with both time samples and splines (AnimationType = #both)
-    function photometric_light_both_animation_types_export_test = (
-        if not (supportsSplineCurves "photometric_light_both_animation_types_export_test") then return undefined
-
-        local exportOptions = createSplineExportOptions animationType:#both
-        local sphereLight = free_light()
-        sphereLight.type = #Free_Sphere
-        sphereLight.distribution = 0 -- uniform spherical
-        sphereLight.radius = 5
-
-        with animate on (
-            at time 0 sphereLight.radius = 5
-            at time 5 sphereLight.radius = 15
-            at time 10 sphereLight.radius = 30
-        )
-
-        local exportPath = output_prefix + "test_photometric_light_both_animation_export.usda"
-        USDExporter.ExportFile exportPath exportOptions:exportOptions
-        local stage = pyUsd.Stage.Open(exportPath)
-
-        local usd_light_path = "/" + sphereLight.name
-        local objPrim = stage.GetPrimAtPath usd_light_path
-        assert_true (objPrim.IsA(pyUsdLux.SphereLight)) message:(sphereLight.name + " light was not properly exported to a USD LuxSphereLight.")
-
-        -- Validate that radius attribute has both a spline and time samples
-        local radiusAttr = objPrim.GetAttribute("inputs:radius")
-        assert_true (radiusAttr.IsValid()) message:(sphereLight.name + " light should have a valid radius attribute.")
-
-        -- Check that spline exists
-        local spline = radiusAttr.GetSpline()
-        local splineKnotCount = if spline != undefined then (spline.GetKnots()).count else 0
-        assert_true (spline != undefined) message:(sphereLight.name + " light radius should have a spline when AnimationType is #both, got " + (splineKnotCount as string) + " knots")
-
-        -- Check that time samples also exist
-        local timeSamples = radiusAttr.GetTimeSamples()
-        local timeSampleCount = timeSamples.count
-        assert_true (timeSampleCount > 0) message:(sphereLight.name + " light radius should have time samples when AnimationType is #both, got " + (timeSampleCount as string) + " samples")
-    ),
-
     function teardown = (
         units.SystemType = initialUnits
         units.SystemScale = initialScale
@@ -1404,6 +1414,7 @@ struct export_light_test
 
     Tests = #(
         photometric_light_general_attributes_export_test,
+        photometric_light_on_off_export_test,
         photometric_point_light_attributes_export_test,
         photometric_point_light_attributes_animation_export_test,
         photometric_sphere_light_attributes_export_test,
@@ -1423,8 +1434,7 @@ struct export_light_test
         photometric_cylinder_light_spline_animation_export_test,
         photometric_rect_light_spline_animation_export_test,
         photometric_spotlight_beam_angle_spline_animation_export_test,
-        photometric_line_light_spline_animation_export_test,
-        photometric_light_both_animation_types_export_test
+        photometric_line_light_spline_animation_export_test
     )
 )
 

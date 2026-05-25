@@ -1242,12 +1242,10 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
 
                     auto animType = buildOptions.GetAnimationType();
                     exportCurves
-                        = (animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
-                           || animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+                        = animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
                         && !nodeTarget && isValidController;
                     exportTimeSamples
-                        = (animType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
-                           || animType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+                        = animType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
                         || nodeTarget || !isValidController;
 
                     if (exportCurves) {
@@ -1298,21 +1296,39 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
                                       }
                                   };
 
-                            const ComponentDef translationComponents[] = {
-                                { pxr::UsdGeomXformOp::TypeTranslateX, &Control::GetXController },
-                                { pxr::UsdGeomXformOp::TypeTranslateY, &Control::GetYController },
-                                { pxr::UsdGeomXformOp::TypeTranslateZ, &Control::GetZController }
-                            };
-                            // The rotation order needs to be inverted in order to
-                            // properly work in the transform stack.
-                            const ComponentDef rotationComponents[]
-                                = { { pxr::UsdGeomXformOp::TypeRotateZ, &Control::GetZController },
+                            // To convert from Z up to Y up, it is required to swap the Y and Z axis
+                            // in the translation and rotate by 90 degrees along the X axis. This
+                            // set of operation can be achieved by swaping the controllers below.
+                            std::vector<ComponentDef> translationComponents;
+                            std::vector<ComponentDef> rotationComponents;
+                            if (buildOptions.GetUpAxis() == USDSceneBuilderOptions::UpAxis::Y) {
+                                translationComponents = { { pxr::UsdGeomXformOp::TypeTranslateX,
+                                                            &Control::GetXController },
+                                                          { pxr::UsdGeomXformOp::TypeTranslateY,
+                                                            &Control::GetZController },
+                                                          { pxr::UsdGeomXformOp::TypeTranslateZ,
+                                                            &Control::GetYController } };
+                                rotationComponents = {
+                                    { pxr::UsdGeomXformOp::TypeRotateZ, &Control::GetYController },
+                                    { pxr::UsdGeomXformOp::TypeRotateY, &Control::GetZController },
+                                    { pxr::UsdGeomXformOp::TypeRotateX, &Control::GetXController }
+                                };
+                            } else {
+                                translationComponents = { { pxr::UsdGeomXformOp::TypeTranslateX,
+                                                            &Control::GetXController },
+                                                          { pxr::UsdGeomXformOp::TypeTranslateY,
+                                                            &Control::GetYController },
+                                                          { pxr::UsdGeomXformOp::TypeTranslateZ,
+                                                            &Control::GetZController } };
+                                rotationComponents = {
+                                    { pxr::UsdGeomXformOp::TypeRotateZ, &Control::GetZController },
                                     { pxr::UsdGeomXformOp::TypeRotateY, &Control::GetYController },
-                                    { pxr::UsdGeomXformOp::TypeRotateX,
-                                      &Control::GetXController } };
+                                    { pxr::UsdGeomXformOp::TypeRotateX, &Control::GetXController }
+                                };
+                            }
 
-                            addComponentSplines(posCtrl, translationComponents);
-                            addComponentSplines(rotCtrl, rotationComponents, [](float rad) {
+                            addComponentSplines(posCtrl, translationComponents.data());
+                            addComponentSplines(rotCtrl, rotationComponents.data(), [](float rad) {
                                 return rad * (180.0f / static_cast<float>(M_PI));
                             });
 

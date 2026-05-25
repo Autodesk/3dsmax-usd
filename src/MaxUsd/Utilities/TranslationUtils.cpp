@@ -36,6 +36,7 @@
 #include <iInstanceMgr.h>
 #include <iparamb2.h>
 #include <iskin.h>
+#include <limits>
 #include <max.h>
 #include <modstack.h>
 #include <path.h>
@@ -316,6 +317,46 @@ bool SetXForm(
                          : pxr::VtValue(vec[component]);
     };
 
+    // When decomposing rotations to Euler angles, it is necessary to unwrap them
+    // to avoid sudden jumps between time samples.
+
+    auto getPreviousTimeSample = [&xformOp, &time]() -> std::pair<bool, double> {
+        if (!xformOp.IsDefined() || !time.IsNumeric()) {
+            return { false, 0.0 };
+        }
+
+        std::vector<double> timeSamples;
+        xformOp.GetTimeSamples(&timeSamples);
+
+        if (timeSamples.empty()) {
+            return { false, 0.0 };
+        }
+
+        double currentTime = time.GetValue();
+        double prevTime = -std::numeric_limits<double>::infinity();
+        bool   found = false;
+
+        for (double t : timeSamples) {
+            if (t < currentTime && t > prevTime) {
+                prevTime = t;
+                found = true;
+            }
+        }
+
+        return { found, prevTime };
+    };
+
+    auto unwrapAngle = [](float newAngle, float prevAngle) -> float {
+        float diff = newAngle - prevAngle;
+        if (diff > 180.0f) {
+            return newAngle - 360.0f;
+        }
+        if (diff < -180.0f) {
+            return newAngle + 360.0f;
+        }
+        return newAngle;
+    };
+
     switch (xformType) {
     case pxr::UsdGeomXformOp::TypeTranslate:
         suffix = "t";
@@ -331,11 +372,24 @@ bool SetXForm(
         suffix = "r";
         auto decompRot = rotU.DecomposeRotation(
             pxr::GfVec3f::ZAxis(), pxr::GfVec3f::YAxis(), pxr::GfVec3f::XAxis());
-        // the values are placed as z, y, x due to how the transform stack works.
-        value = pxr::VtValue(pxr::GfVec3f(
+
+        pxr::GfVec3f newRot(
             static_cast<float>(decompRot[2]),
             static_cast<float>(decompRot[1]),
-            static_cast<float>(decompRot[0])));
+            static_cast<float>(decompRot[0]));
+
+        auto prevTimeSample = getPreviousTimeSample();
+        if (prevTimeSample.first) {
+            pxr::VtValue prevValue;
+            if (xformOp.Get(&prevValue, prevTimeSample.second) && prevValue.IsHolding<pxr::GfVec3f>()) {
+                pxr::GfVec3f prevRot = prevValue.UncheckedGet<pxr::GfVec3f>();
+                for (int i = 0; i < 3; ++i) {
+                    newRot[i] = unwrapAngle(newRot[i], prevRot[i]);
+                }
+            }
+        }
+
+        value = pxr::VtValue(newRot);
         break;
     }
 #if PXR_VERSION > 2505
@@ -346,16 +400,29 @@ bool SetXForm(
         auto decompRot = rotU.DecomposeRotation(
             pxr::GfVec3f::ZAxis(), pxr::GfVec3f::YAxis(), pxr::GfVec3f::XAxis());
         // decompRot indices: [0]=Z, [1]=Y, [2]=X
+
+        float newRotValue = 0.0f;
         if (xformType == pxr::UsdGeomXformOp::TypeRotateX) {
             suffix = "rx";
-            value = pxr::VtValue(static_cast<float>(decompRot[2]));
+            newRotValue = static_cast<float>(decompRot[2]);
         } else if (xformType == pxr::UsdGeomXformOp::TypeRotateY) {
             suffix = "ry";
-            value = pxr::VtValue(static_cast<float>(decompRot[1]));
-        } else { // TypeRotateZ
+            newRotValue = static_cast<float>(decompRot[1]);
+        } else {
             suffix = "rz";
-            value = pxr::VtValue(static_cast<float>(decompRot[0]));
+            newRotValue = static_cast<float>(decompRot[0]);
         }
+
+        auto prevTimeSample = getPreviousTimeSample();
+        if (prevTimeSample.first) {
+            pxr::VtValue prevValue;
+            if (xformOp.Get(&prevValue, prevTimeSample.second) && prevValue.IsHolding<float>()) {
+                float prevRotValue = prevValue.UncheckedGet<float>();
+                newRotValue = unwrapAngle(newRotValue, prevRotValue);
+            }
+        }
+
+        value = pxr::VtValue(newRotValue);
         break;
     }
 #endif

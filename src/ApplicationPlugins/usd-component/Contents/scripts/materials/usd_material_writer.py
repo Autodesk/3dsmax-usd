@@ -464,7 +464,9 @@ def write_usd_material(from_mat, conversion_mapping, stage, shader, shader_path,
                 RT.UsdExporter.Log(ERROR, "Texture ({0}) using a channel not mapped to a primvar.".format(in_value))
                 continue
 
-            texture_graph, resolved_texture, uv_texture, is_new = output_usd_texture(in_value, stage, mat_path.GetParentPath(), material_export_options, usd_shade_to_max_map, (texture_src_type == "normalmap"))
+            # Detect normal maps by source type or by Normal_Bump input wrapper
+            is_normal_map = (texture_src_type == "normalmap") or (in_type in normal_bumps())
+            texture_graph, resolved_texture, uv_texture, is_new = output_usd_texture(in_value, stage, mat_path.GetParentPath(), material_export_options, usd_shade_to_max_map, is_normal_map)
 
             if not texture_graph:
                 # output_usd_texture could return None

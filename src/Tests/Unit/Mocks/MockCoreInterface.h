@@ -1733,6 +1733,7 @@ public:
         return nullptr;
     }
 
+#if MAX_RELEASE < 29900
     virtual float GetGridIntens() override { return 0; }
     virtual void  SetGridIntens(float f) override { }
     virtual BOOL  GetWhiteOrigin() override { return FALSE; }
@@ -1740,6 +1741,7 @@ public:
     virtual BOOL  GetUseGridColor() override { return FALSE; }
     virtual void  SetUseGridColor(BOOL b) override { }
     virtual void  UpdateColors(BOOL useGridColor, int gridIntensity, BOOL whiteOrigin) override { }
+#endif
 #if MAX_RELEASE < 26900
     virtual IMenu*     GetIMenu() override { return nullptr; }
     virtual IMenuItem* GetIMenuItem() override { return nullptr; }

@@ -296,7 +296,6 @@ TF_REGISTRY_FUNCTION(TfEnum)
 #ifdef USD_CURVES_SUPPORTED
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples);
     TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::Curves);
-    TF_ADD_ENUM_NAME(MaxUsd::USDSceneBuilderOptions::AnimationType::Both);
 #endif
 
     TF_ADD_ENUM_NAME(MaxUsd::TransformFormat::SplitComponents);

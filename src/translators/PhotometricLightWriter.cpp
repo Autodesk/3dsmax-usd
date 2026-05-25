@@ -239,7 +239,11 @@ bool MaxUsdPhotometricLightWriter::Write(
         usdLightPrim.CreateEnableColorTemperatureAttr().Set(
             enableColorTemperature, pxr::UsdTimeCode::Default());
 
-        if (!maxPhotometricLight->GetAffectSpecular()) {
+        // When the light is turned off, zero out both diffuse and specular contributions
+        // so the light has no effect in USD.
+        bool isLightOn = maxPhotometricLight->GetUseLight() != 0;
+
+        if (!isLightOn || !maxPhotometricLight->GetAffectSpecular()) {
             // turn off the effect of this light on the specular response of materials
             usdLightPrim.CreateSpecularAttr().Set(0.0f, pxr::UsdTimeCode::Default());
         } else {
@@ -247,7 +251,7 @@ bool MaxUsdPhotometricLightWriter::Write(
             // leave the default value to 1.0f for now
             // usdLightPrim.CreateSpecularAttr().Set(0.0f, pxr::UsdTimeCode::Default());
         }
-        if (!maxPhotometricLight->GetAffectDiffuse()) {
+        if (!isLightOn || !maxPhotometricLight->GetAffectDiffuse()) {
             // turn off the effect of this light on the diffuse response of materials
             usdLightPrim.CreateDiffuseAttr().Set(0.0f, pxr::UsdTimeCode::Default());
         } else {
@@ -287,11 +291,9 @@ bool MaxUsdPhotometricLightWriter::Write(
 #ifdef USD_CURVES_SUPPORTED
     const auto animationType = GetExportArgs().GetAnimationType();
     const bool exportTimeSamples
-        = (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples
-           || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both);
+        = animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::TimeSamples;
     const bool exportCurves
-        = (animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
-           || animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Both)
+        = animationType == MaxUsd::USDSceneBuilderOptions::AnimationType::Curves
         && time.IsFirstFrame();
 
     const auto lightPB = maxPhotometricLight->GetParamBlockByID(LightscapeLight::PB_GENERAL);

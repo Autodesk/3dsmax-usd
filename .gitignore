@@ -31,6 +31,4 @@ SDK/
 src/Tests/Integration/SystemTestGup/
 *.TMP
 devkit/
-conan*.props
-graph_info.json
 tools/

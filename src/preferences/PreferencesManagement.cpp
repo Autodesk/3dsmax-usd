@@ -13,170 +13,145 @@
 // See the License for the specific language governing permissions and
 
 #include "PreferencesManagement.h"
-#include "PreferencesOptions.h"
+
 #include "PreferenceApplicationHost.h"
+#include "PreferencesDialog.h"
 
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <MaxUsd/Utilities/OptionUtils.h>
+#include <MaxUsd/Utilities/VtDictionaryUtils.h>
 
 #ifdef IS_MAX2026_OR_GREATER
-#include <AdskAssetResolver/AssetResolverContextDataRegistry.h>
-#include <AdskAssetResolver/Notice.h>
+#include <AssetResolverPreferences/AssetResolverSettings.h>
+#include <AssetResolverPreferences/AssetResolverSettingsManagement.h>
 #endif
 
+#include <pxr/base/vt/dictionary.h>
+
 #include <Qt/QmaxMainWindow.h>
+
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <maxapi.h>
+
+PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace PreferencesManagement {
 
+MaxSDK::Util::Path GetPathToUsdPreferences()
+{
+    auto pathToUsdSettings = MaxUsd::OptionUtils::GetPathToUSDSettings();
+    pathToUsdSettings.Append(_T("\\usdPreferences.json"));
+    return pathToUsdSettings;
+}
+
 #ifdef IS_MAX2026_OR_GREATER
-// Names of the asset resolver context data sets
-static const std::string PREFERENCE_MAPPING_FILE_DATA_SET_NAME = "3ds Max Preference Mapping File";
-static const std::string SESSION_USER_PATHS_DATA_SET_NAME = "3ds Max Session User Paths";
-static const std::string PROJECT_TOKENS_DATA_SET_NAME = "3ds Max Project Tokens";
-#endif
+VtDictionary LoadUsdPreferences()
+{
+    QFile       file(GetPathToUsdPreferences().GetString());
+    QJsonObject json;
+
+    VtDictionary guide = Adsk::AssetResolverSettings::GetDefaultSettings();
+
+    if (file.exists()) {
+        if (!MaxUsd::OptionUtils::ReadJsonFile(json, file, GetPathToUsdPreferences().GetCStr())) {
+            return guide;
+        }
+
+        VtDictionary  dict;
+        QJsonDocument doc(json);
+        QString       strJson(doc.toJson());
+        auto          stdStr = strJson.toStdString();
+        MaxUsd::DictUtils::VtDictFromString(stdStr, dict);
+        MaxUsd::DictUtils::CoerceDictToGuideType(dict, guide);
+        return VtDictionaryOver(dict, guide);
+    }
+    return guide;
+}
+
+void SaveUsdPreferences(const Adsk::AssetResolverSettings& options)
+{
+    // update the options instance
+    // the copy clears env search paths as they are not saved
+    // those are only used to display the paths in the dialog
+    Adsk::AssetResolverSettings::GetInstance() = options;
+
+    // save options to disk
+    QJsonObject json;
+    MaxUsd::DictUtils::VtDictToJson(Adsk::AssetResolverSettings::GetInstance().GetSettings(), json);
+
+    QFile file(GetPathToUsdPreferences().GetString());
+    MaxUsd::OptionUtils::WriteJsonFile(
+        file, QJsonDocument(json).toJson().toStdString(), GetPathToUsdPreferences().GetCStr());
+}
 
 void InitializeUsdPreferences()
 {
     // Add ApplicationHost for the USD Preferences dialog
     PreferenceApplicationHost::CreateInstance(GetCOREInterface()->GetQmaxMainWindow());
     // Load USD Preference options to ensure the Adsk Asset Resolver works as configured
-    ApplyUsdPreferences(UsdPreferenceOptions(), UsdPreferenceOptions::GetInstance());
+    Adsk::AssetResolverSettings::GetInstance().SetSettings(LoadUsdPreferences());
+    Adsk::AssetResolverSettingsManagement::ApplySettings(
+        Adsk::AssetResolverSettings(), Adsk::AssetResolverSettings::GetInstance());
 }
-
-const UsdPreferenceOptions GetUsdPreferences()
-{
-    UsdPreferenceOptions options = UsdPreferenceOptions::GetInstance();
-
-#ifdef IS_MAX2026_OR_GREATER
-    // fill in the env search paths from the context data manager
-    const auto envContextData = Adsk::AssetResolverContextDataRegistry::GetContextData(
-        Adsk::AssetResolverContextDataRegistry::GetEnvironmentMappingContextDataName());
-    if (envContextData.has_value()) {
-        options.SetEnvironmentSearchPaths(envContextData.value().get().searchPaths);
-    }
 #endif
-return options;
-}
-
-void ApplyUsdPreferences(
-    const UsdPreferenceOptions& options,
-    const UsdPreferenceOptions& newOptions)
+void ShowPreferencesDialog()
 {
-#ifdef IS_MAX2026_OR_GREATER
-    // track if any context data changed
-    bool somethingChanged = false;
+    std::unique_ptr<UsdPreferencesDialog> usdPreferencesDialog
+        = std::make_unique<UsdPreferencesDialog>(GetCOREInterface()->GetQmaxMainWindow());
+
+    QRect savedGeometry = QRect(-1, -1, -1, -1);
     {
-        // prevent multiple notifications while we update context data
-        // the notification will be sent at the end of this block
-        // and will trigger the resolver to refresh
-        Adsk::PreventContextDataChangedNotification preventNotifications;
-
-        auto allContextData = Adsk::AssetResolverContextDataRegistry::GetAvailableContextData();
-        // helper to set the state of a context data, adding it if it does not exist
-        auto setContextDataState = [&allContextData, &somethingChanged](const std::string& name, bool active) {
-            for (auto& contextData : allContextData) {
-                if (contextData.first == name) {
-                    if (contextData.second != active) {
-                        somethingChanged = true;
-                    }
-                    contextData.second = active;
-                    return;
-                }
-            }
-            // introducing a new context data and its state
-            somethingChanged = true;
-            allContextData.insert(allContextData.begin(), { name, active });
-        };
-        if (options.GetMappingFile() != newOptions.GetMappingFile()) {
-            auto mappingFileContent
-                = Adsk::GetContextDataFromFile(newOptions.GetMappingFile().string());
-            if (mappingFileContent.has_value()) {
-                auto preferenceMappingFileContextData
-                    = Adsk::AssetResolverContextDataRegistry::GetContextData(
-                        PREFERENCE_MAPPING_FILE_DATA_SET_NAME, true);
-                if (preferenceMappingFileContextData.has_value()) {
-                    preferenceMappingFileContextData.value().get() = mappingFileContent.value();
-                    setContextDataState(PREFERENCE_MAPPING_FILE_DATA_SET_NAME, true);
-                }
-            }
-            else {
-                Adsk::AssetResolverContextDataRegistry::RemoveContextData(
-                    PREFERENCE_MAPPING_FILE_DATA_SET_NAME);
-                setContextDataState(PREFERENCE_MAPPING_FILE_DATA_SET_NAME, false);
+        VtDictionary dict;
+        MaxUsd::OptionUtils::LoadUiOptions("USD Preferences", dict);
+        auto           it = dict.find("Dialog Geometry");
+        VtArray<float> val = { -1.0, -1.0, -1.0, -1.0 };
+        if (it != dict.end()) {
+            if (it->second.IsHolding<VtArray<float>>()) {
+                val = it->second.GetWithDefault<VtArray<float>>(val);
+            } else if (it->second.CanCast<VtArray<float>>()) {
+                val = it->second.Cast<VtArray<float>>().GetWithDefault<VtArray<float>>(val);
             }
         }
-
-        if (options.GetUserSearchPaths() != newOptions.GetUserSearchPaths()) {
-            somethingChanged = true;
-            auto userSearchPathsContextData
-                = Adsk::AssetResolverContextDataRegistry::GetContextData(
-                    SESSION_USER_PATHS_DATA_SET_NAME, true);
-            if (userSearchPathsContextData.has_value()) {
-                userSearchPathsContextData.value().get().searchPaths.Clear();
-                userSearchPathsContextData.value().get().searchPaths.AddPaths(
-                    newOptions.GetUserSearchPaths());
-                setContextDataState(SESSION_USER_PATHS_DATA_SET_NAME, true);
-                // we indicate something changed because the paths changed
-                // not just the enabled state of the context data
-                somethingChanged = true;
-            }
-            else {
-                setContextDataState(SESSION_USER_PATHS_DATA_SET_NAME, false);
-            }
-        }
-
-        setContextDataState(PROJECT_TOKENS_DATA_SET_NAME, newOptions.IsUsingProjectTokens());
-        setContextDataState(
-            Adsk::AssetResolverContextDataRegistry::GetEnvironmentMappingContextDataName(),
-            newOptions.IsIncludingEnvironmentSearchPaths());
-
-        // now that we have processed options, we can make a list of the selected context data
-        std::vector<std::string> selectedContextData;
-        for (const auto& contextData : allContextData) {
-            if (contextData.second) {
-                selectedContextData.push_back(contextData.first);
-            }
-        }
-        // ordering user search paths first if the option is set
-        if (newOptions.IsIncludingEnvironmentSearchPaths()) {
-            auto userIt = std::find(
-                selectedContextData.begin(),
-                selectedContextData.end(),
-                SESSION_USER_PATHS_DATA_SET_NAME);
-            auto envIt = std::find(
-                selectedContextData.begin(),
-                selectedContextData.end(),
-                Adsk::AssetResolverContextDataRegistry::GetEnvironmentMappingContextDataName());
-            if (userIt != selectedContextData.end() && envIt != selectedContextData.end()) {
-                if ((newOptions.IsUsingUserSearchPathsFirst()
-                     && envIt < userIt /* 'env' appears before 'user' */)
-                    || (!newOptions.IsUsingUserSearchPathsFirst()
-                        && envIt > userIt /* 'env' appears after 'user' */)) {
-                    // reorder user paths and environment paths context data
-                    std::swap(*envIt, *userIt);
-                }
-            }
-        }
-        if (Adsk::AssetResolverContextDataRegistry::GetActiveContextData() != selectedContextData) {
-			somethingChanged = true;
-            Adsk::AssetResolverContextDataRegistry::SetActiveContextData(selectedContextData);
+        if (val.size() == 4 && val[2] >= 0.0f) {
+            savedGeometry = QRect(
+                MaxSDK::UIScaled(val[0]),
+                MaxSDK::UIScaled(val[1]),
+                MaxSDK::UIScaled(val[2]),
+                MaxSDK::UIScaled(val[3]));
+            usdPreferencesDialog->setGeometry(savedGeometry);
         }
     }
-    if (somethingChanged) {
-        // notify that context data has changed
-        Adsk::SendContextDataChanged(Adsk::ContextDataType::ALL);
+
+    QRect dialogGeometry = savedGeometry;
+    QObject::connect(
+        usdPreferencesDialog.get(),
+        &UsdPreferencesDialog::geometryChanged,
+        [&dialogGeometry](const QRect& geometry) { dialogGeometry = geometry; });
+
+    QObject::connect(
+        usdPreferencesDialog.get(), &QDialog::finished, [&dialogGeometry, &savedGeometry]() {
+            if (dialogGeometry != savedGeometry) {
+                VtDictionary   dict;
+                VtArray<float> val
+                    = { MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.left())),
+                        MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.top())),
+                        MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.width())),
+                        MaxSDK::UIUnScaled(static_cast<float>(dialogGeometry.height())) };
+                dict["Dialog Geometry"] = val;
+                MaxUsd::OptionUtils::SaveUiOptions("USD Preferences", dict);
+            }
+        });
+
+#ifdef IS_MAX2026_OR_GREATER
+    if (usdPreferencesDialog->exec() == QDialog::Accepted) {
+        auto newOptions = usdPreferencesDialog->getOptions();
+        Adsk::AssetResolverSettingsManagement::ApplySettings(
+            Adsk::AssetResolverSettings::GetInstance(), newOptions);
+        SaveUsdPreferences(newOptions);
     }
 #endif
-}
-
-void SaveUsdPreferences(const UsdPreferenceOptions& options)
-{
-    // update the options instance
-    // the copy clears env search paths as they are not saved
-    // those are only used to display the paths in the dialog 
-    UsdPreferenceOptions::GetInstance() = options;
-    // save options to disk
-    UsdPreferenceOptions::GetInstance().Save();
 }
 
 } // namespace PreferencesManagement

@@ -1688,23 +1688,24 @@ struct export_options_test
     
     function check_usd_view_opened exportPath = (
         -- Usdview is started via python, we should find a python process with the exported USD file
-        -- somewhere in its arguments. We output the WMIC result to a file to read it back bellow.
-        local wmicOutputFile = (exportPath + ".wmic.txt")
-        DOSCommand ("WMIC path win32_process where Caption=\"python.exe\" get Commandline,processid | find \"" + exportPath + "\" > \"" + wmicOutputFile + "\"")
+        -- somewhere in its arguments, using PowerShell's Get-CimInstance.
+        local pidOutputFile = (exportPath + ".pid.txt")
+        DOSCommand ("powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter 'Name=''python.exe''' | Where-Object { $_.CommandLine -and $_.CommandLine.Contains('" + exportPath + "') } | Select-Object -First 1 -ExpandProperty ProcessId\" > \"" + pidOutputFile + "\"")
         
         local usdViewOpened = false
-        local fileHandle = openFile wmicOutputFile
-        if not eof fileHandle do 
+        local fileHandle = openFile pidOutputFile
+        if fileHandle != undefined do
         (
-            -- Makes sure that the file was actually found.
-            local firstLine =  readLine fileHandle
-            usdViewOpened = (findString firstLine exportPath) != undefined
-            
-            -- We can now close usdview...
-            -- We requested the PID from WMIC, so it will be found at the end of the space seperated string.
-            local tokens = filterString firstLine " "
-            local PID = tokens[tokens.Count]
-            DOSCommand ("taskkill /F /PID " + PID)
+            if not eof fileHandle do
+            (
+                local PID = trimRight (trimLeft (readLine fileHandle))
+                if PID.count > 0 do
+                (
+                    usdViewOpened = true
+                    DOSCommand ("taskkill /F /PID " + PID)
+                )
+            )
+            close fileHandle
         )
         return usdViewOpened
     ),
@@ -1831,12 +1832,8 @@ struct export_options_test
             assert_true (box3.IsA(pyUsdGeom.Mesh)) message:"Box3 should have been exported as a Mesh."       
                         
             -- usdchecker should flag this file invalid, as it has nested gprims.
-            -- HACK: DISABLE THIS TEST FOR NOW
-            usdVersion = pyUsd.GetVersion()
-            local oldChecker = usdVersion[2] < 25
-            if oldChecker then (
-                assert_false (check_usd_file_valid exportPath)
-            )
+            assert_false (check_usd_file_valid exportPath)
+
             
             -- re-export, with disallowed nesting
             exportOptions.AllowNestedGprims = false
@@ -1893,12 +1890,7 @@ struct export_options_test
             assert_true (circle2.IsA(pyUsdGeom.Curves)) message:"circle2 should have been exported as a Curves."
             
             -- usdchecker should flag this file invalid, as it has nested gprims.
-            -- HACK SHOULD ENABLE THIS
-            usdVersion = pyUsd.GetVersion()
-            local oldChecker = usdVersion[2] < 25
-            if oldChecker then (
-                assert_false (check_usd_file_valid exportPath)
-            )
+            assert_false (check_usd_file_valid exportPath)
             
             -- re-export, with disallowed nesting
             exportOptions.AllowNestedGprims = false
