@@ -53,7 +53,8 @@ Status legend:
 
 | Source (3ds Max) | MaterialX target | Kind | Affects MaterialX nodedef | Workaround triggers when | PR | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| PhysicalMaterial.anisotropy_angle | `standard_surface.specular_rotation` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `0.25` AND `specular_anisotropy` is static-zero or absent | (this PR) | 2026-06-20 |
+| PhysicalMaterial.anisotropy_angle | `standard_surface.specular_rotation` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `0.25` AND `specular_anisotropy` is static-zero or absent | MAX-MAT-001 | 2026-06-20 |
+| PhysicalMaterial.emission (none authored) | `standard_surface.emission` + `standard_surface.emission_color` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `emission = 1.0` AND `emission_color = (0, 0, 0)`, both static | (this PR) | 2026-06-20 |
 
 ## Notes per expression
 
@@ -106,6 +107,76 @@ normalization pass becomes inert (no node matches the trigger condition).
 The pass can stay in place as a belt-and-suspenders guard for older Max
 installs.
 
+### PhysicalMaterial.emission (none authored) → standard_surface.emission + .emission_color  (MAX-MAT-002)
+
+**Symptom.** The 3ds Max-shipped `MtlxIOUtil.ExportMtlxString` MaxScript
+bridge always emits the pair
+```
+<input name="emission"       type="float"  value="1.0" />
+<input name="emission_color" type="color3" value="0, 0, 0" />
+```
+on every `ND_standard_surface_surfaceshader`, regardless of whether the
+source PhysicalMaterial authored any emission. Six out of six materials in
+the diagnostic corpus exhibit this. The MaterialX `standard_surface`
+nodedef defaults are `emission = 0.0` and `emission_color = (1, 1, 1)`.
+
+**Why it matters.** The buggy pair multiplies to `1.0 * (0,0,0) = (0,0,0)`,
+so the BSDF emits no light and the bug is invisible at render time. It
+*does* matter for any downstream tool that reads the exported MaterialX
+and constructs further overrides:
+
+* A layer that bumps `emission_color` to a non-black value (e.g. to author
+  a glowing variant of an existing material) would unexpectedly turn on
+  full-strength emission, because the inherited `emission = 1.0` is still
+  in force.
+* Round-trip importers that read `emission_color = (0, 0, 0)` may treat
+  the surface as having explicit black emission rather than “no emission
+  authored” — semantically different states that diverge under
+  later edits.
+* The values do not match the source DCC: the PhysicalMaterial has no
+  emission knob set to 1.0, and certainly didn't ask for an emission
+  *color* of pure black. The exported document misrepresents what the
+  artist authored.
+
+**Fix.** Add a second post-parse normalization pass in
+`MtlxShaderWriter::Write()` (run immediately after MAX-MAT-001's pass)
+that walks the parsed `MaterialX::Document` and, for each
+`standard_surface` node, removes both the `emission` and `emission_color`
+inputs when *all* of:
+
+* `emission` is statically `1.0` (no connection, tolerant of float noise);
+* `emission_color` is statically `(0, 0, 0)` (no connection, tolerant of
+  float noise); and
+* both inputs are present.
+
+After normalization both inputs fall back to nodedef defaults
+(`0.0` and `(1, 1, 1)`), which evaluate to the *same* zero emission with
+the correct meaning.
+
+**Bounds (where the fix conservatively does nothing):**
+
+* Either `emission` or `emission_color` is connected to a node or
+  nodegraph — could carry intentional procedural emission; keep both.
+* `emission` is static but not `1.0` — user authored it explicitly; keep.
+* `emission_color` is static but not exactly `(0, 0, 0)` — user authored
+  an explicit emission tint; keep.
+* Only one of the two inputs is present — the bug pattern is the pair, so
+  treating either half in isolation could destroy a real authored value.
+
+**Validator.**
+`/Users/d.smith/MirisProjects/Agent Builder/agent/arch-builds/f72c97e6-301f-400a-9e77-c768979e8fa5/normalize_emission_default.py`
+mirrors the C++ logic at the USD layer (the C++ runs at the MaterialX-doc
+layer earlier in the pipeline). Running it on the MAX-MAT-001-clean
+`complex_export_postfix.usda` strips exactly six pairs of
+`emission`/`emission_color` inputs and leaves every other attribute
+identical. Karma renders pre- and post-strip are byte-identical (same
+SHA-256), confirming the fix is a visual no-op — exactly what the BSDF
+math predicts since `1 * black == 0 * white == 0`.
+
+**Retirement condition.** Same as MAX-MAT-001: when Autodesk fixes
+`MtlxIOUtil` to stop emitting the spurious emission pair, the pass
+becomes inert. Safe to keep as a guard for older 3ds Max installs.
+
 ## Expressions with no MaterialX equivalent
 
 | Source (3ds Max) | Why no equivalent | Behavior in current fork |
@@ -116,3 +187,6 @@ installs.
 
 * 2026-06-20 — Initial doc. MAX-MAT-001 specular_rotation default
   normalization landed.
+* 2026-06-20 — MAX-MAT-002 emission/emission_color default-pair
+  normalization landed (strip `emission = 1.0` paired with
+  `emission_color = (0, 0, 0)`).
