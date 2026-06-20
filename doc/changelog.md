@@ -1,6 +1,11 @@
 ## Changelog
 
 
+### Unreleased (Miris fork)
+
+#### Fixes:
+- [MAX-MAT-001] MaterialX export: strip the spurious `specular_rotation = 0.25` default that 3ds Max's `MtlxIOUtil` bridge writes on every `ND_standard_surface_surfaceshader`. The MaterialX nodedef default is 0.0, and the value has no visual effect when `specular_anisotropy` is zero; the spurious value is preserved by `MtlxShaderWriter` only when anisotropy is provably non-zero. See `doc/translation-mapping.md`.
+
 ### v0.15.0
 
 #### What's New:

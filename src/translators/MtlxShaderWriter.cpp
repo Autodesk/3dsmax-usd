@@ -36,7 +36,78 @@
 
 #include <MaterialXFormat/XmlIo.h>
 
+#include <cmath>
+
 PXR_NAMESPACE_OPEN_SCOPE
+
+namespace {
+
+// Returns the static float value of a MaterialX input if it is not connected.
+// On a connection (node/nodegraph/output), reports the input as "not statically known".
+bool _TryGetStaticFloat(const MaterialX::InputPtr& input, float& outValue)
+{
+    if (!input) {
+        return false;
+    }
+    if (input->hasNodeName() || input->hasNodeGraphString() || input->hasOutputString()) {
+        return false;
+    }
+    const std::string& valStr = input->getValueString();
+    if (valStr.empty()) {
+        return false;
+    }
+    try {
+        outValue = std::stof(valStr);
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
+// MAX-MAT-001 workaround: 3ds Max's MtlxIOUtil bridge emits
+// specular_rotation = 0.25 on every standard_surface node, regardless of the
+// source PhysicalMaterial's anisotropy settings. The MaterialX standard_surface
+// nodedef defaults specular_rotation to 0.0, and the value has no visual effect
+// when specular_anisotropy is zero. Strip the spurious value so the exported
+// USD matches the nodedef default for the common (anisotropy == 0) case.
+// Inputs that are connected, non-zero, or carry a non-0.25 authored value are
+// left untouched.
+void _NormalizeStandardSurfaceSpecularRotation(const MaterialX::DocumentPtr& doc)
+{
+    if (!doc) {
+        return;
+    }
+    for (const auto& node : doc->getNodes("standard_surface")) {
+        auto rotationInput = node->getInput("specular_rotation");
+        if (!rotationInput) {
+            continue;
+        }
+        float rotationValue = 0.f;
+        if (!_TryGetStaticFloat(rotationInput, rotationValue)) {
+            continue;
+        }
+        // Match the buggy 3ds Max hardcoded value (0.25), tolerant of float noise.
+        if (std::fabs(rotationValue - 0.25f) > 1e-6f) {
+            continue;
+        }
+        // Only strip when specular_anisotropy is provably zero (or absent).
+        // If anisotropy is connected, the user may genuinely want a rotation,
+        // so we conservatively keep the input.
+        auto anisotropyInput = node->getInput("specular_anisotropy");
+        if (anisotropyInput) {
+            float anisotropyValue = 0.f;
+            if (!_TryGetStaticFloat(anisotropyInput, anisotropyValue)) {
+                continue;
+            }
+            if (std::fabs(anisotropyValue) > 1e-6f) {
+                continue;
+            }
+        }
+        node->removeInput("specular_rotation");
+    }
+}
+
+} // namespace
 
 bool _IsWellFormedPath(const fs::path& p)
 {
@@ -519,6 +590,8 @@ void MtlxShaderWriter::Write()
         TF_WARN("Error reading MaterialX document: %s", e.what());
         return;
     }
+
+    _NormalizeStandardSurfaceSpecularRotation(mtlxDoc);
 
     // Sanitize the material name using the same logic as with the MaterialX component
     // to match the node name produced by the MaterialX exporter. createValidName

@@ -200,13 +200,59 @@ struct mtlx_shader_writer_test
         assert_equal ((shaderPrim.GetAttribute "info:id").Get()) "ND_open_pbr_surface_surfaceshader"
     ),
 
+    -- MAX-MAT-001 regression: PhysicalMaterial export must not carry the
+    -- spurious specular_rotation = 0.25 default that 3ds Max's MtlxIOUtil
+    -- bridge writes on every standard_surface. The post-parse normalization
+    -- in MtlxShaderWriter strips the value when specular_anisotropy is zero
+    -- (or absent), restoring the MaterialX nodedef default.
+    function test_export_physical_material_strips_buggy_specular_rotation = (
+        maxver = maxVersion()
+        -- PhysicalMaterial MaterialX export path is 2025+.
+        if maxver[1] < 26900 then (
+            return 0
+        )
+
+        local teapot001 = teapot name:"teapot001"
+        local mtl1 = PhysicalMaterial()
+        mtl1.name = "matNoAniso"
+        -- Anisotropy explicitly off (this is also the PhysicalMaterial default).
+        mtl1.anisotropy = 0.0
+        teapot001.material = mtl1
+
+        local exportOptions = USDExporter.CreateOptions()
+        exportOptions.FileFormat = #ascii
+        exportOptions.AllMaterialTargets = #("MaterialX")
+
+        local exportPath = output_prefix + "testPhysicalMaterialNoAniso.usda"
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+        local stage = pyUsd.Stage.Open(exportPath)
+
+        local surfacePrim = stage.GetPrimAtPath("/root/mtl/matNoAniso/matNoAniso")
+        assert_true (surfacePrim.IsValid())
+        assert_true (surfacePrim.IsA(pyShade.Shader))
+        assert_equal ((surfacePrim.GetAttribute "info:id").Get()) "ND_standard_surface_surfaceshader"
+
+        -- The bug: bridge writes specular_rotation = 0.25 on every shader.
+        -- After normalization the input must either be absent (cleanest) or
+        -- explicitly 0.0 (the nodedef default). Both states fix the bug.
+        local surfaceShader = pyShade.Shader(surfacePrim)
+        local rotInput = surfaceShader.GetInput "specular_rotation"
+        if rotInput != undefined then (
+            local rotAttr = rotInput.GetAttr()
+            if rotAttr.HasAuthoredValue() then (
+                assert_equal (rotInput.Get()) 0
+            )
+        )
+    ),
+
     function teardown = (
     ),
 
     Tests = #(
         test_export_physical_material,
         test_export_OpenPBR_material,
-        test_export_material_leading_digit_name
+        test_export_material_leading_digit_name,
+        test_export_physical_material_strips_buggy_specular_rotation
         )
 )
 
