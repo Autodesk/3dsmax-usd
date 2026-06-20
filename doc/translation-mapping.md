@@ -54,7 +54,8 @@ Status legend:
 | Source (3ds Max) | MaterialX target | Kind | Affects MaterialX nodedef | Workaround triggers when | PR | Date |
 | --- | --- | --- | --- | --- | --- | --- |
 | PhysicalMaterial.anisotropy_angle | `standard_surface.specular_rotation` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `0.25` AND `specular_anisotropy` is static-zero or absent | MAX-MAT-001 | 2026-06-20 |
-| PhysicalMaterial.emission (none authored) | `standard_surface.emission` + `standard_surface.emission_color` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `emission = 1.0` AND `emission_color = (0, 0, 0)`, both static | (this PR) | 2026-06-20 |
+| PhysicalMaterial.emission (none authored) | `standard_surface.emission` + `standard_surface.emission_color` | bug normalization | `ND_standard_surface_surfaceshader` | Bridge emits `emission = 1.0` AND `emission_color = (0, 0, 0)`, both static | MAX-MAT-002 | 2026-06-20 |
+| Node.wireColor / Node.material.diffuse | `UsdGeomMesh.primvars:displayColor` | bug normalization | (mesh primvar; not a shader nodedef) | `MeshConverter` is about to author wireColor into `primvars:displayColor` AND `node->GetMtl() != nullptr` | (this PR) | 2026-06-20 |
 
 ## Notes per expression
 
@@ -177,6 +178,98 @@ math predicts since `1 * black == 0 * white == 0`.
 `MtlxIOUtil` to stop emitting the spurious emission pair, the pass
 becomes inert. Safe to keep as a guard for older 3ds Max installs.
 
+### Node.wireColor / Node.material.diffuse → UsdGeomMesh.primvars:displayColor  (MAX-MAT-003)
+
+**Symptom.** `MaxUsd::MeshConverter::ConvertToUSDMesh()` unconditionally
+authors `primvars:displayColor` from the 3ds Max node's *wireframe color*
+whenever no explicit displayColor primvar has already been written (e.g.
+through the vertex-color → displayColor channel mapping). The source is
+`src/MaxUsd/MeshConversion/MeshConverter.cpp` (the `if
+(!usdMesh.GetDisplayColorAttr().IsAuthored()) { ... node->GetWireColor()
+... }` block, post-MAX-MAT-002 around line 228).
+
+In 3ds Max the *wireframe color* is a viewport organizational tag: a hue
+assigned to a scene-graph node so the user can tell nodes apart in the
+viewport. It is unrelated to the node's material. The diagnostic corpus
+shows 6/6 meshes carrying a `primvars:displayColor` that disagrees with
+their bound material. For example: the Teapot is bound to the Gold
+material (`base_color = (0.92, 0.71, 0.24)`) but its
+`primvars:displayColor` is `(0.85, 0.89, 0.68)` — a pale green-cream,
+nothing like gold.
+
+**Why it matters.** USD defines `primvars:displayColor` as the surface
+color a consumer should use as a *fallback* when the bound
+`UsdShadeMaterial` cannot be evaluated. PBR-capable USD renderers (Hydra
+Storm, Karma, RenderMan, etc.) don't read displayColor when a material is
+resolvable, so this bug is invisible there. It surfaces in *fallback*
+contexts:
+
+* Minimal Hydra delegates and scene-graph viewers that don't implement
+  MaterialX.
+* ARKit Quick Look paths and other thumbnail generators that consume
+  USD/USDZ without a full PBR pipeline.
+* The `usdview` "displayColor" overlay used to QA primvars.
+* USDZ packagers that fall back to displayColor when bound shaders can't
+  be inlined for distribution.
+
+In all of those, the rendered surface color is the wireframe-derived hue
+rather than the material's color — a Gold mesh that looks green-cream, a
+Red Plastic mesh that looks muddy pink, a Blue Ceramic mesh that looks
+olive, and so on.
+
+**Fix.** Change the writer's single fallback line to derive the
+displayColor from the bound material when one is present:
+
+```cpp
+if (!usdMesh.GetDisplayColorAttr().IsAuthored()) {
+    Color displayColorSrc;
+    if (Mtl* boundMtl = node->GetMtl()) {
+        displayColorSrc = boundMtl->GetDiffuse();
+    } else {
+        displayColorSrc = Color(node->GetWireColor());
+    }
+    pxr::VtVec3fArray usdDisplayColor = {
+        pxr::GfVec3f(displayColorSrc.r, displayColorSrc.g, displayColorSrc.b) };
+    usdMesh.CreateDisplayColorAttr().Set(usdDisplayColor);
+}
+```
+
+`Mtl::GetDiffuse(int mtlNum = 0, BOOL backFace = FALSE)` is the universal
+Max SDK accessor for a material's "main" diffuse color. The
+`LastResortUSDPreviewSurfaceWriter` already uses it to author the bound
+material's `inputs:diffuseColor`, so the displayColor will be identical
+to the diffuseColor the same material exports to USD. For a `MultiMtl`,
+`GetDiffuse(0)` returns the first sub-material's diffuse, which is still
+materially closer to the artist's intent than the viewport wireframe
+color.
+
+**Bounds (where the fix conservatively does nothing):**
+
+* `usdMesh.GetDisplayColorAttr().IsAuthored()` is already true — the
+  vertex-color → displayColor channel mapping (the
+  `SetChannelPrimvarMapping 0 "displayColor"` opt-in) ran first and wrote
+  the artist-authored value. We never overwrite it.
+* `node->GetMtl() == nullptr` — no material bound. The wireframe color is
+  the best representational color we have, so the previous behavior is
+  preserved.
+
+**Validator.**
+`/Users/d.smith/MirisProjects/Agent Builder/agent/arch-builds/44966a53-f273-422c-9ce9-c1f2d7e477c1/normalize_display_color.py`
+mirrors the C++ logic at the USD layer. Running it on the MAX-MAT-002-
+clean corpus rewrites exactly the six mesh `primvars:displayColor`
+values to match the bound material's `inputs:diffuseColor`, and leaves
+every other attribute identical. PBR-path Karma renders pre- and post-
+fix are byte-identical (same SHA-256) — the bound shaders are unchanged
+and PBR renderers don't read displayColor. The displayColor-fallback
+Karma renders (`material:binding` stripped from both copies) ARE
+visually different: the wireframe-derived palette in the prefix is
+replaced by the material-derived palette in the postfix, demonstrating
+the observable behavior change for fallback consumers.
+
+**Retirement condition.** Unlike MAX-MAT-001/002 this is not a workaround
+for an external 3ds Max bug — the code being fixed is the fork's own
+`MeshConverter::ConvertToUSDMesh`. The fix is permanent.
+
 ## Expressions with no MaterialX equivalent
 
 | Source (3ds Max) | Why no equivalent | Behavior in current fork |
@@ -190,3 +283,7 @@ becomes inert. Safe to keep as a guard for older 3ds Max installs.
 * 2026-06-20 — MAX-MAT-002 emission/emission_color default-pair
   normalization landed (strip `emission = 1.0` paired with
   `emission_color = (0, 0, 0)`).
+* 2026-06-20 — MAX-MAT-003 mesh displayColor leak fixed (derive
+  `primvars:displayColor` from the bound material's `GetDiffuse()`
+  instead of the node's viewport wireframe color, falling back to the
+  wireframe color only when no material is bound).

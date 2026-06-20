@@ -242,14 +242,74 @@ struct io_color_n_visibility_test
         deleteFile expOptions.LogPath
     ),
     
+    -- MAX-MAT-003 regression: when a node has a material bound, the mesh's
+    -- primvars:displayColor must be the bound material's diffuse, NOT the
+    -- node's viewport wireframe color. The wireframe color is a Max
+    -- scene-graph organizational tag with no relationship to surface color;
+    -- using it as displayColor misleads any USD consumer that falls back to
+    -- displayColor when the bound material cannot be evaluated.
+    function test_display_color_uses_material_diffuse_when_bound = (
+        testFilePath = output_prefix + "test_display_color_uses_material_diffuse_when_bound.usd"
+        local b = box name:"box"
+        -- Wireframe color: full red.
+        local redColor = Color 255 0 0
+        b.wireColor = redColor
+        -- Material diffuse: full green. The fix must prefer this over the
+        -- wireframe color when the node has a material bound.
+        local greenColor = Color 0 255 0
+        local mtl = Standard()
+        mtl.name = "matGreen"
+        mtl.diffuse = greenColor
+        b.material = mtl
+
+        USDExporter.ExportFile testFilePath exportOptions:exportOptions
+
+        stage = pyUsd.Stage.Open(testFilePath)
+        prim = pyUsdGeom.Gprim.Get stage ("/" + b.name)
+        local mesh = pyUsdGeom.Mesh(prim)
+        local displayColorAttr = mesh.GetDisplayColorAttr()
+        local dispColor = (displayColorAttr.Get())[0]
+        -- Expect the material's diffuse (green), not the wireframe red.
+        assert_equal 0 dispColor[1] message:"Unexpected displayColor[0], should be from the material diffuse (green), not the wireframe color (red)."
+        assert_equal 1 dispColor[2] message:"Unexpected displayColor[1], should be from the material diffuse (green), not the wireframe color (red)."
+        assert_equal 0 dispColor[3] message:"Unexpected displayColor[2], should be from the material diffuse (green), not the wireframe color (red)."
+    ),
+
+    -- MAX-MAT-003 negative case: with no material bound, the previous
+    -- behavior must be preserved -- the wireframe color is still used.
+    -- This is just the existing test_io_display_color guarantee phrased as a
+    -- regression check on the same code path.
+    function test_display_color_still_uses_wire_color_when_no_material = (
+        testFilePath = output_prefix + "test_display_color_still_uses_wire_color_when_no_material.usd"
+        local b = box name:"box"
+        local redColor = Color 255 0 0
+        b.wireColor = redColor
+        -- No material bound on b.
+        b.material = undefined
+
+        USDExporter.ExportFile testFilePath exportOptions:exportOptions
+
+        stage = pyUsd.Stage.Open(testFilePath)
+        prim = pyUsdGeom.Gprim.Get stage ("/" + b.name)
+        local mesh = pyUsdGeom.Mesh(prim)
+        local displayColorAttr = mesh.GetDisplayColorAttr()
+        local dispColor = (displayColorAttr.Get())[0]
+        -- Expect the wireframe color (red): the fallback path is preserved.
+        assert_equal 1 dispColor[1] message:"Unexpected displayColor[0], should be from the wireframe color (red) when no material is bound."
+        assert_equal 0 dispColor[2] message:"Unexpected displayColor[1], should be from the wireframe color (red) when no material is bound."
+        assert_equal 0 dispColor[3] message:"Unexpected displayColor[2], should be from the wireframe color (red) when no material is bound."
+    ),
+
     function teardown = (
     ),
 
-    tests = #(test_io_display_color, 
-        test_display_color_override, 
-        test_visibility, 
+    tests = #(test_io_display_color,
+        test_display_color_override,
+        test_visibility,
         test_import_inherited_visibility,
-        test_export_visibility_warnings)
+        test_export_visibility_warnings,
+        test_display_color_uses_material_diffuse_when_bound,
+        test_display_color_still_uses_wire_color_when_no_material)
 )
 
 runUsdTestFixture io_color_n_visibility_test (getThisScriptFilename())

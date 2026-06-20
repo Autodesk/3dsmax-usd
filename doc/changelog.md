@@ -6,6 +6,7 @@
 #### Fixes:
 - [MAX-MAT-001] MaterialX export: strip the spurious `specular_rotation = 0.25` default that 3ds Max's `MtlxIOUtil` bridge writes on every `ND_standard_surface_surfaceshader`. The MaterialX nodedef default is 0.0, and the value has no visual effect when `specular_anisotropy` is zero; the spurious value is preserved by `MtlxShaderWriter` only when anisotropy is provably non-zero. See `doc/translation-mapping.md`.
 - [MAX-MAT-002] MaterialX export: strip the spurious `emission = 1.0` paired with `emission_color = (0, 0, 0)` that 3ds Max's `MtlxIOUtil` bridge writes on every `ND_standard_surface_surfaceshader`. The MaterialX nodedef defaults (`emission = 0.0`, `emission_color = (1, 1, 1)`) evaluate to the same zero emission with the correct semantic meaning; the spurious pair is only removed when both values match the buggy pattern exactly. See `doc/translation-mapping.md`.
+- [MAX-MAT-003] Mesh export: stop leaking the 3ds Max viewport wireframe color into `primvars:displayColor` on meshes that have a material bound. The wireframe color is a scene-graph organizational tag; using it as displayColor misled USD consumers that fall back to displayColor when the bound material can't be evaluated (minimal Hydra delegates, ARKit Quick Look paths without MaterialX, the usdview displayColor overlay, thumbnailers). `MeshConverter::ConvertToUSDMesh` now derives displayColor from the bound material's `GetDiffuse()` when one is bound, and falls back to the wireframe color only when no material is bound. See `doc/translation-mapping.md`.
 
 ### v0.15.0
 

@@ -226,11 +226,38 @@ pxr::UsdGeomMesh MeshConverter::ConvertToUSDMesh(
         }
 
         {
-            // If the displayColor is not already authored, set it to the wireColor.
+            // MAX-MAT-003: derive primvars:displayColor from the bound
+            // material's diffuse color when a material is assigned to the
+            // node. The 3ds Max viewport wireframe color is a scene-graph
+            // organizational tag (a hue used to distinguish nodes in the
+            // viewport); it has no relationship to the surface's actual
+            // color. Writing it as primvars:displayColor misleads any USD
+            // consumer that falls back to displayColor when the bound
+            // UsdShade material cannot be evaluated -- minimal Hydra
+            // delegates, ARKit Quick Look paths without MaterialX, the
+            // usdview displayColor overlay, thumbnailers, etc. Use the
+            // material's diffuse instead so the fallback color agrees with
+            // the authored material.
+            //
+            // When no material is bound the wireframe color is the best
+            // representational color we have, so the existing behavior
+            // (write the wireframe color) is preserved as the fallback.
+            //
+            // Mtl::GetDiffuse(int mtlNum = 0) is the universal accessor for
+            // a "main" diffuse on any material plugin and is what the
+            // LastResortUSDPreviewSurfaceWriter uses to author the bound
+            // material's diffuseColor. For a MultiMtl it returns the first
+            // sub-material's diffuse, which is still more representative of
+            // the artist's intent than the viewport wireframe color.
             if (!usdMesh.GetDisplayColorAttr().IsAuthored()) {
-                Color             wireColor(node->GetWireColor());
-                pxr::VtVec3fArray usdDisplayColor
-                    = { pxr::GfVec3f(wireColor.r, wireColor.g, wireColor.b) };
+                Color displayColorSrc;
+                if (Mtl* boundMtl = node->GetMtl()) {
+                    displayColorSrc = boundMtl->GetDiffuse();
+                } else {
+                    displayColorSrc = Color(node->GetWireColor());
+                }
+                pxr::VtVec3fArray usdDisplayColor = { pxr::GfVec3f(
+                    displayColorSrc.r, displayColorSrc.g, displayColorSrc.b) };
                 usdMesh.CreateDisplayColorAttr().Set(usdDisplayColor);
             }
         }
