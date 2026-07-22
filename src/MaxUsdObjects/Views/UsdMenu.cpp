@@ -21,15 +21,14 @@
 #include "UsdMenu.h"
 #include "UsdStageNodePrimSelectionDialog.h"
 
+#include <MaxUsdObjects/AssetResolver/SettingsManagement.h>
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
 #include <MaxUsdObjects/USDExplorer.h>
 
 #include <MaxUsd/Utilities/OptionUtils.h>
 
-#ifdef IS_MAX2026_OR_GREATER
-#include <preferences/PreferencesManagement.h>
-#endif
+#include <pxr/base/vt/dictionary.h>
 
 #include <Qt/QmaxMainWindow.h>
 #include <maxscript/maxscript.h>
@@ -41,8 +40,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <notify.h>
-
-#include <pxr/base/vt/dictionary.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -95,13 +92,13 @@ BOOL USDMenuToolsLayerEditorActionItem::ExecuteAction()
     return TRUE;
 }
 
-#ifdef IS_MAX2026_OR_GREATER
-BOOL USDMenuPreferencesActionItem::ExecuteAction()
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+BOOL USDMenuToolsPathEditorActionItem::ExecuteAction()
 {
-    PreferencesManagement::ShowPreferencesDialog();
+    AssetResolverSettingsManagement::ShowDialog();
     return TRUE;
 }
-#endif
+#endif // ADSK_ASSET_RESOLVER_ENABLED
 
 void USDMenuRegisterCallback(void* param, NotifyInfo* info)
 {
@@ -140,14 +137,13 @@ void USDMenuRegisterCallback(void* param, NotifyInfo* info)
         usdMenuToolsLayerEditorActionItemId,
         _T("USD Layer Editor"));
 
-#ifdef IS_MAX2026_OR_GREATER
-    usdMenu->CreateSeparator(kUsdMenuSeparatorPreferencesGUID);
-    usdMenu->CreateAction(
-        kUsdMenuPreferencesGUID,
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    toolsSubMenu->CreateAction(
+        kUsdMenuToolsPathEditorGUID,
         usdMenuActionTableId,
-        usdMenuPreferencesActionItemId,
-        _T("USD Preferences"));
-#endif
+        usdMenuToolsPathEditorActionItemId,
+        _T("USD Path Editor"));
+#endif // ADSK_ASSET_RESOLVER_ENABLED
 }
 
 void RegisterUSDMenuAction()
@@ -159,9 +155,9 @@ void RegisterUSDMenuAction()
     usdActionTable->AppendOperation(new USDMenuCreateStageWithNewLayerActionItem {});
     usdActionTable->AppendOperation(new USDMenuToolsExplorerActionItem {});
     usdActionTable->AppendOperation(new USDMenuToolsLayerEditorActionItem {});
-#ifdef IS_MAX2026_OR_GREATER
-    usdActionTable->AppendOperation(new USDMenuPreferencesActionItem {});
-#endif
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    usdActionTable->AppendOperation(new USDMenuToolsPathEditorActionItem {});
+#endif // ADSK_ASSET_RESOLVER_ENABLED
     IActionManager* actionManager = GetCOREInterface()->GetActionManager();
     if (actionManager) {
         actionManager->RegisterActionTable(usdActionTable);
@@ -170,11 +166,10 @@ void RegisterUSDMenuAction()
     }
 }
 
-
-#ifdef IS_MAX2026_OR_GREATER
-void InitializeUsdPreferences(void* param, NotifyInfo* info)
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+void InitializeAssetResolverSettings(void* param, NotifyInfo* info)
 {
-    PreferencesManagement::InitializeUsdPreferences();
+    AssetResolverSettingsManagement::InitializeSettings();
 }
-#endif
-#endif
+#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // IS_MAX2025_OR_GREATER

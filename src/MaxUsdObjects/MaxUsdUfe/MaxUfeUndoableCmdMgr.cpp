@@ -94,6 +94,20 @@ void MaxUfeUndoableCommandMgr::executeCmd(const Ufe::UndoableCommand::Ptr& cmd) 
     }
 }
 
+void MaxUfeUndoableCommandMgr::registerCmd(const Ufe::UndoableCommand::Ptr& cmd) const
+{
+    // Called in the UFE UndoableCommandGuard by the UFE CompositeCommandMgr after it has
+    // executed all commands in its scope and composed them into a single composite. We
+    // register that composite here so the entire guarded operation appears as one undo entry.
+    if (!theHold.Holding()) {
+        theHold.Begin();
+        theHold.Put(new UfeRestoreObj(cmd));
+        theHold.Accept(TSTR::FromUTF8(cmd->commandString().c_str()));
+    } else if (!theHold.IsSuspended()) {
+        theHold.Put(new UfeRestoreObj(cmd));
+    }
+}
+
 /** Small helper class to override the command string of an Ufe undoable
  * command. 3dsMax, e.g. expects undoable commands to provide non-empty command
  * names to populate the undo history in the UI. As some commands don't provide

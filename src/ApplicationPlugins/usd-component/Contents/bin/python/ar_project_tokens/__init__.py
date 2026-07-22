@@ -2,7 +2,7 @@ from pymxs import runtime as mxs
 try:
     from pxr import Ar
     import AdskAssetResolver  # type: ignore
-    import AssetResolverPreferences
+    import AssetResolverExtensions
 except ImportError:
     # the module was not found
     # define a placeholder to support the case in a clean way
@@ -12,7 +12,7 @@ except ImportError:
 def register_ar():
     if AdskAssetResolver:
         # fetch all project dirs (aka from pathConfig.getProjectSubDirectoryCount/getProjectSubDirectory)
-        AdskAssetResolver.AssetResolverContextDataRegistry.RegisterContextData(AssetResolverPreferences.PROJECT_TOKENS_DATA_SET_NAME) \
+        AdskAssetResolver.AssetResolverContextDataRegistry.RegisterContextData(AssetResolverExtensions.PROJECT_TOKENS_DATA_SET_NAME) \
             .AddStaticToken("project", mxs.pathConfig.getCurrentProjectFolder()) \
             .AddStaticToken("animations", mxs.getdir(mxs.Name('animations'))) \
             .AddStaticToken("archives", mxs.getdir(mxs.Name('archives'))) \

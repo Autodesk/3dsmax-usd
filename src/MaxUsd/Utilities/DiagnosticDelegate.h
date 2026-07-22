@@ -137,5 +137,22 @@ protected:
     void WriteInfo(const std::string& message) override;
 };
 
+/// A process-lifetime delegate registered with TfDiagnosticMgr for the duration of the plugin
+/// session. Its sole purpose is to keep TfDiagnosticMgr's delegate list non-empty, which prevents
+/// USD from falling back to its default fprintf(stderr) output for diagnostics issued from any
+/// thread, including TBB worker threads during stage loading. All override methods are no-ops.
+/// Instantiate once in MaxUsd::ufe::initialize() and destroy in MaxUsd::ufe::finalize().
+class MaxUSDAPI PassiveDiagnosticDelegate : public pxr::TfDiagnosticMgr::Delegate
+{
+public:
+    PassiveDiagnosticDelegate();
+    ~PassiveDiagnosticDelegate() override;
+
+    void IssueError(const pxr::TfError& err) override;
+    void IssueStatus(const pxr::TfStatus& status) override;
+    void IssueWarning(const pxr::TfWarning& warning) override;
+    void IssueFatalError(const pxr::TfCallContext& context, const std::string& msg) override;
+};
+
 } // namespace Diagnostics
 } // namespace MAXUSD_NS_DEF

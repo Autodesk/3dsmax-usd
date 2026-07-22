@@ -1213,6 +1213,42 @@ class TestStageGeneral(unittest.TestCase):
         redoBoxPrim = redoStage.GetPrimAtPath("/box")
         self.assertTrue(redoBoxPrim.IsValid())
 
+
+    def test_undo_redo_guarded_ufe_commands(self):
+        """Test that multiple commands executed inside a UFE UndoableCommandGuard
+        are registered on the 3ds Max undo stack as a single composite operation
+        via MaxUfeUndoableCommandMgr::registerCmd, so that one undo reverts both."""
+        maxUsdObj = mxs.USDStageObject()
+        maxUsdObj.SetRootLayer(self.test_usd_file_path, stageMask='/')
+        stageCache = UsdUtils.StageCache.Get()
+        stage = stageCache.Find(Usd.StageCache.Id.FromLongInt(maxUsdObj.CacheId))
+        rootLayer = stage.GetRootLayer()
+        self.assertEqual(len(rootLayer.subLayerPaths), 0)
+
+        with ufe.UndoableCommandGuard("TestGuardedOp") as guard:
+            mgr = ufe.UndoableCommandMgr.instance()
+            cmd1 = UsdLayerEditor.AddAnonSubLayerCommand(stage, rootLayer)
+            mgr.executeCmd(cmd1)
+            addedLayerId1 = cmd1.addedLayer()
+            cmd2 = UsdLayerEditor.AddAnonSubLayerCommand(stage, rootLayer)
+            mgr.executeCmd(cmd2)
+            addedLayerId2 = cmd2.addedLayer()
+            guard.setSuccess()
+
+        self.assertEqual(len(rootLayer.subLayerPaths), 2)
+        self.assertIn(addedLayerId1, rootLayer.subLayerPaths)
+        self.assertIn(addedLayerId2, rootLayer.subLayerPaths)
+
+        # Single undo must revert both additions (composite registered via registerCmd).
+        pymxs.run_undo()
+        self.assertEqual(len(rootLayer.subLayerPaths), 0)
+
+        # Single redo must re-apply both.
+        pymxs.run_redo()
+        self.assertEqual(len(rootLayer.subLayerPaths), 2)
+        self.assertIn(addedLayerId1, rootLayer.subLayerPaths)
+        self.assertIn(addedLayerId2, rootLayer.subLayerPaths)
+
     def test_default_anonymous_stage_settings(self):
         """Test that USDStageObject with default anonymous root has 3dsMax default TPS, FPS, Units, and Z up-axis"""
         # Create a USDStageObject with default anonymous root layer

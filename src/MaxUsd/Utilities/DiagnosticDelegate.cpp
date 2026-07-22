@@ -199,5 +199,17 @@ void RenderMessageDelegate::WriteInfo(const std::string& message)
         messageWStr.data());
 }
 
+PassiveDiagnosticDelegate::PassiveDiagnosticDelegate() { TfDiagnosticMgr::GetInstance().AddDelegate(this); }
+
+PassiveDiagnosticDelegate::~PassiveDiagnosticDelegate() { TfDiagnosticMgr::GetInstance().RemoveDelegate(this); }
+
+void PassiveDiagnosticDelegate::IssueError(const pxr::TfError& err) { /* no-op, we want to suppress the message */ }
+
+void PassiveDiagnosticDelegate::IssueStatus(const pxr::TfStatus& status) { /* no-op, we want to suppress the message */ }
+
+void PassiveDiagnosticDelegate::IssueWarning(const pxr::TfWarning& warning) { /* no-op, we want to suppress the message */ }
+
+void PassiveDiagnosticDelegate::IssueFatalError(const pxr::TfCallContext& context, const std::string& msg) { /* no-op, we want to suppress the message */ }
+
 } // namespace Diagnostics
 } // namespace MAXUSD_NS_DEF

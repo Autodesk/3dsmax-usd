@@ -16,6 +16,10 @@
 		<!-- The path location for the 'googletest' folder
 		     (the path where the lib/bin/include folders are located) -->
 		<GoogleTestDir></GoogleTestDir>
+		<!-- Build MaxUSD with AdskAssetResolver enabled or not
+			 can be toggle with the environement variable 'ENABLE_ADSK_ASSET_RESOLVER' -->
+		<AdskAssetResolverEnabled Condition="'$(ENABLE_ADSK_ASSET_RESOLVER)' == '' or '$(ENABLE_ADSK_ASSET_RESOLVER)' == '1'">true</AdskAssetResolverEnabled>		
+		<AdskAssetResolverEnabled Condition="'$(ENABLE_ADSK_ASSET_RESOLVER)' == '0'">false</AdskAssetResolverEnabled>		
 		<!-- The path location for the 3ds Max USD 'devkit' -->
 		<MaxUsdDevKit></MaxUsdDevKit>
 		<!-- The following paths are usually found inside the 'devkit' folder.

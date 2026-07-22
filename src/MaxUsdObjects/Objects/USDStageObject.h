@@ -688,6 +688,13 @@ public:
      */
     void OpenInUsdLayerEditor() override;
 
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    /**
+     * \brief Opens the stage in the USD path editor.
+     */
+    void OpenInUsdPathEditor() override;
+#endif // ADSK_ASSET_RESOLVER_ENABLED
+
     /**
      * \brief Returns the GUID associated with the USD Stage object.
      * \return The GUID.

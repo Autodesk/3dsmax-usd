@@ -31,6 +31,10 @@ public:
 
     void executeCmd(const Ufe::UndoableCommand::Ptr& cmd) const override;
 
+    /** Register an already-executed command (e.g. from UndoableCommandGuard)
+     * into the undo stack without re-executing it. */
+    void registerCmd(const Ufe::UndoableCommand::Ptr& cmd) const override;
+
     /** Helper function to override the command string of an Ufe undoable
      * command. 3dsMax, e.g. expects undoable commands to provide non-empty
      * command names to populate the undo history in the UI. As some commands
