@@ -30,6 +30,7 @@
 #include <UFEUI/utils.h>
 
 #include <MaxUsd/Utilities/TranslationUtils.h>
+#include <MaxUsd/Utilities/DiagnosticDelegate.h>
 
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/undo/UsdUndoManager.h>
@@ -46,6 +47,8 @@ namespace MAXUSD_NS_DEF {
 namespace ufe {
 
 static const char usdSeparator = '/';
+
+static std::unique_ptr<Diagnostics::PassiveDiagnosticDelegate> diagnosticSuppressor;
 
 void initialize()
 {
@@ -104,10 +107,14 @@ void initialize()
 
     // Configure DPI scaling for UFE widgets.
     UfeUi::Utils::setDpiScale(double(MaxSDK::GetUIScaleFactor()));
+
+    // Create the diagnostic suppressor, to suppress TF diagnostics during USD stage loading.
+    diagnosticSuppressor = std::make_unique<Diagnostics::PassiveDiagnosticDelegate>();
 }
 
 void finalize()
 {
+    diagnosticSuppressor.reset();
     Ufe::GlobalSelection::initializeInstance(nullptr);
     UsdUfe::finalize(true);
 }

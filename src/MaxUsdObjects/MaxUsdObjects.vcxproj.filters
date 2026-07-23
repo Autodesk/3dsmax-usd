@@ -55,6 +55,12 @@
     <Filter Include="Source Files\LayerEditor">
       <UniqueIdentifier>{a40f589f-ecdc-4325-b9ab-ae11d6f087bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\AssetResolver">
+      <UniqueIdentifier>{4d396ca2-0b05-4cf3-97dd-4c70e1faa496}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\AssetResolver">
+      <UniqueIdentifier>{ecbaf58f-0feb-4a43-9685-4868f10cd40c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DllEntry.cpp">
@@ -231,6 +237,12 @@
     <ClCompile Include="Views\UsdMenu.cpp">
       <Filter>Source Files\Views</Filter>
     </ClCompile>
+    <ClCompile Include="AssetResolver\AssetResolverApplicationHost.cpp">
+      <Filter>Source Files\AssetResolver</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetResolver\SettingsManagement.cpp">
+      <Filter>Source Files\AssetResolver</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -364,6 +376,12 @@
     </ClInclude>
     <ClInclude Include="Views\UsdMenu.h">
       <Filter>Header Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetResolver\AssetResolverApplicationHost.h">
+      <Filter>Header Files\AssetResolver</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetResolver\SettingsManagement.h">
+      <Filter>Header Files\AssetResolver</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

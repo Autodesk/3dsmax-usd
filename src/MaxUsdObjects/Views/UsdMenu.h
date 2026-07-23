@@ -43,10 +43,8 @@ const MaxSDK::MaxGuid kUsdMenuToolsExplorerGUID { "4b917b22-7bd4-4ef6-bedd-ac14b
 inline constexpr int  usdMenuToolsExplorerActionItemId = 42259;
 const MaxSDK::MaxGuid kUsdMenuToolsLayerEditorGUID { "0611d2c4-6ad5-4156-90e7-129c81da8527" };
 inline constexpr int  usdMenuToolsLayerEditorActionItemId = 42260;
-
-const MaxSDK::MaxGuid kUsdMenuSeparatorPreferencesGUID { "9431d14b-ff19-40e0-a927-7d0599703913" };
-const MaxSDK::MaxGuid kUsdMenuPreferencesGUID { "547baca6-3f1d-4add-a543-e5d08eb9c9e4" };
-inline constexpr int  usdMenuPreferencesActionItemId = 42261;
+const MaxSDK::MaxGuid kUsdMenuToolsPathEditorGUID { "547baca6-3f1d-4add-a543-e5d08eb9c9e4" };
+inline constexpr int  usdMenuToolsPathEditorActionItemId = 42261;
 
 const MaxSDK::MaxGuid kHelpMenuId { "cee8f758-2199-411b-81e7-d3ff4a80d143" };
 
@@ -114,13 +112,13 @@ class USDMenuToolsLayerEditorActionItem : public ActionItem
     BOOL IsDynamicMenu() override { return false; }
 };
 
-#ifdef IS_MAX2026_OR_GREATER
-class USDMenuPreferencesActionItem : public ActionItem
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+class USDMenuToolsPathEditorActionItem : public ActionItem
 {
     // ActionItem overrides
-    int  GetId() override { return usdMenuPreferencesActionItemId; }
+    int  GetId() override { return usdMenuToolsPathEditorActionItemId; }
     BOOL ExecuteAction() override;
-    void GetButtonText(MSTR& buttonText) override { buttonText = _T("USD Preferences"); }
+    void GetButtonText(MSTR& buttonText) override { buttonText = _T("USD Path Editor"); }
     void GetMenuText(MSTR& menuText) override { GetButtonText(menuText); }
     void GetDescriptionText(MSTR& descText) override { GetButtonText(descText); }
     void GetCategoryText(MSTR& catText) override { catText = _T("USD"); }
@@ -130,11 +128,11 @@ class USDMenuPreferencesActionItem : public ActionItem
     void DeleteThis() override { delete this; }
     BOOL IsDynamicMenu() override { return false; }
 };
-#endif
+#endif // ADSK_ASSET_RESOLVER_ENABLED
 
 void USDMenuRegisterCallback(void* param, NotifyInfo* info);
 void RegisterUSDMenuAction();
-#ifdef IS_MAX2026_OR_GREATER
-void InitializeUsdPreferences(void* param, NotifyInfo* info);
-#endif
-#endif
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+void InitializeAssetResolverSettings(void* param, NotifyInfo* info);
+#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // IS_MAX2025_OR_GREATER

@@ -92,10 +92,6 @@ if $(VersionTarget) geq 2025 (
 )
 robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) MaterialX*.dll
 if %errorlevel% geq 4 exit /b 1
-if $(VersionTarget) geq 2026 (
-	robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(PxrUsdRoot)\bin\ $(TargetDir) openjph*.dll
-	if %errorlevel% geq 4 exit /b 1
-)
 if exist "$(MaterialXDir)/" (
     robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(MaterialXDir)" $(TargetDir)\..\MaterialX_plugin /XF "ARTIFACT"
     if %errorlevel% geq 4 exit /b 1
@@ -104,13 +100,17 @@ if exist "$(MaterialXDir)/" (
 )
 if %errorlevel% geq 4 exit /b 1
 if $(VersionTarget) geq 2026 (
-	if exist "$(AdskAssetResolverBin)/" (
-		robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)" $(TargetDir)\..\plugin\adskassetresolver /XD "python"
-		if %errorlevel% geq 4 exit /b 1
-		robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)\python" $(TargetDir)\python /XD "__pycache__"
-		if %errorlevel% geq 4 exit /b 1
+	if "$(AdskAssetResolverEnabled)" == "true" (
+		if exist "$(AdskAssetResolverBin)/" (
+			robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)" $(TargetDir)\..\plugin\adskassetresolver /XD "python"
+			if %errorlevel% geq 4 exit /b 1
+			robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskAssetResolverBin)\python" $(TargetDir)\python /XD "__pycache__"
+			if %errorlevel% geq 4 exit /b 1
+		) else (
+			echo Warning: Missing Autodesk Asset Resolver plugin
+		)
 	) else (
-		echo Warning: Missing Autodesk Asset Resolver plugin
+		echo Not using AdskAssetResolver; no files copied
 	)
 )
 
@@ -168,7 +168,10 @@ powershell.exe -ExecutionPolicy Unrestricted -Command "$(SolutionDir)..\build-sc
     <ClCompile Include="Translators\ShadingModeImporter.cpp" />
     <ClCompile Include="Translators\TranslatorLight.cpp" />
     <ClCompile Include="Translators\TranslatorMaterial.cpp" />
-    <ClCompile Include="Translators\RegistryHelper.cpp" />
+    <ClCompile Include="Translators\RegistryHelper.cpp">
+      <PrecompiledHeader Condition="'$(VersionTarget)'=='2023'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(VersionTarget)'=='2023'">$(ProjectDir)/maxusd_banned.h</ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="Translators\ShaderWriter.cpp" />
     <ClCompile Include="Translators\ShaderWriterRegistry.cpp" />
     <ClCompile Include="Translators\ShadingModeExporter.cpp" />

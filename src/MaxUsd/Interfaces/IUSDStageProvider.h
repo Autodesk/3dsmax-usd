@@ -33,6 +33,9 @@ enum
     fnIdOpenInUsdExplorer,
     fnIdCloseInUsdExplorer,
     fnIdOpenInUsdLayerEditor,
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    fnIdOpenInUsdPathEditor,
+#endif
     fnIdGenerateDrawModes,
     fnIdPromoteTo3dsMaxObject,
     fnIdSetStageFromCache
@@ -62,6 +65,9 @@ public:
     VFN_0(fnIdOpenInUsdExplorer, OpenInUsdExplorer);
     VFN_0(fnIdCloseInUsdExplorer, CloseInUsdExplorer);
     VFN_0(fnIdOpenInUsdLayerEditor, OpenInUsdLayerEditor);
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    VFN_0(fnIdOpenInUsdPathEditor, OpenInUsdPathEditor);
+#endif
     VFN_3(fnIdSetRootLayer, SetRootLayerMXS, TYPE_STRING, TYPE_STRING, TYPE_BOOL);
     FN_1(fnIdGetUsdPreviewSurfaceMaterials, TYPE_MTL, GetUsdPreviewSurfaceMaterials, TYPE_BOOL);
     VFN_0(fnIdSetPrimvarChannelMappingDefaults, SetPrimvarChannelMappingDefaults);
@@ -92,6 +98,10 @@ public:
 
     /// Open the stage in the USD Layer Editor.
     virtual void OpenInUsdLayerEditor() = 0;
+
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    virtual void OpenInUsdPathEditor() = 0;
+#endif
 
     /// Set the root layer and mask of the stage held by this provider.
     virtual void

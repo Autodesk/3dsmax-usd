@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>UsdStageToolsRollup</class>
  <widget class="QWidget" name="UsdStageToolsRollup">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>174</width>
+    <height>102</height>
+   </rect>
+  </property>
   <property name="sizePolicy">
    <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
     <horstretch>0</horstretch>
@@ -25,7 +33,7 @@
      </property>
     </widget>
    </item>
-    <item>
+   <item>
     <widget class="QPushButton" name="LayerEditorButton">
      <property name="enabled">
       <bool>false</bool>
@@ -35,6 +43,19 @@
      </property>
      <property name="text">
       <string>USD Layer Editor</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="PathEditorButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Opens the USD Path Editor to view the stage's asset paths. This button is disabled by default and enabled automatically when the stage object has a valid root layer.</string>
+     </property>
+     <property name="text">
+      <string>USD Path Editor</string>
      </property>
     </widget>
    </item>

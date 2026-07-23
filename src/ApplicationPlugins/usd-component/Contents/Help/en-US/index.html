@@ -90,7 +90,68 @@
             this partnership.</p>
 
         <h4 class="pt-4">Release notes</h4>
-        <h5 data-current-version="0.15.0">v0.15.0<small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        <h5 data-current-version="0.16.2">v0.16.2<small><span class="badge badge-danger text-uppercase rounded-0"style="vertical-align: text-top">New</span></small></h5>
+        What's New:
+        <ul>
+            <li>
+                Confirm with user Asset Resolver setttings can be applied when layers are dirty.
+            </li>
+            <li>
+                USD Path Editor previews changes to paths allowing for a review to be done before Applying the changes.
+            </li>
+            <li>
+                The Asset Resolver Settings tab display the list of tokens, regex mappings, path mappings, search paths.
+            </li>
+        </ul> 
+        Fixes:
+        <ul>
+            <li>
+                USD Path Editor will now always prioritizing search path files over other paths.
+            </li>
+            <li>
+                Fixed an issue where asset resolver search paths would not refresh mid session which would cause inconsistencies.
+            </li>
+            <li>
+                Fixed a bug that could leave the MaterialX material unusable after being saved without loading a MaterialX file.
+            </li>
+        </ul>
+        <h5>v0.16.1</h5>
+        What's New:
+        <ul>
+            <li>
+                New window for Asset Resolver settings
+            </li>
+            <li>
+                Updated UsdUfe to version 7.0
+            </li>
+            <li>
+                Added a new context menu option "Merge with Sublayers" to the USD Layer Editor. This new option merge the contents of the child sublayer(s) into the parent layer
+            </li>
+            <li>
+                Added a new context menu option "Merge Layers" to the USD Layer Editor. This new option merge the selected layers
+            </li>
+            <li>
+                Added a new window to view and troubleshoot asset paths related issues. This window can be open from the menu Usd -> Tools -> USD Path Editor
+            </li>
+        </ul>
+        Fixes:
+        <ul>
+            <li>
+                Fixed a crash that could happen when creating new layers on session layer after saving the component to disk.
+            </li>
+            <li>
+                Fixed an issue where merging locked layers would show an error message.
+            </li>
+        </ul>
+
+        <h5>v0.16.0</h5>
+        What's New:
+        <ul>
+            <li>
+                Beta start for next release (0.16)
+            </li>
+        </ul>
+        <h5>v0.15.0</h5>
         What's New:
         <ul>
             <li>
@@ -117,7 +178,7 @@
                 Fixed a situation in which the USD Explorer could open over the file picker when creating a stage from a file.
             </li>
             <li>
-                Removed the “Both” animation export option to prevent conflicting spline and time sample authoring, aligning with USD behaviour where time samples take priority and splines are ignored.
+                Removed the "Both" animation export option to prevent conflicting spline and time sample authoring, aligning with USD behaviour where time samples take priority and splines are ignored.
             </li>
             <li>
                 Fixed a bug that allowed the Prim Picker to edit prims name.

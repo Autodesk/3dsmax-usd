@@ -45,6 +45,7 @@
 			<!-- Starting with 3dsMax 2024, one USD version per 3dsMax release. -->
 			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">USD_VERSION_23_08;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2025'">;USD_CURVES_SUPPORTED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskAssetResolverEnabled)' == 'true'">ADSK_ASSET_RESOLVER_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(SolutionDir);$(BoostInc);$(TBBInclude);$(PythonInc);$(Pixar_USDInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

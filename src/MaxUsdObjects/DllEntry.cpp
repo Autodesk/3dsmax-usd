@@ -85,9 +85,9 @@ __declspec(dllexport) int LibInitialize(void)
 #ifdef IS_MAX2025_OR_GREATER
     RegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     RegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
-#ifdef IS_MAX2026_OR_GREATER
-    RegisterNotification(InitializeUsdPreferences, nullptr, NOTIFY_SYSTEM_STARTUP);
-#endif
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    RegisterNotification(InitializeAssetResolverSettings, nullptr, NOTIFY_SYSTEM_STARTUP);
+#endif // ADSK_ASSET_RESOLVER_ENABLED
     RegisterUSDDynamicActionItem();
     RegisterUSDMenuAction();
 #endif
@@ -103,9 +103,9 @@ __declspec(dllexport) int LibShutdown(void)
 #ifdef IS_MAX2025_OR_GREATER
     UnRegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     UnRegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
-#ifdef IS_MAX2026_OR_GREATER
-    UnRegisterNotification(InitializeUsdPreferences, nullptr, NOTIFY_SYSTEM_STARTUP);
-#endif
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    UnRegisterNotification(InitializeAssetResolverSettings, nullptr, NOTIFY_SYSTEM_STARTUP);
+#endif // ADSK_ASSET_RESOLVER_ENABLED
 #endif
     return TRUE;
 }

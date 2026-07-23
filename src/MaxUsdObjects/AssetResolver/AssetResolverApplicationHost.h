@@ -15,15 +15,14 @@
 //
 #pragma once
 
-#include "PreferencesExport.h"
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
 
-#include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <AssetResolverExtensions/ApplicationHost.h>
+#include <AdskAssetResolver/Notice.h>
 
-#ifdef IS_MAX2026_OR_GREATER
-
-#include <AssetResolverPreferences/ApplicationHost.h>
-
-class MaxUsdPreferencesAPI PreferenceApplicationHost : public Adsk::ApplicationHost
+class AssetResolverApplicationHost
+    : public Adsk::ApplicationHost
+    , public pxr::TfWeakBase
 {
 public:
     static void CreateInstance(QObject* parent = nullptr);
@@ -32,11 +31,13 @@ public:
     QIcon icon(const IconName& name) const override;
     int   pm(const PixelMetric& metric) const override;
 
-protected:
-    PreferenceApplicationHost(QObject* parent = nullptr);
-    ~PreferenceApplicationHost() override = default;
+    void RefreshViewports(const Adsk::ArContextDataChangeCompleted&);
 
-    static PreferenceApplicationHost* s_instance;
+protected:
+    AssetResolverApplicationHost(QObject* parent = nullptr);
+    ~AssetResolverApplicationHost() override = default;
+
+    static AssetResolverApplicationHost* s_instance;
 };
 
-#endif // IS_MAX2026_OR_GREATER
+#endif // ADSK_ASSET_RESOLVER_ENABLED

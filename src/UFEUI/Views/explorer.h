@@ -310,6 +310,12 @@ protected:
      */
     void updateTreeSelection();
 
+    /**
+     * \brief React to the expansion of an item in the tree view.
+     * \param index The index of the expanded item (proxy model index).
+     */
+    void onTreeViewExpanded(const QModelIndex& index);
+
 private:
     /**
      * \brief Observes a UFE subject and update the explorer accordingly.
@@ -369,6 +375,9 @@ private:
     /// But we still want to highlight their parent. This set contains such parents, that should
     /// be lit, even though their children are not actually in the tree.
     std::set<QPersistentModelIndex> _parentHighlightExtend;
+    /// Connection to the tree view expansion signals, so that we can disconnect them when we need
+    /// to programmatically change the expansion state of items without triggering the expansion callback.
+    QMetaObject::Connection _expandedConnection;
 
     class ExpansionGuard
     {

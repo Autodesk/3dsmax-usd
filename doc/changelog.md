@@ -1,6 +1,36 @@
 ## Changelog
 
 
+### v0.16.2
+
+#### What's New:
+- Confirm with the user that Asset Resolver settings can be applied when layers are dirty.
+- USD Path Editor previews changes to paths, allowing for a review to be done before applying the changes.
+- The Asset Resolver Settings tab displays the list of tokens, regex mappings, path mappings, and search paths.
+
+#### Fixes:
+- USD Path Editor now always prioritizes search path files over other paths.
+- Fixed an issue where asset resolver search paths would not refresh mid session, which would cause inconsistencies.
+- Fixed a bug that could leave the MaterialX material unusable after being saved without loading a MaterialX file.
+
+### v0.16.1
+
+#### What's New:
+- New window for Asset Resolver settings.
+- Updated UsdUfe to version 7.0.
+- Added a new context menu option "Merge with Sublayers" to the USD Layer Editor. This new option merges the contents of the child sublayer(s) into the parent layer.
+- Added a new context menu option "Merge Layers" to the USD Layer Editor. This new option merges the selected layers.
+- Added a new window to view and troubleshoot asset path related issues. This window can be opened from the menu Usd -> Tools -> USD Path Editor.
+
+#### Fixes:
+- Fixed a crash that could happen when creating new layers on the session layer after saving the component to disk.
+- Fixed an issue where merging locked layers would show an error message.
+
+### v0.16.0
+
+#### What's New:
+- Beta start for next release (0.16).
+
 ### v0.15.0
 
 #### What's New:

@@ -138,34 +138,8 @@ Explorer::Explorer(
     }
 
     // ctrl+click on expand arrow
-    connect(treeView, &QTreeView::expanded, [this](const QModelIndex& index) {
-        // Use the guard to avoid triggering costly updates for every expand, do it all at once.
-        const auto expandGuard = ExpansionGuard { this };
-        if (QApplication::keyboardModifiers().testFlag(Qt::ControlModifier)) {
+    _expandedConnection = connect(treeView, &QTreeView::expanded, this, &Explorer::onTreeViewExpanded);
 
-            // First, fetch items all the way down manually.
-            // expandRecursively() doc specifies it will not attempt to "fetch more".
-            QStack<QModelIndex> parents;
-            parents.push(index);
-            while (!parents.isEmpty()) {
-                const QModelIndex parent = parents.pop();
-                const int         rowCount = _proxyModel->rowCount(parent);
-                for (int row = 0; row < rowCount; ++row) {
-                    const QModelIndex child = _proxyModel->index(row, 0, parent);
-                    if (!child.isValid()) {
-                        break;
-                    }
-                    const auto sourceIdx = _proxyModel->mapToSource(child);
-                    if (treeModel()->canFetchMore(sourceIdx)) {
-                        treeModel()->fetchMore(sourceIdx);
-                    }
-                    parents.push(child);
-                }
-            }
-            // Now we can expand...
-            _ui->treeView->expandRecursively(index);
-        }
-    });
     // ctrl+click on collapse arrow
     connect(treeView, &QTreeView::collapsed, [this](const QModelIndex& index) {
         // Use the guard to avoid triggering costly updates for every collapse, do it all at once.
@@ -552,6 +526,41 @@ void Explorer::updateTreeSelection()
     // impact parent highlighting.
     if (currentHighlightExtend != _parentHighlightExtend) {
         updateSelectionAncestors();
+    }
+}
+
+void Explorer::onTreeViewExpanded(const QModelIndex& index)
+{
+    // Use the guard to avoid triggering costly updates for every expand, do it all at once.
+    const auto expandGuard = ExpansionGuard { this };
+    if (QApplication::keyboardModifiers().testFlag(Qt::ControlModifier)) {
+        // Fetch all items down the hierarchy first.
+        // expandRecursively() cannot "fetch more", hence the manual traversal.
+        QStack<QModelIndex> parents;
+        parents.push(index);
+        while (!parents.isEmpty()) {
+            const QModelIndex parent = parents.pop();
+            const int         rowCount = _proxyModel->rowCount(parent);
+            for (int row = 0; row < rowCount; ++row) {
+                const QModelIndex child = _proxyModel->index(row, 0, parent);
+                if (!child.isValid()) {
+                    break;
+                }
+                const auto sourceIdx = _proxyModel->mapToSource(child);
+                if (treeModel()->canFetchMore(sourceIdx)) {
+                    treeModel()->fetchMore(sourceIdx);
+                }
+                parents.push(child);
+            }
+        }
+
+        // Temporarily disconnect this slot to prevent re-entrant recursion.
+        // expandRecursively() emits expanded for each node it opens. If this
+        // handler stays connected, each emission re-enters here and triggers
+        // additional recursive expansions from intermediate nodes.
+        disconnect(_expandedConnection);
+        _ui->treeView->expandRecursively(index);
+        _expandedConnection = connect(_ui->treeView, &QTreeView::expanded, this, &Explorer::onTreeViewExpanded);
     }
 }
 

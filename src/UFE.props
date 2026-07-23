@@ -2,20 +2,26 @@
 <Project ToolsVersion="15.0" 
 	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup Label="UserMacros">
+		<!-- When updating UFE, verify if the pybind11 submodule (additional_includes/pybind11_v2 or pybind11_v3) needs to be updated. -->
+		<UfeVersion Condition="'$(VersionTarget)'&gt;='2026'">7.0.0</UfeVersion>
+		<UfeVersion Condition="'$(VersionTarget)'&lt;'2026'">6.5.1</UfeVersion>
+
 		<UfeInc Condition="'$(MaxUsdDevKit)'!='' and '$(UfeInc)'==''">$(MaxUsdDevKit)\ufe\include</UfeInc>
 		<UfeLib Condition="'$(MaxUsdDevKit)'!='' and '$(UfeLib)'==''">$(MaxUsdDevKit)\ufe\lib</UfeLib>
-		<UfeInc Condition="'$(UfeInc)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-6.5.1\common\include</UfeInc>
-		<UfeLib Condition="'$(UfeLib)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-6.5.1\platform\Windows\RelWithDebInfo\lib</UfeLib>
-		<PyBind11Inc Condition="'$(PyBind11Inc)'==''">$(RepoRootDir)additional_includes\pybind11\include</PyBind11Inc>
+		<UfeInc Condition="'$(UfeInc)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-$(UfeVersion)\common\include</UfeInc>
+		<UfeLib Condition="'$(UfeLib)'==''">$(Artifacts)$(VersionTarget)\ufe\ufe-$(UfeVersion)\platform\Windows\RelWithDebInfo\lib</UfeLib>
+		<PyBind11Inc Condition="'$(PyBind11Inc)'=='' and '$(VersionTarget)'&lt;'2026'">$(RepoRootDir)additional_includes\pybind11_v2\include</PyBind11Inc>
+		<PyBind11Inc Condition="'$(PyBind11Inc)'=='' and '$(VersionTarget)'&gt;='2026'">$(RepoRootDir)additional_includes\pybind11_v3\include</PyBind11Inc>
 	</PropertyGroup>
-	
+
 	<ItemDefinitionGroup>
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(PyBind11Inc);$(UfeInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 		</ClCompile>
 		<Link>
 			<AdditionalLibraryDirectories>$(UfeLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>ufe_6.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies Condition="'$(VersionTarget)'&lt;'2026'">ufe_6.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies Condition="'$(VersionTarget)'&gt;='2026'">ufe_7.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

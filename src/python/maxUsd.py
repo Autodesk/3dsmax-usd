@@ -46,8 +46,8 @@ else:
     del _maxUsd
 del Tf
 
-__version__ = "0.15.0"
-__version_info__ = (0, 15, 0, "", "")
+__version__ = "0.16.2"
+__version_info__ = (0, 16, 2, "", "")
 
 class AnimatedAttributeHelper:
     """Helper class to import prim attributes that may or not be animated"""

@@ -32,7 +32,11 @@ UsdStageToolsRollup::UsdStageToolsRollup(ReferenceMaker& owner, IParamBlock2& pa
     SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
 
     ui->setupUi(this);
-
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    ui->PathEditorButton->show();
+#else
+    ui->PathEditorButton->hide();
+#endif // ADSK_ASSET_RESOLVER_ENABLED
     modelObj = static_cast<USDStageObject*>(&owner);
     RegisterNotification(onStageLoadStateChanged, this, NOTIFY_STAGE_LOAD_STATE_CHANGED);
 }
@@ -64,12 +68,25 @@ void UsdStageToolsRollup::UpdateUI(const TimeValue t)
     if (stage) {
         ui->ExploreButton->setEnabled(true);
         ui->LayerEditorButton->setEnabled(true);
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+        ui->PathEditorButton->setEnabled(true);
+#endif // ADSK_ASSET_RESOLVER_ENABLED
     } else {
         ui->ExploreButton->setEnabled(false);
         ui->LayerEditorButton->setEnabled(false);
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+        ui->PathEditorButton->setEnabled(false);
+#endif // ADSK_ASSET_RESOLVER_ENABLED
     }
 }
 
 void UsdStageToolsRollup::on_ExploreButton_clicked() { modelObj->OpenInUsdExplorer(); }
 
 void UsdStageToolsRollup::on_LayerEditorButton_clicked() { modelObj->OpenInUsdLayerEditor(); }
+
+void UsdStageToolsRollup::on_PathEditorButton_clicked()
+{
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+    modelObj->OpenInUsdPathEditor();
+#endif // ADSK_ASSET_RESOLVER_ENABLED
+}

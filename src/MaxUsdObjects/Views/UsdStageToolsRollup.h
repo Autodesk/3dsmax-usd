@@ -43,6 +43,7 @@ public Q_SLOTS:
     /// Qt callback functions based on named widgets in the associated .ui file
     void on_ExploreButton_clicked();
     void on_LayerEditorButton_clicked();
+    void on_PathEditorButton_clicked();
 
 private:
     /// Model ParamBlock pointer

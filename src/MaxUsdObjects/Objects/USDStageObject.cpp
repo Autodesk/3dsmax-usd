@@ -23,6 +23,7 @@
 #include "UsdCameraObject.h"
 
 #include <MaxUsdObjects/DLLEntry.h>
+#include <MaxUsdObjects/AssetResolver/SettingsManagement.h>
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditorWindow.h>
 #include <MaxUsdObjects/LayerEditor/USDLayerManager.h>
@@ -4260,6 +4261,14 @@ void USDStageObject::CloseInUsdExplorer()
 }
 
 void USDStageObject::OpenInUsdLayerEditor() { MaxLayerEditor::Instance()->OpenStage(this); }
+
+#ifdef ADSK_ASSET_RESOLVER_ENABLED
+void USDStageObject::OpenInUsdPathEditor()
+{
+    AssetResolverSettingsManagement::ShowDialog(
+        Adsk::AssetResolverPathDialog::Tab::Paths, GetUSDStage());
+}
+#endif // ADSK_ASSET_RESOLVER_ENABLED
 
 const std::string& USDStageObject::GetGuid() const { return guid; }
 
