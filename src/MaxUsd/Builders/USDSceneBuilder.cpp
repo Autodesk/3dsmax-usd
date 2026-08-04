@@ -1567,7 +1567,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::WriteNodePrims(
     // guides, to avoid them being rendered unless explicitly requested. Geometry set as
     // non-renderable will also be set as guides.
     bool isGuideObject
-        = MaxUsd::IsBoneObject(context.node->EvalWorldState(context.timeConfig.GetStartTime()).obj)
+        = MaxUsd::IsBoneObject(context.node->GetObjectRef()->FindBaseObject())
         || context.node->Renderable() == 0;
 
     if (objectXformRequiredFromConfig || objectXFormRequiredFromInstancing || isGuideObject) {
