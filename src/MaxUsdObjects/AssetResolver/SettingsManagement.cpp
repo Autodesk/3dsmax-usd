@@ -46,6 +46,22 @@ namespace AssetResolverSettingsManagement {
 #ifdef ADSK_ASSET_RESOLVER_ENABLED
 namespace {
 
+// QmaxMainWindow::raiseDockWidget only exists in an Autodesk patched version of Qt.
+// However, no public build is available outside of Autodesk at the moment.
+// Invoking raiseDockWidget through the meta objects allows to build the solution with a
+// standard Qt distribution.
+// See https://github.com/Autodesk/3dsmax-usd/issues/48
+void RaiseDockWidget(MaxSDK::QmaxMainWindow* mainWindow, MaxSDK::QmaxDockWidget* dockWidget)
+{
+    // Checking if the method raiseDockWidget exists as to silence a potential qWarning
+    if (mainWindow->metaObject()->indexOfMethod("raiseDockWidget(MaxSDK::QmaxDockWidget*)") != -1)
+    {
+        std::ignore = QMetaObject::invokeMethod(
+            mainWindow, "raiseDockWidget", Q_ARG(MaxSDK::QmaxDockWidget*, dockWidget)
+        );
+    }
+}
+
 Adsk::AssetResolverPathDialog* CreateUsdPathDialog(QWidget* parent)
 {
     Adsk::AssetResolverPathDialog* usdPathDialog = new Adsk::AssetResolverPathDialog(parent);
@@ -138,7 +154,7 @@ void ShowDialog(const Adsk::AssetResolverPathDialog::Tab& tab, UsdStageRefPtr st
                 usdPathDialog->setCurrentStage(stage);
             }
         }
-        mainWindow->raiseDockWidget(s_dockWidget);
+        RaiseDockWidget(mainWindow, s_dockWidget);
         s_dockWidget->raise();
         if (s_dockWidget->isMinimized()) {
             s_dockWidget->showNormal();
@@ -199,7 +215,7 @@ void ShowDialog(const Adsk::AssetResolverPathDialog::Tab& tab, UsdStageRefPtr st
             }
         });
 
-    mainWindow->raiseDockWidget(dockWidget);
+    RaiseDockWidget(mainWindow, dockWidget);
     dockWidget->raise();
     dockWidget->show();
 
