@@ -280,10 +280,14 @@ bool MaxUsdSkeletonWriter::Write(
         MaxUsd::HasDependentSkinProc skinProc(sourceNode);
         sourceNode->DoEnumDependents(&skinProc);
 
-        // The Skeleton prim needs a binding transform for each bone in it.
-        // Add the identity matrix for the cases where the bone is not referenced by a skin modifier
+        // The Skeleton prim needs a binding transform (world space) for each bone in it.
+        // When the bone is referenced by a skin modifier, use the bind pose cached on that
+        // modifier. Otherwise (e.g. a standalone bone exported through IncludeAllBones, with no
+        // skinning information), fall back to the bone's current world transform, which matches
+        // its rest pose in world space. Using the identity matrix here would discard the bone's
+        // actual placement and break rigging on reimport (GitHub issue #46).
         const auto objectTransform = skinProc.foundSkinsMod.empty()
-            ? GfMatrix4d(1)
+            ? nodeTransform
             : MaxUsd::GetBindTransform(
                   MaxUsd::BindTransformElement::Bone,
                   sourceNode,
