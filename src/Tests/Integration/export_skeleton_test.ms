@@ -753,8 +753,8 @@ struct export_skin_test
             assert_equal skelPrimJointsAttribute[i] animPrimJointsAttribute[i] message:("Animation and Skeleton don't match " + skelPrimJointsAttribute[i] + ";" + animPrimJointsAttribute[i])
         )
     ),
-
-    function export_skeleton_no_preserve_meshes = 
+    
+    function export_skeleton_no_preserve_meshes =
     (
         resetMaxFileAndSetupUnits()
 
@@ -776,6 +776,99 @@ struct export_skin_test
             -- The exported xform equivalent to those joints should not exist
             assert_false (pyUsd.Prim.IsValid (stage.GetPrimAtPath(skelPrimJointsAttribute[i])))
         )
+    ),
+
+    -- Deforming bones (bones referenced by a skin modifier) must be exported even when they are
+    -- hidden and the "Hidden Objects" export option is off. Otherwise the exported skel:joints list
+    -- would be missing the hidden bones while primvars:skel:jointIndices still referenced them,
+    -- producing out-of-range indices and invalid UsdSkel data (GitHub issue #39).
+    function export_skin_with_hidden_bones =
+    (
+        resetMaxFileAndSetupUnits()
+
+        bones = createBonesArray 3
+
+        char = createCharMesh()
+        skinBonesToCharacter bones char
+
+        skinMod = undefined
+        for m in char.modifiers do
+        (
+            if classof m == Skin then skinMod = m
+        )
+        assert_defined skinMod
+
+        select char
+        max modify Mode
+
+        -- Assign deterministic weights so that all 3 bones are actually referenced as influences.
+        -- This guarantees the hidden bones (2 and 3) are used by the mesh, so the invalid-index
+        -- condition would trigger if they were dropped from the skeleton.
+        local numVerts = char.mesh.numverts
+        for v = 1 to numVerts do
+        (
+            local boneIndices = #()
+            local weights = #()
+
+            local pattern = mod v 3
+            if pattern == 1 then (
+                boneIndices = #(1, 2)
+                weights = #(0.7, 0.3)
+            ) else if pattern == 2 then (
+                boneIndices = #(2, 3)
+                weights = #(0.6, 0.4)
+            ) else (
+                boneIndices = #(1, 3)
+                weights = #(0.5, 0.5)
+            )
+
+            skinOps.replaceVertexWeights skinMod v boneIndices weights node:char
+        )
+
+        -- Hide two of the deforming bones. They remain referenced by the skin modifier.
+        bones[2].isHidden = true
+        bones[3].isHidden = true
+
+        -- Export with "Hidden Objects" off: hidden bones would normally be excluded from the export.
+        local exportPath = output_prefix + "export_skin_with_hidden_bones.usda"
+        local exportOptions = createDefaultOptions()
+        exportOptions.HiddenObjects = false
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        local skelRootPath = "/root"
+        local meshPrimPath = (skelRootPath + "/Cylinder001")
+        local meshPrim = stage.GetPrimAtPath meshPrimPath
+        local mesh = pyUsdGeom.Mesh(meshPrim)
+        local skelPrim = stage.GetPrimAtPath(skelRootPath + "/Bones")
+
+        assert_true (pyUsd.Prim.IsValid skelPrim) message:"Skeleton prim should have been created for the deforming bones."
+
+        -- All 3 deforming bones must be present in skel:joints, even though 2 of them are hidden.
+        local expectedJointNames = #("/root/Bones/Bone001", "/root/Bones/Bone001/Bone002", "/root/Bones/Bone001/Bone002/Bone003")
+        local skelPrimJointsAttribute = (skelPrim.GetAttribute("joints")).Get()
+        assert_equal 3 skelPrimJointsAttribute.count message:"All 3 deforming bones must be exported as joints, even the hidden ones (GitHub issue #39)."
+        for i = 1 to expectedJointNames.count do
+        (
+            assert_equal expectedJointNames[i] skelPrimJointsAttribute[i] message:("Unexpected joint at indice: " + (i as string))
+        )
+
+        -- Every joint index used by the mesh must reference a joint that exists in skel:joints.
+        -- Before the fix, hidden bones were dropped from skel:joints while their indices remained on
+        -- the mesh, yielding out-of-range (invalid) indices.
+        local primvarApi = pyUsdGeom.PrimvarsAPI(mesh)
+        local jointIndices = ((primvarApi.GetPrimvar("primvars:skel:jointIndices")).Get())
+        local jointWeights = ((primvarApi.GetPrimvar("primvars:skel:jointWeights")).Get())
+        assert_equal jointIndices.count jointWeights.count message:"Skel joints weights and indices must be of equal size."
+
+        local numSkelJoints = skelPrimJointsAttribute.count
+        local foundIndices = #{}
+        for i = 1 to jointIndices.count do
+        (
+            assert_true (jointIndices[i] >= 0 and jointIndices[i] < numSkelJoints) message:("Joint index out of range: " + (jointIndices[i] as string) + " while skel:joints only has " + (numSkelJoints as string) + " entries (GitHub issue #39).")
+            foundIndices[jointIndices[i] + 1] = true  -- Convert from 0-based to 1-based for MaxScript set
+        )
+        assert_equal 3 foundIndices.count message:"All 3 bones should be referenced by the mesh joint indices."
     ),
 
     -- Test that instanced bones are not instanced in the output USD. 
@@ -947,7 +1040,8 @@ struct export_skin_test
         export_skin_with_turbosmooth,
         export_skin_with_wsm,
         export_skin_with_offset_object,
-        export_skeleton_deleted_modifier_test
+        export_skeleton_deleted_modifier_test,
+        export_skin_with_hidden_bones
     )
 )
 

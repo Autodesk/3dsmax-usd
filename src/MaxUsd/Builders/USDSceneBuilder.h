@@ -241,6 +241,18 @@ protected:
     bool HasExportableDescendants(INode* node, const pxr::MaxUsdWriteJobContext& jobCtx);
 
     /**
+     * \brief Checks whether a node is used as a bone by a skin modifier somewhere in the scene.
+     * Such bones are a functional part of the exported skeleton: their transforms are referenced by
+     * the UsdSkel binding of the meshes they deform. They must therefore be exported even when they
+     * are hidden and the "Hidden Objects" option is off, otherwise the skin binding would list joint
+     * indices pointing at joints absent from the skeleton's skel:joints, producing invalid UsdSkel
+     * data (GitHub issue #39). Results are cached to avoid repeated dependency-graph traversals.
+     * \param node The node to test.
+     * \return True if the node is referenced as a bone by at least one skin modifier.
+     */
+    bool IsSkinnedBone(INode* node);
+
+    /**
      * \brief Writes all the prims required to translate a Max node to USD. If the node's object has an offset,
      * we will need an extra xform prim, so that the object's offset is not propagated to children
      * nodes.  If the object can be exported as an instanceable prim, the function will create the
@@ -338,6 +350,10 @@ private:
     // traversals. For each node in the map, the boolean value specifies whether or
     // not itself, or any of its descendants should be exported.
     std::map<INode*, bool> hasExportableDescendantsMap;
+
+    // Cache maintained by IsSkinnedBone() to avoid repeated dependency-graph traversals.
+    // For each node, the boolean specifies whether it is used as a bone by a skin modifier.
+    std::map<INode*, bool> isSkinnedBoneMap;
 
     // Instance to prototype prim map. We collect this during export so that we set up instancing
     // all at once in a single SdfChangeBlock at the end.
