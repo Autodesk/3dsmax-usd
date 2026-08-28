@@ -826,7 +826,7 @@ struct export_skin_test
         )
 
         -- Hide two of the deforming bones. They remain referenced by the skin modifier.
-        bones[2].isHidden = true
+        bones[1].isHidden = true
         bones[3].isHidden = true
 
         -- Export with "Hidden Objects" off: hidden bones would normally be excluded from the export.
