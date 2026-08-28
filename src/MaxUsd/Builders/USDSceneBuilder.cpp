@@ -886,7 +886,7 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
     // Objects" is off: they are a functional part of the skeleton and skipping them would produce a
     // skin binding that references joints absent from the skeleton (GitHub issue #39).
     if (buildOptions.GetTranslateHidden() || !context.node->IsNodeHidden()
-        || IsSkinnedBone(context.node)) {
+        || isSkinnedBone(context.node)) {
         size_t numRegisteredWriters = 0;
 
         auto primWriter = pxr::MaxUsdPrimWriterRegistry::FindWriter(
@@ -1444,7 +1444,7 @@ bool USDSceneBuilder::HasExportableDescendants(
         // Should the node be ignored because it is hidden? Bones referenced by a skin modifier are
         // never ignored, even when hidden and "Hidden Objects" is off, as they are required to build
         // valid UsdSkel data for the meshes they deform (GitHub issue #39).
-        if (!node->IsNodeHidden() || buildOptions.GetTranslateHidden() || IsSkinnedBone(node)) {
+        if (!node->IsNodeHidden() || buildOptions.GetTranslateHidden() || isSkinnedBone(node)) {
             // Check if any of the translation operations apply to the node's object. If so, it
             // is considered exportable.
             exportableHierarchy = pxr::MaxUsdPrimWriterRegistry::CanBeExported(node, jobCtx);
@@ -1479,29 +1479,6 @@ bool USDSceneBuilder::HasExportableDescendants(
 
     hasExportableDescendantsMap.insert({ node, exportableHierarchy });
     return exportableHierarchy;
-}
-
-bool USDSceneBuilder::IsSkinnedBone(INode* node)
-{
-    if (!node) {
-        return false;
-    }
-
-    // Check if we already have the answer in the cache.
-    const auto it = isSkinnedBoneMap.find(node);
-    if (it != isSkinnedBoneMap.end()) {
-        return it->second;
-    }
-
-    // A node is a "skinned bone" if any skin modifier in the scene references it as a bone. Enumerate
-    // the node's dependents looking for such a skin modifier.
-    ReferenceTarget*             refTarget = static_cast<ReferenceTarget*>(node);
-    MaxUsd::HasDependentSkinProc skinProc(refTarget);
-    refTarget->DoEnumDependents(&skinProc);
-    const bool isSkinnedBone = !skinProc.foundSkinsMod.empty();
-
-    isSkinnedBoneMap.insert({ node, isSkinnedBone });
-    return isSkinnedBone;
 }
 
 MaxUsd::PrimDefVectorPtr USDSceneBuilder::WriteNodePrims(

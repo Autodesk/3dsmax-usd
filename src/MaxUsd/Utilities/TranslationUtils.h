@@ -42,6 +42,8 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
+#include <map>
+
 class IParamBlock2;
 class ISkin;
 class Modifier;
@@ -782,6 +784,34 @@ public:
     MaxUSDAPI HasDependentSkinProc(ReferenceTarget* target);
 
     MaxUSDAPI int proc(ReferenceMaker* rmaker) override;
+};
+
+/**
+ * \brief Functor telling whether a node is used as a bone by a skin modifier somewhere in the
+ * scene, caching its answers to avoid repeated dependency-graph traversals.
+ *
+ * Such bones are a functional part of the exported skeleton: their transforms are referenced by the
+ * UsdSkel binding of the meshes they deform. They must therefore be exported even when they are
+ * hidden and the "Hidden Objects" option is off, otherwise the skin binding would list joint indices
+ * pointing at joints absent from the skeleton's skel:joints, producing invalid UsdSkel data (GitHub
+ * issue #39).
+ *
+ * The cache is owned by the functor, so keep a single instance alive for the duration of an export
+ * and reuse it across the nodes being tested.
+ */
+class IsSkinnedBone
+{
+public:
+    /**
+     * \brief Returns whether the given node is referenced as a bone by at least one skin modifier.
+     * \param node The node to test.
+     * \return True if the node is a skinned bone; false otherwise (including for a null node).
+     */
+    MaxUSDAPI bool operator()(INode* node);
+
+private:
+    // For each queried node, whether it is used as a bone by a skin modifier.
+    std::map<INode*, bool> cache;
 };
 
 class HasDependentMorpherProc : public DependentEnumProc

@@ -1232,6 +1232,29 @@ int HasDependentSkinProc::proc(ReferenceMaker* rmaker)
     return DEP_ENUM_CONTINUE;
 }
 
+bool IsSkinnedBone::operator()(INode* node)
+{
+    if (!node) {
+        return false;
+    }
+
+    // Return the cached answer if we have already computed it for this node.
+    const auto it = cache.find(node);
+    if (it != cache.end()) {
+        return it->second;
+    }
+
+    // A node is a "skinned bone" if any skin modifier in the scene references it as a bone.
+    // Enumerate the node's dependents looking for such a skin modifier.
+    ReferenceTarget*     refTarget = static_cast<ReferenceTarget*>(node);
+    HasDependentSkinProc skinProc(refTarget);
+    refTarget->DoEnumDependents(&skinProc);
+    const bool isSkinnedBone = !skinProc.foundSkinsMod.empty();
+
+    cache.insert({ node, isSkinnedBone });
+    return isSkinnedBone;
+}
+
 HasDependentMorpherProc::HasDependentMorpherProc(INode* target) { this->node = target; }
 
 int HasDependentMorpherProc::proc(ReferenceMaker* rmaker)
