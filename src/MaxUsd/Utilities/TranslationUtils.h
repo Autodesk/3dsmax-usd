@@ -481,6 +481,20 @@ GetUsdTimeSamplesForExport(const pxr::UsdStageWeakPtr& stage, const MaxUsd::Time
 MaxUSDAPI bool IsBoneObject(Object* object);
 
 /**
+ * \brief Checks whether a node has an ancestor whose object is a bone.
+ * \param node The node whose ancestry to inspect.
+ * \return True if any parent (at any depth) is a bone, false otherwise.
+ */
+MaxUSDAPI bool HasBoneObjectAncestor(INode* node);
+
+/**
+ * \brief Checks whether a node has a descendant whose object is a bone.
+ * \param node The node whose descendants to inspect.
+ * \return True if any child (at any depth) is a bone, false otherwise.
+ */
+MaxUSDAPI bool HasBoneObjectDescendant(INode* node);
+
+/**
  * \brief Returns the non-localized class name.
  * \param classDesc The class description from which to resolve the class name.
  * \return The non-localized class name

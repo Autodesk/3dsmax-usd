@@ -347,6 +347,20 @@ MaxUsdSkeletonWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOption
         return ContextSupport::Fallback;
     }
 
+    // A non-bone helper (e.g. a Point or Dummy) parented inside a skeleton is part of that
+    // skeleton's joint hierarchy and should be exported as a joint when the "include all bones"
+    // option is on. We only rescue such a node when it has no bone of its own further down the
+    // hierarchy: a node that has a bone descendant already contributes to the exported joint paths
+    // as an intermediate path segment, so the surrounding hierarchy is left unchanged. Without
+    // this, a leaf helper nested under a bone - having no bone, no skin and no morpher of its own -
+    // matches no prim writer and is dropped from the export entirely (see GitHub issue #42).
+    // Mesh-bearing helpers are unaffected: their mesh writer reports Supported, which outranks this
+    // Fallback, so they still export as meshes.
+    if (exportArgs.GetIncludeAllBones() && MaxUsd::HasBoneObjectAncestor(node)
+        && !MaxUsd::HasBoneObjectDescendant(node)) {
+        return ContextSupport::Fallback;
+    }
+
     const bool isBakedOffset = exportArgs.GetMeshConversionOptions().GetBakeObjectOffsetTransform();
     ReferenceTarget* refTarget = static_cast<ReferenceTarget*>(node);
 
