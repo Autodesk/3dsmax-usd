@@ -882,7 +882,11 @@ MaxUsd::PrimDefVectorPtr USDSceneBuilder::ProcessNode(
     const auto& buildOptions = writeJobContext.GetArgs();
 
     // Check if we need to export the node, if it is hidden.
-    if (buildOptions.GetTranslateHidden() || !context.node->IsNodeHidden()) {
+    // Bones referenced by a skin modifier are always exported, even when hidden and "Hidden
+    // Objects" is off: they are a functional part of the skeleton and skipping them would produce a
+    // skin binding that references joints absent from the skeleton (GitHub issue #39).
+    if (buildOptions.GetTranslateHidden() || !context.node->IsNodeHidden()
+        || isSkinnedBone(context.node)) {
         size_t numRegisteredWriters = 0;
 
         auto primWriter = pxr::MaxUsdPrimWriterRegistry::FindWriter(
@@ -1437,8 +1441,10 @@ bool USDSceneBuilder::HasExportableDescendants(
 
     // If we are exporting from a node list, make sure the node should be considered.
     if (nodesToExportSet.empty() || nodesToExportSet.find(node) != nodesToExportSet.end()) {
-        // Should the node be ignored because it is hidden?
-        if (!node->IsNodeHidden() || buildOptions.GetTranslateHidden()) {
+        // Should the node be ignored because it is hidden? Bones referenced by a skin modifier are
+        // never ignored, even when hidden and "Hidden Objects" is off, as they are required to build
+        // valid UsdSkel data for the meshes they deform (GitHub issue #39).
+        if (!node->IsNodeHidden() || buildOptions.GetTranslateHidden() || isSkinnedBone(node)) {
             // Check if any of the translation operations apply to the node's object. If so, it
             // is considered exportable.
             exportableHierarchy = pxr::MaxUsdPrimWriterRegistry::CanBeExported(node, jobCtx);
