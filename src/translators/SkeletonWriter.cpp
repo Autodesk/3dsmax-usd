@@ -335,6 +335,42 @@ bool MaxUsdSkeletonWriter::Write(
     return true;
 }
 
+// Checks whether a node has an ancestor whose object is a bone.
+static bool HasBoneObjectAncestor(INode* node)
+{
+    if (node == nullptr) {
+        return false;
+    }
+    for (INode* parent = node->GetParentNode();
+         parent != nullptr && !parent->IsRootNode();
+         parent = parent->GetParentNode()) {
+        Object* object = parent->GetObjectRef();
+        if (object != nullptr && MaxUsd::IsBoneObject(object)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Checks whether a node has a descendant whose object is a bone.
+static bool HasBoneObjectDescendant(INode* node)
+{
+    if (node == nullptr) {
+        return false;
+    }
+    for (int i = 0; i < node->NumberOfChildren(); ++i) {
+        INode* child = node->GetChildNode(i);
+        Object* object = child->GetObjectRef();
+        if (object != nullptr && MaxUsd::IsBoneObject(object)) {
+            return true;
+        }
+        if (HasBoneObjectDescendant(child)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 MaxUsdPrimWriter::ContextSupport
 MaxUsdSkeletonWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOptions& exportArgs)
 {
@@ -356,8 +392,8 @@ MaxUsdSkeletonWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOption
     // matches no prim writer and is dropped from the export entirely (see GitHub issue #42).
     // Mesh-bearing helpers are unaffected: their mesh writer reports Supported, which outranks this
     // Fallback, so they still export as meshes.
-    if (exportArgs.GetIncludeAllBones() && MaxUsd::HasBoneObjectAncestor(node)
-        && !MaxUsd::HasBoneObjectDescendant(node)) {
+    if (exportArgs.GetIncludeAllBones() && HasBoneObjectAncestor(node)
+        && !HasBoneObjectDescendant(node)) {
         return ContextSupport::Fallback;
     }
 

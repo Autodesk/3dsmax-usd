@@ -833,40 +833,6 @@ bool IsBoneObject(Object* object)
         classId == Class_ID(0x73dc4833, 0x65c93caa);      // HubObject
 }
 
-bool HasBoneObjectAncestor(INode* node)
-{
-    if (node == nullptr) {
-        return false;
-    }
-    for (INode* parent = node->GetParentNode();
-         parent != nullptr && !parent->IsRootNode();
-         parent = parent->GetParentNode()) {
-        Object* object = parent->GetObjectRef();
-        if (object != nullptr && IsBoneObject(object)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool HasBoneObjectDescendant(INode* node)
-{
-    if (node == nullptr) {
-        return false;
-    }
-    for (int i = 0; i < node->NumberOfChildren(); ++i) {
-        INode* child = node->GetChildNode(i);
-        Object* object = child->GetObjectRef();
-        if (object != nullptr && IsBoneObject(object)) {
-            return true;
-        }
-        if (HasBoneObjectDescendant(child)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 std::vector<Modifier*> GetMaxMorpherModifiers(INode* node, bool enabledOnly)
 {
     static const auto ClassID_Morpher = Class_ID(0x17bb6854, 0xa5cba2a3);
