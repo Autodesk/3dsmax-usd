@@ -50,7 +50,6 @@ namespace {
 // However, no public build is available outside of Autodesk at the moment.
 // Invoking raiseDockWidget through the meta objects allows to build the solution with a
 // standard Qt distribution.
-// See https://github.com/Autodesk/3dsmax-usd/issues/48
 void RaiseDockWidget(QMainWindow* mainWindow, QDockWidget* dockWidget)
 {
     if (mainWindow->metaObject()->indexOfMethod("raiseDockWidget(QDockWidget*)") != -1) {
