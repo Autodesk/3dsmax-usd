@@ -51,14 +51,11 @@ namespace {
 // Invoking raiseDockWidget through the meta objects allows to build the solution with a
 // standard Qt distribution.
 // See https://github.com/Autodesk/3dsmax-usd/issues/48
-void RaiseDockWidget(MaxSDK::QmaxMainWindow* mainWindow, MaxSDK::QmaxDockWidget* dockWidget)
+void RaiseDockWidget(QMainWindow* mainWindow, QDockWidget* dockWidget)
 {
-    // Checking if the method raiseDockWidget exists as to silence a potential qWarning
-    if (mainWindow->metaObject()->indexOfMethod("raiseDockWidget(MaxSDK::QmaxDockWidget*)") != -1)
-    {
+    if (mainWindow->metaObject()->indexOfMethod("raiseDockWidget(QDockWidget*)") != -1) {
         std::ignore = QMetaObject::invokeMethod(
-            mainWindow, "raiseDockWidget", Q_ARG(MaxSDK::QmaxDockWidget*, dockWidget)
-        );
+            mainWindow, "raiseDockWidget", Q_ARG(QDockWidget*, dockWidget));
     }
 }
 
