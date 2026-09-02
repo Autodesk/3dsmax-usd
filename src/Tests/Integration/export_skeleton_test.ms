@@ -754,7 +754,50 @@ struct export_skin_test
         )
     ),
 
-    function export_skeleton_no_preserve_meshes = 
+    function export_skeleton_include_all_bones_with_modifier =
+    (
+        resetMaxFileAndSetupUnits()
+
+        newBones = createBonesArray 3
+
+        -- Apply a modifier to one of the bones. This bone isn't referenced by any skin/morpher
+        -- modifier, so it relies solely on the IncludeAllBones option to be exported. Bones with
+        -- modifiers applied to them shouldn't be excluded from the export (see GH issue #45).
+        addModifier newBones[2] (Twist angle:15)
+
+        char = createCharMesh()
+
+        -- the bones aren't being added to the skin modifier
+        sk = skin()
+        addModifier char sk
+
+        -- exporting bones without adding them to the skin modifier
+        local exportPath = output_prefix + "export_skeleton_include_all_bones_with_modifier.usda"
+        local exportOptions = createDefaultOptions()
+        exportOptions.SimplifyBonePaths = false
+        exportOptions.IncludeAllBones = true
+        USDExporter.ExportFile exportPath exportOptions:exportOptions
+
+        local stage = pyUsd.Stage.Open(exportPath)
+        local skelRootPath = "/root"
+        local skelPrim = stage.GetPrimAtPath(skelRootPath + "/Bones")
+        local animPrim = stage.GetPrimAtPath(skelRootPath + "/Bones/Animations")
+
+        assert_true (pyUsd.Prim.IsValid skelPrim) Message: "Skeleton prim should have been created for the bones without skin modifier"
+        assert_true (pyUsd.Prim.IsValid animPrim) Message: "SkelAnimation prim should have been created for the bones without skin modifier"
+
+        local expectedJointsNames = #("/root/Bones/Bone001", "/root/Bones/Bone001/Bone002", "/root/Bones/Bone001/Bone002/Bone003")
+        local skelPrimJointsAttribute = (skelPrim.GetAttribute("joints")).Get()
+        local animPrimJointsAttribute = (animPrim.GetAttribute("joints")).Get()
+        assert_equal 3 skelPrimJointsAttribute.count message:"A bone with a modifier applied to it should still be exported when IncludeAllBones is enabled"
+        assert_equal skelPrimJointsAttribute.count animPrimJointsAttribute.count message:"Animation and Skeleton don't have the same amount of joints exported"
+        for i = 1 to skelPrimJointsAttribute.count do (
+            assert_equal expectedJointsNames[i] skelPrimJointsAttribute[i]
+            assert_equal skelPrimJointsAttribute[i] animPrimJointsAttribute[i] message:("Animation and Skeleton don't match " + skelPrimJointsAttribute[i] + ";" + animPrimJointsAttribute[i])
+        )
+    ),
+
+    function export_skeleton_no_preserve_meshes =
     (
         resetMaxFileAndSetupUnits()
 
@@ -942,6 +985,7 @@ struct export_skin_test
         export_skeleton_without_skin_test,
         export_skeleton_bone_weights_test,
         export_skeleton_include_all_bones,
+        export_skeleton_include_all_bones_with_modifier,
         export_skeleton_no_preserve_meshes,
         bone_instancing_ignored_test,
         export_skin_with_turbosmooth,

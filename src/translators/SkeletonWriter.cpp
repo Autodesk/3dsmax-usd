@@ -342,8 +342,11 @@ MaxUsdSkeletonWriter::CanExport(INode* node, const MaxUsd::USDSceneBuilderOption
         return ContextSupport::Unsupported;
     }
 
-    // Always export any bone when the include all bones option is on
-    if (exportArgs.GetIncludeAllBones() && MaxUsd::IsBoneObject(node->GetObjectRef())) {
+    // Always export any bone when the include all bones option is on. Look past any modifiers
+    // applied on the bone to find the base object, so that bones with modifiers are still
+    // recognized as bones.
+    if (exportArgs.GetIncludeAllBones()
+        && MaxUsd::IsBoneObject(node->GetObjectRef()->FindBaseObject())) {
         return ContextSupport::Fallback;
     }
 
