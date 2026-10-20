@@ -28,6 +28,8 @@
 #pragma warning(pop)
 #include "TimeUtils.h"
 
+#include <pxr/base/tf/hash.h>
+#include <pxr/base/tf/hashmap.h>
 #include <pxr/usd/usd/stageCache.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdUtils/stageCache.h>
@@ -41,8 +43,6 @@ namespace fs = std::filesystem;
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #endif
-
-#include <map>
 
 class IParamBlock2;
 class ISkin;
@@ -811,7 +811,7 @@ public:
 
 private:
     // For each queried node, whether it is used as a bone by a skin modifier.
-    std::map<INode*, bool> cache;
+    pxr::TfHashMap<INode*, bool, pxr::TfHash> cache;
 };
 
 class HasDependentMorpherProc : public DependentEnumProc
