@@ -339,6 +339,10 @@ private:
     // not itself, or any of its descendants should be exported.
     std::map<INode*, bool> hasExportableDescendantsMap;
 
+    // Functor (owning its own cache) telling whether a node is used as a bone by a skin modifier.
+    // Such bones must be exported even when hidden and "Hidden Objects" is off (GitHub issue #39).
+    MaxUsd::IsSkinnedBone isSkinnedBone;
+
     // Instance to prototype prim map. We collect this during export so that we set up instancing
     // all at once in a single SdfChangeBlock at the end.
     pxr::TfHashMap<pxr::SdfPath, pxr::SdfPath, pxr::SdfPath::Hash> instanceToPrototype;
