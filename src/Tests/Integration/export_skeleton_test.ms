@@ -752,9 +752,24 @@ struct export_skin_test
             assert_equal expectedJointsNames[i] skelPrimJointsAttribute[i]
             assert_equal skelPrimJointsAttribute[i] animPrimJointsAttribute[i] message:("Animation and Skeleton don't match " + skelPrimJointsAttribute[i] + ";" + animPrimJointsAttribute[i])
         )
+
+        -- For standalone bones (not referenced by any skin modifier), the bind transforms must be
+        -- the bones' world-space rest transforms, not identity (GitHub issue #46). The bones were
+        -- created at world positions [0,0,0], [0,0,24] and [0,0,48].
+        local skel = pyUsdSkel.Skeleton(skelPrim)
+        local bindTransform = (skel.GetBindTransformsAttr()).Get()
+        local restTransform = (skel.GetRestTransformsAttr()).Get()
+        local expectedBindTransform = #(#( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 0, 1) ), #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 24, 1) ), #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 48, 1) ))
+        local expectedRestTransform = #(#( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 0, 1) ), #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 24, 1) ), #( #(1, 0, 0, 0), #(0, 1, 0, 0), #(0, 0, 1, 0), #(0, 0, 24, 1) ))
+        assert_equal 3 bindTransform.count message:"Didn't export the correct number of bind transforms"
+        for i = 1 to expectedBindTransform.count do
+        (
+            assert_true (compare2dMatrix expectedBindTransform[i] bindTransform[i] 4 4) message: ("Unexpected bind transform at indice: " + (i as string))
+            assert_true (compare2dMatrix expectedRestTransform[i] restTransform[i] 4 4) message: ("Unexpected rest transform at indice: " + (i as string))
+        )
     ),
 
-    function export_skeleton_no_preserve_meshes = 
+    function export_skeleton_no_preserve_meshes =
     (
         resetMaxFileAndSetupUnits()
 
