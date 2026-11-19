@@ -1,6 +1,84 @@
 ## Changelog
 
 
+### v0.17.8
+
+#### What's New:
+- USD Asset Resolver nomenclature refactor and breaking changes: clearer namespaces, shorter type names, renamed public headers/files, and data set terminology for registry/settings (replacing extension where it meant registry entries). Plugin token change, from `AssetResolverExtension` to `AdskUsdAssetResolverContextData`; mapping file custom attributes are now prefixed with `adsk_ar_` to prevent collisions and clearly identify the context those are for.
+
+#### Fixes:
+- Fixed components created from skinned nodes having no geometry.
+- Fixed skinned components losing their skinning and animation after adding a variant, a variant set or nodes to them.
+- Fixed components not matching the scene's units, up axis and frame rate, which made them appear at the wrong scale and play their animation out of step.
+- Fixed "Create Component" Options... creating variants when a single component was requested.
+- Fixed geometry added to a component not respecting the component's up axis.
+- Fixed crashes when cloning components and when transforming prims inside a component, and components now inherit the stage object's transform.
+- Fixed undo not restoring a variant's content after it was replaced.
+- Fixed undo and redo issues around saving a component, and hid global data the Variant Manager does not support.
+- Fixed the variant target being lost when saving a component.
+- Fixed Duplicate to Stage and Duplicate to Component not using the USD export options.
+- Fixed the built-in component template not being written to the templates folder, which left "Open Template Location" empty.
+- Fixed excluded nodes causing other nodes to be renamed on export because of false name conflicts.
+
+### v0.17.7
+
+#### What's New:
+- The Variant Manager now shows variants for any USD stage, not only components.
+- Adding a selection to a component now supports render, proxy and guide purposes, placing the geometry under a purpose scope in the target variant.
+
+#### Fixes:
+- Fixed a crash when undoing or redoing the creation of a component.
+- Fixed the component being dropped from the USD Explorer after its initial save.
+- Fixed the USD Explorer and the Variant Manager holding on to a component stage after a scene reset.
+- Fixed the initial save dialog offering a default component name that was already in use.
+
+### v0.17.6
+
+#### What's New:
+- Added the Component Creator, allowing you to create and edit reusable USD components directly from 3ds Max.
+- Added Create Component Options to the Component Creator.
+- Added batch saving for the Component Creator, integrated into the Save Layers dialog.
+
+#### Fixes:
+- Fixed primvars:normals being exported as float3[] instead of normal3f[].
+
+### v0.17.5
+
+#### What's New:
+- Compatibility release for 3ds Max Beta A1928-71.80 release.
+
+### v0.17.4
+
+#### What's New:
+- Compatibility release for 3ds Max Beta A1841-71.78 release.
+
+### v0.17.3
+
+#### What's New:
+- Press the Delete key to delete selected prims in the USD Explorer when it has focus.
+- Added a help page for the Asset Resolver.
+
+#### Fixes:
+- Fixed white text on a white background in the USD Path Editor stage list.
+
+### v0.17.2
+
+#### What's New:
+- Compatibility release for 3ds Max Beta A1636-71.75 release.
+- 3ds Max Beta version now uses OpenUSD v0.26.5. No changes to 3ds Max 2027 and earlier.
+- Render Setup has been integrated into 3ds Max USD, allowing users to configure render settings directly within the USD workflow.
+
+### v0.17.1
+
+#### What's New:
+- Compatibility release for 3ds Max Beta A1492-71.72 release.
+- Improved the USD Explorer's search performance.
+
+### v0.17.0
+
+#### What's New:
+- Beta start for next release (0.17).
+
 ### v0.16.2
 
 #### What's New:
