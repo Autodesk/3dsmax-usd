@@ -29,6 +29,8 @@
 #include <QtCore/QVariant>
 #include <unordered_set>
 
+#include <vector>
+
 namespace UfeUi {
 
 class TreeItem;
@@ -140,8 +142,7 @@ public:
         bool root = true;
         /// Are we using an explicit of ufe paths that should be included? (search scenario)
         bool useItemList = false;
-        // Allowed UFE paths.
-        std::unordered_set<Ufe::Path> itemPaths;
+        std::unordered_set<Ufe::Path> itemPaths; // paths of nodes to include
     };
 
 private:
@@ -160,6 +161,16 @@ private:
     TreeColumns                                  _columns;
     QHash<size_t, QPair<QModelIndex, TreeItem*>> _treeItemMap;
     Ufe::Hierarchy::ChildFilter                  _childFilter;
+
+    /**
+     * \brief Iteratively inserts all search-result children for the given item into the model.
+     * Called during tree construction (background thread) to avoid lazy-loading on the UI thread.
+     * Uses the pre-built children cache from findMatchingPaths to avoid redundant USD calls.
+     */
+    void populateSearchResults(
+        TreeItem*                          item,
+        const QModelIndex&                 parentIdx,
+        const ItemSearch::ChildrenByParent& childrenCache);
 
     // During tree building, we keep track of the paths that are part of the search filter
     bool                          _useSearchItems;

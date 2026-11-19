@@ -33,6 +33,8 @@
 			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">BOOST_LIB_TOOLSET="vc142";%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2024">BOOST_LIB_TOOLSET="vc141";%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<DisableSpecificWarnings>4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+			<!-- C4273: USD 0.26.5 arrayEdit.h has a friend declaration missing VT_API vs. the out-of-class declaration that has it -->
+			<DisableSpecificWarnings Condition="'$(VersionTarget)'>'2025'">4273;%(DisableSpecificWarnings)</DisableSpecificWarnings>
 			<AdditionalOptions Condition="$(VersionTarget)&gt;=2024">/Zc:__cplusplus</AdditionalOptions>
 		</ClCompile>
 		<ClCompile Condition="'$(Configuration)'=='$(ConfigHybrid)'">

@@ -146,16 +146,42 @@ USDLayerManager::GetDirtyLayersToSave()
     return dirtyLayers;
 }
 
+std::vector<UsdLayerEditor::StageSavingInfo> USDLayerManager::CollectStagesToSave()
+{
+    std::vector<UsdLayerEditor::StageSavingInfo> out;
+    std::set<pxr::UsdStageRefPtr>                seen;
+
+    auto push = [&](USDStageObject* obj, const pxr::UsdStageRefPtr& stage) {
+        if (!obj || !stage || seen.count(stage)) {
+            return;
+        }
+        const auto        nodes = MaxUsd::GetReferencingNodes(obj);
+        const std::string name = nodes.Count()
+            ? MaxUsd::MaxStringToUsdString(nodes[0]->NodeName().data())
+            : std::string();
+        out.push_back({ stage, name, true, false });
+        seen.insert(stage);
+    };
+
+    for (const auto& entry : GetDirtyLayersToSave()) {
+        push(entry.first, entry.first->GetUSDStage());
+    }
+
+    return out;
+}
+
 bool USDLayerManager::HandleMaxSceneSave()
 {
-    // Only prompt & save layers on the first call withing a scene save operation.
+    // Only prompt & save layers on the first call within a scene save operation.
     if (!mustHandleSave) {
         return true;
     }
     mustHandleSave = false;
 
     auto stagesDirtyLayers = GetDirtyLayersToSave();
-    if (stagesDirtyLayers.empty()) {
+    auto stagesToSave = CollectStagesToSave();
+
+    if (stagesToSave.empty()) {
         return true;
     }
 
@@ -167,28 +193,14 @@ bool USDLayerManager::HandleMaxSceneSave()
         }
 
         if (saveMode == SaveMode::SaveAll) {
-
-            std::vector<UsdLayerEditor::StageSavingInfo> stagesToSave;
-            for (const auto& entry : stagesDirtyLayers) {
-                const auto stage = entry.first->GetUSDStage();
-
-                // Note: we are looping against "stagesDirtyLayers = GetDirtyLayersToSave();"
-                // which is based on StageObjects, which are nodes in the scene, so there should
-                // always be a referencing node in the scene to get the node name from.
-                auto              referencingNodes = MaxUsd::GetReferencingNodes(entry.first);
-                const std::string stageName
-                    = MaxUsd::MaxStringToUsdString(referencingNodes[0]->NodeName().data());
-
-                UsdLayerEditor::StageSavingInfo si { stage, stageName, true, false };
-                stagesToSave.push_back(si);
-            }
-
+            // Components + non-component stages go to the one dialog; component rows are saved
+            // (relocated + repointed) by the component-save hooks inside the delegate.
             const auto result = batchSaveLayersUIDelegate(stagesToSave, false);
 
-            // The batch save dialog returns partially completed - meaning some layers might already
-            // have been saved - but the caller is still responsible to save file-backed layers.
+            // Partially completed - the dialog handled anonymous / component stages, but the
+            // caller is still responsible to save already-on-disk dirty file-backed layers.
             if (result == UsdLayerEditor::kPartiallyCompleted) {
-                for (const auto& entry : stagesDirtyLayers) {
+                for (const auto& entry : GetDirtyLayersToSave()) {
                     for (const auto& layer : entry.second) {
                         layer->Save();
                     }

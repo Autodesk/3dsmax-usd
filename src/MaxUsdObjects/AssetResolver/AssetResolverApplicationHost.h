@@ -15,13 +15,13 @@
 //
 #pragma once
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 
-#include <AssetResolverExtensions/ApplicationHost.h>
-#include <AdskAssetResolver/Notice.h>
+#include <AdskUsdAssetResolverExtensions/ApplicationHost.h>
+#include <AdskUsdAssetResolver/Notice.h>
 
 class AssetResolverApplicationHost
-    : public Adsk::ApplicationHost
+    : public Adsk::UsdAssetResolver::Extensions::ApplicationHost
     , public pxr::TfWeakBase
 {
 public:
@@ -30,8 +30,9 @@ public:
     float uiScale() const override;
     QIcon icon(const IconName& name) const override;
     int   pm(const PixelMetric& metric) const override;
+    void  showHelp(QWidget* parent = nullptr) const override;
 
-    void RefreshViewports(const Adsk::ArContextDataChangeCompleted&);
+    void RefreshViewports(const Adsk::UsdAssetResolver::ArContextDataChangeCompleted&);
 
 protected:
     AssetResolverApplicationHost(QObject* parent = nullptr);
@@ -40,4 +41,4 @@ protected:
     static AssetResolverApplicationHost* s_instance;
 };
 
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED

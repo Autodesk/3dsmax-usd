@@ -23,8 +23,20 @@
 #include "Views/UsdMenu.h"
 #include "resource.h"
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/ComponentCreateOptions.h>
+#include <MaxUsdObjects/ComponentCreator/MaxComponentManager.h>
+#include <MaxUsdObjects/ComponentCreator/MaxHost.h>
+#include <MaxUsdObjects/ComponentCreator/MaxVariantEditor.h>
+#include <MaxUsdObjects/ComponentCreator/UtilComponentCreator.h>
+#endif
+
 #include <pxr/base/plug/registry.h>
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <AdskUsdComponentCreator/Host.h>
+#endif
+#include <QtCore/QCoreApplication>
 #include <iparamb2.h>
 #include <iparamm2.h>
 #include <notify.h>
@@ -81,13 +93,24 @@ __declspec(dllexport) int LibInitialize(void)
     MaxUsd::ufe::initialize();
     MaxLayerEditor::Initialize();
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    // The plugin loads at startup before any scene is opened, so no stages exist yet; stages
+    // that appear later are caught by the manager's scene / stage-load callbacks.
+    MaxComponentManager::Instance();
+    AdskUsdComponentCreator::TheHost::SetHost(MaxHost::Instance());
+    // Let the general Save Layers dialog save component stages via callbacks (no MaxUsd link).
+    MaxUsd::ComponentCreator::RegisterComponentHooks();
+    // Runs before anything loads presets, so the built-in template is always on disk.
+    MaxUsd::ComponentCreator::WriteBuiltInComponentTemplates();
+#endif
+
 // Modern menu system available in 2025+
 #ifdef IS_MAX2025_OR_GREATER
     RegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     RegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     RegisterNotification(InitializeAssetResolverSettings, nullptr, NOTIFY_SYSTEM_STARTUP);
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
     RegisterUSDDynamicActionItem();
     RegisterUSDMenuAction();
 #endif
@@ -99,13 +122,17 @@ __declspec(dllexport) int LibInitialize(void)
 // The system doesn't pay attention to a return value.
 __declspec(dllexport) int LibShutdown(void)
 {
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    MaxVariantEditor::Shutdown();
+    MaxComponentManager::Shutdown();
+#endif
     MaxUsd::ufe::finalize();
 #ifdef IS_MAX2025_OR_GREATER
     UnRegisterNotification(USDMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_MENUS);
     UnRegisterNotification(USDQuadMenuRegisterCallback, nullptr, NOTIFY_CUI_REGISTER_QUAD_MENUS);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     UnRegisterNotification(InitializeAssetResolverSettings, nullptr, NOTIFY_SYSTEM_STARTUP);
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 #endif
     return TRUE;
 }

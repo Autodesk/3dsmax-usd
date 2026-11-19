@@ -33,7 +33,15 @@ BEGIN
     IDS_AUTHOR              "Autodesk Inc."
     IDS_COPYRIGHT           "Copyright 2019 Autodesk, Inc."
     IDS_USDZ_LONGDESCRIPTION "Pixar's Universal Scene Description Zip Package"
+    IDS_EXPORTER_FILE       "Export USD file with custom options."
     IDS_USDZ_SHORTDESCRIPTION "USDZ Package"
+    IDS_EXPORTER_TO_STAGE   "Export to a USD stage with custom options."
+    IDS_EXPORTER_TO_CACHE   "Export to a cached USD stage with custom options."
+    IDS_EXPORTER_DEFAULT_OPTIONS 
+                            "Create a new set of export options filled with default values"
+    IDS_EXPORTER_OPTIONS_FROM_JSON 
+                            "Creates export options from a JSON formatted string."
+    IDS_EXPORTER_LOG        "Log info, warning, and error messages to USD export logs from USD export callbacks."
 END
 
 STRINGTABLE

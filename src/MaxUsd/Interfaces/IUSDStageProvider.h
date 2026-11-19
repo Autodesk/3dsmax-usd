@@ -33,7 +33,7 @@ enum
     fnIdOpenInUsdExplorer,
     fnIdCloseInUsdExplorer,
     fnIdOpenInUsdLayerEditor,
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     fnIdOpenInUsdPathEditor,
 #endif
     fnIdGenerateDrawModes,
@@ -65,7 +65,7 @@ public:
     VFN_0(fnIdOpenInUsdExplorer, OpenInUsdExplorer);
     VFN_0(fnIdCloseInUsdExplorer, CloseInUsdExplorer);
     VFN_0(fnIdOpenInUsdLayerEditor, OpenInUsdLayerEditor);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     VFN_0(fnIdOpenInUsdPathEditor, OpenInUsdPathEditor);
 #endif
     VFN_3(fnIdSetRootLayer, SetRootLayerMXS, TYPE_STRING, TYPE_STRING, TYPE_BOOL);
@@ -99,7 +99,7 @@ public:
     /// Open the stage in the USD Layer Editor.
     virtual void OpenInUsdLayerEditor() = 0;
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     virtual void OpenInUsdPathEditor() = 0;
 #endif
 

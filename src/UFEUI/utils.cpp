@@ -144,7 +144,8 @@ bool filtersAreEqual(
 }
 
 namespace {
-std::function<void(std::string)> errorFunction;
+std::function<void(std::string)>                            errorFunction;
+std::function<void(const std::vector<Ufe::SceneItem::Ptr>&)> deleteSceneItemsFunction;
 }
 
 void SetErrorFunction(const std::function<void(std::string)>& errorFn) { errorFunction = errorFn; }
@@ -153,6 +154,19 @@ void ReportError(const std::string& error)
 {
     if (errorFunction) {
         errorFunction(error);
+    }
+}
+
+void SetDeleteSceneItemsFunction(
+    const std::function<void(const std::vector<Ufe::SceneItem::Ptr>&)>& deleteFn)
+{
+    deleteSceneItemsFunction = deleteFn;
+}
+
+void deleteSceneItems(const std::vector<Ufe::SceneItem::Ptr>& items)
+{
+    if (deleteSceneItemsFunction) {
+        deleteSceneItemsFunction(items);
     }
 }
 

@@ -225,6 +225,26 @@ MaxUSDAPI bool FindInstanceableNodes(
 MaxUSDAPI Object* GetFirstDerivedObjectWithModifier(INode* node);
 
 /**
+ * \brief The scene nodes currently selected in the active 3ds Max scene.
+ * \return The selected nodes, in selection order.
+ */
+MaxUSDAPI std::vector<INode*> GetSelectedNodes();
+
+/**
+ * \brief Drops nodes whose ancestor is also present, keeping only the top-most of each subtree.
+ * \param nodes The nodes to filter.
+ * \return The subset with no selected ancestor, preserving input order.
+ */
+MaxUSDAPI std::vector<INode*> RemoveDescendantINodes(const std::vector<INode*>& nodes);
+
+/**
+ * \brief Drops paths that are prefixed by another path in the set (keeps only top-most prims).
+ * \param paths The paths to filter.
+ * \return The subset with no ancestor path present, preserving input order.
+ */
+MaxUSDAPI std::vector<pxr::SdfPath> RemoveDescendantPaths(const std::vector<pxr::SdfPath>& paths);
+
+/**
  * \brief Sets the given transform on a xformable prim passed as parameter.
  * Only supported types are: transform, translate, scale, rotate.
  * @param transformMatrix The transform matrix to set on the xformable prim.

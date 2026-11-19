@@ -33,6 +33,12 @@
 
 class SubObjectManip;
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+namespace AdskUsdEditForward {
+class Forwarder;
+}
+#endif
+
 extern Class_ID USDSTAGEOBJECT_CLASS_ID;
 
 enum
@@ -688,12 +694,19 @@ public:
      */
     void OpenInUsdLayerEditor() override;
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     /**
      * \brief Opens the stage in the USD path editor.
      */
     void OpenInUsdPathEditor() override;
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    /**
+     * \brief Opens the stage's component in the USD Variant Manager.
+     */
+    void OpenInVariantManager();
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
 
     /**
      * \brief Returns the GUID associated with the USD Stage object.
@@ -1034,6 +1047,12 @@ private:
     /// The stage. Should not be used directly, instead use GetUSDStage(), which will load the stage
     /// as needed.
     pxr::UsdStageRefPtr stage;
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    /// Edit-forwarding runtime for this stage: forwards edits authored into the session layer to
+    /// the targeted component variant. Null for non-component stages (no forwarding rules).
+    /// Reset before the stage is torn down.
+    std::shared_ptr<AdskUsdEditForward::Forwarder> m_forwarder;
+#endif
     /// The hydra engine to render USD geometry in the viewport.
     std::unique_ptr<HdMaxEngine> hydraEngine;
     /// Offscreen renderer used for the picking of USD primitives.

@@ -44,6 +44,9 @@ void ExportToStageCommand::execute()
     BroadcastNotification(NOTIFY_EXPORT_TO_STAGE_START, &stageWeakPtr);
 #endif
 
+    // Apply the job contexts, as the export to file path does, so exporter extensions run.
+    _buildOptions = _buildOptions.OptionsWithAppliedContexts();
+
     if (_buildOptions.GetUseSeparateMaterialLayer()) {
         Tf_PostWarningHelper(
             TfCallContext("ExportToStageCommand.cpp", __func__, 40, __FUNCSIG__),

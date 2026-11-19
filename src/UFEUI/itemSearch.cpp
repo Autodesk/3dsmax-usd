@@ -28,7 +28,8 @@ void ItemSearch::findMatchingPaths(
     const std::string&                 searchFilter,
     const TypeFilter&                  typeFilter,
     const Ufe::Hierarchy::ChildFilter& childFilter,
-    std::vector<Ufe::SceneItem::Ptr>& outItems)
+    std::vector<Ufe::SceneItem::Ptr>&  outItems,
+    ChildrenByParent&                  outChildrenByParent)
 {
     // Using regular expressions when searching through the set of data can be expensive compared to
     // doing a plain text search. In addition, it may be possible for the User to want to search for
@@ -38,17 +39,18 @@ void ItemSearch::findMatchingPaths(
     // defaulting to a plain text search).
     const bool useWildCardSearch = searchFilter.find('*') != std::string::npos;
 
-    const auto root = Ufe::Hierarchy::hierarchy(sceneItem);
-
-    std::stack<Ufe::Hierarchy::Ptr> hierarchyStack;
-
-    hierarchyStack.push(root);
+    using Entry = std::pair<Ufe::SceneItem::Ptr, Ufe::Hierarchy::Ptr>;
+    std::stack<Entry> hierarchyStack;
+    hierarchyStack.push({ sceneItem, Ufe::Hierarchy::hierarchy(sceneItem) });
 
     while (!hierarchyStack.empty()) {
-        const auto hierarchy = hierarchyStack.top();
+        auto [parentItem, hierarchy] = hierarchyStack.top();
         hierarchyStack.pop();
 
-        for (const auto& child : hierarchy->filteredChildren(childFilter)) {
+        const auto nodeChildren = hierarchy->filteredChildren(childFilter);
+        outChildrenByParent[parentItem->path()] = nodeChildren;
+
+        for (const auto& child : nodeChildren) {
             if (searchFilter.empty()
                 || findString(child->nodeName(), searchFilter, useWildCardSearch)) {
                 if (!typeFilter.names.empty()) {
@@ -67,7 +69,7 @@ void ItemSearch::findMatchingPaths(
                 }
                 outItems.emplace_back(child);
             }
-            hierarchyStack.push(Ufe::Hierarchy::hierarchy(child));
+            hierarchyStack.push({ child, Ufe::Hierarchy::hierarchy(child) });
         }
     }
 }

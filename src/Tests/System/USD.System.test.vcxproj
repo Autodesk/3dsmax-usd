@@ -25,6 +25,7 @@
     <Import Project="$(SolutionDir)\USD.props" />
     <Import Project="$(SolutionDir)\UFE.props" />
     <Import Project="$(SolutionDir)\USDUFE.props" />
+    <Import Project="$(SolutionDir)\UsdLayerEditor.props" />
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
@@ -44,6 +45,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <PreprocessorDefinitions>_USRDLL;QT_NO_SIGNALS_SLOTS_KEYWORDS;USDCORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(GoogleTestInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">$(AdskUsdComponentCreatorInc);$(AdskUsdEditForwardInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <ForcedIncludeFiles>systemtests_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -51,7 +53,9 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(GoogleTestLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">$(AdskUsdComponentCreatorLib);$(AdskUsdEditForwardLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>core.lib;bmm.lib;geom.lib;mesh.lib;maxutil.lib;mnmath.lib;maxscrpt.lib;paramblk2.lib;gup.lib;GraphicsDriver.lib;poly.lib;optimesh.lib;gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">AdskUsdComponentCreator.lib;AdskUsdEditForward.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
     </Link>
     <CustomBuildStep>
@@ -112,6 +116,7 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClInclude Include="systemtests_pch.h" />
     <ClInclude Include="TestGUP.h" />
     <ClInclude Include="TestHelpers.h" />
+    <ClInclude Include="ComponentCreatorTestHelpers.h" />
     <ClInclude Include="MaxIntegrationTestListener.h" />
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +129,30 @@ mklink /j $(SolutionDir)\Tests\Integration\SystemTestGup $(TestOutDir)</Command>
     <ClCompile Include="RenderDelegate.Consolidation.test.cpp" />
     <ClCompile Include="RenderDelegate.FallbackRendering.test.cpp" />
     <ClCompile Include="MaxUsdObjects.SubobjectTransforms.test.cpp" />
+  </ItemGroup>
+  <!-- Component Creator + edit-forwarding tests: only built for >2026 (the packages they exercise don't exist earlier). -->
+  <ItemGroup Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">
+    <ClCompile Include="ComponentCreatorTestHelpers.cpp" />
+    <ClCompile Include="ComponentCreator.CreateFromNodes.test.cpp" />
+    <ClCompile Include="ComponentCreator.AddToComponentFromNodes.test.cpp" />
+    <ClCompile Include="ComponentCreator.StageInvariants.test.cpp" />
+    <ClCompile Include="ComponentCreator.AddPrimInComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.DeleteInComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.ExecuteWithUndo.test.cpp" />
+    <ClCompile Include="ComponentCreator.RenameInComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.ReparentInComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.Utils.test.cpp" />
+    <ClCompile Include="ComponentCreator.CreateOptions.test.cpp" />
+    <ClCompile Include="ComponentCreator.SaveComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.CreateMultiVariantsFromNodes.test.cpp" />
+    <ClCompile Include="ComponentCreator.SkinnedNodes.test.cpp" />
+    <ClCompile Include="ComponentCreator.CreateFromUsdPrims.test.cpp" />
+    <ClCompile Include="ComponentCreator.AddToComponentFromUsdPrims.test.cpp" />
+    <ClCompile Include="ComponentCreator.CreateMultiVariantsFromUsdPrims.test.cpp" />
+    <ClCompile Include="ComponentCreator.DuplicateToComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.SubobjectTransformInComponent.test.cpp" />
+    <ClCompile Include="ComponentCreator.MaterialsInComponent.test.cpp" />
+    <ClCompile Include="EditForward.test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -16,6 +16,7 @@
 
 #include "MaxUsd/MaxTokens.h"
 
+#include <MaxUsdObjects/resource.h>
 #include <MaxUsdObjects/Objects/CreateCallbacks/CreateAtPosition.h>
 #include <MaxUsdObjects/Objects/USDGeomObject.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
@@ -57,7 +58,7 @@ ParamBlockDesc2 usdGeomParamblockDesc(PBLOCK_REF,
 #define IUSDGeomObject_ID Interface_ID(0x11ea24a7, 0x75830365)
 static FPInterfaceDesc usdGeomObjectInterface(
 	IUSDGeomObject_ID, _T("usdGeomObjectOps"), 0, GetUSDGeomObjectDesc(), FP_MIXIN,
-	fnIdUSDGeomObjectRefresh, _T("Refresh"), "Refresh the USDGeomObject.", TYPE_VOID, 0, 0,
+	fnIdUSDGeomObjectRefresh, _T("Refresh"), IDS_USDGEOMOBJECT_REFRESH, TYPE_VOID, 0, 0,
 	p_end);
 // clang-format on
 
@@ -453,7 +454,7 @@ void USDGeomObject::NotifyNodeDeleted(void* param, NotifyInfo* info)
 #else
     const auto deletedNode = static_cast<INode*>(info->callParam);
 #endif
-    if (!deletedNode || deletedNode->GetObjectRef()->FindBaseObject() != geomObject) {
+    if (!deletedNode || !deletedNode->GetObjectRef() || deletedNode->GetObjectRef()->FindBaseObject() != geomObject) {
         return;
     }
 

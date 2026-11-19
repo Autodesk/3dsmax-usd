@@ -16,6 +16,7 @@
 // AUTHOR: Autodesk Inc.
 //
 #include "IUSDExportOptions.h"
+#include <MaxUsd/resource.h>
 
 #include <MaxUsd/Chaser/ExportChaserRegistry.h>
 #include <MaxUsd/MaxTokens.h>
@@ -34,22 +35,22 @@ namespace MAXUSD_NS_DEF {
 FPInterfaceDesc IUSDExportOptionsDesc(
 	IUSDExportOptions_INTERFACE_ID, _T("IUSDExportOptions"), 0, NULL, FP_MIXIN,
 	// Functions
-	IUSDExportOptions::fnIdReset, _T("Reset"), "Reset to defaults export options", TYPE_VOID, FP_NO_REDRAW, 0,
-	IUSDExportOptions::fnIdSetChannelPrimvarMappingDefaults, _T("SetChannelPrimvarMappingDefaults"), "Resets channel to primvar mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
-	IUSDExportOptions::fnIdSetChannelPrimvarMapping, _T("SetChannelPrimvarMapping"), "Sets a channel to primvar mapping.", TYPE_VOID, FP_NO_REDRAW, 4,
+	IUSDExportOptions::fnIdReset, _T("Reset"), IDS_EXPORT_RESET, TYPE_VOID, FP_NO_REDRAW, 0,
+	IUSDExportOptions::fnIdSetChannelPrimvarMappingDefaults, _T("SetChannelPrimvarMappingDefaults"), IDS_EXPORT_DEFAULT_CHANNEL_MAPPINGS, TYPE_VOID, FP_NO_REDRAW, 0,
+	IUSDExportOptions::fnIdSetChannelPrimvarMapping, _T("SetChannelPrimvarMapping"), IDS_EXPORT_PRIMVAR_MAPPING, TYPE_VOID, FP_NO_REDRAW, 4,
 		_T("channel"), 0, TYPE_INT,
 		_T("targetPrimvar"), 0, TYPE_VALUE,
 		_T("type"), 0, TYPE_ENUM, IUSDExportOptions::eIdPrimvarType, f_keyArgDefault, MaxUsd::MappedAttributeBuilder::Type::Float3Array,
 		_T("autoExpandType"), 0, TYPE_bool, f_keyArgDefault, FALSE,
-	IUSDExportOptions::fnIdGetChannelPrimvarType, _T("GetChannelPrimvarType"), "Returns the type of the primvar associated with this channel.", TYPE_ENUM, IUSDExportOptions::eIdPrimvarType, FP_NO_REDRAW, 1,
+	IUSDExportOptions::fnIdGetChannelPrimvarType, _T("GetChannelPrimvarType"), IDS_EXPORT_PRIMVAR_CHANNEL_TYPE, TYPE_ENUM, IUSDExportOptions::eIdPrimvarType, FP_NO_REDRAW, 1,
 		_T("channel"), 0, TYPE_INT,
-	IUSDExportOptions::fnIdGetChannelPrimvarName, _T("GetChannelPrimvarName"), "Returns the name of the primvar associated with this channel.", TYPE_STRING, FP_NO_REDRAW, 1,
+	IUSDExportOptions::fnIdGetChannelPrimvarName, _T("GetChannelPrimvarName"), IDS_EXPORT_PRIMVAR_CHANNEL_NAME, TYPE_STRING, FP_NO_REDRAW, 1,
 		_T("channel"), 0, TYPE_INT,
-	IUSDExportOptions::fnIdGetChannelPrimvarAutoExpandType, _T("GetChannelPrimvarAutoExpandType"), "Returns whether the type should auto expand if need.", TYPE_BOOL, FP_NO_REDRAW, 1,
+	IUSDExportOptions::fnIdGetChannelPrimvarAutoExpandType, _T("GetChannelPrimvarAutoExpandType"), IDS_EXPORT_CHANNEL_TYPE_AUTO_EXPAND, TYPE_BOOL, FP_NO_REDRAW, 1,
 		_T("channel"), 0, TYPE_INT,
-	IUSDExportOptions::fnIdGetAvailableMaterialConversions, _T("AvailableMaterialTargets"), "Returns an array of all available USD material target types", TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0,
-	IUSDExportOptions::fnIdGetAvailableChasers, _T("AvailableChasers"), "Returns an array of all available export chasers", TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0,
-	IUSDExportOptions::fidSerialize, _T("Serialize"), "Serialize the options to a JSON formatted string.", TYPE_STRING, FP_NO_REDRAW, 0,
+	IUSDExportOptions::fnIdGetAvailableMaterialConversions, _T("AvailableMaterialTargets"), IDS_EXPORT_MATERIAL_TARGET_TYPES, TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0,
+	IUSDExportOptions::fnIdGetAvailableChasers, _T("AvailableChasers"), IDS_EXPORT_CHASERS, TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0,
+	IUSDExportOptions::fidSerialize, _T("Serialize"), IDS_EXPORT_JSON_SERIALIZE_OPTIONS, TYPE_STRING, FP_NO_REDRAW, 0,
 	// Properties
 	properties,
 	IUSDExportOptions::fnIdGetTranslateMeshes, IUSDExportOptions::fnIdSetTranslateMeshes, _T("Meshes"), 0, TYPE_BOOL,

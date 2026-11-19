@@ -362,6 +362,48 @@ class testContext(unittest.TestCase):
         self.assertEqual(importChaserFirstTest.filename, test_usd_file_path)
         self.assertEqual(importChaserSecondTest.filename, test_usd_file_path)
 
+    def testExportToStageContext(self):
+        # Exporting to a stage must apply the enabled contexts, like the export to file does,
+        # otherwise third party exporter extensions silently do not run.
+        test_sphere = mxs.sphere(r = 3.5, name='apple')
+        stage_object = mxs.USDStageObject()
+
+        exportChaserFirstTest.PostExportCalled = False
+        exportChaserFirstTest.ChaserNames = {}
+        exportChaserFirstTest.ChaserArgs = {}
+        exportChaserFirstTest.ContextNames = {}
+        exportChaserFirstTest.AllMaterialTargets = {}
+
+        export_options = mxs.USDExporter.CreateOptions()
+        export_options.ContextNames = mxs.Array("FirstExportContext")
+        ret = mxs.USDExporter.ExportToStage(
+            stage_object,
+            exportOptions=export_options,
+            contentSource=mxs.Name("nodeList"),
+            nodeList=[test_sphere],
+        )
+        self.assertTrue(ret)
+
+        # The context enabler contributed all three, so all three must have been merged in.
+        self.assertTrue(exportChaserFirstTest.PostExportCalled)
+        self.assertTrue('firstExport' in exportChaserFirstTest.ChaserNames)
+        self.assertEqual(exportChaserFirstTest.ChaserArgs, {'bar': 'ometer', 'foo': 'tball'})
+        self.assertTrue('FunkyMaterial' in exportChaserFirstTest.AllMaterialTargets)
+        self.assertEqual(exportChaserFirstTest.ContextNames, {'FirstExportContext'})
+
+        # And with no context enabled, nothing of the sort runs.
+        exportChaserFirstTest.PostExportCalled = False
+        export_options.ContextNames = mxs.Array()
+        ret = mxs.USDExporter.ExportToStage(
+            stage_object,
+            exportOptions=export_options,
+            contentSource=mxs.Name("nodeList"),
+            nodeList=[test_sphere],
+            allowOverwrite=True,
+        )
+        self.assertTrue(ret)
+        self.assertFalse(exportChaserFirstTest.PostExportCalled)
+
 def run_tests():
     return unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(
         unittest.TestLoader().loadTestsFromTestCase(testContext)

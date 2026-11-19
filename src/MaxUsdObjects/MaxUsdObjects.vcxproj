@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Hybrid|x64">
@@ -35,7 +35,9 @@
       <PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2024'">UFE_CLIPBOARD_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions>MAXUSDOBJECTS_EXPORTS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(QtInc);$(PySideInc);$(PySideShibokenInc);$(PySideInc)\QtWidgets;$(PySideInc)\QtGui;$(PySideInc)\QtCore;$(UfeInc);$(UfeUsdInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskAssetResolverEnabled)' == 'true'">$(AdskAssetResolverInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskUsdAssetResolverEnabled)' == 'true'">$(AdskUsdAssetResolverInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">$(AdskUsdComponentCreatorInc);$(AdskUsdEditForwardInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskRenderSetupEnabled)' == 'true'">$(UsdRenderSetupInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <ForcedIncludeFiles>maxusdobjects_pch.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4251;4275;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -46,13 +48,18 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(LibDir);$(PySideShibokenLib);$(PySideLib);$(UfeLib);$(UfeUsdLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;='2026'">$(AdskAssetResolverLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;='2026'">$(AdskUsdAssetResolverLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">$(AdskUsdComponentCreatorLib);$(AdskUsdEditForwardLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskRenderSetupEnabled)' == 'true'">$(UsdRenderSetupLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>$(TargetName).def</ModuleDefinitionFile>
       <AdditionalDependencies>FragmentGraph.lib;GraphicsDriver.lib;GraphicsUtility.lib;ViewSystem.lib;MaxGraphicsObjects.lib;core.lib;geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;paramblk2.lib;MaxQtBridge.lib;mnmath.lib;Poly.lib;optimesh.lib;gup.lib;DataBridge.lib;$(PySideLibraries);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskAssetResolverEnabled)' == 'true'">AdskAssetResolver.lib;AssetResolverExtensions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;='2026'">AdskUsdAssetResolver.lib;AdskUsdAssetResolverExtensions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">AdskUsdComponentCreator.lib;AdskVariantEditor.lib;sdf_tools.lib;AdskUsdEditForward.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskRenderSetupEnabled)' == 'true'">AdskUsdRenderSetup.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>$(LibDir)\$(TargetName).lib</ImportLibrary>
       <DelayLoadDLLs>$(PySideDelayLoadDLL);3dsmax_usdImagingGL.dll</DelayLoadDLLs>
-      <DelayLoadDLLs Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskAssetResolverEnabled)' == 'true'">$(PySideDelayLoadDLL);AssetResolverExtensions.dll;3dsmax_usdImagingGL.dll</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskUsdAssetResolverEnabled)' == 'true'">$(PySideDelayLoadDLL);AdskUsdAssetResolverExtensions.dll;3dsmax_usdImagingGL.dll</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskRenderSetupEnabled)' == 'true'">AdskUsdRenderSetup.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
       <Command>if exist "$(ProjectDir)Icons\UfeRt" rmdir "$(ProjectDir)Icons\UfeRt"
@@ -106,12 +113,24 @@ robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UsdUfeLib)\python\ $(TargetDir
 if %errorlevel% geq 4 exit /b 1
 robocopy /S /SL /NFL /NDL /NJH /NJS /NC /NS /NP $(UsdLayerEditorLib)\..\python\ $(TargetDir)\python\ /XD "__pycache__" /XF *.lib
 if %errorlevel% geq 4 exit /b 1
+if exist "$(AdskUsdComponentCreatorBin)" (
+  robocopy /NFL /NDL /NJH /NJS /NC /NS /NP "$(AdskUsdComponentCreatorBin)" "$(TargetDir)." AdskUsdComponentCreator.dll AdskUsdComponentCreator.pdb AdskVariantEditor.dll AdskVariantEditor.pdb AdskUsdEditForward.dll AdskUsdEditForward.pdb sdf_tools.dll sdf_tools.pdb
+  if %errorlevel% geq 4 exit /b 1
+)
+if "$(VersionTarget)" GTR "2026" if "$(AdskRenderSetupEnabled)" == "true" robocopy /SL /NFL /NDL /NJH /NJS /NC /NS /NP /XO $(UsdRenderSetupBin) $(TargetDir) AdskUsdRenderSetup.dll AdskUsdRenderSetup.pdb
+if %errorlevel% geq 4 exit /b 1
 exit /b 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetResolver\AssetResolverApplicationHost.cpp" />
     <ClCompile Include="AssetResolver\SettingsManagement.cpp" />
+    <ClCompile Include="RenderSetup\MaxRenderSetupDialog.cpp">
+      <ObjectFileName>$(IntDir)RenderSetup\</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="RenderSetup\SettingsManagement.cpp">
+      <ObjectFileName>$(IntDir)RenderSetup\</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="ClassDescs.cpp" />
     <ClCompile Include="FindUSDGeomObjectProc.cpp" />
     <ClCompile Include="Objects\USDGeomObject.cpp" />
@@ -140,15 +159,62 @@ exit /b 0</Command>
     <ClCompile Include="MaxUsdUfe\UsdTreeColumns.cpp" />
     <ClCompile Include="DllEntry.cpp" />
   </ItemGroup>
+  <!-- Component Creator + edit forwarding: only built for >2026 (the packages they need do not exist earlier). -->
+  <ItemGroup Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">
+    <ClCompile Include="EditForward\MaxUsdEditForwardCommand.cpp" />
+    <ClCompile Include="EditForward\MaxUsdEditForwardHost.cpp" />
+    <ClCompile Include="ComponentCreator\UtilComponentCreator.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\MaxHost.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\ComponentUfeCommand.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\MaxComponentManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\MaxVariantEditor.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\Commands\CreateComponentFromNodesCmd.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\ComponentCreateOptions.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\ComponentTemplateRollup.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\ComponentPreviewRollups.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator\ComponentCreateOptionsDialog.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetResolver\AssetResolverApplicationHost.h" />
     <ClInclude Include="AssetResolver\SettingsManagement.h" />
+    <ClInclude Include="RenderSetup\MaxRenderSetupDialog.h" />
+    <ClInclude Include="RenderSetup\SettingsManagement.h" />
     <ClInclude Include="ClassDescs.h" />
+    <ClInclude Include="EditForward\MaxUsdEditForwardCommand.h" />
+    <ClInclude Include="EditForward\MaxUsdEditForwardHost.h" />
     <ClInclude Include="FindUSDGeomObjectsProc.h" />
     <ClInclude Include="Objects\MaxUsdNotify.h" />
     <ClInclude Include="USDGeomObject.h" />
     <ClInclude Include="USDQuadMenu.h" />
     <ClInclude Include="Views\UsdMenu.h" />
+    <ClInclude Include="ComponentCreator\UtilComponentCreator.h" />
+    <ClInclude Include="ComponentCreator\MaxHost.h" />
+    <ClInclude Include="ComponentCreator\ComponentUfeCommand.h" />
+    <ClInclude Include="ComponentCreator\MaxComponentManager.h" />
+    <ClInclude Include="ComponentCreator\MaxVariantEditor.h" />
+    <ClInclude Include="ComponentCreator\Commands\CreateComponentFromNodesCmd.h" />
+    <ClInclude Include="ComponentCreator\ComponentCreateOptions.h" />
+    <QtMoc Include="ComponentCreator\ComponentTemplateRollup.h" Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'" />
     <QtMoc Include="Views\UsdStageMetadataRollup.h" />
     <QtMoc Include="Views\UsdStageToolsRollup.h" />
     <QtMoc Include="Views\UsdGeomObjectIncludesRollup.h" />

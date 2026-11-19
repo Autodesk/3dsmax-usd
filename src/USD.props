@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" 
 	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<ImportGroup Label="PropertySheets">
@@ -11,11 +11,30 @@
 		<PxrUsdRoot Condition="'$(VersionTarget)'&lt;='2025' and '$(PxrUsdRoot)'==''">$(Artifacts)$(VersionTarget)\Pixar_USD\Release</PxrUsdRoot>
 		<Pixar_USDInc>$(PxrUsdRoot)\include</Pixar_USDInc>
 		<Pixar_USDLib>$(PxrUsdRoot)\lib</Pixar_USDLib>
-		<AdskAssetResolverDir Condition="'$(MaxUsdDevKit)'!='' and '$(AdskAssetResolverDir)'==''">$(MaxUsdDevKit)\adskassetresolver</AdskAssetResolverDir>
-		<AdskAssetResolverDir Condition="'$(VersionTarget)'&gt;'2025' and '$(AdskAssetResolverDir)'==''">$(Artifacts)$(VersionTarget)\adskassetresolver\RelWithDebInfo</AdskAssetResolverDir>
-		<AdskAssetResolverInc Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\include</AdskAssetResolverInc>
-		<AdskAssetResolverLib Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\lib</AdskAssetResolverLib>
-		<AdskAssetResolverBin Condition="'$(VersionTarget)'&gt;'2025'">$(AdskAssetResolverDir)\bin</AdskAssetResolverBin>
+		<AdskUsdAssetResolverDir Condition="'$(MaxUsdDevKit)'!='' and '$(AdskUsdAssetResolverDir)'==''">$(MaxUsdDevKit)\adskusdassetresolver</AdskUsdAssetResolverDir>
+		<AdskUsdAssetResolverDir Condition="'$(VersionTarget)'&gt;'2025' and '$(AdskUsdAssetResolverDir)'==''">$(Artifacts)$(VersionTarget)\adskusdassetresolver\RelWithDebInfo</AdskUsdAssetResolverDir>
+		<AdskUsdAssetResolverInc Condition="'$(VersionTarget)'&gt;'2025'">$(AdskUsdAssetResolverDir)\include</AdskUsdAssetResolverInc>
+		<AdskUsdAssetResolverLib Condition="'$(VersionTarget)'&gt;'2025'">$(AdskUsdAssetResolverDir)\lib</AdskUsdAssetResolverLib>
+		<AdskUsdAssetResolverBin Condition="'$(VersionTarget)'&gt;'2025'">$(AdskUsdAssetResolverDir)\bin</AdskUsdAssetResolverBin>
+		<!-- AdskUsdComponentCreator: single package containing all three libraries
+		     (AdskUsdComponentCreator, AdskVariantEditor, sdf_tools) + AdskUsdEditForward.
+		     Fetched via conan download and stored in artifacts/<abi>/adskusdcomponentcreator/RelWithDebInfo. -->
+		<AdskUsdComponentCreatorDir Condition="'$(MaxUsdDevKit)'!='' and '$(AdskUsdComponentCreatorDir)'==''">$(MaxUsdDevKit)\adskusdcomponentcreator</AdskUsdComponentCreatorDir>
+		<AdskUsdComponentCreatorDir Condition="'$(AdskUsdComponentCreatorDir)'==''">$(Artifacts)$(VersionTarget)\adskusdcomponentcreator\RelWithDebInfo</AdskUsdComponentCreatorDir>
+		<AdskUsdComponentCreatorInc>$(AdskUsdComponentCreatorDir)\include</AdskUsdComponentCreatorInc>
+		<AdskUsdComponentCreatorLib>$(AdskUsdComponentCreatorDir)\lib</AdskUsdComponentCreatorLib>
+		<AdskUsdComponentCreatorBin>$(AdskUsdComponentCreatorDir)\bin</AdskUsdComponentCreatorBin>
+		<!-- AdskUsdEditForward: the edit-forwarding runtime (separate artifact dir from the cc package). -->
+		<AdskUsdEditForwardDir Condition="'$(MaxUsdDevKit)'!='' and '$(AdskUsdEditForwardDir)'==''">$(MaxUsdDevKit)\adskusdeditforward</AdskUsdEditForwardDir>
+		<AdskUsdEditForwardDir Condition="'$(AdskUsdEditForwardDir)'==''">$(Artifacts)$(VersionTarget)\adskusdeditforward\RelWithDebInfo</AdskUsdEditForwardDir>
+		<AdskUsdEditForwardInc>$(AdskUsdEditForwardDir)\include</AdskUsdEditForwardInc>
+		<AdskUsdEditForwardLib>$(AdskUsdEditForwardDir)\lib</AdskUsdEditForwardLib>
+		<AdskUsdEditForwardBin>$(AdskUsdEditForwardDir)\bin</AdskUsdEditForwardBin>
+		<UsdRenderSetupDir Condition="'$(MaxUsdDevKit)'!='' and '$(UsdRenderSetupDir)'==''">$(MaxUsdDevKit)\usdrendersetup</UsdRenderSetupDir>
+		<UsdRenderSetupDir Condition="'$(VersionTarget)'&gt;'2026' and '$(UsdRenderSetupDir)'==''">$(Artifacts)$(VersionTarget)\usdrendersetup\RelWithDebInfo</UsdRenderSetupDir>
+		<UsdRenderSetupInc>$(UsdRenderSetupDir)\include</UsdRenderSetupInc>
+		<UsdRenderSetupLib>$(UsdRenderSetupDir)\lib</UsdRenderSetupLib>
+		<UsdRenderSetupBin>$(UsdRenderSetupDir)\bin</UsdRenderSetupBin>
 		<!-- With OpenUSD 24.11 and up, Python is no longer included, only the boost/python headers are -->
 		<BoostVersion Condition="'$(VersionTarget)'=='2025'">1_81</BoostVersion>
 		<BoostVersion Condition="'$(VersionTarget)'=='2024'">1_76</BoostVersion>
@@ -45,13 +64,18 @@
 			<!-- Starting with 3dsMax 2024, one USD version per 3dsMax release. -->
 			<PreprocessorDefinitions Condition="$(VersionTarget)&gt;=2025">USD_VERSION_23_08;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2025'">;USD_CURVES_SUPPORTED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskAssetResolverEnabled)' == 'true'">ADSK_ASSET_RESOLVER_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;='2026' and '$(AdskUsdAssetResolverEnabled)' == 'true'">ADSK_USD_ASSET_RESOLVER_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskRenderSetupEnabled)' == 'true'">ADSK_RENDER_SETUP_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<!-- Component Creator + edit forwarding depend on packages that only exist for >2026. -->
+			<PreprocessorDefinitions Condition="'$(VersionTarget)'&gt;'2026' and '$(AdskComponentCreatorEnabled)' == 'true'">ADSK_COMPONENT_CREATOR_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(SolutionDir);$(BoostInc);$(TBBInclude);$(PythonInc);$(Pixar_USDInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;NOMINMAX=;TBB_SUPPRESS_DEPRECATED_MESSAGES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<PreprocessorDefinitions Condition="$(VersionTarget)&lt;=2025">BOOST_ALL_NO_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<DisableSpecificWarnings>4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+			<!-- C4273: USD 0.26.5 arrayEdit.h has a friend declaration missing VT_API vs. the out-of-class declaration that has it -->
+			<DisableSpecificWarnings Condition="'$(VersionTarget)'>'2025'">4273;%(DisableSpecificWarnings)</DisableSpecificWarnings>
 			<AdditionalOptions Condition="$(VersionTarget)&gt;=2024">/Zc:__cplusplus</AdditionalOptions>
 		</ClCompile>
 		<ClCompile Condition="'$(Configuration)'=='$(ConfigHybrid)'">

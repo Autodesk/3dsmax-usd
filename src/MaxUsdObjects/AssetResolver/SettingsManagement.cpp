@@ -22,11 +22,11 @@
 #include <MaxUsd/Utilities/OptionUtils.h>
 #include <MaxUsd/Utilities/VtDictionaryUtils.h>
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
-#include <AssetResolverExtensions/PathDialog/PathDialog.h>
-#include <AssetResolverExtensions/Settings/AssetResolverSettings.h>
-#include <AssetResolverExtensions/Settings/AssetResolverSettingsManagement.h>
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
+#include <AdskUsdAssetResolverExtensions/AssetPathDialog/AssetPathDialog.h>
+#include <AdskUsdAssetResolverExtensions/Settings/Settings.h>
+#include <AdskUsdAssetResolverExtensions/Settings/SettingsManagement.h>
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 
 #include <pxr/base/vt/dictionary.h>
 
@@ -43,7 +43,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace AssetResolverSettingsManagement {
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 namespace {
 
 // QmaxMainWindow::raiseDockWidget only exists in an Autodesk patched version of Qt.
@@ -58,9 +58,10 @@ void RaiseDockWidget(QMainWindow* mainWindow, QDockWidget* dockWidget)
     }
 }
 
-Adsk::AssetResolverPathDialog* CreateUsdPathDialog(QWidget* parent)
+Adsk::UsdAssetResolver::Extensions::AssetPathDialog* CreateUsdPathDialog(QWidget* parent)
 {
-    Adsk::AssetResolverPathDialog* usdPathDialog = new Adsk::AssetResolverPathDialog(parent);
+    Adsk::UsdAssetResolver::Extensions::AssetPathDialog* usdPathDialog
+        = new Adsk::UsdAssetResolver::Extensions::AssetPathDialog(parent);
 
     usdPathDialog->setSettingsAppliedFunctor(AssetResolverSettingsManagement::SaveSettings);
     usdPathDialog->setGetStagesFunctor([]() {
@@ -92,7 +93,7 @@ VtDictionary LoadSettings()
     QFile       file(GetPathToUsdArSettings().GetString());
     QJsonObject json;
 
-    VtDictionary guide = Adsk::AssetResolverSettings::GetDefaultSettings();
+    VtDictionary guide = Adsk::UsdAssetResolver::Extensions::Settings::GetDefaultSettings();
 
     if (file.exists()) {
         if (!MaxUsd::OptionUtils::ReadJsonFile(json, file, GetPathToUsdArSettings().GetCStr())) {
@@ -110,17 +111,17 @@ VtDictionary LoadSettings()
     return guide;
 }
 
-void SaveSettings(const Adsk::AssetResolverSettings& options)
+void SaveSettings(const Adsk::UsdAssetResolver::Extensions::Settings& options)
 {
     // update the options instance
     // the copy clears env search paths as they are not saved
     // those are only used to display the paths in the dialog
-    Adsk::AssetResolverSettings::GetInstance() = options;
+    Adsk::UsdAssetResolver::Extensions::Settings::GetInstance() = options;
 
     // save options to disk
     QJsonObject json;
-    MaxUsd::DictUtils::VtDictToJson(Adsk::AssetResolverSettings::GetInstance().GetSettings(), json);
-
+    MaxUsd::DictUtils::VtDictToJson(
+        Adsk::UsdAssetResolver::Extensions::Settings::GetInstance().GetSettings(), json);
     QFile file(GetPathToUsdArSettings().GetString());
     MaxUsd::OptionUtils::WriteJsonFile(
         file, QJsonDocument(json).toJson().toStdString(), GetPathToUsdArSettings().GetCStr());
@@ -131,12 +132,12 @@ void InitializeSettings()
     // Add ApplicationHost for the USD Preferences dialog
     AssetResolverApplicationHost::CreateInstance(GetCOREInterface()->GetQmaxMainWindow());
     // Load USD Preference options to ensure the Adsk Asset Resolver works as configured
-    Adsk::AssetResolverSettings::GetInstance().SetSettings(LoadSettings());
-    Adsk::AssetResolverSettingsManagement::ApplySettings(
-        Adsk::AssetResolverSettings(), Adsk::AssetResolverSettings::GetInstance());
+    Adsk::UsdAssetResolver::Extensions::Settings::GetInstance().SetSettings(LoadSettings());
+    Adsk::UsdAssetResolver::Extensions::SettingsManagement::ApplySettings(
+        Adsk::UsdAssetResolver::Extensions::Settings(), Adsk::UsdAssetResolver::Extensions::Settings::GetInstance());
 }
 
-void ShowDialog(const Adsk::AssetResolverPathDialog::Tab& tab, UsdStageRefPtr stage)
+void ShowDialog(const Adsk::UsdAssetResolver::Extensions::AssetPathDialog::Tab& tab, UsdStageRefPtr stage)
 {
     auto mainWindow = GetCOREInterface()->GetQmaxMainWindow();
 
@@ -144,7 +145,7 @@ void ShowDialog(const Adsk::AssetResolverPathDialog::Tab& tab, UsdStageRefPtr st
 
     if (s_dockWidget) {
         if (auto usdPathDialog
-            = dynamic_cast<Adsk::AssetResolverPathDialog*>(s_dockWidget->widget())) {
+            = dynamic_cast<Adsk::UsdAssetResolver::Extensions::AssetPathDialog*>(s_dockWidget->widget())) {
             usdPathDialog->setCurrentTab(tab);
             if (stage) {
                 usdPathDialog->setCurrentStage(stage);
@@ -217,5 +218,5 @@ void ShowDialog(const Adsk::AssetResolverPathDialog::Tab& tab, UsdStageRefPtr st
 
     s_dockWidget = dockWidget;
 }
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 } // namespace AssetResolverSettingsManagement

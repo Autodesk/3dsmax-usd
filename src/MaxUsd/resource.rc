@@ -29,21 +29,56 @@ BEGIN
     IDS_CATEGORY            "USD"
     IDS_IMPORT_PROGRESS_MESSAGE "Importing file..."
     IDS_IMPORT_CANCEL_CAPTION "Cancel import"
-    IDS_IMPORT_CANCEL_TEXT  "Are you sure you want to cancel the file import?" 
+    IDS_IMPORT_CANCEL_TEXT  "Are you sure you want to cancel the file import?"
     IDS_IMPORT_CHASERS_PROGRESS_MESSAGE "Running chasers..."
-    IDS_IMPORT_MATERIALS_PROGRESS_MESSAGE "Importing materials..."
     IDS_EXPORT_PROGRESS_TITLE "USD Export"
+    IDS_EXPORT_PREPARING_EXPORT "Preparing export..."
     IDS_EXPORT_OBJECTS_PROGRESS_MESSAGE "Objects..."
     IDS_EXPORT_FRAMES_PROGRESS_MESSAGE "Frames..."
     IDS_EXPORT_TRANSFORMS_PROGRESS_MESSAGE "Transforms..."
     IDS_EXPORT_MATERIALS_PROGRESS_MESSAGE "Materials..."
     IDS_EXPORT_CHASERS_PROGRESS_MESSAGE "Running chasers..."
     IDS_EXPORT_PROGRESS_COMPLETED_MESSAGE "Completed."
-    IDS_EXPORT_PREPARING_EXPORT "Preparing export..."
     IDS_EXPORT_CANCEL_CAPTION "Cancel export"
-    IDS_EXPORT_CANCEL_TEXT  "Are you sure you want to cancel the file export?"
 END
 
+STRINGTABLE
+BEGIN
+    IDS_EXPORT_CANCEL_TEXT  "Are you sure you want to cancel the file export?"
+    IDS_EXPORT_RESET        "Reset to defaults export options"
+    IDS_IMPORT_MATERIALS_PROGRESS_MESSAGE "Importing materials..."
+    IDS_IMPORT_RESET        "Reset to defaults options"
+    IDS_IMPORT_SERIALIZE    "Serialize the options to a JSON formatted string."
+    IDS_IMPORT_TRANSLATE_MATERIALS "Returns if materials should be translated"
+    IDS_IMPORT_DEFAULT_CHANNEL_MAPPINGS 
+                            "Reset to defaults primvar to channel mappings."
+    IDS_IMPORT_PRIMVAR_MAPPING "Sets a primvar to channel mapping"
+    IDS_IMPORT_PRIMVAR_CHANNEL 
+                            "Returns the channel the given primvar should map too."
+    IDS_IMPORT_IS_PRIMVAR_MAPPED 
+                            "Returns whether this primvar is mapped to a channel."
+    IDS_IMPORT_MAPPED_PRIMVARS 
+                            "Returns the list of currently mapped primvars."
+    IDS_IMPORT_CLEAR_MAPPING "Clears all primvar to channel mappings."
+    IDS_IMPORT_CHASERS      "Returns an array of all available import chasers"
+    IDS_EXPORT_DEFAULT_CHANNEL_MAPPINGS "Resets channel to primvar mappings."
+    IDS_EXPORT_PRIMVAR_MAPPING "Sets a channel to primvar mapping."
+    IDS_EXPORT_PRIMVAR_CHANNEL_TYPE 
+                            "Returns the type of the primvar associated with this channel."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_EXPORT_PRIMVAR_CHANNEL_NAME 
+                            "Returns the name of the primvar associated with this channel."
+    IDS_EXPORT_CHANNEL_TYPE_AUTO_EXPAND 
+                            "Returns whether the type should auto expand if need."
+    IDS_EXPORT_MATERIAL_TARGET_TYPES 
+                            "Returns an array of all available USD material target types"
+    IDS_EXPORT_CHASERS      "Returns an array of all available export chasers"
+    IDS_EXPORT_JSON_SERIALIZE_OPTIONS 
+                            "Serialize the options to a JSON formatted string."
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

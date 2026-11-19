@@ -81,7 +81,15 @@ bool TreeItem::computedVisibility() const
     return !hidden;
 }
 
-void TreeItem::clearChildren() { _children.clear(); }
+void TreeItem::clearChildren()
+{
+    _children.clear();
+    _childrenFetched = false;
+}
+
+bool TreeItem::childrenFetched() const { return _childrenFetched; }
+
+void TreeItem::setChildrenFetched(bool fetched) { _childrenFetched = fetched; }
 
 void TreeItem::removeChild(TreeItem* item)
 {

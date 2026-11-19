@@ -95,7 +95,7 @@ USDExportDialog::USDExportDialog(const MaxUsd::IUSDExportOptions& buildOptions)
     transformFormat = buildOptions.GetTransformFormat();
 }
 
-void USDExportDialog::addRollup(QWidget* w, bool open)
+MaxSDK::QmaxRollup* USDExportDialog::addRollup(QWidget* w, bool open)
 {
     MaxSDK::QmaxRollup* rollup = new MaxSDK::QmaxRollup(w->windowTitle());
     rollup->setWidget(w);
@@ -107,10 +107,12 @@ void USDExportDialog::addRollup(QWidget* w, bool open)
 
     auto rollupContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
     rollupContainer->addRollup(rollup);
+    return rollup;
 }
 
-void USDExportDialog::addContextsRollup()
+MaxSDK::QmaxRollup* USDExportDialog::addContextsRollup()
 {
+    MaxSDK::QmaxRollup* contextsRollup = nullptr;
     // -------------------------------------------------------------------------
     // Plug-in Configurations
     // -------------------------------------------------------------------------
@@ -135,7 +137,9 @@ void USDExportDialog::addContextsRollup()
                     < pxr::MaxUsdJobContextRegistry::GetJobContextInfo(b).niceName;
             });
 
-        if (auto rollup = new MaxSDK::QmaxRollup(tr("Plug-in Configurations"))) {
+        contextsRollup = new MaxSDK::QmaxRollup(tr("Plug-in Configurations"));
+        {
+            auto rollup = contextsRollup;
             rollup->setOptions(MaxSDK::QmaxRollup::FixedCat);
 
             auto widget = new QWidget(rollup);
@@ -231,6 +235,7 @@ void USDExportDialog::addContextsRollup()
             maxRollUpContainer->addRollup(rollup);
         }
     }
+    return contextsRollup;
 }
 
 USDExportDialog::~USDExportDialog() = default;
@@ -404,6 +409,39 @@ void USDExportToFileDialog::accept()
     }
 }
 
+void USDExportDialog::addStandardExportRollups()
+{
+    standardExportRollups.clear();
+    if (auto* contextsRollup = addContextsRollup()) {
+        standardExportRollups.push_back(contextsRollup);
+    }
+    standardExportRollups.push_back(addRollup(new UsdExportIncludeRollup(this->buildOptions)));
+    standardExportRollups.push_back(addRollup(new UsdExportMaterialsRollup(this->buildOptions)));
+    animationRollup = new UsdExportAnimationRollup(this->buildOptions);
+    standardExportRollups.push_back(addRollup(animationRollup, false));
+    generalSettingsRollup = new UsdExportGeneralSettingsRollup(this->buildOptions);
+    standardExportRollups.push_back(addRollup(generalSettingsRollup, false));
+    standardExportRollups.push_back(
+        addRollup(new UsdExportAdvancedRollup(this->buildOptions), false));
+}
+
+void USDExportDialog::resetStandardExportRollups()
+{
+    auto* rollupContainer = dynamic_cast<MaxSDK::QmaxRollupContainer*>(ui->rollupContainer);
+    for (auto* rollup : standardExportRollups) {
+        rollupContainer->takeRollup(rollup);
+        rollup->deleteLater();
+    }
+    standardExportRollups.clear();
+    animationRollup = nullptr;
+    generalSettingsRollup = nullptr;
+
+    buildOptions.SetDefaults();
+    transformFormat = buildOptions.GetTransformFormat();
+
+    addStandardExportRollups();
+}
+
 void USDExportToFileDialog::setupRollups()
 {
     addRollup(new UsdExportFileRollup(exportPath, this->buildOptions));
@@ -420,14 +458,7 @@ void USDExportToFileDialog::setupRollups()
         widget->setContentsMargins(tinyPadding, tinyPadding, pixelPadding, 0);
     }
 
-    addContextsRollup();
-    addRollup(new UsdExportIncludeRollup(this->buildOptions));
-    addRollup(new UsdExportMaterialsRollup(this->buildOptions));
-    animationRollup = new UsdExportAnimationRollup(this->buildOptions);
-    addRollup(animationRollup, false);
-    generalSettingsRollup = new UsdExportGeneralSettingsRollup(this->buildOptions);
-    addRollup(generalSettingsRollup, false);
-    addRollup(new UsdExportAdvancedRollup(this->buildOptions), false);
+    addStandardExportRollups();
 
 #ifdef USD_CURVES_SUPPORTED
     connect(

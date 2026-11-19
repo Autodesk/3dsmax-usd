@@ -143,6 +143,13 @@ public:
 
     QTreeView* treeView() const;
 
+    /**
+     * \brief Deletes the currently selected scene items, grouping all deletions in a
+     * single undo step. Behaves like the "Remove Prim" context menu action. Does
+     * nothing while in pick mode.
+     */
+    void deleteSelectedItems();
+
     std::shared_ptr<PickMode> enterPickMode();
     void                      exitPickMode();
 

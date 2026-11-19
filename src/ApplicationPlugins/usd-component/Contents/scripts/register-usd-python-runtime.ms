@@ -83,9 +83,9 @@ function addUsdToPythonPath =
 		pyos.environ[mtlxLibPathEnvVar] = usdMtlXLibPath + pyos.pathsep + pyos.environ[mtlxLibPathEnvVar]
 	)
 
-	--need to add adskassetresolver to PATH for AdskAssetResolver plugin dll to load properly
+	--need to add adskysdassetresolver to PATH for AdskUsdAssetResolver plugin dll to load properly
 	if maxver[1] >= 28000 then (  -- 3ds Max 2026 and up
-		arPluginPath = pathConfig.appendPath (pathConfig.removePathLeaf pluginPath) "plugin\\adskassetresolver"
+		arPluginPath = pathConfig.appendPath (pathConfig.removePathLeaf pluginPath) "plugin\\adskusdassetresolver"
 		pyos.environ["PATH"] = arPluginPath + pyos.pathsep + pyos.environ["PATH"]
 	)
 )

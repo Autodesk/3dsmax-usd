@@ -1,0 +1,11 @@
+{
+  "Plugins": [
+    {
+      "Info": {
+        "AdskUsdAssetResolverContextData": {}
+      },
+      "Name": "ar_project_tokens",
+      "Type": "python"
+    }
+  ]
+}

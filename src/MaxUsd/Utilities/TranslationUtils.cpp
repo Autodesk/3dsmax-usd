@@ -40,6 +40,7 @@
 #include <max.h>
 #include <modstack.h>
 #include <path.h>
+#include <unordered_set>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -284,6 +285,61 @@ Object* GetFirstDerivedObjectWithModifier(INode* node)
     return objectPtr;
 }
 
+std::vector<INode*> GetSelectedNodes()
+{
+    auto*               ip = GetCOREInterface();
+    const int           count = ip->GetSelNodeCount();
+    std::vector<INode*> nodes;
+    nodes.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        nodes.push_back(ip->GetSelNode(i));
+    }
+    return nodes;
+}
+
+std::vector<INode*> RemoveDescendantINodes(const std::vector<INode*>& nodes)
+{
+    const std::unordered_set<INode*> selected(nodes.begin(), nodes.end());
+    std::vector<INode*>              topLevel;
+    topLevel.reserve(nodes.size());
+    for (INode* node : nodes) {
+        if (!node) {
+            continue;
+        }
+        bool hasSelectedAncestor = false;
+        for (INode* parent = node->GetParentNode(); parent && !parent->IsRootNode();
+             parent = parent->GetParentNode()) {
+            if (selected.count(parent) != 0) {
+                hasSelectedAncestor = true;
+                break;
+            }
+        }
+        if (!hasSelectedAncestor) {
+            topLevel.push_back(node);
+        }
+    }
+    return topLevel;
+}
+
+std::vector<pxr::SdfPath> RemoveDescendantPaths(const std::vector<pxr::SdfPath>& paths)
+{
+    std::vector<pxr::SdfPath> topLevel;
+    topLevel.reserve(paths.size());
+    for (const auto& path : paths) {
+        bool hasSelectedAncestor = false;
+        for (const auto& other : paths) {
+            if (other != path && path.HasPrefix(other)) {
+                hasSelectedAncestor = true;
+                break;
+            }
+        }
+        if (!hasSelectedAncestor) {
+            topLevel.push_back(path);
+        }
+    }
+    return topLevel;
+}
+
 bool SetXForm(
     const pxr::GfMatrix4d&         transformMatrix,
     pxr::UsdGeomXformable&         xformPrim,
@@ -381,7 +437,8 @@ bool SetXForm(
         auto prevTimeSample = getPreviousTimeSample();
         if (prevTimeSample.first) {
             pxr::VtValue prevValue;
-            if (xformOp.Get(&prevValue, prevTimeSample.second) && prevValue.IsHolding<pxr::GfVec3f>()) {
+            if (xformOp.Get(&prevValue, prevTimeSample.second)
+                && prevValue.IsHolding<pxr::GfVec3f>()) {
                 pxr::GfVec3f prevRot = prevValue.UncheckedGet<pxr::GfVec3f>();
                 for (int i = 0; i < 3; ++i) {
                     newRot[i] = unwrapAngle(newRot[i], prevRot[i]);

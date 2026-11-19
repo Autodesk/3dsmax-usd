@@ -21,11 +21,16 @@
 
 #include <QtWidgets/qdialog.h>
 #include <memory>
+#include <vector>
 
 class QStandardItem;
 class QKeyEvent;
 class UsdExportAnimationRollup;
 class UsdExportGeneralSettingsRollup;
+
+namespace MaxSDK {
+class QmaxRollup;
+}
 
 namespace Ui {
 class ExportDialog;
@@ -113,13 +118,29 @@ protected:
      * Create and adds a new rollup to the dialog.
      * @param w Widget contained by the rollup.
      * @param open True if the rollup initializes open.
+     * @return The rollup that was created.
      */
-    void addRollup(QWidget* w, bool open = true);
+    MaxSDK::QmaxRollup* addRollup(QWidget* w, bool open = true);
 
     /**
      * Add a rollup containing UI to configure custom plugin contexts.
+     * @return The rollup that was created, or nullptr if there are no contexts.
      */
-    void addContextsRollup();
+    MaxSDK::QmaxRollup* addContextsRollup();
+
+    /**
+     * Add the standard export-options rollups (contexts, Include, Materials, Animation,
+     * General Settings, Advanced) bound to this dialog's buildOptions. Lets any subclass reuse the
+     * full export-options UI without re-instantiating the rollups (whose generated .ui headers and
+     * symbols are internal to this module). Records them so resetStandardExportRollups can rebuild.
+     */
+    void addStandardExportRollups();
+
+    /**
+     * Reset the export options to their defaults and rebuild the standard export rollups in place
+     * (leaving any other rollups untouched).
+     */
+    void resetStandardExportRollups();
 
     /*
      * \brief The dialog's accept behavior
@@ -133,6 +154,9 @@ protected:
 
     /// USD Scene build configuration options:
     MaxUsd::USDSceneBuilderOptions buildOptions;
+
+    /// The rollups added by addStandardExportRollups (so they can be rebuilt on reset).
+    std::vector<MaxSDK::QmaxRollup*> standardExportRollups;
 
     std::map<QString, bool> loadedRollupState;
 
