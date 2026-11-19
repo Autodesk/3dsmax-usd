@@ -42,10 +42,11 @@ public:
     ~MaxSessionState() override;
 
     // SessionState overrides.
-    void                                 setStageEntry(StageEntry const& in_entry) override;
-    bool                                 autoHideSessionLayer() const override;
-    void                                 setAutoHideSessionLayer(bool hide) override;
-    bool                                 autoObserveUfeSelection() const override { return false; }
+    void setStageEntry(StageEntry const& in_entry) override;
+    bool autoHideSessionLayer() const override;
+    void setAutoHideSessionLayer(bool hide) override;
+    bool autoObserveUfeSelection() const override { return false; }
+
     UsdLayerEditor::AbstractCommandHook* commandHook() override;
     std::vector<StageEntry>              allStages() const override;
     std::vector<StageEntry>              selectedStages() const override;

@@ -59,6 +59,19 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QPushButton" name="VariantManagerButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Opens the USD Variant Manager to edit the component's variants. This button is disabled by default and enabled automatically when the stage object has a valid root layer.</string>
+     </property>
+     <property name="text">
+      <string>USD Variant Manager</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

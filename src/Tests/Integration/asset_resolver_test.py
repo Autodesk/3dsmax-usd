@@ -18,23 +18,23 @@ import maxUsd
 from pxr import Usd
 import usd_test_helpers
 from pxr import Ar
-import AdskAssetResolver
+import AdskUsdAssetResolver
 
 from pymxs import runtime as mxs
 
 import os, sys, glob
 import unittest
 
-class testAdskAssetResolver(unittest.TestCase):
+class testAdskUsdAssetResolver(unittest.TestCase):
     def setUp(self):
-        self.output_prefix = usd_test_helpers.standard_output_prefix("TEST_ADSK_ASSET_RESOLVER_")
+        self.output_prefix = usd_test_helpers.standard_output_prefix("TEST_ADSK_USD_ASSET_RESOLVER_")
         
         mxs.resetMaxFile(mxs.Name('NOPROMPT'))
         usd_test_helpers.load_usd_plugins()
 
     def testDefaultResolver(self):
         resolver = Ar.GetUnderlyingResolver()
-        self.assertTrue(isinstance(resolver, AdskAssetResolver.AdskAssetResolver))
+        self.assertTrue(isinstance(resolver, AdskUsdAssetResolver.Resolver))
 
     def testResolveWith3dsmaxTokens(self):
         current_project_folder = mxs.pathConfig.getCurrentProjectFolder()
@@ -50,7 +50,7 @@ class testAdskAssetResolver(unittest.TestCase):
 
 def run_tests():
     return unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(
-        unittest.TestLoader().loadTestsFromTestCase(testAdskAssetResolver)
+        unittest.TestLoader().loadTestsFromTestCase(testAdskUsdAssetResolver)
     )
 
 

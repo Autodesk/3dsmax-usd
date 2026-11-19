@@ -624,7 +624,7 @@ bool MeshConverter::ApplyMaxNormals(
     if (options.GetNormalMode() == MaxMeshConversionOptions::NormalsMode::AsPrimvar) {
         pxr::UsdGeomPrimvarsAPI primVarApi(mesh.GetPrim());
         primvar = std::make_unique<pxr::UsdGeomPrimvar>(primVarApi.CreatePrimvar(
-            pxr::UsdImagingTokens->primvarsNormals, pxr::SdfValueTypeNames->Float3Array));
+            pxr::UsdImagingTokens->primvarsNormals, pxr::SdfValueTypeNames->Normal3fArray));
         normalsAttr = primvar->GetAttr();
     } else {
         normalsAttr = mesh.GetNormalsAttr();

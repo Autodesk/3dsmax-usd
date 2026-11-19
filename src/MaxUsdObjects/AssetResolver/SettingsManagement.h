@@ -15,25 +15,25 @@
 
 #include <MaxUsd/Utilities/MaxSupportUtils.h> // needed before the 3ds Max version check macros
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
-#include <AssetResolverExtensions/PathDialog/PathDialog.h>
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
+#include <AdskUsdAssetResolverExtensions/AssetPathDialog/AssetPathDialog.h>
 #include <pxr/usd/usd/stage.h>
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 
 namespace AssetResolverSettingsManagement {
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 // Initialize the USD Asset Resolver Settings, must be called once at startup
 void InitializeSettings();
 
 // Saves the given USD Asset Resolver Settings
-void SaveSettings(const Adsk::AssetResolverSettings& options);
+void SaveSettings(const Adsk::UsdAssetResolver::Extensions::Settings& options);
 
 // Display the USD Preferences dialog
 void ShowDialog(
-    const Adsk::AssetResolverPathDialog::Tab& tab
-    = Adsk::AssetResolverPathDialog::Tab::GlobalSettings,
+    const Adsk::UsdAssetResolver::Extensions::AssetPathDialog::Tab& tab
+    = Adsk::UsdAssetResolver::Extensions::AssetPathDialog::Tab::GlobalSettings,
     PXR_NS::UsdStageRefPtr stage = {});
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 
 } // namespace AssetResolverSettingsManagement

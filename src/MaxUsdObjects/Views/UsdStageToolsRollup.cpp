@@ -32,11 +32,16 @@ UsdStageToolsRollup::UsdStageToolsRollup(ReferenceMaker& owner, IParamBlock2& pa
     SetParamBlock((ReferenceMaker*)&owner, (IParamBlock2*)&paramBlock);
 
     ui->setupUi(this);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     ui->PathEditorButton->show();
 #else
     ui->PathEditorButton->hide();
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    ui->VariantManagerButton->show();
+#else
+    ui->VariantManagerButton->hide();
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
     modelObj = static_cast<USDStageObject*>(&owner);
     RegisterNotification(onStageLoadStateChanged, this, NOTIFY_STAGE_LOAD_STATE_CHANGED);
 }
@@ -68,15 +73,21 @@ void UsdStageToolsRollup::UpdateUI(const TimeValue t)
     if (stage) {
         ui->ExploreButton->setEnabled(true);
         ui->LayerEditorButton->setEnabled(true);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
         ui->PathEditorButton->setEnabled(true);
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+        ui->VariantManagerButton->setEnabled(true);
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
     } else {
         ui->ExploreButton->setEnabled(false);
         ui->LayerEditorButton->setEnabled(false);
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
         ui->PathEditorButton->setEnabled(false);
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+        ui->VariantManagerButton->setEnabled(false);
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
     }
 }
 
@@ -86,7 +97,11 @@ void UsdStageToolsRollup::on_LayerEditorButton_clicked() { modelObj->OpenInUsdLa
 
 void UsdStageToolsRollup::on_PathEditorButton_clicked()
 {
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     modelObj->OpenInUsdPathEditor();
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 }
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+void UsdStageToolsRollup::on_VariantManagerButton_clicked() { modelObj->OpenInVariantManager(); }
+#endif // ADSK_COMPONENT_CREATOR_ENABLED

@@ -14,6 +14,7 @@
 // limitations under the License.
 //
 #include "IUSDImportOptions.h"
+#include <MaxUsd/resource.h>
 
 #include <USDImport/USDImport.h>
 
@@ -34,20 +35,20 @@ namespace MAXUSD_NS_DEF {
 FPInterfaceDesc IUSDImportOptionsDesc(
 	IUSDImportOptions_INTERFACE_ID, _T("IUSDImportOptions"), 0, NULL, FP_MIXIN,
 	// Functions
-	IUSDImportOptions::fnIdReset, _T("Reset"), "Reset to defaults options", TYPE_VOID, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fidSerialize, _T("Serialize"), "Serialize the options to a JSON formatted string.", TYPE_STRING, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fnIdGetTranslateMaterials, _T("Materials"), "Returns if materials should be translated", TYPE_BOOL, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fnIdSetPrimvarChannelMappingDefaults, _T("SetPrimvarChannelMappingDefaults"), "Reset to defaults primvar to channel mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fnIdSetPrimvarChannelMapping, _T("SetPrimvarChannelMapping"), "Sets a primvar to channel mapping", TYPE_VOID, FP_NO_REDRAW, 2,
+	IUSDImportOptions::fnIdReset, _T("Reset"), IDS_IMPORT_RESET, TYPE_VOID, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fidSerialize, _T("Serialize"), IDS_IMPORT_SERIALIZE, TYPE_STRING, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fnIdGetTranslateMaterials, _T("Materials"), IDS_IMPORT_TRANSLATE_MATERIALS, TYPE_BOOL, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fnIdSetPrimvarChannelMappingDefaults, _T("SetPrimvarChannelMappingDefaults"), IDS_IMPORT_DEFAULT_CHANNEL_MAPPINGS, TYPE_VOID, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fnIdSetPrimvarChannelMapping, _T("SetPrimvarChannelMapping"), IDS_IMPORT_PRIMVAR_MAPPING, TYPE_VOID, FP_NO_REDRAW, 2,
 		_T("primvar"), 0, TYPE_STRING,
 		_T("targetChannel"), 0, TYPE_VALUE,
-	IUSDImportOptions::fnIdGetPrimvarChannel, _T("GetPrimvarChannel"), "Returns the channel the given primvar should map too.", TYPE_VALUE, FP_NO_REDRAW, 1,
+	IUSDImportOptions::fnIdGetPrimvarChannel, _T("GetPrimvarChannel"), IDS_IMPORT_PRIMVAR_CHANNEL, TYPE_VALUE, FP_NO_REDRAW, 1,
 		_T("primvar"), 0, TYPE_STRING,
-	IUSDImportOptions::fnIdIsMappedPrimvar, _T("IsMappedPrimvar"), "Returns whether this primvar is mapped to a channel.", TYPE_BOOL, FP_NO_REDRAW, 1,
+	IUSDImportOptions::fnIdIsMappedPrimvar, _T("IsMappedPrimvar"), IDS_IMPORT_IS_PRIMVAR_MAPPED, TYPE_BOOL, FP_NO_REDRAW, 1,
 		_T("primvar"), 0, TYPE_STRING,
-	IUSDImportOptions::fnIdGetMappedPrimvars, _T("GetMappedPrimvars"), "Returns the list of currently mapped primvars.", TYPE_STRING_TAB_BV, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fnIdClearMappedPrimvars, _T("ClearMappedPrimvars"), "Clears all primvar to channel mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
-	IUSDImportOptions::fnIdGetAvailableChasers, _T("AvailableChasers"), "Returns an array of all available import chasers", TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0, properties,
+	IUSDImportOptions::fnIdGetMappedPrimvars, _T("GetMappedPrimvars"), IDS_IMPORT_MAPPED_PRIMVARS, TYPE_STRING_TAB_BV, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fnIdClearMappedPrimvars, _T("ClearMappedPrimvars"), IDS_IMPORT_CLEAR_MAPPING, TYPE_VOID, FP_NO_REDRAW, 0,
+	IUSDImportOptions::fnIdGetAvailableChasers, _T("AvailableChasers"), IDS_IMPORT_CHASERS, TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0, properties,
 	IUSDImportOptions::fnIdGetChaserNames, IUSDImportOptions::fnIdSetChaserNames, _T("ChaserNames"), 0, TYPE_TSTR_TAB_BV,
 	IUSDImportOptions::fnIdGetAllChaserArgs, IUSDImportOptions::fnIdSetAllChaserArgs, _T("AllChaserArgs"), 0, TYPE_VALUE,
 	IUSDImportOptions::fnIdGetContextNames, IUSDImportOptions::fnIdSetContextNames, _T("ContextNames"), 0, TYPE_TSTR_TAB_BV,
@@ -63,7 +64,8 @@ FPInterfaceDesc IUSDImportOptionsDesc(
 	IUSDImportOptions::fnIdGetUseProgressBar, IUSDImportOptions::fnIdSetUseProgressBar, _T("UseProgressBar"), 0, TYPE_BOOL, 
 	IUSDImportOptions::fnIdGetSlateMaterialHandling, IUSDImportOptions::fnIdSetSlateMaterialHandling, _T("SlateMaterialHandling"), 0, TYPE_ENUM, IUSDImportOptions::eIdSlateMaterialHandling,
 	IUSDImportOptions::fnIdGetPreferredMaterial, IUSDImportOptions::fnIdSetPreferredMaterial, _T("PreferredMaterial"), 0, TYPE_STRING,
-	IUSDImportOptions::fnIdGetShadingModes, IUSDImportOptions::fnIdSetShadingModes, _T("ShadingModes"), 0, TYPE_VALUE, enums,
+	IUSDImportOptions::fnIdGetShadingModes, IUSDImportOptions::fnIdSetShadingModes, _T("ShadingModes"), 0, TYPE_VALUE,
+    enums,
 	IUSDImportOptions::eIdTimeMode, 4,
 		_T("AllRange"), MaxSceneBuilderOptions::ImportTimeMode::AllRange,
 		_T("CustomRange"), MaxSceneBuilderOptions::ImportTimeMode::CustomRange,

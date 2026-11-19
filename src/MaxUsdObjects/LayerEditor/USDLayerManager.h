@@ -14,7 +14,10 @@
 // limitations under the License.
 //
 #pragma once
+#include <MaxUsdObjects/MaxUsdObjectsAPI.h>
 #include <MaxUsdObjects/Views/SaveUSDOptionsDialog.h>
+
+#include <UsdLayerEditor/batchSaveLayersUIDelegate.h>
 
 struct NotifyInfo;
 class USDStageObject;
@@ -32,7 +35,7 @@ enum class SaveMode
 class USDLayerManager
 {
 public:
-    static USDLayerManager* Instance();
+    static MaxUSDObjectsAPI USDLayerManager* Instance();
 
     ~USDLayerManager();
 
@@ -43,6 +46,14 @@ public:
      * @return The map of stage objects to dirty layers.
      */
     std::unordered_map<USDStageObject*, std::vector<pxr::SdfLayerHandle>> GetDirtyLayersToSave();
+
+    /**
+     * Collects the stages presented to the batch save dialog: every stage with dirty/anonymous
+     * layers, plus any unsaved component stage (whose temp root layer may itself not be dirty).
+     * De-duplicated by stage.
+     * @return The stages to offer for saving.
+     */
+    MaxUSDObjectsAPI std::vector<UsdLayerEditor::StageSavingInfo> CollectStagesToSave();
 
     /**
      * Handles the 3dsMax scene saving. Typically prompting the user for input

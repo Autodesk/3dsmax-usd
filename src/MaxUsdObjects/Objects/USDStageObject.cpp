@@ -22,8 +22,12 @@
 #include "USDTransformControllers.h"
 #include "UsdCameraObject.h"
 
-#include <MaxUsdObjects/DLLEntry.h>
 #include <MaxUsdObjects/AssetResolver/SettingsManagement.h>
+#include <MaxUsdObjects/DLLEntry.h>
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/MaxVariantEditor.h>
+#include <MaxUsdObjects/EditForward/MaxUsdEditForwardHost.h>
+#endif
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditorWindow.h>
 #include <MaxUsdObjects/LayerEditor/USDLayerManager.h>
@@ -42,6 +46,13 @@
 #include <RenderDelegate/HdMaxConsolidator.h>
 #include <RenderDelegate/HdMaxDisplayPreferences.h>
 #include <UFEUI/ReplaceSelectionCommand.h>
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <AdskUsdEditForward/Forwarder.h>
+#include <AdskUsdEditForward/Host.h>
+#include <AdskUsdEditForward/StageRuleProvider.h>
+#endif
+#include <mutex>
 
 // clang-format off
 #include <BoostPythonWrapper.h>
@@ -110,6 +121,7 @@
 #include <IPathConfigMgr.h>
 #include <QtWidgets/QtWidgets>
 #include <Rendering/IRenderMessageManager.h>
+#include <evuser.h>
 #include <iInstanceMgr.h>
 #include <iparamb2.h>
 #include <irollupsettings.h>
@@ -150,6 +162,44 @@ RotateModBoxCMode*  USDStageObject::rotateMode = nullptr;
 UScaleModBoxCMode*  USDStageObject::uScaleMode = nullptr;
 NUScaleModBoxCMode* USDStageObject::nuScaleMode = nullptr;
 SquashModBoxCMode*  USDStageObject::squashMode = nullptr;
+
+namespace {
+
+// Routes the Delete key (and the Delete menu item) to delete the selected prims while a USD
+// stage is in prim sub-object mode, via 3ds Max's "delete user" mechanism (the same one
+// editable poly/mesh use). Registered only while in prim sub-object mode, so Delete removes
+// prims there but still deletes the whole node at object level.
+class PrimDeleteEventUser : public EventUser
+{
+    void Notify() override
+    {
+        if (const auto globalSelection = Ufe::GlobalSelection::get()) {
+            const std::vector<Ufe::SceneItem::Ptr> items(
+                globalSelection->begin(), globalSelection->end());
+            MaxUsd::ufe::deleteSceneItems(items);
+        }
+    }
+};
+
+PrimDeleteEventUser gPrimDeleteEventUser;
+bool                gPrimDeleteHandlerActive = false;
+
+// Registers/unregisters the prim Delete handler, kept balanced across sub-object transitions.
+void setPrimDeleteHandlerActive(bool active)
+{
+    const auto ip = GetCOREInterface();
+    if (!ip || active == gPrimDeleteHandlerActive) {
+        return;
+    }
+    if (active) {
+        ip->RegisterDeleteUser(&gPrimDeleteEventUser);
+    } else {
+        ip->UnRegisterDeleteUser(&gPrimDeleteEventUser);
+    }
+    gPrimDeleteHandlerActive = active;
+}
+
+} // namespace
 
 void USDStageObject::USDPBAccessor::PreSet(
     PB2Value&       v,
@@ -374,34 +424,34 @@ static USDStageObject::USDPBAccessor pbAccessor;
 // clang-format off
 static FPInterfaceDesc usdStageInterface(
 	IUSDStageProvider_ID, _T("usdStageOps"), 0, GetUSDStageObjectClassDesc(), FP_MIXIN,
-	fnIdReload, _T("Reload"), "Reload the Stage's layers from disk.", TYPE_VOID, 0, 1,
+	fnIdReload, _T("Reload"), IDS_USDSTAGEOBJECT_RELOAD, TYPE_VOID, 0, 1,
             _T("quiet"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
-	fnIdClearSessionLayer, _T("ClearSessionLayer"), "Clears the session layer.", TYPE_VOID, 0, 0,
-	fnIdOpenInUsdExplorer, _T("OpenInUsdExplorer"), "Open the stage in the USD Explorer.", TYPE_VOID, 0, 0,
-	fnIdCloseInUsdExplorer, _T("CloseInUsdExplorer"), "Close the stage in the USD Explorer.", TYPE_VOID, 0, 0,
-        fnIdOpenInUsdLayerEditor, _T("OpenInUsdLayerEditor"), "Open the stage in the USD Layer Editor.", TYPE_VOID, 0, 0,
-	fnIdSetRootLayer, _T("SetRootLayer"), "Sets the USD Stage's root layer and mask", TYPE_VOID, 0, 3,
+	fnIdClearSessionLayer, _T("ClearSessionLayer"), IDS_USDSTAGEOBJECT_CLEAR_SESSION_LAYER, TYPE_VOID, 0, 0,
+	fnIdOpenInUsdExplorer, _T("OpenInUsdExplorer"), IDS_USDSTAGEOBJECT_OPEN_STAGE_USD_EXPLORER, TYPE_VOID, 0, 0,
+	fnIdCloseInUsdExplorer, _T("CloseInUsdExplorer"), IDS_USDSTAGEOBJECT_CLOSE_STAGE_USD_EXPLORER, TYPE_VOID, 0, 0,
+        fnIdOpenInUsdLayerEditor, _T("OpenInUsdLayerEditor"), IDS_USDSTAGEOBJECT_OPEN_STAGE_LAYER_EDITOR, TYPE_VOID, 0, 0,
+	fnIdSetRootLayer, _T("SetRootLayer"), IDS_USDSTAGEOBJECT_STAGE_ROOT_LAYER_AND_MASK, TYPE_VOID, 0, 3,
 		_T("rootLayer"), 0, TYPE_STRING,
 		_T("stageMask"), 0, TYPE_STRING, f_keyArgDefault, _T("/"),
 		_T("payloadsLoaded"), 0, TYPE_BOOL, f_keyArgDefault, TRUE,
-	fnIdGetUsdPreviewSurfaceMaterials, _T("GetUsdPreviewSurfaceMaterials"), "Returns the MultiMaterial carrying converted UsdPreviewSurface materials, which can be used for offline rendering if applied to the UsdStage node.", TYPE_MTL, 0, 1,
+	fnIdGetUsdPreviewSurfaceMaterials, _T("GetUsdPreviewSurfaceMaterials"), IDS_USDSTAGEOBJECT_MULTIMATERIAL, TYPE_MTL, 0, 1,
 		_T("sync"), 0, TYPE_BOOL, f_keyArgDefault, TRUE,
 
-	fnIdSetPrimvarChannelMappingDefaults, _T("SetPrimvarChannelMappingDefaults"), "Reset to defaults primvar to channel mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
-	fnIdSetPrimvarChannelMapping, _T("SetPrimvarChannelMapping"), "Sets a primvar to channel mapping", TYPE_VOID, FP_NO_REDRAW, 2,
+	fnIdSetPrimvarChannelMappingDefaults, _T("SetPrimvarChannelMappingDefaults"), IDS_USDSTAGEOBJECT_DEFAULT_CHANNEL_MAPPINGS, TYPE_VOID, FP_NO_REDRAW, 0,
+	fnIdSetPrimvarChannelMapping, _T("SetPrimvarChannelMapping"), IDS_USDSTAGEOBJECT_PRIMVAR_CHANNEL_MAPPING, TYPE_VOID, FP_NO_REDRAW, 2,
 		_T("primvar"), 0, TYPE_STRING,
 		_T("targetChannel"), 0, TYPE_VALUE,
-	fnIdGetPrimvarChannel, _T("GetPrimvarChannel"), "Returns the channel the given primvar should map too.", TYPE_VALUE, FP_NO_REDRAW, 1,
+	fnIdGetPrimvarChannel, _T("GetPrimvarChannel"), IDS_USDSTAGEOBJECT_PRIMVAR_CHANNEL, TYPE_VALUE, FP_NO_REDRAW, 1,
 		_T("primvar"), 0, TYPE_STRING,
-	fnIdIsMappedPrimvar, _T("IsMappedPrimvar"), "Returns whether this primvar is mapped to a channel.", TYPE_BOOL, FP_NO_REDRAW, 1,
+	fnIdIsMappedPrimvar, _T("IsMappedPrimvar"), IDS_USDSTAGEOBJECT_IS_PRIMVAR_CHANNEL_MAPPED, TYPE_BOOL, FP_NO_REDRAW, 1,
 		_T("primvar"), 0, TYPE_STRING,
-	fnIdGetMappedPrimvars, _T("GetMappedPrimvars"), "Returns the list of currently mapped primvars.", TYPE_STRING_TAB_BV, FP_NO_REDRAW, 0,
-	fnIdClearMappedPrimvars, _T("ClearMappedPrimvars"), "Clears all primvar to channel mappings.", TYPE_VOID, FP_NO_REDRAW, 0,
-	fnIdGenerateDrawModes, _T("GenerateDrawModes"), "Regenerate USD Draw Modes.", TYPE_VOID, 0, 0,
-	fnIdPromoteTo3dsMaxObject, _T("PromoteTo3dsMaxObject"), "Promote a USD Prim tree to a UsdGeomObject...", TYPE_VOID, 0, 2,
+	fnIdGetMappedPrimvars, _T("GetMappedPrimvars"), IDS_USDSTAGEOBJECT_MAPPED_PRIMVARS, TYPE_STRING_TAB_BV, FP_NO_REDRAW, 0,
+	fnIdClearMappedPrimvars, _T("ClearMappedPrimvars"), IDS_USDSTAGEOBJECT_CLEAR_PRIMVAR_MAPPINGS, TYPE_VOID, FP_NO_REDRAW, 0,
+	fnIdGenerateDrawModes, _T("GenerateDrawModes"), IDS_USDSTAGEOBJECT_REGENERATE_DRAW_MODES, TYPE_VOID, 0, 0,
+	fnIdPromoteTo3dsMaxObject, _T("PromoteTo3dsMaxObject"), IDS_USDSTAGEOBJECT_PROMOTE_TO_3DSMAX, TYPE_VOID, 0, 2,
 		_T("primPath"), 0, TYPE_STRING,
                 _T("select"), 0, TYPE_BOOL, f_keyArgDefault, FALSE,
-        fnIdSetStageFromCache, _T("SetStageFromCache"), "Set the stage from the global USD stage cache by using cache id.", TYPE_BOOL, 0, 1,
+        fnIdSetStageFromCache, _T("SetStageFromCache"), IDS_USDSTAGEOBJECT_STAGE_FROM_CACHE, TYPE_BOOL, 0, 1,
                 _T("cacheId"), 0, TYPE_INT,
         p_end
 );
@@ -805,7 +855,8 @@ static void NotifyNodePreDeleted(void* param, NotifyInfo* info)
     const auto deletedNode = static_cast<INode*>(info->callParam);
 #endif
     const auto usdStageObject = static_cast<USDStageObject*>(param);
-    if (!usdStageObject || !deletedNode || deletedNode->GetObjectRef() != usdStageObject) {
+    if (!usdStageObject || !deletedNode || !deletedNode->GetObjectRef()
+        || deletedNode->GetObjectRef() != usdStageObject) {
         return;
     }
 
@@ -1923,6 +1974,10 @@ void USDStageObject::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     CleanupPrimAttributeWidgets();
     this->ip = nullptr;
 
+    // Ensure the prim Delete handler is unregistered when leaving edit mode (in case we are
+    // still in sub-object mode when the object stops being edited).
+    setPrimDeleteHandlerActive(false);
+
     HdMaxDisplayPreferences::GetInstance().Save();
 }
 
@@ -1932,6 +1987,14 @@ void USDStageObject::ClearBoundingBoxCache() { boundingBoxCache.clear(); }
 
 void USDStageObject::FullStageReset()
 {
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    // Tear down edit forwarding before the stage is released (the Forwarder holds a stage ref and
+    // a LayersDidChange listener bound to it). Also drop any pending (deferred) forwards so they
+    // do not run against this torn-down stage or leak past it.
+    m_forwarder.reset();
+    MaxUsd::MaxUsdEditForwardHost::ClearPendingForwards();
+#endif
+
     pickingRenderer.reset();
 
     // If the stage is currently opened in the explorer, close it.
@@ -2136,7 +2199,7 @@ bool USDStageObject::SetStageFromCache(int cacheId)
     }
 
     // Insert the StageRestoreObj in the undo stack, to allow undoing the stage change.
-    if (!theHold.Holding()) {
+    if (!theHold.Holding() && !theHold.IsSuspended()) {
         theHold.Begin();
         theHold.Put(new StageRestoreObj(
             this, pb, currentRootLayerValue, currentStageMaskValue, rootLayer, stageMask));
@@ -2465,6 +2528,10 @@ void USDStageObject::ActivateSubobjSel(int level, XFormModes& modes)
         GetCOREInterface()->PipeSelLevelChanged();
     }
 
+    // Route the Delete key to prim deletion only while in prim sub-object mode, so it removes
+    // the selected prim(s) there, while still deleting the whole node at object level.
+    setPrimDeleteHandlerActive(level != 0);
+
     if (!(level && Ufe::GlobalSelection::get()->empty())) {
         // when switching to subobject mode, only update the rollups
         // if the user made a sub-object selection
@@ -2783,8 +2850,16 @@ void USDStageObject::PrimCloneStart(std::vector<Transformable>& transformables)
                             }
                         }
 
+                        // The spec lives in its layer's namespace, which differs from the
+                        // scene path when the prim composes through a variant or a reference
+                        // (as in a component). The property copy below authors by scene path,
+                        // so only take this shortcut when the two coincide.
+                        const auto sourcePrimSpec = primStack.front();
+                        if (sourcePrimSpec->GetPath() != sourcePrimPath) {
+                            return;
+                        }
+
                         // No children specs...
-                        auto sourcePrimSpec = layer->GetPrimAtPath(sourcePrimPath);
                         auto children = sourcePrimSpec->GetNameChildren();
                         if (!children.empty()) {
                             return;
@@ -2981,7 +3056,6 @@ void USDStageObject::TransformFinish(TimeValue t)
         }
     }
     if (!compositeCmd->cmdsList().empty()) {
-        // UndoableCommandMgr will setup a diagnostics delegate.
         Ufe::UndoableCommandMgr::instance().executeCmd(MaxUfeUndoableCommandMgr::named(
             compositeCmd,
             QApplication::translate("USDStageObject", "Change USD transform").toStdString()));
@@ -3237,7 +3311,7 @@ void USDStageObject::SetRootLayer(
         };
 
         // Insert the StageRestoreObj in the undo stack, to allow undoing the stage change.
-        if (!theHold.Holding()) {
+        if (!theHold.Holding() && !theHold.IsSuspended()) {
             theHold.Begin();
             theHold.Put(new StageRestoreObj(
                 this, pb, stageFilepathValue, stageMaskValue, rootLayer, stageMask));
@@ -3471,6 +3545,23 @@ pxr::UsdStageWeakPtr USDStageObject::SetUSDStage(const pxr::UsdStageRefPtr& from
     stageCacheId = pxr::UsdUtilsStageCache::Get().Insert(stage);
 
     StageObjectMap::GetInstance()->Set(this);
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    // Set up edit forwarding for this stage: edits authored into the session layer are forwarded
+    // to the targeted component variant. The Forwarder self-registers a LayersDidChange listener,
+    // so once constructed it forwards continuously. It is a no-op for non-component stages (no
+    // forwarding rules authored on their root layer).
+    {
+        static std::once_flag s_editForwardHostInit;
+        std::call_once(s_editForwardHostInit, []() {
+            AdskUsdEditForward::Host::SetInstance(
+                std::make_shared<MaxUsd::MaxUsdEditForwardHost>());
+        });
+        auto ruleProvider = std::make_shared<AdskUsdEditForward::StageRuleProvider>(stage);
+        m_forwarder = std::make_shared<AdskUsdEditForward::Forwarder>(
+            stage, ruleProvider, stage->GetSessionLayer());
+    }
+#endif
 
     auto sourceAnimationLength = stage->GetEndTimeCode() - stage->GetStartTimeCode();
     auto animationLength = MaxUsd::GetMaxFrameFromUsdTimeCode(stage, sourceAnimationLength);
@@ -4262,13 +4353,20 @@ void USDStageObject::CloseInUsdExplorer()
 
 void USDStageObject::OpenInUsdLayerEditor() { MaxLayerEditor::Instance()->OpenStage(this); }
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 void USDStageObject::OpenInUsdPathEditor()
 {
     AssetResolverSettingsManagement::ShowDialog(
-        Adsk::AssetResolverPathDialog::Tab::Paths, GetUSDStage());
+        Adsk::UsdAssetResolver::Extensions::AssetPathDialog::Tab::Paths, GetUSDStage());
 }
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+void USDStageObject::OpenInVariantManager()
+{
+    MaxVariantEditor::Instance()->OpenFor(GetUSDStage());
+}
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
 
 const std::string& USDStageObject::GetGuid() const { return guid; }
 

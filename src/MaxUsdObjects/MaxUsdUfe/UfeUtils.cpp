@@ -29,8 +29,8 @@
 #include <UFEUI/editCommand.h>
 #include <UFEUI/utils.h>
 
-#include <MaxUsd/Utilities/TranslationUtils.h>
 #include <MaxUsd/Utilities/DiagnosticDelegate.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 
 #include <usdUfe/ufe/Global.h>
 #include <usdUfe/undo/UsdUndoManager.h>
@@ -40,7 +40,19 @@
 #include <ufe/observableSelection.h>
 #include <ufe/pathString.h>
 #include <ufe/runTimeMgr.h>
+#include <ufe/sceneItemOps.h>
+#include <ufe/undoableCommand.h>
+#include <ufe/undoableCommandMgr.h>
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <AdskUsdComponentCreator/ComponentAPI.h>
+#include <AdskUsdComponentCreator/Descriptions/ComponentDescription.h>
+#include <AdskUsdComponentCreator/Descriptions/NestedDescription.h>
+#include <AdskUsdComponentCreator/Descriptions/VariantDescription.h>
+#include <AdskUsdComponentCreator/Descriptions/VariantSetDescription.h>
+#include <AdskUsdComponentCreator/Options/Options.h>
+#include <AdskUsdEditForward/Host.h>
+#endif
 #include <max.h>
 
 namespace MAXUSD_NS_DEF {
@@ -49,6 +61,126 @@ namespace ufe {
 static const char usdSeparator = '/';
 
 static std::unique_ptr<Diagnostics::PassiveDiagnosticDelegate> diagnosticSuppressor;
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+namespace {
+
+// DCC callbacks UsdUfe needs to treat a stage as an Adsk USD component. Without
+// these, UsdUfe::isComponentStage() is always false, so component-aware operations
+// (e.g. deleting a prim that lives inside the component's variant) fall back to the
+// generic restriction path and are rejected with "defined inside the variant
+// composition arc".
+
+AdskUsdComponentCreator::ComponentDescription::Ptr
+componentDescriptionFor(const pxr::UsdStageRefPtr& stage)
+{
+    if (!stage) {
+        return nullptr;
+    }
+    return AdskUsdComponentCreator::ComponentDescription::CreateFromStageMetadata(stage);
+}
+
+bool maxIsComponentStage(const Ufe::Path& path)
+{
+    USDStageObject* obj = getUsdStageObjectFromPath(path);
+    if (!obj) {
+        return false;
+    }
+    return componentDescriptionFor(obj->GetUSDStage()) != nullptr;
+}
+
+std::string maxGetComponentMaterialScopeName(const pxr::UsdStageRefPtr& stage)
+{
+    const auto desc = componentDescriptionFor(stage);
+    if (!desc) {
+        return {};
+    }
+    const auto options = desc->GetOptions();
+    return options ? options->MaterialsScopeName() : std::string {};
+}
+
+std::string maxGetComponentMeshScopeName(const pxr::UsdStageRefPtr& stage)
+{
+    const auto desc = componentDescriptionFor(stage);
+    if (!desc) {
+        return {};
+    }
+    const auto options = desc->GetOptions();
+    return options ? options->MeshesScopeName() : std::string {};
+}
+
+// Routes UsdUfe's edit-forwarding pause (e.g. UsdUfe::EditForwardingGuard, used while a
+// component delete strips specs directly from the variant/payload layers) to our host.
+void maxPauseEditForwarding(bool pause)
+{
+    if (const auto host = AdskUsdEditForward::Host::GetInstance()) {
+        host->PauseEditForwarding(pause);
+    }
+}
+
+// Build the {variant-set, variant} chain leading to the requested selection, recursing into
+// nested variant sets. Empty if not found.
+AdskUsdComponentCreator::VariantNesting findVariantNesting(
+    std::map<std::string, AdskUsdComponentCreator::VariantSetDescription::Ptr>& variantSets,
+    const std::string&                                                          variantSetName,
+    const std::string&                                                          variantSelection,
+    const AdskUsdComponentCreator::VariantNesting&                              parents)
+{
+    namespace cc = AdskUsdComponentCreator;
+    for (const auto& [vsName, vsDesc] : variantSets) {
+        if (!vsDesc) {
+            continue;
+        }
+        if (vsName == variantSetName && vsDesc->HasVariant(variantSelection)) {
+            cc::VariantNesting found = parents;
+            found.push_back(vsDesc);
+            found.push_back(vsDesc->GetVariantDescription(variantSelection));
+            return found;
+        }
+        for (const auto& [vName, vDesc] : vsDesc->GetVariants()) {
+            if (!vDesc) {
+                continue;
+            }
+            cc::VariantNesting deeper = parents;
+            deeper.push_back(vsDesc);
+            deeper.push_back(vDesc);
+            cc::VariantNesting result = findVariantNesting(
+                vDesc->GetSubVariantSets(), variantSetName, variantSelection, deeper);
+            if (!result.empty()) {
+                return result;
+            }
+        }
+    }
+    return {};
+}
+
+// UsdUfe routes a component's variant-selection edits here (e.g. the prim context menu) instead
+// of authoring to the edit target, which the edit-forwarding system would relocate off the
+// session layer. Apply it as a temporary session-layer selection, the same path the Variant
+// Manager uses.
+bool maxSetComponentVariantSelection(
+    const pxr::UsdStageRefPtr& stage,
+    const std::string&         variantSetName,
+    const std::string&         variantSelection)
+{
+    namespace cc = AdskUsdComponentCreator;
+    const auto desc = componentDescriptionFor(stage);
+    if (!desc) {
+        return false;
+    }
+    if (variantSelection.empty()) {
+        return cc::ComponentAPI::SetVariantTemporarySelection(desc, {}, true);
+    }
+    const cc::VariantNesting nesting
+        = findVariantNesting(desc->GetVariantSets(), variantSetName, variantSelection, {});
+    if (nesting.empty()) {
+        return false;
+    }
+    return cc::ComponentAPI::SetVariantTemporarySelection(desc, nesting, true);
+}
+
+} // namespace
+#endif
 
 void initialize()
 {
@@ -62,6 +194,15 @@ void initialize()
     functions.timeAccessorFn = MaxUsd::ufe::getTime;
     functions.saveStageLoadRulesFn = MaxUsd::ufe::saveStageLoadRules;
     functions.isRootChildFn = MaxUsd::ufe::isRootChild;
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    // Component-creator DCC hooks (see the helper block above for why).
+    functions.isComponentStageFn = maxIsComponentStage;
+    functions.getComponentMaterialScopeNameFn = maxGetComponentMaterialScopeName;
+    functions.getComponentMeshScopeNameFn = maxGetComponentMeshScopeName;
+    functions.pauseEditForwardingFn = maxPauseEditForwarding;
+    functions.setComponentVariantSelectionFn = maxSetComponentVariantSelection;
+#endif
 
     // Initialize the global UFE selection.
     Ufe::GlobalSelection::initializeInstance(std::make_shared<Ufe::ObservableSelection>());
@@ -105,6 +246,11 @@ void initialize()
     };
     UfeUi::EditCommand::initializeCreator(create);
 
+    // Provide UFEUI with the prim deletion implementation, so the explorer (which lives in
+    // the runtime-agnostic UFEUI layer) can delete prims without depending on this plugin.
+    UfeUi::Utils::SetDeleteSceneItemsFunction(
+        [](const std::vector<Ufe::SceneItem::Ptr>& items) { deleteSceneItems(items); });
+
     // Configure DPI scaling for UFE widgets.
     UfeUi::Utils::setDpiScale(double(MaxSDK::GetUIScaleFactor()));
 
@@ -123,12 +269,67 @@ void finalize()
 // Utility Functions
 //------------------------------------------------------------------------------
 //
+void deleteSceneItems(const std::vector<Ufe::SceneItem::Ptr>& items)
+{
+    if (items.empty()) {
+        return;
+    }
+
+    try {
+        // Build a (non-executed) delete command for each item. Using the generic UFE
+        // SceneItemOps keeps this runtime-agnostic; for USD it produces the same delete
+        // command as the "Remove Prim" context menu action.
+        std::list<Ufe::UndoableCommand::Ptr> deleteCmds;
+        Ufe::Path                            firstItemPath;
+        for (const auto& item : items) {
+            if (!item) {
+                continue;
+            }
+            const auto ops = Ufe::SceneItemOps::sceneItemOps(item);
+            if (!ops) {
+                continue;
+            }
+            if (const auto cmd = ops->deleteItemCmdNoExecute()) {
+                if (deleteCmds.empty()) {
+                    firstItemPath = item->path();
+                }
+                deleteCmds.push_back(cmd);
+            }
+        }
+
+        if (deleteCmds.empty()) {
+            return;
+        }
+
+        // Group all deletions in a single undo step.
+        const Ufe::UndoableCommand::Ptr deleteCmd = deleteCmds.size() == 1
+            ? deleteCmds.front()
+            : std::make_shared<Ufe::CompositeUndoableCommand>(deleteCmds);
+
+        // Wrap in an EditCommand, so the Max-specific pre/post behaviors (edit target
+        // handling, viewport redraw) run. All items are expected to belong to the same
+        // stage, so any of their paths identifies it.
+        const auto editCmd = UfeUi::EditCommand::create(firstItemPath, deleteCmd, "USD Stage Edit");
+        Ufe::UndoableCommandMgr::instance().executeCmd(editCmd);
+    } catch (const std::exception& ex) {
+        UfeUi::Utils::ReportError(ex.what());
+    }
+}
+
 pxr::UsdStageWeakPtr getStage(const Ufe::Path& path)
 {
-    const auto usdStageObject = StageObjectMap::GetInstance()->Get(path);
+    if (path.empty()) {
+        return nullptr;
+    }
+
+    // Strip the incoming path to conserve its first segment that refers to the stage.
+    const auto& stagePath = path.nbSegments() == 1 ? path : Ufe::Path(path.getSegments()[0]);
+
+    const auto usdStageObject = StageObjectMap::GetInstance()->Get(stagePath);
     if (!usdStageObject) {
         return nullptr;
     }
+
     return usdStageObject->GetUSDStage();
 }
 

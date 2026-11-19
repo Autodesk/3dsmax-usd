@@ -646,7 +646,7 @@ void UniformNormals_ToMax_Test(bool asPrimvar) {
 	if (asPrimvar)
 	{
 		auto primVarApi = pxr::UsdGeomPrimvarsAPI(usdMesh.GetPrim());
-		auto primvar = primVarApi.CreatePrimvar(pxr::UsdImagingTokens->primvarsNormals, pxr::SdfValueTypeNames->Float3Array);
+		auto primvar = primVarApi.CreatePrimvar(pxr::UsdImagingTokens->primvarsNormals, pxr::SdfValueTypeNames->Normal3fArray);
 		normalAttr = primvar.GetAttr();
 		primvar.SetInterpolation(pxr::UsdGeomTokens->uniform);
 	}

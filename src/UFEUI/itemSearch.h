@@ -17,9 +17,11 @@
 #define UFEUI_ITEM_SEARCH_H
 
 #include <ufe/hierarchy.h>
+#include <ufe/path.h>
 #include <ufe/sceneItem.h>
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace UfeUi {
@@ -39,6 +41,8 @@ struct TypeFilter
 class ItemSearch
 {
 public:
+    using ChildrenByParent = std::unordered_map<Ufe::Path, Ufe::SceneItemList>;
+
     /**
      * \brief Return the list of UFE items matching the given search filter, based on the name of the item.
      * \param sceneItem The UFE item to search from.
@@ -46,6 +50,9 @@ public:
      * \param typeFilter Type filtering config, to include or exclude items based on type name.
      * \param childFilter Ufe Hierarchy child filter, filters item when traversing the
      * hierarchy. Used by the runtime hierarchy implementation.
+     * \param outItems The list of UFE scene items matching the given search filter.
+     * \param outChildrenByParent Map from parent path to its filtered children; populated as a side-effect
+     * of traversal so callers can reuse the children without a second round of filteredChildren() calls.
      * \return The list of UFE scene items matching the given search filter.
      */
     static void findMatchingPaths(
@@ -53,7 +60,8 @@ public:
         const std::string&                 searchFilter,
         const TypeFilter&                  typeFilter,
         const Ufe::Hierarchy::ChildFilter& childFilter,
-        std::vector<Ufe::SceneItem::Ptr>&  outItems);
+        std::vector<Ufe::SceneItem::Ptr>&  outItems,
+        ChildrenByParent&                  outChildrenByParent);
 
     /**
      * \brief Check if the given string needle is contained in the given string haystack, in a case-insensitive way.

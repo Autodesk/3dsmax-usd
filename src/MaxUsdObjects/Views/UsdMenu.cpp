@@ -15,6 +15,7 @@
 //
 
 #include <MaxUsd/Utilities/MaxSupportUtils.h>
+#include <MaxUsd/Utilities/TranslationUtils.h>
 // Modern menu system available in 2025+
 #ifdef IS_MAX2025_OR_GREATER
 
@@ -22,8 +23,14 @@
 #include "UsdStageNodePrimSelectionDialog.h"
 
 #include <MaxUsdObjects/AssetResolver/SettingsManagement.h>
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/Commands/CreateComponentFromNodesCmd.h>
+#include <MaxUsdObjects/ComponentCreator/MaxVariantEditor.h>
+#include <MaxUsdObjects/ComponentCreator/UtilComponentCreator.h>
+#endif
 #include <MaxUsdObjects/LayerEditor/MaxLayerEditor.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
+#include <MaxUsdObjects/RenderSetup/SettingsManagement.h>
 #include <MaxUsdObjects/USDExplorer.h>
 
 #include <MaxUsd/Utilities/OptionUtils.h>
@@ -32,6 +39,7 @@
 
 #include <Qt/QmaxMainWindow.h>
 #include <maxscript/maxscript.h>
+#include <ufe/undoableCommandMgr.h>
 
 #include <CUI/ICuiMenu.h>
 #include <CUI/ICuiMenuManager.h>
@@ -92,13 +100,41 @@ BOOL USDMenuToolsLayerEditorActionItem::ExecuteAction()
     return TRUE;
 }
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+BOOL USDMenuToolsVariantEditorActionItem::ExecuteAction()
+{
+    MaxVariantEditor::Instance()->Open();
+    return TRUE;
+}
+
+BOOL USDMenuCreateComponentFromSelectionActionItem::ExecuteAction()
+{
+    std::vector<INode*> nodes = MaxUsd::GetSelectedNodes();
+    if (nodes.empty()) {
+        return FALSE;
+    }
+    auto cmd = std::make_shared<CreateComponentFromNodesCmd>(
+        std::move(nodes), AdskUsdComponentCreator::Options {});
+    Ufe::UndoableCommandMgr::instance().executeCmd(cmd);
+    return TRUE;
+}
+#endif
+
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 BOOL USDMenuToolsPathEditorActionItem::ExecuteAction()
 {
     AssetResolverSettingsManagement::ShowDialog();
     return TRUE;
 }
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+
+#ifdef ADSK_RENDER_SETUP_ENABLED
+BOOL USDMenuToolsRenderSetupActionItem::ExecuteAction()
+{
+    RenderSetupManagement::ShowDialog();
+    return TRUE;
+}
+#endif // ADSK_RENDER_SETUP_ENABLED
 
 void USDMenuRegisterCallback(void* param, NotifyInfo* info)
 {
@@ -122,6 +158,13 @@ void USDMenuRegisterCallback(void* param, NotifyInfo* info)
         usdMenuActionTableId,
         usdMenuCreateStageWithNewLayerActionItemId,
         _T("Stage with New Layer"));
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    createSubMenu->CreateAction(
+        kUsdMenuCreateComponentFromSelectionGUID,
+        usdMenuActionTableId,
+        usdMenuCreateComponentFromSelectionActionItemId,
+        _T("Component from Selection"));
+#endif
 
     usdMenu->CreateSeparator(kUsdMenuSeparatorToolsGUID);
 
@@ -136,14 +179,29 @@ void USDMenuRegisterCallback(void* param, NotifyInfo* info)
         usdMenuActionTableId,
         usdMenuToolsLayerEditorActionItemId,
         _T("USD Layer Editor"));
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    toolsSubMenu->CreateAction(
+        kUsdMenuToolsVariantEditorGUID,
+        usdMenuActionTableId,
+        usdMenuToolsVariantEditorActionItemId,
+        _T("USD Variant Manager"));
+#endif
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     toolsSubMenu->CreateAction(
         kUsdMenuToolsPathEditorGUID,
         usdMenuActionTableId,
         usdMenuToolsPathEditorActionItemId,
         _T("USD Path Editor"));
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+
+#ifdef ADSK_RENDER_SETUP_ENABLED
+    toolsSubMenu->CreateAction(
+        kUsdMenuToolsRenderSetupGUID,
+        usdMenuActionTableId,
+        usdMenuToolsRenderSetupActionItemId,
+        _T("USD Render Setup"));
+#endif // ADSK_RENDER_SETUP_ENABLED
 }
 
 void RegisterUSDMenuAction()
@@ -153,11 +211,18 @@ void RegisterUSDMenuAction()
 
     usdActionTable->AppendOperation(new USDMenuCreateStageFromFileActionItem {});
     usdActionTable->AppendOperation(new USDMenuCreateStageWithNewLayerActionItem {});
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    usdActionTable->AppendOperation(new USDMenuCreateComponentFromSelectionActionItem {});
+    usdActionTable->AppendOperation(new USDMenuToolsVariantEditorActionItem {});
+#endif
     usdActionTable->AppendOperation(new USDMenuToolsExplorerActionItem {});
     usdActionTable->AppendOperation(new USDMenuToolsLayerEditorActionItem {});
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
     usdActionTable->AppendOperation(new USDMenuToolsPathEditorActionItem {});
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_RENDER_SETUP_ENABLED
+    usdActionTable->AppendOperation(new USDMenuToolsRenderSetupActionItem {});
+#endif // ADSK_RENDER_SETUP_ENABLED
     IActionManager* actionManager = GetCOREInterface()->GetActionManager();
     if (actionManager) {
         actionManager->RegisterActionTable(usdActionTable);
@@ -166,10 +231,10 @@ void RegisterUSDMenuAction()
     }
 }
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 void InitializeAssetResolverSettings(void* param, NotifyInfo* info)
 {
     AssetResolverSettingsManagement::InitializeSettings();
 }
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 #endif // IS_MAX2025_OR_GREATER

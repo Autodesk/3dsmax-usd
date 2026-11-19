@@ -32,6 +32,24 @@ BEGIN
     IDS_SHORTDESCRIPTION    "USD"
     IDS_AUTHOR              "Autodesk Inc."
     IDS_COPYRIGHT           "Copyright 2019 Autodesk, Inc."
+    IDS_IMPORTER_FILE       "Import USD file with custom options."
+    IDS_IMPORTER_FROM_CACHE "Import USD stage from cache with custom options."
+    IDS_IMPORTER_MESH_TO_TRIMESH "Converts a USD mesh to a TriMesh."
+    IDS_IMPORTER_CURVE_TO_EDITABLE_SPLINE 
+                            "Converts a USD basis curve to a 3dsMax Editable Spline. If 'asBezierShape:true' is specified, then the curve will be converted to a BezierShape."
+    IDS_IMPORTER_SET_MATERIAL_PARAM 
+                            "Sets a material parameter, by name, and fast."
+    IDS_IMPORTER_SET_TEXMAP_PARAM 
+                            "Sets a texture map parameter, by name, and fast."
+    IDS_IMPORTER_DEFAULT_OPTIONS 
+                            "Create a new set of import options filled with default values"
+    IDS_IMPORTER_OPTIONS_FROM_JSON 
+                            "Creates import options from a JSON formatted string."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_IMPORTER_LOG        "Log info, warning, and error messages to USD import logs from USD import callbacks."
 END
 
 #endif    // English (United States) resources

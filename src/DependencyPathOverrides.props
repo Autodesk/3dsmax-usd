@@ -16,10 +16,18 @@
 		<!-- The path location for the 'googletest' folder
 		     (the path where the lib/bin/include folders are located) -->
 		<GoogleTestDir></GoogleTestDir>
-		<!-- Build MaxUSD with AdskAssetResolver enabled or not
-			 can be toggle with the environement variable 'ENABLE_ADSK_ASSET_RESOLVER' -->
-		<AdskAssetResolverEnabled Condition="'$(ENABLE_ADSK_ASSET_RESOLVER)' == '' or '$(ENABLE_ADSK_ASSET_RESOLVER)' == '1'">true</AdskAssetResolverEnabled>		
-		<AdskAssetResolverEnabled Condition="'$(ENABLE_ADSK_ASSET_RESOLVER)' == '0'">false</AdskAssetResolverEnabled>		
+		<!-- Build MaxUSD with AdskUsdAssetResolver enabled or not
+			 can be toggle with the environement variable 'ENABLE_ADSK_USD_ASSET_RESOLVER' -->
+		<AdskUsdAssetResolverEnabled Condition="'$(ENABLE_ADSK_USD_ASSET_RESOLVER)' == '' or '$(ENABLE_ADSK_USD_ASSET_RESOLVER)' == '1'">true</AdskUsdAssetResolverEnabled>
+		<AdskUsdAssetResolverEnabled Condition="'$(ENABLE_ADSK_USD_ASSET_RESOLVER)' == '0'">false</AdskUsdAssetResolverEnabled>		
+		<!-- Build MaxUSD with UsdRenderSetup enabled or not. Currently switched off;
+			 opt in by setting the environment variable 'ENABLE_ADSK_RENDER_SETUP' to '1' -->
+		<AdskRenderSetupEnabled Condition="'$(ENABLE_ADSK_RENDER_SETUP)' == '1'">true</AdskRenderSetupEnabled>
+		<AdskRenderSetupEnabled Condition="'$(ENABLE_ADSK_RENDER_SETUP)' != '1'">false</AdskRenderSetupEnabled>
+		<!-- Build MaxUSD with the Component Creator (and edit forwarding) enabled or not
+			 can be toggled with the environment variable 'ENABLE_ADSK_COMPONENT_CREATOR' -->
+		<AdskComponentCreatorEnabled Condition="'$(ENABLE_ADSK_COMPONENT_CREATOR)' == '' or '$(ENABLE_ADSK_COMPONENT_CREATOR)' == '1'">true</AdskComponentCreatorEnabled>
+		<AdskComponentCreatorEnabled Condition="'$(ENABLE_ADSK_COMPONENT_CREATOR)' == '0'">false</AdskComponentCreatorEnabled>
 		<!-- The path location for the 3ds Max USD 'devkit' -->
 		<MaxUsdDevKit></MaxUsdDevKit>
 		<!-- The following paths are usually found inside the 'devkit' folder.
@@ -43,8 +51,10 @@
 		<UsdLayerEditorDir></UsdLayerEditorDir>
 		<!-- The path location for the 'usdSharedComponent' folder -->
 		<UsdSharedComponentsDir></UsdSharedComponentsDir>
-		<!-- The path location for the 'AdskAssetResolver' folder -->
-		<AdskAssetResolverDir></AdskAssetResolverDir>
+		<!-- The path location for the 'AdskUsdAssetResolver' folder -->
+		<AdskUsdAssetResolverDir></AdskUsdAssetResolverDir>
+		<!-- The path location for the 'UsdRenderSetup' folder -->
+		<UsdRenderSetupDir></UsdRenderSetupDir>
 		<!-- The path location for the 'OpenUSD' folder -->
 		<PxrUsdRoot></PxrUsdRoot>
 		<!-- The following paths are usually found inside the 'OpenUSD' folder.

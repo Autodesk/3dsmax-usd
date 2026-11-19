@@ -651,17 +651,17 @@ bool USDSceneBuilder::BuildStageFromMaxNodes(
             || buildOptions.GetContentSource()
                 == USDSceneBuilderOptions::ContentSource::MaterialList;
 
-        const std::string primName
-            = pxr::TfMakeValidIdentifier(MaxUsd::MaxStringToUsdString(nodeToConvert->GetName()));
-        const std::string uniquePrimName = itemToExport.nameGenerator->GetName(primName);
-        if (primName != uniquePrimName) {
-            MaxUsd::Log::Warn(
-                L"Found node name conflict, exporting node {0} as {1} instead.",
-                nodeToConvert->GetName(),
-                MaxUsd::UsdStringToMaxString(uniquePrimName).data());
-        }
-
         if (!excludeNode) {
+            const std::string primName = pxr::TfMakeValidIdentifier(
+                MaxUsd::MaxStringToUsdString(nodeToConvert->GetName()));
+            const std::string uniquePrimName = itemToExport.nameGenerator->GetName(primName);
+            if (primName != uniquePrimName) {
+                MaxUsd::Log::Warn(
+                    L"Found node name conflict, exporting node {0} as {1} instead.",
+                    nodeToConvert->GetName(),
+                    MaxUsd::UsdStringToMaxString(uniquePrimName).data());
+            }
+
             // Preview the export of the node using the "preview" mode.
             // Just figuring out what prims would get created.
             TranslationContext translationContext {

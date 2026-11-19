@@ -113,7 +113,7 @@ class TestImportTextureTransform(unittest.TestCase):
                                             UsdGeom.Tokens.faceVarying)
         texCoords.Set([(1, 0), (1, 1), (0, 1), (0, 0), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)])
 
-        normals = UsdGeom.PrimvarsAPI(cubePrim).CreatePrimvar("normals", Sdf.ValueTypeNames.Float3Array, UsdGeom.Tokens.faceVarying)
+        normals = UsdGeom.PrimvarsAPI(cubePrim).CreatePrimvar("normals", Sdf.ValueTypeNames.Normal3fArray, UsdGeom.Tokens.faceVarying)
         normals.Set([(0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -1, 0), (0, -1, 0), (0, -1, 0), (0, -1, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0), (-1, 0, 0)])
 
         # bind the material to the cube

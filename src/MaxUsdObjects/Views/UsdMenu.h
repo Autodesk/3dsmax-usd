@@ -20,6 +20,10 @@
 // Modern menu system available in 2025+
 #ifdef IS_MAX2025_OR_GREATER
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/MaxVariantEditor.h>
+#endif
+
 #include <actiontable.h>
 #include <max.h>
 #include <strclass.h>
@@ -45,6 +49,17 @@ const MaxSDK::MaxGuid kUsdMenuToolsLayerEditorGUID { "0611d2c4-6ad5-4156-90e7-12
 inline constexpr int  usdMenuToolsLayerEditorActionItemId = 42260;
 const MaxSDK::MaxGuid kUsdMenuToolsPathEditorGUID { "547baca6-3f1d-4add-a543-e5d08eb9c9e4" };
 inline constexpr int  usdMenuToolsPathEditorActionItemId = 42261;
+
+const MaxSDK::MaxGuid kUsdMenuToolsRenderSetupGUID { "3e7a2b1f-9c4d-4e8a-b5f2-0d6c3a1e8f4b" };
+inline constexpr int  usdMenuToolsRenderSetupActionItemId = 42262;
+
+const MaxSDK::MaxGuid kUsdMenuCreateComponentFromSelectionGUID {
+    "b3e7c4a1-9f52-4d8e-b6c2-3a1e85f70d29"
+};
+inline constexpr int usdMenuCreateComponentFromSelectionActionItemId = 42263;
+
+const MaxSDK::MaxGuid kUsdMenuToolsVariantEditorGUID { "f2d8b5c3-7e41-4a9f-bc16-2e5d90a87341" };
+inline constexpr int  usdMenuToolsVariantEditorActionItemId = 42264;
 
 const MaxSDK::MaxGuid kHelpMenuId { "cee8f758-2199-411b-81e7-d3ff4a80d143" };
 
@@ -112,7 +127,39 @@ class USDMenuToolsLayerEditorActionItem : public ActionItem
     BOOL IsDynamicMenu() override { return false; }
 };
 
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+class USDMenuToolsVariantEditorActionItem : public ActionItem
+{
+    int  GetId() override { return usdMenuToolsVariantEditorActionItemId; }
+    BOOL ExecuteAction() override;
+    void GetButtonText(MSTR& buttonText) override { buttonText = _T("USD Variant Manager"); }
+    void GetMenuText(MSTR& menuText) override { GetButtonText(menuText); }
+    void GetDescriptionText(MSTR& descText) override { GetButtonText(descText); }
+    void GetCategoryText(MSTR& catText) override { catText = _T("USD"); }
+    BOOL IsChecked() override { return false; }
+    BOOL IsItemVisible() override { return true; }
+    BOOL IsEnabled() override { return true; }
+    void DeleteThis() override { delete this; }
+    BOOL IsDynamicMenu() override { return false; }
+};
+
+class USDMenuCreateComponentFromSelectionActionItem : public ActionItem
+{
+    int  GetId() override { return usdMenuCreateComponentFromSelectionActionItemId; }
+    BOOL ExecuteAction() override;
+    void GetButtonText(MSTR& buttonText) override { buttonText = _T("Component from Selection"); }
+    void GetMenuText(MSTR& menuText) override { GetButtonText(menuText); }
+    void GetDescriptionText(MSTR& descText) override { GetButtonText(descText); }
+    void GetCategoryText(MSTR& catText) override { catText = _T("USD"); }
+    BOOL IsChecked() override { return false; }
+    BOOL IsItemVisible() override { return true; }
+    BOOL IsEnabled() override { return GetCOREInterface()->GetSelNodeCount() > 0; }
+    void DeleteThis() override { delete this; }
+    BOOL IsDynamicMenu() override { return false; }
+};
+#endif
+
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 class USDMenuToolsPathEditorActionItem : public ActionItem
 {
     // ActionItem overrides
@@ -128,11 +175,29 @@ class USDMenuToolsPathEditorActionItem : public ActionItem
     void DeleteThis() override { delete this; }
     BOOL IsDynamicMenu() override { return false; }
 };
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
+
+#ifdef ADSK_RENDER_SETUP_ENABLED
+class USDMenuToolsRenderSetupActionItem : public ActionItem
+{
+    // ActionItem overrides
+    int  GetId() override { return usdMenuToolsRenderSetupActionItemId; }
+    BOOL ExecuteAction() override;
+    void GetButtonText(MSTR& buttonText) override { buttonText = _T("USD Render Setup"); }
+    void GetMenuText(MSTR& menuText) override { GetButtonText(menuText); }
+    void GetDescriptionText(MSTR& descText) override { GetButtonText(descText); }
+    void GetCategoryText(MSTR& catText) override { catText = _T("USD"); }
+    BOOL IsChecked() override { return false; }
+    BOOL IsItemVisible() override { return true; }
+    BOOL IsEnabled() override { return true; }
+    void DeleteThis() override { delete this; }
+    BOOL IsDynamicMenu() override { return false; }
+};
+#endif // ADSK_RENDER_SETUP_ENABLED
 
 void USDMenuRegisterCallback(void* param, NotifyInfo* info);
 void RegisterUSDMenuAction();
-#ifdef ADSK_ASSET_RESOLVER_ENABLED
+#ifdef ADSK_USD_ASSET_RESOLVER_ENABLED
 void InitializeAssetResolverSettings(void* param, NotifyInfo* info);
-#endif // ADSK_ASSET_RESOLVER_ENABLED
+#endif // ADSK_USD_ASSET_RESOLVER_ENABLED
 #endif // IS_MAX2025_OR_GREATER

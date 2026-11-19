@@ -57,6 +57,9 @@
     <ClCompile Include="MaxUsdObjects.Camera.test.cpp">
       <Filter>source\Tests</Filter>
     </ClCompile>
+    <ClCompile Include="MaxUsdObjects.UfeUtils.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
     <ClCompile Include="RenderDelegate.LightGizmos.cpp">
       <Filter>source\Tests</Filter>
     </ClCompile>
@@ -87,5 +90,67 @@
   <ItemGroup>
     <None Include="USD.System.test.def" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ComponentCreator.AddPrimInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="EditForward.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.AddToComponentFromNodes.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.AddToComponentFromUsdPrims.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.CreateFromNodes.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.SkinnedNodes.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.CreateFromUsdPrims.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.CreateMultiVariantsFromNodes.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.CreateMultiVariantsFromUsdPrims.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.DeleteInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.ExecuteWithUndo.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.DuplicateToComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.MaterialsInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.RenameInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.ReparentInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.StageInvariants.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.SubobjectTransformInComponent.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreator.Utils.test.cpp">
+      <Filter>source\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentCreatorTestHelpers.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClInclude Include="ComponentCreatorTestHelpers.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

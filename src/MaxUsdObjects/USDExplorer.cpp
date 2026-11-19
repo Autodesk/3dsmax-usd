@@ -21,6 +21,11 @@
 #include "MaxUsdUfe/UsdTreeColumns.h"
 #include "Objects/USDStageObject.h"
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/Commands/CreateComponentFromNodesCmd.h>
+#include <MaxUsdObjects/ComponentCreator/MaxVariantEditor.h>
+#endif
+
 #include <UFEUI/StandardTreeColumns.h>
 #include <UFEUI/Views/Explorer.h>
 #include <UFEUI/Views/ExplorerHost.h>
@@ -38,7 +43,11 @@
 #include <Qt/QmaxDockWidget.h>
 #include <ufe/hierarchy.h>
 #include <ufe/runTimeMgr.h>
+#include <ufe/undoableCommandMgr.h>
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <AdskUsdComponentCreator/Options/Options.h>
+#endif
 #include <QtWidgets/QApplication>
 #include <max.h>
 #include <qevent.h>
@@ -114,6 +123,77 @@ ContextMenuEventFilter* ContextMenuEventFilter::Instance()
     static QPointer<ContextMenuEventFilter> instance
         = new ContextMenuEventFilter(getHostDockWidget());
     return instance;
+}
+
+// Returns the USD explorer whose tree view currently has keyboard focus, or null.
+UfeUi::Explorer* FocusedStageExplorer()
+{
+    const QWidget* focusWidget = QApplication::focusWidget();
+    if (!focusWidget) {
+        return nullptr;
+    }
+    for (const auto& explorer : USDExplorer::AllStageExplorers()) {
+        if (explorer && explorer->treeView() == focusWidget) {
+            return explorer;
+        }
+    }
+    return nullptr;
+}
+
+HHOOK gDeleteKeyHook = nullptr;
+
+// 3ds Max handles the Delete key through its accelerator table (TranslateAccelerator)
+// in the main message loop. That runs before Qt delivers any key event, and before an
+// installed QAbstractNativeEventFilter is invoked - so neither a Qt event filter nor a
+// Qt native event filter can claim the key. This WH_GETMESSAGE hook runs earlier still,
+// inside GetMessage, ahead of the accelerator. When a USD explorer tree view has focus
+// it deletes the selected prim(s) (like the "Remove Prim" context menu action) and
+// neutralizes the message, so 3ds Max does not also delete the stage object's node.
+// The explorer deliberately enables Max accelerators on its tree views (see the
+// DisableMaxAcceleratorsOnFocus call in OpenStage), so all other hotkeys keep working.
+LRESULT CALLBACK DeleteKeyGetMsgProc(int code, WPARAM wParam, LPARAM lParam)
+{
+    if (code == HC_ACTION && wParam == PM_REMOVE) {
+        MSG* msg = reinterpret_cast<MSG*>(lParam);
+        if (msg && msg->message == WM_KEYDOWN && msg->wParam == VK_DELETE) {
+            // Plain Delete only - leave modified shortcuts (Ctrl/Alt/Shift+Delete) to 3ds Max.
+            const bool hasModifier = (GetKeyState(VK_CONTROL) & 0x8000)
+                || (GetKeyState(VK_MENU) & 0x8000) || (GetKeyState(VK_SHIFT) & 0x8000);
+            if (!hasModifier) {
+                if (auto* explorer = FocusedStageExplorer()) {
+                    // Defer the deletion to the event loop: running a command (which redraws
+                    // and may pump messages) from inside a message hook risks re-entrancy.
+                    // The queued call is automatically dropped if the explorer is destroyed.
+                    QMetaObject::invokeMethod(
+                        explorer,
+                        [explorer]() { explorer->deleteSelectedItems(); },
+                        Qt::QueuedConnection);
+                    // Neutralize the message so the "Delete Objects" accelerator does not fire.
+                    msg->message = WM_NULL;
+                }
+            }
+        }
+    }
+    return CallNextHookEx(gDeleteKeyHook, code, wParam, lParam);
+}
+
+// Installs the Delete-key message hook on the (main) GUI thread, once.
+void EnsureDeleteKeyHookInstalled()
+{
+    if (gDeleteKeyHook || !qApp) {
+        return;
+    }
+    gDeleteKeyHook
+        = SetWindowsHookExW(WH_GETMESSAGE, DeleteKeyGetMsgProc, nullptr, GetCurrentThreadId());
+    if (gDeleteKeyHook) {
+        // Remove the hook before the application (and this module) tears down.
+        QObject::connect(qApp, &QCoreApplication::aboutToQuit, []() {
+            if (gDeleteKeyHook) {
+                UnhookWindowsHookEx(gDeleteKeyHook);
+                gDeleteKeyHook = nullptr;
+            }
+        });
+    }
 }
 
 class USDExplorerQMaxMainWindow : public MaxSDK::QmaxMainWindow
@@ -269,6 +349,22 @@ MaxSDK::QmaxDockWidget* getHostDockWidget()
                 = MaxUsd::ufe::getUsdStageObjectFromPath(activeExplorer->rootItem()->path());
             MaxLayerEditor::Instance()->OpenStage(stageObject);
         });
+
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+        toolsMenu->addAction(QObject::tr("Variant Manager..."), []() {
+            const auto explorer = USDExplorer::Instance();
+            auto       activeExplorer = explorer->ActiveStageExplorer();
+            if (activeExplorer) {
+                auto stageObj
+                    = MaxUsd::ufe::getUsdStageObjectFromPath(activeExplorer->rootItem()->path());
+                if (stageObj) {
+                    MaxVariantEditor::Instance()->OpenFor(stageObj->GetUSDStage());
+                    return;
+                }
+            }
+            MaxVariantEditor::Instance()->Open();
+        });
+#endif
 
         return dockWidget;
     }();
@@ -438,6 +534,10 @@ void USDExplorer::OpenStage(USDStageObject* stageObject)
     for (const auto& treeView : treeViews) {
         MaxUsd::Ui::DisableMaxAcceleratorsOnFocus(treeView, false);
     }
+    // With Max accelerators enabled above, the Delete key would otherwise be handled
+    // by 3ds Max (deleting the stage object's node). Intercept it so it deletes the
+    // selected prim(s) instead when the explorer tree view has focus.
+    EnsureDeleteKeyHookInstalled();
     dock->setWindowState((dock->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     dock->raise();
 }

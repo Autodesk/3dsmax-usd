@@ -1,18 +1,17 @@
 from pymxs import runtime as mxs
 try:
     from pxr import Ar
-    import AdskAssetResolver  # type: ignore
-    import AssetResolverExtensions
+    import AdskUsdAssetResolver  # type: ignore
+    import AdskUsdAssetResolverExtensions
 except ImportError:
     # the module was not found
     # define a placeholder to support the case in a clean way
-    AdskAssetResolver = None
-
+    AdskUsdAssetResolver = None
 
 def register_ar():
-    if AdskAssetResolver:
+    if AdskUsdAssetResolver:
         # fetch all project dirs (aka from pathConfig.getProjectSubDirectoryCount/getProjectSubDirectory)
-        AdskAssetResolver.AssetResolverContextDataRegistry.RegisterContextData(AssetResolverExtensions.PROJECT_TOKENS_DATA_SET_NAME) \
+        AdskUsdAssetResolver.ContextDataRegistry.RegisterContextData(AdskUsdAssetResolverExtensions.PROJECT_TOKENS_DATA_SET_NAME) \
             .AddStaticToken("project", mxs.pathConfig.getCurrentProjectFolder()) \
             .AddStaticToken("animations", mxs.getdir(mxs.Name('animations'))) \
             .AddStaticToken("archives", mxs.getdir(mxs.Name('archives'))) \

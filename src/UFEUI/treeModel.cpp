@@ -28,6 +28,7 @@
 #include <QtGui/QPalette>
 #include <QtWidgets/QApplication>
 #include <functional>
+#include <unordered_map>
 
 namespace {
 const QString UFE_PATHS_MIME_TYPE = "application/x-ufe-paths";
@@ -54,6 +55,10 @@ bool TreeModel::hasChildren(const QModelIndex& parent) const
         return true;
     }
 
+    if (ti->childrenFetched()) {
+        return ti->childCount() > 0;
+    }
+
     const auto hierarchy = Ufe::Hierarchy::hierarchy(ti->sceneItem());
     return !hierarchy->filteredChildren(_childFilter).empty();
 }
@@ -69,24 +74,23 @@ bool TreeModel::canFetchMore(const QModelIndex& parent) const
         return false;
     }
 
+    if (item->childrenFetched()) {
+        return false;
+    }
+
     const auto hierarchy = Ufe::Hierarchy::hierarchy(item->sceneItem());
     auto       children = hierarchy->filteredChildren(_childFilter);
 
-    bool canFetchMore = !children.empty();
-    // If we are using a search filter, check if the children are in the search items paths.
-    if (_useSearchItems) {
-        canFetchMore = false;
+    if (!_useSearchItems) {
+        return !children.empty();
+    }
 
-        for (const auto& child : children) {
-            // if there is at least one child in the search items paths, we can fetch more
-            if (_searchItemsPaths.find(child->path()) != _searchItemsPaths.end()) {
-                children.push_back(child);
-                canFetchMore = true;
-                break;
-            }
+    for (const auto& child : children) {
+        if (_searchItemsPaths.count(child->path())) {
+            return true;
         }
     }
-    return canFetchMore;
+    return false;
 }
 
 void TreeModel::fetchMore(const QModelIndex& parent)
@@ -103,17 +107,18 @@ void TreeModel::fetchMore(const QModelIndex& parent)
     auto hierarchy = Ufe::Hierarchy::hierarchy(item->sceneItem());
     auto children = hierarchy->filteredChildren(_childFilter);
 
-    // If we are using a search filter, check if the children are in the search items paths.
     if (_useSearchItems) {
         children.erase(
             std::remove_if(
                 children.begin(),
                 children.end(),
                 [this](const Ufe::SceneItem::Ptr& child) {
-                    return _searchItemsPaths.find(child->path()) == _searchItemsPaths.end();
+                    return !_searchItemsPaths.count(child->path());
                 }),
             children.end());
     }
+
+    item->setChildrenFetched(true);
 
     // items have already been fetched; can leave
     if (item->childCount() == children.size()) {
@@ -502,10 +507,9 @@ void TreeModel::buildTreeFrom(
     itemIncludes.root = includeRoot;
 
     // Optimization: If the provided search filter is empty, fallback to loading the entire
-    // hierarchy under the given item. This can can happen in cases where the User already typed
+    // hierarchy under the given item. This can happen in cases where the User already typed
     // characters in the search box before pressing backspace up until all characters were removed.
-    if (searchFilter.empty()
-        && (typeFilter.names.empty() || typeFilter.mode == TypeFilter::Mode::NoFilter)) {
+    if (searchFilter.empty() && (typeFilter.names.empty() || typeFilter.mode == TypeFilter::Mode::NoFilter)) {
         buildTree(sceneItem, buildRoot, itemIncludes);
         Q_EMIT layoutChanged();
         return;
@@ -514,27 +518,107 @@ void TreeModel::buildTreeFrom(
     itemIncludes.useItemList = true;
 
     std::vector<Ufe::SceneItem::Ptr> items;
-    ItemSearch::findMatchingPaths(sceneItem, searchFilter, typeFilter, childFilter, items);
+    ItemSearch::ChildrenByParent childrenCache;
+    ItemSearch::findMatchingPaths(sceneItem, searchFilter, typeFilter, childFilter, items, childrenCache);
+
+    // Build reverse map: child path -> parent path.
+    // Lets us walk ancestor chains with O(1) lookups.
+    std::unordered_map<Ufe::Path, Ufe::Path> parentByChildPath;
+    for (const auto& [parentPath, children] : childrenCache) {
+        for (const auto& child : children) {
+            parentByChildPath[child->path()] = parentPath;
+        }
+    }
+
+    // Collect paths of all matching items and every ancestor up to the traversal root.
     for (const auto& item : items) {
-        // When walking up the ancestry chain, the root item will end up being considered once and
-        // its parent (an invalid Prim) will be selected. Since there is no point iterating up the
-        // hierarchy at this point, stop processing the current Prim and move on to the next one
-        // matching the search filter.
+        // Walk from each matching item up its ancestor chain.
+        // Stop if this path was already processed (shared ancestor chain), or
+        // when no parent exists in the cache (the traversal root is reached).
         Ufe::Path currentPath = item->path();
-        while (!currentPath.empty()) {
-            if (itemIncludes.itemPaths.find(currentPath) != itemIncludes.itemPaths.end()) {
-                // If the path is already part of the set of search results to be displayed, it is
-                // unnecessary to walk up the ancestry chain in an attempt to process further item,
-                // as it means they have already been added to the list up to the root item.
-                break;
+        while (true) {
+            if (!itemIncludes.itemPaths.insert(currentPath).second) {
+                break; // already inserted — ancestor chain already covered
             }
-            itemIncludes.itemPaths.insert(currentPath);
-            currentPath = currentPath.pop();
+            const auto it = parentByChildPath.find(currentPath);
+            if (it == parentByChildPath.end()) {
+                break; // reached the traversal root
+            }
+            currentPath = it->second;
         }
     }
 
     buildTree(sceneItem, buildRoot, itemIncludes);
+
+    // Eagerly populate all search-result children on the background thread so that expandAll()
+    // on the UI thread is a pure layout operation with no USD calls.
+    const auto rootIdx = getIndexFromPath(sceneItem->path());
+    if (rootIdx.isValid()) {
+        populateSearchResults(treeItem(rootIdx), rootIdx, childrenCache);
+    }
+
     Q_EMIT layoutChanged();
+}
+
+void TreeModel::populateSearchResults(
+    TreeItem*                           item,
+    const QModelIndex&                  parentIdx,
+    const ItemSearch::ChildrenByParent& childrenCache)
+{
+    struct PendingNode
+    {
+        TreeItem*   item;
+        QModelIndex parentIdx;
+    };
+
+    std::vector<PendingNode> stack;
+    stack.push_back({ item, parentIdx });
+
+    while (!stack.empty()) {
+        const auto current = stack.back();
+        stack.pop_back();
+
+        current.item->setChildrenFetched(true);
+
+        const auto cacheIt = childrenCache.find(current.item->sceneItem()->path());
+        if (cacheIt == childrenCache.end()) {
+            continue;
+        }
+
+        // Only include children that are part of the search result set. Collecting them
+        // upfront avoids emitting redundant row-change notifications for children that
+        // would immediately be discarded.
+        std::vector<Ufe::SceneItem::Ptr> childrenToInsert;
+        childrenToInsert.reserve(cacheIt->second.size());
+        for (const auto& child : cacheIt->second) {
+            if (_searchItemsPaths.count(child->path())) {
+                childrenToInsert.push_back(child);
+            }
+        }
+
+        if (childrenToInsert.empty()) {
+            continue;
+        }
+
+        const int startRow = static_cast<int>(current.item->childCount());
+        const int lastRow = startRow + static_cast<int>(childrenToInsert.size()) - 1;
+        beginInsertRows(current.parentIdx, startRow, lastRow);
+
+        std::vector<TreeItem*> appendedChildren;
+        appendedChildren.reserve(childrenToInsert.size());
+        for (const auto& child : childrenToInsert) {
+            appendedChildren.push_back(current.item->appendChild(child));
+        }
+        endInsertRows();
+
+        // Queue children for further population, preserving source order and
+        // depth-first traversal across the whole subtree.
+        for (int i = static_cast<int>(appendedChildren.size()) - 1; i >= 0; --i) {
+            const int childRow = startRow + i;
+            stack.push_back({ appendedChildren[static_cast<size_t>(i)],
+                index(childRow, 0, current.parentIdx) });
+        }
+    }
 }
 
 void TreeModel::buildTree(
@@ -543,8 +627,7 @@ void TreeModel::buildTree(
     ItemIncludes&              includes)
 {
     _useSearchItems = includes.useItemList;
-    if (!includes.useItemList
-        || includes.itemPaths.find(sceneItem->path()) != includes.itemPaths.end()) {
+    if (!includes.useItemList || includes.itemPaths.count(sceneItem->path())) {
         if (includes.root) {
 
             int startRow = static_cast<int>(parentItem->childCount());

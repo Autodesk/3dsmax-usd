@@ -1119,7 +1119,7 @@ void HdMaxEngine::RenderBatch()
 {
     TRACE_FUNCTION();
 
-    pxr::VtValue renderTags({});
+    pxr::VtValue renderTags;
     engine.SetTaskContextData(pxr::HdTokens->renderTags, renderTags);
 
     const pxr::HdReprSelector reprSelector = pxr::HdReprSelector(pxr::HdReprTokens->smoothHull);

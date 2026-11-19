@@ -29,6 +29,15 @@ public:
 
     ~MaxUfeUndoableCommandMgr() override;
 
+    /**
+     * \brief Prepares open USD stages for usdUfe layer undo capture.
+     *
+     * Registers edit targets with UsdUndoManager so UFE commands can record USD layer edits.
+     * Pass \p cmd when available to skip commands that already register their edit target
+     * (e.g. MaxUsdEditCommand).
+     */
+    static void trackEditTargetLayersForUndo(const Ufe::UndoableCommand::Ptr& cmd = nullptr);
+
     void executeCmd(const Ufe::UndoableCommand::Ptr& cmd) const override;
 
     /** Register an already-executed command (e.g. from UndoableCommandGuard)

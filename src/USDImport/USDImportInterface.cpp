@@ -407,40 +407,40 @@ public:
 static USDImportInterface usdImportInterface(
 	USDIMPORT_INTERFACE, _T("USDImport"), 0, GetUSDImporterDesc(), 0,
 	// Functions
-	USDImportInterface::fid_ImportFile, _T("ImportFile"), "Import USD file with custom options.", TYPE_INT, FP_NO_REDRAW, 2,
+	USDImportInterface::fid_ImportFile, _T("ImportFile"), IDS_IMPORTER_FILE, TYPE_INT, FP_NO_REDRAW, 2,
 		_T("filePath"), 0, TYPE_STRING,
 		_T("importOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
-	USDImportInterface::fid_ImportFromCache, _T("ImportFromCache"), "Import USD stage from cache with custom options.", TYPE_INT, FP_NO_REDRAW, 2,
+	USDImportInterface::fid_ImportFromCache, _T("ImportFromCache"), IDS_IMPORTER_FROM_CACHE, TYPE_INT, FP_NO_REDRAW, 2,
 		_T("stageCacheId"), 0, TYPE_INT,
 		_T("importOptions"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
 
-	USDImportInterface::fid_ConvertUsdMesh, _T("ConvertUsdMesh"), "Converts a USD mesh to a TriMesh.", TYPE_VALUE, FP_NO_REDRAW, 3,
+	USDImportInterface::fid_ConvertUsdMesh, _T("ConvertUsdMesh"), IDS_IMPORTER_MESH_TO_TRIMESH, TYPE_VALUE, FP_NO_REDRAW, 3,
 		_T("stageCacheId"), 0, TYPE_INT,
 		_T("path"), 0, TYPE_STRING,
 		_T("options"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
 
-	USDImportInterface::fid_ConvertUsdBasisCurve, _T("ConvertUsdBasisCurve"), "Converts a USD basis curve to a 3dsMax Editable Spline. If 'asBezierShape:true' is specified, then the curve will be converted to a BezierShape.", TYPE_VALUE, FP_NO_REDRAW, 4,
+	USDImportInterface::fid_ConvertUsdBasisCurve, _T("ConvertUsdBasisCurve"), IDS_IMPORTER_CURVE_TO_EDITABLE_SPLINE, TYPE_VALUE, FP_NO_REDRAW, 4,
 		_T("stageCacheId"), 0, TYPE_INT,
 		_T("path"), 0, TYPE_STRING,
 		_T("asBezierShape"), 0, TYPE_BOOL, f_keyArgDefault, false,
 		_T("options"), 0, TYPE_INTERFACE, f_keyArgDefault, NULL,
 		
-	USDImportInterface::fid_SetMaterialParamByName, _T("SetMaterialParamByName"), "Sets a material parameter, by name, and fast.", TYPE_VOID, FP_NO_REDRAW, 3,
+	USDImportInterface::fid_SetMaterialParamByName, _T("SetMaterialParamByName"), IDS_IMPORTER_SET_MATERIAL_PARAM, TYPE_VOID, FP_NO_REDRAW, 3,
 		_T("material"), 0, TYPE_MTL,
 		_T("paramName"), 0, TYPE_STRING,
 		_T("value"), 0, TYPE_VALUE,
 
-	USDImportInterface::fid_SetTexmapParamByName, _T("SetTexmapParamByName"), "Sets a texture map parameter, by name, and fast.", TYPE_VOID, FP_NO_REDRAW, 3,
+	USDImportInterface::fid_SetTexmapParamByName, _T("SetTexmapParamByName"), IDS_IMPORTER_SET_TEXMAP_PARAM, TYPE_VOID, FP_NO_REDRAW, 3,
 		_T("texmap"), 0, TYPE_TEXMAP,
 		_T("paramName"), 0, TYPE_STRING,
 		_T("value"), 0, TYPE_VALUE,
 			
-	USDImportInterface::fid_CreateOptions, _T("CreateOptions"), "Create a new set of import options filled with default values", TYPE_INTERFACE, FP_NO_REDRAW, 0,
+	USDImportInterface::fid_CreateOptions, _T("CreateOptions"), IDS_IMPORTER_DEFAULT_OPTIONS, TYPE_INTERFACE, FP_NO_REDRAW, 0,
 
-	USDImportInterface::fid_CreateOptionsFromJsonString, _T("CreateOptionsFromJson"), "Creates import options from a JSON formatted string.", TYPE_INTERFACE, FP_NO_REDRAW, 1,
+	USDImportInterface::fid_CreateOptionsFromJsonString, _T("CreateOptionsFromJson"), IDS_IMPORTER_OPTIONS_FROM_JSON, TYPE_INTERFACE, FP_NO_REDRAW, 1,
 		_T("jsonString"), 0, TYPE_STRING,
 
-	USDImportInterface::fid_Log, _T("Log"), "Log info, warning, and error messages to USD import logs from USD import callbacks.", TYPE_VOID, FP_NO_REDRAW, 2,
+	USDImportInterface::fid_Log, _T("Log"), IDS_IMPORTER_LOG, TYPE_VOID, FP_NO_REDRAW, 2,
 		_T("logLevel"), 0, TYPE_ENUM, USDImportInterface::eid_LogLevel,
 		_T("message"), 0, TYPE_STRING, properties,
 	properties, 

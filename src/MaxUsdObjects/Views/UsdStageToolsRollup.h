@@ -44,6 +44,9 @@ public Q_SLOTS:
     void on_ExploreButton_clicked();
     void on_LayerEditorButton_clicked();
     void on_PathEditorButton_clicked();
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+    void on_VariantManagerButton_clicked();
+#endif // ADSK_COMPONENT_CREATOR_ENABLED
 
 private:
     /// Model ParamBlock pointer

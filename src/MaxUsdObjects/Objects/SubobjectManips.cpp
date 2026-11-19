@@ -176,6 +176,13 @@ Ufe::UndoableCommand::Ptr XformableManip::BuildTransformCmd() const
         if (mode == UfeUI::GenericCommand::Mode::kUndo) {
             op.Set(initialMatrix);
         } else if (mode == UfeUI::GenericCommand::Mode::kRedo) {
+            // The interactive drag already authored newTransform, so setting it again is not a
+            // change and edit forwarding, which runs off layer change notices, would never fire.
+            // Re-authoring the drag-start value first makes it a real transition; the change block
+            // collapses the pair into a single notice, so exactly one forward runs, on the final
+            // value.
+            pxr::SdfChangeBlock cb;
+            op.Set(initialMatrix);
             op.Set(newTransform);
         }
     };

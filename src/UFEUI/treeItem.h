@@ -116,6 +116,16 @@ public:
      */
     UFEUIAPI void clearStateCache();
 
+    /**
+     * \brief Returns whether the item's children have been fully loaded into the model.
+     */
+    UFEUIAPI bool childrenFetched() const;
+
+    /**
+     * \brief Marks the item's children as fully loaded (or not).
+     */
+    UFEUIAPI void setChildrenFetched(bool fetched);
+
 private:
     /**
      * \brief Sets the parent of the item. Usually called when the item is added as a new child
@@ -137,6 +147,7 @@ private:
     Ufe::SceneItem::Ptr        _item;
     TreeModel*                 _model;
     size_t                     _uniqueId;
+    bool                       _childrenFetched = false;
 
     enum class VisStateCache
     {

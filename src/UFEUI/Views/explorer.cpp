@@ -714,7 +714,9 @@ void Explorer::onSearchFilterChanged(const QString& searchFilter)
                 }
             } else {
                 // While searching, expand all.
+                _ui->treeView->setUpdatesEnabled(false);
                 _ui->treeView->expandAll();
+                _ui->treeView->setUpdatesEnabled(true);
             }
 
             if (rootWasHidden) {
@@ -1079,6 +1081,30 @@ void Explorer::onCustomContextMenuRequested(const QPoint& pos)
     const auto menu = new QExplorerTreeViewContextMenu(nullptr, this);
     buildContextMenu(contextOps, menu, {});
     menu->exec(_ui->treeView->viewport()->mapToGlobal(pos));
+}
+
+void Explorer::deleteSelectedItems()
+{
+    if (!_pickMode.expired()) {
+        return;
+    }
+
+    const auto selectionModel = _ui->treeView->selectionModel();
+    if (!selectionModel) {
+        return;
+    }
+
+    // Gather the scene items backing the current tree selection. Only the first column
+    // carries the scene item.
+    std::vector<Ufe::SceneItem::Ptr> items;
+    for (const auto& proxyIndex : selectionModel->selectedRows(0)) {
+        const auto treeItem = _treeModel->treeItem(_proxyModel->mapToSource(proxyIndex));
+        if (treeItem && treeItem->sceneItem()) {
+            items.push_back(treeItem->sceneItem());
+        }
+    }
+
+    Utils::deleteSceneItems(items);
 }
 
 void Explorer::expandToSelection(const QItemSelection& selection)

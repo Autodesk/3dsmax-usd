@@ -22,6 +22,8 @@
 #include <ufe/path.h>
 #include <ufe/sceneItem.h>
 
+#include <vector>
+
 class USDStageObject;
 
 namespace MAXUSD_NS_DEF {
@@ -34,6 +36,7 @@ void initialize();
 void finalize();
 
 //! Get USD stage corresponding to argument UFE path.
+//! Prim paths are stripped down so the stage can be resolved.
 MaxUSDObjectsAPI pxr::UsdStageWeakPtr getStage(const Ufe::Path& path);
 
 //! Get the full UFE path for a stage (with two segments, a 3dsMax segment a and USD segment).
@@ -72,6 +75,11 @@ MaxUSDObjectsAPI void saveStageLoadRules(const PXR_NS::UsdStageRefPtr&);
 //! Max specific implementation for UsdUfe::DCCFunctions::isRootChildFn. Returns true
 //! if a single segment, which means we are at the stage object path / pseudo-root.
 MaxUSDObjectsAPI bool isRootChild(const Ufe::Path&);
+
+//! Deletes the given scene items, grouping all deletions in a single undo step (like the
+//! "Remove Prim" context menu action). Registered with UFEUI (SetDeleteSceneItemsFunction)
+//! so the explorer can trigger it, and called directly for prim sub-object deletion.
+MaxUSDObjectsAPI void deleteSceneItems(const std::vector<Ufe::SceneItem::Ptr>& items);
 
 } // namespace ufe
 } // namespace MAXUSD_NS_DEF

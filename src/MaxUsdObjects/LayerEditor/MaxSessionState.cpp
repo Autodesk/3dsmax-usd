@@ -16,6 +16,9 @@
 
 #include "MaxSessionState.h"
 
+#ifdef ADSK_COMPONENT_CREATOR_ENABLED
+#include <MaxUsdObjects/ComponentCreator/UtilComponentCreator.h>
+#endif
 #include <MaxUsdObjects/MaxUsdUfe/StageObjectMap.h>
 #include <MaxUsdObjects/MaxUsdUfe/UfeUtils.h>
 #include <MaxUsdObjects/Objects/USDStageObject.h>
@@ -240,7 +243,8 @@ void MaxSessionState::onSceneNodesChanged(void* param, NotifyInfo* info)
 #else
     const auto addedNode = static_cast<INode*>(info->callParam);
 #endif
-    if (addedNode && addedNode->GetObjectRef()->ClassID() == USDSTAGEOBJECT_CLASS_ID) {
+    if (addedNode && addedNode->GetObjectRef()
+        && addedNode->GetObjectRef()->ClassID() == USDSTAGEOBJECT_CLASS_ID) {
         QTimer::singleShot(0, [session]() { session->stageListChangedSignal(); });
     }
 }

@@ -20,6 +20,7 @@
 
 #include <ufe/hierarchy.h>
 #include <ufe/path.h>
+#include <ufe/sceneItem.h>
 #include <ufe/selection.h>
 
 #include <QtGui/QColor>
@@ -170,7 +171,22 @@ UFEUIAPI void SetErrorFunction(const std::function<void(std::string)>& errorFn);
  * \brief Call the callback function set from "SetErrorFunction" in order to report an error.
  * @param error Error string to report.
  */
-void ReportError(const std::string& error);
+UFEUIAPI void ReportError(const std::string& error);
+
+/**
+ * \brief Sets the function used to delete scene items. The implementation is provided by
+ * the DCC (it knows how to build/execute the delete commands), keeping UFEUI decoupled.
+ * \param deleteFn Function that deletes the given scene items.
+ */
+UFEUIAPI void
+SetDeleteSceneItemsFunction(const std::function<void(const std::vector<Ufe::SceneItem::Ptr>&)>& deleteFn);
+
+/**
+ * \brief Deletes the given scene items by calling the function set via
+ * SetDeleteSceneItemsFunction. No-op if no function has been set.
+ * \param items The scene items to delete.
+ */
+void deleteSceneItems(const std::vector<Ufe::SceneItem::Ptr>& items);
 
 } // namespace Utils
 } // namespace UfeUi
